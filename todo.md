@@ -5681,3 +5681,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/alert-savings.ts` / `lib/deal-score.ts` / `lib/product-insights.ts` / `lib/price-average.ts` / `lib/alert-suggestions.ts`:** all filter to in-stock history, guard NaN/non-finite, and use `bestPricePoints` (minimum) where a like-for-like comparison is needed.
 - [x] **`lib/settings-privacy.ts` / `lib/backup-files.ts`:** the BYO-LLM key is stripped from outbound settings and never adopted on inbound merge; file export/import handles web and native.
 - [x] No code change; tree unchanged from Phase 741 (`tsc 0`, lint 0 errors / 157 warnings, `2641 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 743: Storage context/adapter audit (clean)
+
+- [x] **`lib/storage/context.ts`:** `enqueue` serializes read-modify-write per key and drops writes during a wipe (`clearing`); suppressed changes are buffered and replayed (skipping sync-applied keys); `readList` quarantines corrupt/non-array payloads (capped per key, indexed for wipes) instead of returning `[]` and letting the next write destroy data; observers are isolated so a throwing listener can't reject the caller's write.
+- [x] **`lib/storage/idb-adapter.ts`:** distinguishes "IDB unavailable" (fall back) from "operation failed" (surface); waits for the transaction commit on writes so a commit-time abort isn't a silent lost write.
+- [x] **`lib/storage/adapter.ts`:** history caps documented.
+- [x] No code change; tree unchanged from Phase 742 (`tsc 0`, lint 0 errors / 157 warnings, `2641 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
