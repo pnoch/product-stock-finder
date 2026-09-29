@@ -5446,3 +5446,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`pnpm db:push` against a fresh database** generates and applies every migration successfully.
 - [x] **Verified the migrated schema:** 20 app tables + `__drizzle_migrations`, and the Phase-596 `users.credentialsChangedAt` column is present — the migration chain is complete and applies cleanly from scratch (so CI's DB tests run against the real schema).
 - [x] No code change; tree unchanged from Phase 706 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 708: Test setup audit (clean)
+
+- [x] **Root `tests/setup.ts`** sets `__DEV__ = true` so `shared/src/log.ts`'s guard and any dev-only branch behave as in development.
+- [x] **Desktop `tests/setup.ts`** adds jest-dom matchers, the same `__DEV__` global (with a comment explaining why the vite `define` doesn't reliably reach `../lib/*` under vitest), `matchMedia`, a `ResizeObserver` mock that reports a fixed size (so Recharts' `ResponsiveContainer` renders in jsdom), and the Tauri `__TAURI_INTERNALS__`/`__TAURI_EVENT_PLUGIN_INTERNALS__` stubs so pages calling `invoke()`/`listen()` don't throw.
+- [x] No code change; tree unchanged from Phase 707 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
