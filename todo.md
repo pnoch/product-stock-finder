@@ -6386,3 +6386,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `docs/store-listing.md` (the live Play Store / App Store submission copy) said "25 electronics distributors" / "25 global electronics distributors" in both the short and full descriptions — the store listing would advertise the wrong number.
 - [x] **Fix:** corrected both to 30 (short description is 78 chars, within the 80-char Play Store limit). Extended `tests/agents-doc-drift.test.ts` to pin the store-listing distributor count and the 80-char short-description cap. Proven non-vacuous: reverting fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2675 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 840: Timezone/DST audit (clean)
+
+- [x] **`lib/quiet-hours.ts`:** `utcOffsetMinutes` (client `Date.getTimezoneOffset()` semantics) evaluates the window in the user's local time (`(utc - offset) mod 1440`); wrap-around windows (`start > end`) handled; `start === end` treated as no window.
+- [x] **`lib/price-digest.ts`:** the weekly gate compares **calendar days** (`setHours(0,0,0,0)` + `Math.round`), not elapsed 24h periods, so a DST week (167/169h) can't skip or double-fire; an invalid `lastDigestAt` still respects the day gate.
+- [x] **`lib/drop-calendar.ts` / `lib/scrapers/health.ts`:** day keys use calendar-date arithmetic (`setDate`) and local `getFullYear/getMonth/getDate`, so a 23h spring-forward day can't be skipped.
+- [x] **`lib/notifications.ts`:** reminders use a DATE trigger with the actual `Date` object (the OS fires in local time); the Android channel is on the trigger, not `content`.
+- [x] **End-to-end:** the client sends its offset (`server-notifications.ts`), the server mapper preserves it, and `evaluate.ts`/`digest.ts` use it for every quiet-hours check.
+- [x] No code change; tree unchanged from Phase 839 (`tsc 0`, lint 0 errors / 157 warnings, `2675 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
