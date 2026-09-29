@@ -5333,3 +5333,13 @@ Checked whether each mobile fix from this session has a desktop counterpart, and
 - [x] **Fix:** the refresh now passes a fetch wrapper adding `Authorization: Bearer <sessionToken>` (from `Auth.getSessionToken()`), matching `lib/_core/api.ts`'s `apiCall`.
 - [x] **Tests:** a source guard in `tests/screen-fixes-source-guards.test.ts` (non-vacuous — removing the header fails it) and the existing parity test's assertion updated to the new form.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2615 passed` (27 skipped without a DB); desktop `285 passed`.
+
+## Phase 695: Remaining screens + privacy-policy accuracy audit (clean)
+
+- [x] **`app/dev/theme-lab.tsx`** is a documented stub; **`app/product/_components.tsx`** is 7 lines; **`app/privacy.tsx`** is static text. No logic to audit.
+- [x] **Verified the privacy policy's claims against the code** (a stale policy is a compliance issue):
+  - "delete your account … removes your synced watchlist, alerts, reminders, settings, and device records" — the delete-account feature exists (`/api/auth/delete-account` → `deleteUserById`), and the deletion is comprehensive: FK cascades cover `watchlist_items`, `price_alerts`, `back_order_reminders`, `app_settings`, `device_notification_configs`, `notification_events`, `device_push_tokens`, `password_reset_tokens`, and `shared_watchlists`; the non-FK tables (`device_labels`, `revoked_devices`) are cleaned explicitly.
+  - "a hashed password (never the password itself)" — passwords are bcrypt-hashed; the raw value is never stored or returned (`auth.me` never returns the raw user row).
+  - "we do not send your watchlist or account details to those sites — only the product model being looked up" — scrapers fetch by model number only.
+  - "we do not use third-party advertising or tracking SDKs" — no analytics/tracking dependency in `package.json`.
+- [x] No code change; tree unchanged from Phase 694 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
