@@ -6022,3 +6022,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `app/compare/[id].tsx`: `selectionInitialized`/`lastAppliedDistributor` refs + latching.
   - `app/health.tsx`: `isMountedRef` for the interactive path; the one-shot mount load is benign (runs once, ref starts true).
 - [x] No code change; tree unchanged from Phase 791 (`tsc 0`, lint 0 errors / 157 warnings, `2652 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 793: Re-discovering a product created a duplicate watchlist entry
+
+- [x] **Gap found:** the server mints a fresh `discovered-<timestamp>` id on every discovery, and `addDiscoveredProduct` deduped the *stored catalog* by brand|model (keeping the original id) — but returned `void`, so `discoverProduct` returned the **fresh** time-based id. The search screen then called `addToWatchlist`, which dedups by **id**, so re-discovering the same product added a **second watchlist entry** (verified: 2 entries for one product). Affected mobile and desktop (both add `res.product`).
+- [x] **Fix:** `addDiscoveredProduct` now returns the canonical stored product (existing id when deduped); `discoverProduct` returns that. Added a non-vacuous guard to `tests/discovery-storage.test.ts` and updated the `llm-discovery` mock to return the product. Proven non-vacuous: reverting fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2653 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 71, clippy 0, fmt clean.

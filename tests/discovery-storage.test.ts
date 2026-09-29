@@ -83,6 +83,19 @@ describe("discovery storage", () => {
     expect(products[0]!.id).toBe("test-product-1");
   });
 
+  it("returns the canonical product so a re-discovery dedups on add", async () => {
+    // The caller adds the returned product to the watchlist, which dedups by
+    // id. Returning the fresh time-based id made a re-discovery add a SECOND
+    // watchlist entry for a product already tracked.
+    const first = await addDiscoveredProduct(mockProduct);
+    const second = await addDiscoveredProduct({
+      ...mockProduct,
+      id: "discovered-999999",
+    });
+    expect(first.id).toBe("test-product-1");
+    expect(second.id).toBe("test-product-1");
+  });
+
   it("deduplicates by product id", async () => {
     await addDiscoveredProduct(mockProduct);
     await addDiscoveredProduct(mockProduct);

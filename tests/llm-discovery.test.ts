@@ -106,6 +106,7 @@ describe("discoverProduct", () => {
     const fakeStore = {
       addDiscoveredProduct: async (p: unknown) => {
         added.push(p);
+        return p;
       },
       addDiscoveredDistributor: async (d: unknown) => {
         distributors.push(d);

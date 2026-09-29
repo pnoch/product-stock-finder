@@ -170,10 +170,12 @@ export async function discoverProduct(
     shippingCosts: r.shippingCosts ?? {},
   }));
 
-  await persist.addDiscoveredProduct(product);
+  // Use the canonical stored product: a re-discovery returns the existing id
+  // so the caller's addToWatchlist dedups instead of creating a duplicate.
+  const canonical = await persist.addDiscoveredProduct(product);
   for (const retailer of retailers) {
     await persist.addDiscoveredDistributor(retailer);
   }
 
-  return { product, retailers };
+  return { product: canonical, retailers };
 }

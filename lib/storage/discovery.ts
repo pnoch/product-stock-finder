@@ -34,10 +34,16 @@ export function createDiscoveryStorage(ctx: StorageContext) {
     return `${(p.brand ?? "").trim().toLowerCase()}|${model}`;
   }
 
-  async function addDiscoveredProduct(product: Product): Promise<void> {
-    await enqueue(KEYS.DISCOVERED_PRODUCTS, async () => {
+  // Returns the canonical stored product. The server mints a fresh
+  // `discovered-<timestamp>` id on every discovery, so a re-discovery of the
+  // same product must return the EXISTING id — otherwise the caller adds a
+  // second watchlist entry for a product it already tracks (the watchlist
+  // dedups by id, not by model).
+  async function addDiscoveredProduct(product: Product): Promise<Product> {
+    return enqueue(KEYS.DISCOVERED_PRODUCTS, async () => {
       const existing = await getDiscoveredProducts();
-      if (existing.some((p) => p.id === product.id)) return;
+      const sameId = existing.find((p) => p.id === product.id);
+      if (sameId) return sameId;
       const identity = productIdentity(product);
       const idx = identity
         ? existing.findIndex((p) => productIdentity(p) === identity)
@@ -45,10 +51,11 @@ export function createDiscoveryStorage(ctx: StorageContext) {
       if (idx >= 0) {
         // Same product: refresh in place, keeping the original id so existing
         // links keep working.
+        const canonical = { ...product, id: existing[idx]!.id };
         const next = [...existing];
-        next[idx] = { ...product, id: existing[idx]!.id };
+        next[idx] = canonical;
         await persistDiscoveredProducts(next);
-        return;
+        return canonical;
       }
       const next = [...existing, product];
       await persistDiscoveredProducts(
@@ -56,6 +63,7 @@ export function createDiscoveryStorage(ctx: StorageContext) {
           ? next.slice(next.length - MAX_DISCOVERED_PRODUCTS)
           : next,
       );
+      return product;
     });
   }
 
