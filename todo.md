@@ -6000,3 +6000,15 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Critical paths distinguish correctly: `parseBackup` → `null` is the documented contract; `itemBytes` → `Infinity` fails safe (forces a trim); the token-consume paths (Phase 594) only fall back to memory when the DB row is **absent** (a used/expired row stays rejected); `registerSecurityHeaders` ignores a malformed API base (client falls back to same-origin).
 - [x] Storage `enqueue` drops writes only during a wipe (their data is being removed anyway) and isolates throwing observers.
 - [x] No code change; tree unchanged from Phase 789 (`tsc 0`, lint 0 errors / 157 warnings, `2652 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 791: Unbounded-growth audit (clean)
+
+- [x] Reviewed every module-level `Map`/`Set` and long-lived cache. All are bounded or purged:
+  - `server/rate-limit.ts` buckets: LRU-capped at 10k.
+  - `server/notifications/memory-store.ts`: `memoryEvents`/`memoryDeliveries` purged by `purgeOldNotificationEvents`; `digestBuffers` cleared on unbind and consumed on flush.
+  - `server/db.ts` `memTokens`/`memVerifyTokens`: purged by `purgeExpiredAuthTokens`.
+  - `server/_core/oauth.ts` `usedStateNonces`/`oauthTickets`: `pruneExpiring`/`pruneTickets` (time + 1000 cap).
+  - `lib/scrapers/browser.ts` pool: capped at 3.
+  - `server/prices.ts` `catalogWarmAttempts`/`imageGenerationAttempts`: bounded by the fixed catalog size.
+  - `lib/scrapers/resilient.ts` `inFlight`/`breakerQueues`: deleted on settle.
+- [x] No code change; tree unchanged from Phase 790 (`tsc 0`, lint 0 errors / 157 warnings, `2652 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
