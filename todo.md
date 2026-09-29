@@ -5614,3 +5614,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Headerless detailed/summary parsing:** a first product named `#1 Router` now parses (the Phase-731 fix covers both paths).
 - [x] **`escapeCsv`:** neutralizes `= + - @ \t \r` formula injection (guarded by `tests/csv-injection.test.ts`); RFC-4180 tokenizer handles quoted commas/newlines (`tests/csv-quoted-newline.test.ts`).
 - [x] No code change; tree unchanged from Phase 731 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 733: Shared-watchlist audit (clean)
+
+- [x] **Server (`sharedWatchlists.get`):** public endpoint with dual rate limiting (per-IP + per-token), expiry enforcement (deletes the row), `membersOnly` gating (token alone insufficient), a payload cap (`SHARED_WATCHLIST_MAX_ITEMS + 1` to detect truncation), and SQL-level tombstone filtering.
+- [x] **`create`:** `randomUUID()` tokens (122-bit entropy) with a duplicate-key retry; 30-day expiry; `isDuplicateKeyError` unwraps the Drizzle error (Phase 594).
+- [x] **Client (`lib/watchlist-share.ts`, `app/w/[token].tsx`):** builds the share message/summary; the screen handles join/leave, expiry, and CSV export.
+- [x] No code change; tree unchanged from Phase 732 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
