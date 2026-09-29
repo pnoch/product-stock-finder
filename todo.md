@@ -5391,3 +5391,11 @@ Reviewed the components with effects/state in the two largest groups.
 - [x] **`edit-product-sheet`:** `canSave` includes `!saving` (in-flight guard), validates name/modelNumber, and on a storage failure shows an alert **without** closing the sheet as if the edit succeeded. Correct.
 - [x] **`price-alert-modal`:** no async effect; the price input is validated by the caller. Correct.
 - [x] No code change; tree unchanged from Phase 699 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
+
+## Phase 701: Mobile alerts/compare/settings components audit (clean)
+
+- [x] **`compare/multi-line-chart`:** guards every NaN/empty case — `allPrices.length === 0` and `allDates.length === 0` early returns, `Number.isFinite`/`Number.isNaN` per point, `dateRange || 1` (divide-by-zero), and an `isFlat` branch for an all-equal series.
+- [x] **`compare/cheapest-region-card`:** the pulse animation has an `anim.stop()` cleanup, and the memo passes the live-rate converter so it agrees with the prices beside it.
+- [x] **`settings/llm-settings-section`:** three debounced autosaves (API key, model, Ollama URL), each with a `clearTimeout` cleanup and a no-op guard when unchanged; the key is masked behind a show/hide toggle.
+- [x] **`alerts/*`:** no async effects (pure cards/modals).
+- [x] No code change; tree unchanged from Phase 700 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
