@@ -6478,3 +6478,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`resilientFetch`:** single-flight per `(breaker-store, parser, url)` with `.finally` cleanup; a cooldown returns `skipped`; tries the other method after a block (a browser block ≠ a plain block); records success/blocked/error with the correct cooldown (30min block growth, 15min at the failure threshold).
 - [x] **`fetchAndParse`:** resolves a relative `resolveProductUrl` href against the search URL (fetch/Playwright reject relative URLs), falls back to the search page when the second hop fails, and threads the model through `parsePrice`.
 - [x] No code change; tree unchanged from Phase 850 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 852: FX history/Rates audit (clean)
+
+- [x] **`appendFxHistory`:** enforces the rate-array-length == timestamps-length invariant (pads with null, throws if it can't), handles a duplicate timestamp (replaces the last point) and a code absent from the incoming batch (appends null). Fuzzed 200 appends with random codes/duplicate timestamps — invariant held.
+- [x] **`sliceFxHistoryByRange` / `getFxWindowChange`:** anchor is `min(now, max(ts))` (clock-skew safe); filters nulls before computing the first/last change; guards a zero baseline. Fuzzed 10k histories — always finite or null.
+- [x] **Rates screen:** generation guard (the mount effect fires `loadData` twice, so an earlier read could land last), fallback to static `EXCHANGE_RATES` for a missing/non-finite rate.
+- [x] **Desktop** imports the shared `lib/fx-history.ts` (no duplication).
+- [x] No code change; tree unchanged from Phase 851 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
