@@ -6263,3 +6263,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - Server healthy after the barrage.
 - [x] Two apparent failures were **test artifacts**, not bugs: `sync.pull` is paged (my first pull didn't drain) and `sync.push` is rate-limited to **30/min per IP** — the 30-push burst 429'd the follow-up requests, and the 10th concurrent login hit the login throttle (correct behavior). A corrected test under the limit passed 6/6.
 - [x] No code change; tree unchanged from Phase 822 (`tsc 0`, lint 0 errors / 157 warnings, `2665 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 824: Schema/migration-drift audit (clean)
+
+- [x] `drizzle-kit generate` reports **"No schema changes, nothing to migrate"** — `schema.ts` and the migration set are in sync.
+- [x] The migration journal and SQL files are consistent: 29 journal entries ↔ 29 `.sql` files, no missing or orphaned files.
+- [x] Verified the **applied** DB schema matches `schema.ts` for all 20 tables (a direct `SHOW COLUMNS` check; five initial "missing column" hits were a regex bleed across table blocks, confirmed false by direct inspection).
+- [x] No code change; tree unchanged from Phase 823 (`tsc 0`, lint 0 errors / 157 warnings, `2665 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
