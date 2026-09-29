@@ -41,8 +41,14 @@ describe("backfillLocalHistory", () => {
 
   it("caps points to MAX_UPLOAD_HISTORY_POINTS, keeping the newest", async () => {
     const client = makeClient();
+    // Strictly ascending dates, so "newest" is unambiguous. The previous data
+    // cycled the day-of-month, which made positional order differ from
+    // chronological order and asserted the buggy `slice(-N)` result.
     const history = Array.from({ length: 250 }, (_, i) =>
-      point(`2026-01-${String((i % 28) + 1).padStart(2, "0")}T00:00:00.000Z`, i + 1),
+      point(
+        new Date(Date.UTC(2026, 0, 1) + i * 86_400_000).toISOString(),
+        i + 1,
+      ),
     );
     await backfillLocalHistory(client, [
       product("A", [{ distributorId: "d1", priceHistory: history }]),
@@ -51,7 +57,9 @@ describe("backfillLocalHistory", () => {
       points: { price: number }[];
     };
     expect(sent.points).toHaveLength(200);
+    // The newest 200 points (prices 51..250) are kept.
     expect(sent.points[0].price).toBe(51);
+    expect(sent.points[sent.points.length - 1].price).toBe(250);
   });
 
   it("continues past a rejected listing", async () => {

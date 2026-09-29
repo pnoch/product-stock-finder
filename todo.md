@@ -5933,3 +5933,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] 200k random strings through `isBlockedUrl`/`isAllowedPushEndpoint`/`resolveOllamaLocalUrl`/`isInQuietHours` — never throws.
 - [x] Explicit security invariants: all private/loopback/metadata/IPv4-mapped URLs blocked; public URLs allowed; push allowlist rejects `http://`, `evil.com`, and suffix-confusion (`googleapis.com.evil.com`); accepts real FCM/APNs/Mozilla endpoints.
 - [x] No code change; tree unchanged from Phase 779 (`tsc 0`, lint 0 errors / 157 warnings, `2646 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 781: `sanitizeHistoryPoints` kept the OLDEST points on unsorted input
+
+- [x] **Gap found:** `sanitizeHistoryPoints` trimmed with `valid.slice(-MAX_UPLOAD_HISTORY_POINTS)`, assuming the input was chronologically ascending. A history restored from a backup or a server pull is not guaranteed ordered, so a descending array kept the **oldest** 200 points instead of the newest (verified: 600 descending points → the newest was dropped, the oldest kept). The doc comment even asserted the order assumption.
+- [x] **Fix:** sort by parsed time before trimming. Two existing tests had encoded the buggy positional behavior (root: built a descending array; desktop: cycled the day-of-month so positional ≠ chronological) — corrected both to use genuinely ascending dates, and added an explicit unsorted-input guard to `tests/history-upload-sanitize.test.ts`. Proven non-vacuous: reverting the sort fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2647 passed**; DB suite **30 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.

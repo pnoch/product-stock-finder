@@ -24,8 +24,11 @@ export interface UploadablePoint {
 
 /**
  * Keeps only the points the server's uploadHistory schema accepts, then trims
- * to the newest MAX_UPLOAD_HISTORY_POINTS (the order is preserved, so the
- * newest points are the tail of the local history).
+ * to the newest MAX_UPLOAD_HISTORY_POINTS.
+ *
+ * Sorts by parsed time before trimming: a history restored from a backup or a
+ * server pull is not guaranteed ascending, and `slice(-N)` on a descending
+ * array kept the OLDEST points instead of the newest.
  */
 export function sanitizeHistoryPoints<T extends UploadablePoint>(
   points: T[],
@@ -49,7 +52,9 @@ export function sanitizeHistoryPoints<T extends UploadablePoint>(
     }
     return STOCK_STATUSES.has(p.stockStatus);
   });
-  return valid.length > MAX_UPLOAD_HISTORY_POINTS
-    ? valid.slice(-MAX_UPLOAD_HISTORY_POINTS)
-    : valid;
+  if (valid.length <= MAX_UPLOAD_HISTORY_POINTS) return valid;
+  return valid
+    .slice()
+    .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+    .slice(-MAX_UPLOAD_HISTORY_POINTS);
 }

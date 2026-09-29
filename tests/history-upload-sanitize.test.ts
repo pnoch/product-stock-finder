@@ -36,14 +36,15 @@ describe("sanitizeHistoryPoints", () => {
   });
 
   it("keeps the newest points when over the upload cap", () => {
+    // Ascending input (oldest first).
     const points = Array.from(
       { length: MAX_UPLOAD_HISTORY_POINTS + 50 },
       (_, i) =>
         point({ date: new Date(Date.now() - (i + 1) * 60_000).toISOString() }),
-    );
+    ).reverse();
     const kept = sanitizeHistoryPoints(points);
     expect(kept).toHaveLength(MAX_UPLOAD_HISTORY_POINTS);
-    // The tail (newest, since points are newest-last) is kept.
+    // The newest point (last in ascending order) is kept.
     expect(kept[kept.length - 1]).toEqual(points[points.length - 1]);
   });
 
@@ -51,5 +52,26 @@ describe("sanitizeHistoryPoints", () => {
     const a = point({ price: 10 });
     const b = point({ price: 20 });
     expect(sanitizeHistoryPoints([a, b])).toEqual([a, b]);
+  });
+
+  it("keeps the newest points even when the input is not sorted", () => {
+    // A history restored from a backup or a server pull is not guaranteed
+    // ascending; `slice(-N)` on a descending array kept the OLDEST points.
+    const newest = point({
+      date: new Date().toISOString(),
+      price: 1,
+    });
+    const points = [
+      newest,
+      ...Array.from({ length: MAX_UPLOAD_HISTORY_POINTS + 50 }, (_, i) =>
+        point({
+          date: new Date(Date.now() - (i + 1) * 60_000).toISOString(),
+          price: 100 + i,
+        }),
+      ),
+    ];
+    const kept = sanitizeHistoryPoints(points);
+    expect(kept).toHaveLength(MAX_UPLOAD_HISTORY_POINTS);
+    expect(kept.some((p) => (p as { price: number }).price === 1)).toBe(true);
   });
 });
