@@ -6545,3 +6545,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`notify`/`setChangeSuppressed`:** buffers changes while suppressed and replays them on lift, skipping the keys the sync just applied; observers are isolated (a throwing listener can't reject the caller's write).
 - [x] **`readList`:** an adapter failure throws (doesn't masquerade as empty); a corrupt/non-array payload is quarantined, not dropped.
 - [x] No code change; tree unchanged from Phase 859 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 861: Sync full-resync/cursor audit (clean)
+
+- [x] **Full resync:** drops a locally-present item only when it has sync meta with `updatedAt < cutoff && updatedAt <= oldCursor` (already-confirmed, not edited since); never-synced offline work is preserved; settings excluded (no client tombstones). The tombstone-expiry limitation is documented.
+- [x] **Cursor:** a page-drain that hits its guard keeps the old cursor (advancing would skip the remaining pages); the push stamp is capped at the cursor (`Math.min(stampedAt, nextCursor)`) so `collectDirty` doesn't re-collect every sync; stamps + cursor are saved in one write.
+- [x] **Rejections:** `stale_write` is not retried (re-pushing would beat the remote edit in LWW); validation/transient rejections are tracked in `retryKeys` (their stamp is `<= cursor`, so the normal freshness check would skip them forever).
+- [x] **Generation gate:** a wipe during the push aborts before saving the cursor (otherwise the next account's first sync is incremental and skips rows).
+- [x] No code change; tree unchanged from Phase 860 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
