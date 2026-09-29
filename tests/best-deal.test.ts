@@ -142,6 +142,8 @@ describe("findBestInStockListing", () => {
     const listings = [
       makeListing({ distributorId: "a", price: 1, stockStatus: "out_of_stock" }),
       makeListing({ distributorId: "b", price: 0, stockStatus: "in_stock" }),
+      // A negative price is also invalid; the guard is `<= 0`, not `< 0`.
+      makeListing({ distributorId: "d", price: -5, stockStatus: "in_stock" }),
       makeListing({ distributorId: "c", price: 50, currency: "USD" }),
     ];
     expect(findBestInStockListing(listings, "USD")?.distributorId).toBe("c");

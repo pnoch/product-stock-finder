@@ -6110,3 +6110,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`price_history`:** `date` (varchar(10)) is part of the PK and separately indexed for the purge `DELETE ... WHERE date < ?`.
 - [x] All FKs cascade on user delete.
 - [x] No code change; tree unchanged from Phase 802 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 804: Mutation-testing pass — 3 coverage gaps closed
+
+- [x] Ran a mutation harness (apply a source mutation, run the relevant test file, check it fails). Three mutations **survived** — real coverage gaps:
+  - `lib/price-change.ts`: the 0.5% noise floor was untested (no case near the boundary).
+  - `lib/best-deal.ts`: the `price <= 0` guard was only tested with `0`, not a negative price.
+  - `lib/relative-time.ts`: the 60-minute boundary was untested (only 5m and 3h).
+- [x] Added boundary cases to `tests/price-change.test.ts`, `tests/best-deal.test.ts`, `tests/relative-time.test.ts`; each mutation now fails the suite (verified by re-running the harness).
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2654 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

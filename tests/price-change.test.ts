@@ -57,4 +57,26 @@ describe("computePriceChange", () => {
       computePriceChange([listing({ stockStatus: "out_of_stock" })], "USD"),
     ).toBeNull();
   });
+
+  it("suppresses sub-0.5% changes but reports larger ones", () => {
+    // The 0.5% floor hides noise; a mutation to a smaller threshold would show
+    // a change that should be suppressed.
+    const change = (from: number, to: number) =>
+      computePriceChange(
+        [
+          listing({
+            price: to,
+            priceHistory: [
+              { date: "2026-08-01", price: from, currency: "USD", stockStatus: "in_stock" },
+              { date: "2026-09-01", price: to, currency: "USD", stockStatus: "in_stock" },
+            ],
+          }),
+        ],
+        "USD",
+      );
+    // 100 -> 100.4 is +0.4%: below the floor.
+    expect(change(100, 100.4)).toBeNull();
+    // 100 -> 100.6 is +0.6%: above the floor.
+    expect(change(100, 100.6)?.pct).toBeCloseTo(0.6, 1);
+  });
 });
