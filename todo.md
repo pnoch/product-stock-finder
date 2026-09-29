@@ -5529,3 +5529,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`eslint-disable` comments:** only four, all `react-hooks/exhaustive-deps`, each documented and legitimate (stable `Animated.Value` refs, intentional one-time selection init, a `series`/`displayCurrency`-keyed a11y label).
 - [x] **`as any`:** down to four genuinely load-bearing casts (browser globals, the `_core` `Api.getMe` return-type gap, `Buffer`→`BlobPart` variance).
 - [x] No code change; tree unchanged from Phase 719 (`tsc 0`, lint 0 errors / 157 warnings, `2631 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 721: `shared/src/currency.ts` getBestPrice diverged from lib/currency.ts
+
+- [x] **Gap found:** `shared/src/currency.ts`'s `getBestPrice` carries the comment "Must match lib/currency.ts", but it omitted the `roundMoney` step, so a cross-currency conversion returned `102.80999999999999` where the live-rate `lib/currency.ts` version returns `102.81`. The shared version is exported and exercised by tests (desktop imports the live-rate one), so the two could silently drift.
+- [x] **Fix:** added `roundMoney` to the shared module and applied it in `getBestPrice`, matching `lib/currency.ts` exactly. Added a parity case to `tests/best-price-status.test.ts` asserting the two implementations agree across a set of prices and that the result satisfies the roundMoney invariant. Proven non-vacuous: reverting the shared rounding fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2632 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
