@@ -5639,3 +5639,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`classifyFetchStatus`:** 403/429 → blocked, other 4xx/5xx → error, marker match → blocked; `BLOCKED_MARKERS` is byte-identical to the Rust `BLOCKED_MARKERS` (guarded by `tests/desktop-scraper-parity.test.ts`). Matching is case-sensitive on both platforms — a deliberate choice (the markers are the exact strings Cloudflare/PerimeterX/DataDome emit), and a miss degrades to "no price found" rather than a false positive.
 - [x] **Breaker stores:** `serializeByKey` serializes read-modify-write per storage key across the several breaker stores sharing `distributor_breaker`.
 - [x] No code change; tree unchanged from Phase 735 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 737: Price-drop detection audit (clean)
+
+- [x] **`runPriceCheckCore`:** single-flight (`inFlightPriceCheck`), 25s time budget with carried-through listings (never writes an empty array over a non-empty one), and `refreshListingsWithinBudget` preserves unprocessed listings.
+- [x] **Basket alert:** computes in the display currency (matching the sheet's promise), clears the threshold only after a confirmed display, and uses the serialized settings patch.
+- [x] **Price alerts:** scoped via `listingsForAlert`; claims the transition with `deactivateAlert` before notifying (so a concurrent runner can't double-fire); re-arms on a failed web display; re-reads alerts to avoid duplicates.
+- [x] **`lib/alert-scope.ts`:** `listingsForAlert`/`scopedAlertFor`/`productWideAlert` correctly scope by distributor and skip triggered/inactive alerts.
+- [x] No code change; tree unchanged from Phase 736 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
