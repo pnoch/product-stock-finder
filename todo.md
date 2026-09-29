@@ -6537,3 +6537,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `quarantinePayload` persisted the index as `[...quarantineKeys.values()].flat()` — but `quarantineKeys` is module memory, empty after a reload. So the first quarantine of a new session **overwrote** the persisted index with only the new keys, orphaning every blob from earlier sessions. Those blobs contain raw watchlist/alerts/settings payloads and would survive a wipe (`clearAllData`/`clearAccountData` only remove what the index lists). Verified with a reload simulation.
 - [x] **Fix:** merge with the on-disk index (`listQuarantinedKeys`) before writing, and cap the merged list (`MAX_QUARANTINE_INDEX = 30`, newest by timestamp suffix) so it can't grow one entry per quarantine forever. Added `tests/storage-quarantine-index.test.ts` (reload-orphan + bound) using `vi.resetModules()` to simulate a real reload. Proven non-vacuous: reverting the merge fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2679 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 860: Storage enqueue/drain audit (clean)
+
+- [x] **`enqueue`:** serializes read-modify-write per key (verified: same-key writes run in order), runs different keys concurrently, drops writes during a wipe, and stores `next.catch(() => {})` so a rejected write doesn't break the chain (verified: a write after a rejection still runs).
+- [x] **`drainQueues`:** awaits the error-swallowed promises, so a rejected write doesn't reject the drain (verified) — `clearAllData` can't be undone by an in-flight write.
+- [x] **`notify`/`setChangeSuppressed`:** buffers changes while suppressed and replays them on lift, skipping the keys the sync just applied; observers are isolated (a throwing listener can't reject the caller's write).
+- [x] **`readList`:** an adapter failure throws (doesn't masquerade as empty); a corrupt/non-array payload is quarantined, not dropped.
+- [x] No code change; tree unchanged from Phase 859 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
