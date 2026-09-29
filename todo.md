@@ -5730,3 +5730,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `lib/backup.ts`'s `SETTING_DEFAULTS` must list every defaulted `AppSettings` field — a field missing there is always taken from the backup, silently overwriting the local value with the exporter's default. It currently covers all 11 fields, but nothing guarded the invariant.
 - [x] **Fix:** added a `SETTING_DEFAULTS coverage` case to `tests/backup.test.ts` asserting every `DEFAULT_SETTINGS` key appears in `SETTING_DEFAULTS`. Proven non-vacuous: removing a key fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2643 passed**; desktop `286`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 750: Auth/device module audit (clean)
+
+- [x] **`lib/auth-refresh.ts`:** validates the `/api/auth/me` shape before use, defaults `loginMethod`, and returns null on any failure.
+- [x] **`lib/device-revoked.ts`:** coalesces concurrent revocations (`fired`), clears the session + user info regardless of the logout call's outcome, and resets on the next tick so a later revocation still fires.
+- [x] **`lib/devices.ts`:** every call is timeout-bounded and best-effort.
+- [x] No code change; tree unchanged from Phase 749 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
