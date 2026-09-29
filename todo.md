@@ -6438,3 +6438,13 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** mobile's `CARD_SELECTORS` deliberately **removed** the bare `.item` alternative (it is a generic list/grid wrapper on many shops, so `closest` returned the wrapper whose text names every product — validating a decoy price). The Rust `CARD_SELECTOR` still had `.item`, so the desktop could return a **wrong-product price**. Confirmed with a Rust test: a `<ul class="item">` grid with a CRS326 card first and a CRS804 card second accepted the CRS326 price for a CRS804 request.
 - [x] **Fix:** removed `.item` from the Rust `CARD_SELECTOR` to match mobile; added a Rust regression test mirroring the mobile `.item`-wrapper case, and a `tests/desktop-scraper-parity.test.ts` case asserting the Rust and TS card/row selector lists are identical (and neither contains `.item`). Both proven non-vacuous.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2677 passed**; desktop `tsc 0`, **289 passed**; `cargo test` **72**, clippy 0, fmt clean.
+
+## Phase 847: Rust/TS duplicated-constant parity audit (clean)
+
+- [x] Enumerated every duplicated constant between the TS and Rust scraper engines:
+  - `CARD_SELECTOR`/`ROW_SELECTOR` — now parity-tested (Phase 846).
+  - `COMMERCE_SUFFIXES` — parity-tested (existing case).
+  - `SERVER_SNAPSHOT_TTL_MS` (Rust) = `PRICE_SNAPSHOT_TTL_MS` (TS) = `60 * 60 * 1000`; the Rust comment names the TS constant.
+  - `infer_stock_status` keyword lists — byte-identical, with a shared-corpus test (`infer_stock_status_agrees_with_the_shared_parser`).
+  - `parse_price_from_text` / `matchesModel` — shared-corpus tests on both sides.
+- [x] No code change; tree unchanged from Phase 846 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
