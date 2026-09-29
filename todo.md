@@ -6054,3 +6054,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `computePriceChange`/`computeDigest`/`computeMovers` all use `(new - old) / old * 100` with a zero-baseline guard.
 - [x] Desktop reads `taxRate` from the server snapshot (`{ ...result }` spreads the parser's value); the Rust parsers don't emit one, but desktop uses server prices, so no parity gap.
 - [x] No code change; tree unchanged from Phase 795 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 797: Desktop pages audit (clean)
+
+- [x] **`Alerts.tsx`:** per-load error state, `Promise.all` loads, optimistic-free mutations with try/catch + toast, reschedule validates the date is today-or-future, edit validates the price.
+- [x] **`Stats.tsx`:** basket-alert save is an optimistic update with revert on failure; serialized `updateSettings` (no stale whole-object clobber); `pathname` in the load deps.
+- [x] **`Home.tsx`:** `recentActivity` guards invalid dates (`isNaN` → 0) and picks the most-recently-checked listing.
+- [x] **`ProductDetail.tsx`:** alert creation gates on notification permission, guards double-submit, returns the alert so the screen state stays in sync, and swallows storage failures into `{ ok: false }`.
+- [x] No code change; tree unchanged from Phase 796 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
