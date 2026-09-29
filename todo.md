@@ -5483,3 +5483,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `tauri.conf.json` declares five bundle icons (`32x32.png`, `128x128.png`, `128x128@2x.png`, `icon.icns`, `icon.ico`) and all five currently exist — but nothing guarded them. A missing one fails `cargo tauri build` late or ships a blank icon, the same class as the Phase-712 PWA icon 404.
 - [x] **Fix:** added a case to `tests/tauri-version-lockstep.test.ts` asserting every declared bundle icon exists on disk. Proven non-vacuous: renaming `icon.ico` fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2621 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 714: Desktop stub/mirror parity audit (clean)
+
+- [x] **`desktop/src/storage.ts`** mirrors exactly the six keys the Rust `is_allowed_storage_key` allowlist accepts (`watchlist_products`, `price_alerts`, `back_order_reminders`, `app_settings`, `back_in_stock_watches`, `fx_rates`), and `tests/desktop-chart-guard.test.ts` guards the parity (a mirrored-but-unwritable key would silently diverge the two stores).
+- [x] **`desktop/src/lib/async-storage-stub.ts`** is localStorage-backed (not a throwaway Map) so shared modules share the desktop store; the `react-native`/`expo-secure-store`/`expo-linking` stubs cover the imports shared modules pull in.
+- [x] **`desktop/vite.config.ts`** `define` uses `JSON.stringify(mode !== "production")` (not the verbatim `import.meta.env.DEV` that crashed the built app), bridges the `EXPO_PUBLIC_*` vars, and aliases the native-only modules to stubs.
+- [x] **`tsconfig.json` includes exist** (`expo-env.d.ts`, `nativewind-env.d.ts`, `.expo/types/router.d.ts`); `tsconfig.node.json` is absent and unreferenced.
+- [x] No code change; tree unchanged from Phase 713 (`tsc 0`, lint 0 errors / 157 warnings, `2621 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
