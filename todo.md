@@ -6227,3 +6227,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - Orderable-status guard (`!== in_stock && !== back_order` → `!== in_stock`): the regression test only asserted `unknown` is excluded, never that `back_order` **is** included.
 - [x] Added guards to `tests/compare-utils.test.ts` and `tests/distribute-pricing-regression.test.ts`; all four mutations now fail.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2664 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 820: Mutation pass — roundMoney scale gap
+
+- [x] An eleventh mutation batch found `shared/src/currency.ts`'s `roundMoney` had no direct test: `* 100 / 100` → `* 1000 / 1000` survived (the only callers are the two `getBestPrice` implementations, whose tests use already-2-decimal values). Added a direct test (1.2345 → 1.23, 102.80999999999999 → 102.81); the mutation now fails.
+- [x] Confirmed `shared/src/fx.ts` TTL and `server/notifications/build-events.ts` dedup-key clamp are killed — well-tested.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2665 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

@@ -4,7 +4,18 @@ import {
   getBestPrice,
   setExchangeRates,
 } from "../lib/currency";
-import { formatPrice } from "../shared/src/currency";
+import { formatPrice, roundMoney } from "../shared/src/currency";
+
+describe("roundMoney", () => {
+  it("rounds to 2 decimals (not 3)", () => {
+    // 1.2345 must round to 1.23, not 1.235. Used by getBestPrice so a
+    // converted price never carries a floating-point tail.
+    expect(roundMoney(1.2345)).toBe(1.23);
+    expect(roundMoney(1.235)).toBe(1.24);
+    expect(roundMoney(102.80999999999999)).toBe(102.81);
+    expect(roundMoney(0.005)).toBe(0.01);
+  });
+});
 
 describe("convertPrice", () => {
   it("returns the same amount for USD to USD", () => {
