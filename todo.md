@@ -5359,3 +5359,14 @@ Checked all 20 tables for missing indexes on FK columns and hot query paths.
 - [x] **All 25 Rust parsers delegate to the shared `parse_price_page`**, which gates on `model_mismatch` and returns an error for a wrong-product result — the same architecture as mobile, so the AGENTS.md "thread the model and gate on mismatch" rule holds. The gate itself has tests (`mismatch_of` cases).
 - [x] **`parse_price_from_text` mirrors the mobile fix** (first number run only, with space/NBSP thousands separators kept), so "Was $100 Now $80" cannot parse as 10080.
 - [x] No code change; tree unchanged from Phase 696 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`; `cargo test` 71).
+
+## Phase 698: Desktop lib modules audit (clean)
+
+Reviewed the desktop `lib/` modules that had no direct test.
+
+- [x] **`launch.ts`:** each step (seed → poller → FX warm → launch price check) is independently try/caught, and the ordering is deliberate (FX warmed before the check so it converts with live rates). Correct.
+- [x] **`share.ts`:** clipboard write with a `document.execCommand` fallback and proper textarea cleanup; PNG export appends/clicks/removes the anchor. Correct.
+- [x] **`device-id.ts`:** caches a memory fallback for a storage failure (a new id per call made the server see a different device every request) and dedups concurrent calls via a shared `pending` promise. Correct.
+- [x] **`device-cleanup.ts` / `push-unregister.ts`:** both race the call against a timeout and clear the timer in a `finally`, returning a safe fallback on failure. Correct.
+- [x] **`notification-permission.ts`:** gates on `Notification.permission`, requests when `default`, and falls through to granted for Tauri. Correct.
+- [x] No code change; tree unchanged from Phase 697 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
