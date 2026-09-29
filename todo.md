@@ -5816,3 +5816,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] **`server/user-llm.ts`:** fixed provider hosts (no user-supplied URL → no SSRF); `ollama-local` restricted to loopback **and** port 11434 (any port would aim the server's POST at an arbitrary local service); header values bounded; the API key is used per-request and never persisted; `postJson` uses `redirect: "error"` (a 3xx from loopback isn't followed), a 20s deadline covering the body, a 200k response cap, and never echoes the provider body (which can contain the key).
 - [x] No code change; tree unchanged from Phase 761 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 763: Server device-management audit (clean)
+
+- [x] **`server/devices.ts`:** `assertDeviceAccess` enforces per-user ownership; label lookup is scoped to the user's own device ids (no full scan); `unrevokeDevice` lifts the user's wildcard on sign-in (proving current credentials); `purgeOldRevokedDevices` drains in batches.
+- [x] No code change; tree unchanged from Phase 762 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
