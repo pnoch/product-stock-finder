@@ -6200,3 +6200,13 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Zero JS errors** on every route (the only console errors were the expected `ERR_FAILED` from offline API calls, filtered out). Interactive tab navigation and product-detail navigation also produced no errors.
 - [x] Error states render correctly (`/w/nonexistent-token` → "Share not found"; `/health/[id]` with no samples → "No data").
 - [x] No code change; tree unchanged from Phase 815 (`tsc 0`, lint 0 errors / 157 warnings, `2661 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 817: Live HTTP end-to-end against the real server + MySQL (clean)
+
+- [x] Built the production server bundle, migrated a fresh `psf_e2e` database, started the real server, and exercised the live HTTP API. **16/16 checks passed:**
+  - `GET /api/health` 200; `/api` is `no-store`; security headers present.
+  - Register → session cookie; login; `GET /api/auth/me` returns the right user; wrong password rejected.
+  - `sync.push` then `sync.pull` returns the pushed item; unauthenticated `sync.pull` rejected.
+  - `fx.get` 200; `sharedWatchlists.create` returns a token; public `sharedWatchlists.get` 200.
+  - Unknown `/api` route 404; CORS does not reflect an arbitrary origin.
+- [x] No code change; tree unchanged from Phase 816 (`tsc 0`, lint 0 errors / 157 warnings, `2661 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
