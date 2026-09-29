@@ -5903,3 +5903,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Fuzzed `mergePriceHistory` (sorted ascending, no duplicate days), `matchesModel` (never throws), `computeMovers`/`computeDropCalendar`/`computeDigest`/`computePriceVsAverage` (finite outputs), `parsePriceFromText`/`convertPrice`/`roundMoney` (finite/null, idempotent), `addRecentSearch` (bounded, deduped), `isPublicRoute` (never throws) — all clean.
 - [x] The CSV round-trip fuzzer found the two Phase-775 bugs; the remaining functions held their invariants.
 - [x] No code change; tree unchanged from Phase 775 (`tsc 0`, lint 0 errors / 157 warnings, `2646 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 777: Property-based fuzzing (tokenizer/state machines)
+
+- [x] Fuzzed the CSV tokenizer with 100k random byte strings (all 256 chars): never threw.
+- [x] Fuzzed the health state machine (200k random sample sequences): `detectHealthAlert` and `detectHealthRecovery` are never both true for the same input.
+- [x] Fuzzed `detectPriceEvents` (100k random histories): event `index` always in range and `type` always valid.
+- [x] No code change; tree unchanged from Phase 776 (`tsc 0`, lint 0 errors / 157 warnings, `2646 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
