@@ -6312,3 +6312,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `lib/csv.ts` `parseWatchlistCsv` (test-only; the live import is JSON backup + bulk import).
 - [x] Left in place: they are small, tested, and removing them is churn without a correctness benefit.
 - [x] No code change; tree unchanged from Phase 828 (`tsc 0`, lint 0 errors / 157 warnings, `2666 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 830: Error-message leakage audit (clean)
+
+- [x] **tRPC (`server/_core/trpc.ts`):** `redactErrorShape` strips `data.stack` unconditionally (the server is often run without `NODE_ENV=production`, so tRPC's default formatter would otherwise leak validation internals/file paths) and replaces the message with `GENERIC_ERR_MSG` whenever the error has a `cause`.
+- [x] **REST auth (`server/_core/oauth.ts`):** every catch returns `safeAuthErrorMessage`, which passes through only deliberate `HttpError` messages and genericizes everything else; `/api/auth/me` failures return a static `"Not authenticated"`.
+- [x] **tRPC routers:** every `TRPCError` message is a static string (e.g. `"Database not available"`) — no raw `error.message` is ever forwarded.
+- [x] Client `String(e)`/`e.message` fallbacks therefore only ever surface the sanitized server message or a local storage error, never a stack or internal path.
+- [x] No code change; tree unchanged from Phase 829 (`tsc 0`, lint 0 errors / 157 warnings, `2666 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
