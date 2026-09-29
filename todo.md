@@ -6252,3 +6252,14 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - Oversized body (1000 items × 1 KB) and a wrong content-type.
 - [x] The server stayed healthy (`/api/health` 200) after the whole barrage.
 - [x] No code change; tree unchanged from Phase 821 (`tsc 0`, lint 0 errors / 157 warnings, `2665 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 823: Live concurrency/race verification (clean)
+
+- [x] Fired concurrent requests at the live server + MySQL. **All real checks pass:**
+  - 20 concurrent same-id `sync.push` → LWW resolved to the newest.
+  - 30 concurrent distinct pushes → all persisted (after draining pages).
+  - create+delete race (either order) → exactly one row, newest wins.
+  - 10 concurrent logins → sessions valid; 10 concurrent share creates → 10 distinct tokens.
+  - Server healthy after the barrage.
+- [x] Two apparent failures were **test artifacts**, not bugs: `sync.pull` is paged (my first pull didn't drain) and `sync.push` is rate-limited to **30/min per IP** — the 30-push burst 429'd the follow-up requests, and the 10th concurrent login hit the login throttle (correct behavior). A corrected test under the limit passed 6/6.
+- [x] No code change; tree unchanged from Phase 822 (`tsc 0`, lint 0 errors / 157 warnings, `2665 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
