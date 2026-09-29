@@ -5459,3 +5459,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`constants/` (`oauth.ts`, `theme.ts`)** and **`server/_core/types/`** are small re-export/type modules with no drift.
 - [x] **`scripts/`** (`generate-vapid-keys.js`, `load-env.js`, `metro-resolver.js`, `reset-project.js`, `generate_qr.mjs`, `smoke-web.mjs`, `test-db.mjs`) all lint clean and are referenced by `package.json`/CI where expected.
 - [x] No code change; tree unchanged from Phase 708 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 710: Guard the store version lockstep
+
+- [x] **Gap found:** `tests/tauri-version-lockstep.test.ts` keeps root / desktop / `tauri.conf.json` / `Cargo.toml` on the same version, but **`app.config.ts`'s `version` — the value that actually ships to the App Store / Play Store — was unguarded.** A release bump that missed it would silently lag the store build.
+- [x] **Fix:** added a case to `tests/store-config.test.ts` asserting `app.config.ts`'s `version` equals `package.json`'s. Proven non-vacuous: bumping `app.config.ts` to `9.9.9` fails the test; restoring `5.16.0` passes.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2616 passed**; desktop `tsc 0`, **285 passed**; `cargo test` 71, clippy 0, fmt clean.

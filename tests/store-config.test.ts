@@ -20,6 +20,17 @@ describe("store submission config", () => {
     expect(src).toMatch(/androidPackage:\s*bundleId/);
   });
 
+  it("keeps the store version in lockstep with package.json", async () => {
+    const src = await readFile("app.config.ts", "utf8");
+    const pkg = JSON.parse(await readFile("package.json", "utf8")) as {
+      version: string;
+    };
+    // app.config.ts's `version` is what ships to the App Store / Play Store;
+    // a bump that misses it silently lags the store release.
+    const appVersion = src.match(/^\s*version:\s*"([^"]+)"/m)?.[1];
+    expect(appVersion).toBe(pkg.version);
+  });
+
   it("has valid eas.json build and submit profiles", async () => {
     const raw = await readFile("eas.json", "utf8");
     const eas = JSON.parse(raw) as {
