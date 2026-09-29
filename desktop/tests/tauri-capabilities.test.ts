@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 // The Tauri webview is one XSS away from its own command surface, so the
@@ -41,6 +41,21 @@ describe("tauri capability boundary", () => {
       for (const window of capability.windows ?? []) {
         expect(["main"]).toContain(window);
       }
+    }
+  });
+
+  it("ships every asset index.html references", () => {
+    // Vite copies public/ verbatim; a referenced asset with no file 404s (the
+    // stock template pointed at a /vite.svg that was never shipped).
+    const html = readFileSync(join(__dirname, "..", "index.html"), "utf8");
+    const refs = [...html.matchAll(/(?:href|src)="(\/[^"]+)"/g)]
+      .map((m) => m[1]!)
+      // /src/* are Vite module entries (bundled, not public assets).
+      .filter((ref) => !ref.startsWith("/src/"));
+    expect(refs.length).toBeGreaterThan(0);
+    for (const ref of refs) {
+      const file = join(__dirname, "..", "public", ref.replace(/^\//, ""));
+      expect(existsSync(file), `missing referenced asset: ${ref}`).toBe(true);
     }
   });
 

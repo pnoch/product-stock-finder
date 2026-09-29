@@ -5497,3 +5497,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `plugins/with-android-cleartext-traffic.js` had a thorough behavioral test, but `plugins/with-android-release-signing.js` — the plugin that prevents shipping a debug-signed build the Play Store rejects — had **no test at all**, despite containing a subtle regex fix (a loose pattern had rewritten the *debug* build type).
 - [x] **Fix:** added `tests/android-release-signing.test.ts` (5 cases): adds the release signingConfig + points the release build type at it; does **not** rewrite the debug build type; is idempotent; throws on a non-Groovy file; is registered in `app.config.ts`. Proven non-vacuous: reverting to the loose regex fails 2 cases.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2626 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 716: Desktop favicon 404
+
+- [x] **Gap found:** `desktop/index.html` referenced `/vite.svg` (the stock Vite-template favicon), but no such file existed anywhere in `desktop/` — the built app requested a 404 favicon. Same class as the Phase-712 PWA icon.
+- [x] **Fix:** shipped `desktop/public/icon.png` (512×512, from the Tauri icon set) and pointed `index.html` at it. Added a guard to `desktop/tests/tauri-capabilities.test.ts` asserting every non-`/src/` asset `index.html` references exists in `public/`. Proven non-vacuous: removing the icon fails the guard.
+- [x] Verified the icon lands in `desktop/dist/`. Root `tsc 0`, lint 0 errors / 157 warnings, **2626 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.
