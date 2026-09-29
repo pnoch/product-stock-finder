@@ -64,6 +64,8 @@ describe("savingAlerts", () => {
     const rise = alert({ id: "rise", targetPrice: 100, triggeredPrice: 130, direction: "rise", triggeredAt: "2026-09-02T00:00:00.000Z" });
     const untriggered = alert({ id: "none" });
     const noGain = alert({ id: "nogain", targetPrice: 100, triggeredPrice: 120, triggeredAt: "2026-09-02T00:00:00.000Z" });
-    expect(savingAlerts([drop, rise, untriggered, noGain]).map((a) => a.id)).toEqual(["drop"]);
+    // Triggered exactly at target: zero saving, excluded (the guard is `> 0`).
+    const exact = alert({ id: "exact", targetPrice: 100, triggeredPrice: 100, triggeredAt: "2026-09-02T00:00:00.000Z" });
+    expect(savingAlerts([drop, rise, untriggered, noGain, exact]).map((a) => a.id)).toEqual(["drop"]);
   });
 });

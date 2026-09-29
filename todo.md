@@ -6153,3 +6153,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `lib/price-average.ts`: `Math.round(... * 1000) / 10` → `Math.floor` survived (the existing `toBeCloseTo(-5.3, 0)` was too loose). Added a case (avg 3, current 2 → -33.3, floor would give -33.4) and tightened the exact value.
 - [x] Both mutations now fail. (`price-change` `pct < 0` → `<= 0` is behaviorally equivalent — pct 0 is suppressed by the 0.5% floor — so no test needed.)
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2660 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 810: Mutation pass — savingAlerts zero-delta gap
+
+- [x] A seventh mutation batch found `lib/alert-savings.ts`'s `savingAlerts` delta guard (`> 0` → `>= 0`) survived: no test used an alert triggered **exactly** at target (zero saving). Added an `exact` case; the mutation now fails.
+- [x] Confirmed the rise-exclusion and `computeTotalSaved` sign mutations are killed — well-tested.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2660 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
