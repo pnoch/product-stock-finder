@@ -37,8 +37,9 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm --dir desktop test
-      # DB-backed sync tests (data-loss path) — gated on RUN_DB_TESTS, so they
-      # were never executed in CI before. A MySQL service is provided below.
+      # Every DB-gated test file (discovered from the filesystem by
+      # scripts/test-db.mjs, so a new one is picked up automatically) — a
+      # hand-maintained list had silently stopped covering five suites.
       - run: pnpm db:push
         env:
           DATABASE_URL: mysql://root:root@127.0.0.1:3306/psf_test

@@ -5412,3 +5412,11 @@ Reviewed the components with effects/state in the two largest groups.
 - [x] **`log.ts`:** a dev-only logger guarded with `typeof __DEV__ !== "undefined"` (the safe form — unlike the Phase-634 `import.meta.env.DEV` bug), and it is used only in `lib/_core/api.ts`, which the server bundle never imports.
 - [x] **`catalog` / `distributors` / `currency` / `fx` / `history-upload` / `trending`:** all have tests and were audited in earlier phases.
 - [x] No code change; tree unchanged from Phase 702 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
+
+## Phase 704: CI ran only 3 of the 8 DB-gated test suites
+
+- [x] **Found: `test:db` was a hand-maintained list of three files** (`sync-e2e`, `sync-db`, `create-user-transaction`), but there are now **eight** DB-gated suites — the five added this session (`auth-pre-hijack-db`, `notification-refire-db`, `server-db-branches`, `sync-settings-secret-db`, `token-double-consume-db`) **never ran in CI**, so their guards (the OAuth pre-hijack eviction, the notification re-fire, the quiet-hours route, the server-side key strip, the token double-consume) were unverified on every push.
+- [x] **Fix:** new `scripts/test-db.mjs` discovers every `tests/*.test.ts` containing `RUN_DB_TESTS` and runs them (failing loudly if none are found), so a future DB-gated suite is picked up automatically. `test:db` now calls it; the CI comment was updated.
+- [x] **Verified:** `pnpm test:db` now runs **8 files / 30 tests** (was 3 files) and passes against the test database.
+- [x] **Also verified:** every other CI script reference exists (`check`, `check:desktop`, `lint`, `test`, `build`, `smoke:web`, `db:push`), and `scripts/smoke-web.mjs` exists.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2615 passed` (27 skipped without a DB); desktop `285 passed`.
