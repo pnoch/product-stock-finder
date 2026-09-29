@@ -8,6 +8,7 @@ import {
 } from "@/lib/scrapers/resilient";
 import type { ServerPriceResult } from "@/lib/types";
 import { createSemaphore } from "@/lib/concurrency";
+import { isPlausiblePrice } from "@/shared/const";
 
 export interface ResolvedPrice extends ServerPriceResult {
   source: "server" | "device";
@@ -30,6 +31,9 @@ export async function scrapePriceOnDevice(
   try {
     const { result } = await fetchAndParse(parser, modelNumber, breakerStore);
     if (!result) return null;
+    // Reject a misparsed price (barcode/SKU read as the price) before it is
+    // presented or stored; mirrors the server cache's plausibility guard.
+    if (!isPlausiblePrice(result.price)) return null;
     return {
       snapshot: { ...result, fetchedAt: Date.now() },
       history: [],

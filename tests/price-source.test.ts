@@ -132,6 +132,17 @@ describe("scrapePriceOnDevice", () => {
     expect(r?.source).toBe("device");
   });
 
+  it("rejects an implausible device-scraped price", async () => {
+    // A barcode/SKU misread as the price must not be presented or stored.
+    state.scrapeResult = {
+      price: 4_006_381_333_931,
+      currency: "USD",
+      stockStatus: "in_stock",
+    };
+    const r = await scrapePriceOnDevice("linitx-uk", "CRS804-4DDQ-hRM");
+    expect(r).toBeNull();
+  });
+
   it("caps concurrent device scrapes", async () => {
     let inFlight = 0;
     let peak = 0;

@@ -5,6 +5,7 @@ import { fetchAndParse } from "../scrapers/resilient";
 import { appendPricePoint, mergePriceHistory } from "../price-history";
 import { MAX_UPLOAD_HISTORY_POINTS } from "@/shared/const";
 import { PRICE_HISTORY_DAYS } from "@/shared/const";
+import { isPlausiblePrice } from "@/shared/const";
 import type { DistributorListing, PricePoint, Product } from "../types";
 import { breakerStore } from "./instances";
 import type { HealthCollector } from "./health-collector";
@@ -83,6 +84,13 @@ export async function refreshListing(
   try {
     if (!result) {
       healthCollector.record(parser.id, "error", "no price found");
+      return listing;
+    }
+    // A misparsed price element (a barcode/SKU/shipping figure) must not be
+    // stored: it would show a bogus price and could fire a spurious price-rise
+    // alert. The server cache applies the same bound (server/price-cache.ts).
+    if (!isPlausiblePrice(result.price)) {
+      healthCollector.record(parser.id, "error", "implausible price");
       return listing;
     }
     healthCollector.record(parser.id, "working");

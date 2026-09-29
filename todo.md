@@ -5654,3 +5654,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`checkHealthAlerts`:** deliberately does *not* bail during quiet hours (the working→down edge is detectable for only one run); `scheduleHealthAlert` suppresses the OS notification and the server holds the event.
 - [x] **`health-collector`/`testAllDistributors`:** single-flight, concurrency-bounded (3), bounded history (`HISTORY_MAX_SAMPLES`), and the collector merges into existing health rather than replacing.
 - [x] No code change; tree unchanged from Phase 737 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 739: Device scrapes stored implausible prices
+
+- [x] **Gap found:** the server's `setCachedPrice` rejects a price `> 1e7` as implausible (a misparsed barcode/SKU/shipping figure), but the **client device-scrape paths** (`refreshListing`, `scrapePriceOnDevice`) stored any positive finite price. A page whose price element held a 13-digit barcode (`4006381333931`) would show a bogus price and could fire a spurious price-rise alert.
+- [x] **Fix:** added `MAX_PLAUSIBLE_PRICE` + `isPlausiblePrice` to `shared/const.ts`, applied it in both device paths, and refactored `server/price-cache.ts` to use the shared helper (one source of truth). Added non-vacuous guards to `tests/refresh-listing.test.ts` and `tests/price-source.test.ts`.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2639 passed**; DB suite **8 files / 30 passed**; desktop `tsc 0`, **286 passed**; `cargo test` 71, clippy 0, fmt clean.

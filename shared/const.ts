@@ -50,3 +50,13 @@ export const MAX_UPLOAD_HISTORY_POINTS = 200;
 // trims to this before sending: a longer paste otherwise rejects the call with
 // a validation error the user cannot act on.
 export const MAX_DISCOVERY_QUERY = 200;
+
+// Upper bound on a plausible product price. A misparsed page (a barcode, SKU,
+// or shipping figure read as the price) must not be stored or cached. Mirrors
+// the server's price-cache guard (server/price-cache.ts) so a device scrape and
+// a server scrape agree on what is plausible.
+export const MAX_PLAUSIBLE_PRICE = 1e7;
+
+export function isPlausiblePrice(price: number): boolean {
+  return Number.isFinite(price) && price > 0 && price <= MAX_PLAUSIBLE_PRICE;
+}

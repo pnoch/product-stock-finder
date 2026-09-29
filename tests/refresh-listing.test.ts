@@ -136,6 +136,31 @@ describe("refreshListing server snapshot freshness", () => {
     expect(result.price).toBe(200);
   });
 
+  it("rejects an implausible device-scraped price instead of storing it", async () => {
+    // A misparsed price element (barcode/SKU read as the price) must not be
+    // stored — it would show a bogus price and could fire a spurious alert.
+    const parser = {
+      id: "test-dist",
+      buildSearchUrl: () => "https://example.com/search",
+      parsePrice: () => ({
+        price: 4_006_381_333_931,
+        currency: "USD",
+        stockStatus: "in_stock" as const,
+        url: "https://example.com/p1",
+      }),
+    };
+    mockedGetParser.mockReturnValue(parser as never);
+    mockedResilientFetch.mockResolvedValue({
+      status: "ok",
+      method: "plain",
+      html: "<html>price</html>",
+    } as never);
+
+    const result = await refreshListing(product(), listing(), healthCollector);
+    expect(result.price).toBe(listing().price);
+    expect(result.lastChecked).toBe(listing().lastChecked);
+  });
+
   it("accepts a fresh server snapshot without a local scrape", async () => {
     mockedFetchServerPrice.mockResolvedValue({
       snapshot: {

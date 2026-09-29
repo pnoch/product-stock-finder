@@ -2,6 +2,7 @@ import { and, asc, desc, eq, lt } from "drizzle-orm";
 import { priceCache, type PriceCacheRow } from "../drizzle/schema";
 import { getDb, affectedRowsOf } from "./db";
 import { storagePrice, storeKey } from "./store-keys";
+import { isPlausiblePrice } from "../shared/const";
 import type { PriceSnapshot, StockStatus } from "../lib/types";
 
 type MemoryEntry = {
@@ -42,12 +43,9 @@ export async function setCachedPrice(
   snapshot: PriceSnapshot,
 ): Promise<void> {
   // Plausibility guard: a misparsed page (e.g. shipping text as price) must
-  // never overwrite the global 1h cache for all users.
-  if (
-    !Number.isFinite(snapshot.price) ||
-    snapshot.price <= 0 ||
-    snapshot.price > 1e7
-  ) {
+  // never overwrite the global 1h cache for all users. Shared with the client
+  // device-scrape path so both agree on the bound.
+  if (!isPlausiblePrice(snapshot.price)) {
     throw new Error(
       `implausible price for ${distributorId}/${modelNumber}: ${snapshot.price}`,
     );
