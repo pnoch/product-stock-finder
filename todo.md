@@ -5749,3 +5749,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/price-share.ts`:** `buildShareRows` prefers in-stock converted prices, falls back to the cheapest converted listing, then to a raw-price sort labelled in the listing's own currency (not misleading); `buildShareText` handles the all-out-of-stock case.
 - [x] **`lib/share-image.ts` / `lib/csv-export.ts` / `lib/utils.ts` / `lib/sync-gate.ts` / `lib/notification-center-helpers.ts`:** platform-specific capture/export with false-on-failure; the sync-generation token is a monotonic counter bumped on account wipe.
 - [x] No code change; tree unchanged from Phase 751 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 753: Concurrency/stats/live-prices audit (clean)
+
+- [x] **`lib/concurrency.ts`:** the semaphore transfers slots directly to waiters (race-free), with an optional bounded queue that sheds load.
+- [x] **`lib/watchlist-stats.ts`:** `computeMovers` parses dates, filters to in-stock history, skips unrated-currency points, and uses a deterministic tie-break; `computeBasketValue`/`computeStockHealth`/`computeDataFreshness` are guarded.
+- [x] **`lib/live-prices.ts`:** a stale server snapshot merges history but never overwrites the presented price; `deriveConnectionStatus` is a clean precedence chain.
+- [x] No code change; tree unchanged from Phase 752 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
