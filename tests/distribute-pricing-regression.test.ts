@@ -93,5 +93,8 @@ describe("pricing surfaces agree on orderability", () => {
     for (const r of regionBest) {
       expect(r.listing.stockStatus).not.toBe("unknown");
     }
+    // The back-order listing is orderable and must be the region's pick (the
+    // guard is `!== in_stock && !== back_order`, not `!== in_stock`).
+    expect(regionBest.some((r) => r.listing.stockStatus === "back_order")).toBe(true);
   });
 });

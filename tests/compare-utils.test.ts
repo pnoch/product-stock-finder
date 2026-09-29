@@ -31,6 +31,17 @@ describe("filterByRange", () => {
   it("3M returns last 90 days", () => {
     expect(filterByRange(data, "3M")).toHaveLength(3);
   });
+
+  it("anchors on now, not a future-dated point", () => {
+    // A clock-skewed future point must not push the window forward and drop
+    // the recent points. The anchor is `min(now, max(dates))`.
+    const skewed = [point(1, 100), point(5, 200), point(-100, 300)];
+    // 1W: the two recent points are within 7 days of now; the future point is
+    // also kept (it is after the cutoff), but the recent ones must not be lost.
+    const kept = filterByRange(skewed, "1W");
+    expect(kept.some((p) => p.price === 100)).toBe(true);
+    expect(kept.some((p) => p.price === 200)).toBe(true);
+  });
 });
 
 describe("cheapestByRegion", () => {
@@ -88,6 +99,44 @@ describe("cheapestByRegion", () => {
       },
     ];
     expect(cheapestByRegion(listings)).toEqual([]);
+  });
+
+  it("uses a back-order listing only when the region has nothing in stock", () => {
+    const mk = (stockStatus: "in_stock" | "back_order", price: number) => ({
+      distributorId: "balticnetworks-us",
+      productId: "p1",
+      price,
+      currency: "USD",
+      stockStatus,
+      url: "",
+      lastChecked: "",
+      priceHistory: [],
+    });
+    // Only a back-order listing: it becomes the region's pick.
+    const backOnly = cheapestByRegion([mk("back_order", 100)]);
+    expect(backOnly[0]?.listing.stockStatus).toBe("back_order");
+    // An in-stock listing wins even if the back-order one is cheaper.
+    const both = cheapestByRegion([mk("back_order", 50), mk("in_stock", 100)]);
+    expect(both[0]?.listing.stockStatus).toBe("in_stock");
+    expect(both[0]?.listing.price).toBe(100);
+  });
+
+  it("keeps the first listing on an equal converted price", () => {
+    // The comparison is strict (`converted < existing.converted`), so a tie
+    // keeps the earlier listing.
+    const mk = (distributorId: string, price: number) => ({
+      distributorId,
+      productId: "p1",
+      price,
+      currency: "USD",
+      stockStatus: "in_stock" as const,
+      url: "",
+      lastChecked: "",
+      priceHistory: [],
+    });
+    // balticnetworks-us and rocnoc-us are both North America.
+    const result = cheapestByRegion([mk("balticnetworks-us", 100), mk("rocnoc-us", 100)]);
+    expect(result[0]?.listing.distributorId).toBe("balticnetworks-us");
   });
 });
 

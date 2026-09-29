@@ -6217,3 +6217,13 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] The **authoritative** check is the DB-gated `tests/sync-e2e.test.ts`, which runs two devices against the real tRPC server + MySQL. All 6 tests pass, including "propagates a deletion as a tombstone and does not resurrect it", "pages a large change set without dropping items", and "returns the complete state on a full resync".
 - [x] Confirmed the production removal path tombstones correctly: a focused probe showed `removeFromWatchlist` → `onChange` → `markDirty` sets `deleted: true` in sync meta (the harness had raced the async `markDirty`).
 - [x] No code change; tree unchanged from Phase 817 (`tsc 0`, lint 0 errors / 157 warnings, `2661 passed`; DB 8/30; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 819: Mutation pass — 4 compare-utils gaps closed
+
+- [x] A tenth mutation batch on `shared/src/compare-utils.ts` (the cross-platform chart/region core) found **four** surviving mutations:
+  - `filterByRange` anchor (`min(now, max)` → `max`): no test used a future-dated (clock-skewed) point.
+  - `cheapestByRegion` tie-break (`<` → `<=`): no test had two same-region listings at an equal converted price.
+  - Back-order fallback (`if (!merged.has(region))` removed): no test asserted a back-order listing is used when a region has nothing in stock.
+  - Orderable-status guard (`!== in_stock && !== back_order` → `!== in_stock`): the regression test only asserted `unknown` is excluded, never that `back_order` **is** included.
+- [x] Added guards to `tests/compare-utils.test.ts` and `tests/distribute-pricing-regression.test.ts`; all four mutations now fail.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2664 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
