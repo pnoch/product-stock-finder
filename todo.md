@@ -6270,3 +6270,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] The migration journal and SQL files are consistent: 29 journal entries ↔ 29 `.sql` files, no missing or orphaned files.
 - [x] Verified the **applied** DB schema matches `schema.ts` for all 20 tables (a direct `SHOW COLUMNS` check; five initial "missing column" hits were a regex bleed across table blocks, confirmed false by direct inspection).
 - [x] No code change; tree unchanged from Phase 823 (`tsc 0`, lint 0 errors / 157 warnings, `2665 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 825: Mutation pass — restock legacy-watch default gap
+
+- [x] A thirteenth batch mutated the server notification/sync logic and client sync/restock. Most were killed (digest hold, dedup bucket, evaluate blocking, tombstone window, rate limit, client LWW, dirty cursor, stamp cap, restock condition).
+- [x] One survived: `lib/restock.ts`'s `watch.lastKnownStatus ?? "back_order"` → `?? "in_stock"`. No test covered a legacy watch with `lastKnownStatus` **undefined**; defaulting to `"in_stock"` would silently never fire for pre-existing watches. Added a guard; the mutation now fails.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2666 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

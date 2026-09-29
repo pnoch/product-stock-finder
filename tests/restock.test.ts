@@ -186,6 +186,25 @@ describe("checkRestocks", () => {
     expect(state.removed).toEqual([]);
   });
 
+  it("fires for a legacy watch with no lastKnownStatus when it is in stock", () => {
+    // A watch created before `lastKnownStatus` existed defaults to
+    // "back_order", so an in-stock listing is a restock. Defaulting to
+    // "in_stock" would silently never fire for those watches.
+    state.watches = [
+      makeWatch({ lastKnownStatus: undefined as never }),
+    ];
+    state.watchlist = [
+      {
+        id: "p1",
+        listings: [{ distributorId: "d1", stockStatus: "in_stock" }],
+      },
+    ];
+    return checkRestocks().then(() => {
+      expect(state.scheduled).toHaveLength(1);
+      expect(state.removed).toEqual(["w1"]);
+    });
+  });
+
   it("updates cached status when status changes to non-in-stock", async () => {
     state.watches = [makeWatch()]; // lastKnownStatus = back_order
     state.watchlist = [
