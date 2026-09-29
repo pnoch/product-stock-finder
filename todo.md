@@ -6210,3 +6210,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `fx.get` 200; `sharedWatchlists.create` returns a token; public `sharedWatchlists.get` 200.
   - Unknown `/api` route 404; CORS does not reflect an arbitrary origin.
 - [x] No code change; tree unchanged from Phase 816 (`tsc 0`, lint 0 errors / 157 warnings, `2661 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 818: Sync-convergence verification (clean)
+
+- [x] Built an in-memory two-client convergence harness (shared LWW server model) to probe add/edit/delete convergence. The harness was **unfaithful** — its fake server clock and the client's skew-corrected stamping (`Date.now() + (lastSyncedAt - okAt)`) interact in a way the real server does not, producing flaky results across runs.
+- [x] The **authoritative** check is the DB-gated `tests/sync-e2e.test.ts`, which runs two devices against the real tRPC server + MySQL. All 6 tests pass, including "propagates a deletion as a tombstone and does not resurrect it", "pages a large change set without dropping items", and "returns the complete state on a full resync".
+- [x] Confirmed the production removal path tombstones correctly: a focused probe showed `removeFromWatchlist` → `onChange` → `markDirty` sets `deleted: true` in sync meta (the harness had raced the async `markDirty`).
+- [x] No code change; tree unchanged from Phase 817 (`tsc 0`, lint 0 errors / 157 warnings, `2661 passed`; DB 8/30; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
