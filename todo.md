@@ -5796,3 +5796,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`server/notifications/digest.ts`:** `digestId` hashes the scope to fit the `varchar(128)` id while the readable `dedupKey` fits `varchar(255)`; the digest day bucket uses the client's UTC offset; `shouldHoldScope` requires *every* bound config to opt in (an old client without quiet hours isn't delayed).
 - [x] **`server/notifications/evaluate.ts`:** paged device rows (bounded tick), one memoized price lookup per tick, and `isEventBlocking` bounds the delivery-grace wait so a stale binding can't suppress a condition forever.
 - [x] No code change; tree unchanged from Phase 758 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 760: Server price/warmer audit (clean)
+
+- [x] **`server/prices.ts`:** global scrape semaphore (bounded queue, slot-release guard so a queue-full rejection can't corrupt the active count), single-flight per (distributor, model), and `runWarmerTick` gives each step its own error boundary (one failing purge no longer starves the rest).
+- [x] **`server/catalog-warmer.ts`:** `pickPairsToWarm` ranks by `max(fetchedAt, attemptedAt)` so a pair that never yields a result rotates out instead of monopolizing every tick.
+- [x] **`pLimit`:** a synchronous throw doesn't leak the slot or wedge the queue.
+- [x] No code change; tree unchanged from Phase 759 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
