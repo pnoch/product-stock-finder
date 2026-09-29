@@ -6187,3 +6187,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] A ninth batch targeted `lib/price-digest.ts`, `lib/watchlist-stats.ts`, `lib/price-events.ts`, `lib/price-share.ts`, `lib/notification-routing.ts`, `lib/restock.ts`. The runtime mutations (stats pct, event type) were all **killed**.
 - [x] Three apparent survivors were **type-annotation-only** mutations (e.g. `const x: DigestResult["alertTargetsHit"] = ...` → a different key type) — stripped at runtime, so they have no behavioral effect and are not real gaps.
 - [x] No code change; tree unchanged from Phase 813 (`tsc 0`, lint 0 errors / 157 warnings, `2661 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 815: Pluralization + hook-dependency audit (clean)
+
+- [x] **Pluralization:** every `N item${n === 1 ? "" : "s"}` site uses the same count for the number and the suffix (mobile + desktop). The desktop `Watchlist` "· N tags" fallback shows the raw tag count only when no definitions resolve — a deliberate loading-state fallback (definitions load from settings), not a miscount.
+- [x] **Hook dependencies:** a scanner over every `useMemo`/`useCallback` in `app/`, `components/`, `desktop/src/pages/` found no stale-closure reads of `displayCurrency`/`tagDefinitions`/`shippingRegion`/`regionFilter` (the earlier hits were `setDisplayCurrency` setters — false positives).
+- [x] No code change; tree unchanged from Phase 814 (`tsc 0`, lint 0 errors / 157 warnings, `2661 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
