@@ -6125,3 +6125,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] A second mutation batch found `lib/alert-suggestions.ts`'s `round2` untested: every test value was already 2-decimal, so `Math.round` → `Math.floor` survived.
 - [x] Added a case using `0.03 * 0.95 = 0.0285` (rounds to 0.03, floors to 0.02); the mutation now fails the suite.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2655 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 806: Mutation pass — digest zero-baseline gap
+
+- [x] A third mutation batch found `lib/price-digest.ts`'s zero-baseline guard (`from > 0`) untested: changing it to `from >= 0` survived, because no test used a `bestPrice` of 0 (a sub-cent price rounds to 0, and `(to - from) / from` would be `Infinity` → "+Infinity%").
+- [x] Added a case with `previous.bestPrice = 0`; the mutation now fails the suite. The critical alert guards (`deactivateAlert` stale-event + compare-and-set) were all killed — well-tested.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2656 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

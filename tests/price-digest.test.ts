@@ -241,6 +241,24 @@ describe("computeDigest", () => {
     expect(result.summary.totalValue).toBeCloseTo(95);
   });
 
+  it("skips a price change whose baseline is zero", () => {
+    // A sub-cent price can round to 0; `(to - from) / from` would then be
+    // Infinity and render as "+Infinity%". The guard is `from > 0`.
+    const previous: DigestSnapshot = {
+      lastDigestAt: "2026-08-01T00:00:00.000Z",
+      products: [
+        { productId: "p1", name: "CRS804", bestPrice: 0, stockStatus: "in_stock" },
+      ],
+    };
+    const watchlist = [
+      makeProduct("p1", "CRS804", [
+        { price: 95, currency: "USD", stockStatus: "in_stock" },
+      ]),
+    ];
+    const result = computeDigest(previous, watchlist, makeSettings(), []);
+    expect(result.priceChanges).toHaveLength(0);
+  });
+
   it("builds a snapshot from scratch when previous is null", () => {
     const watchlist = [
       makeProduct("p1", "CRS804", [
