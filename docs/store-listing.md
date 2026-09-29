@@ -16,11 +16,11 @@ Copy for App Store Connect and Google Play Console. Keep this in sync with
 
 ## Short description (Play Store, 80 chars max)
 
-> Track stock and prices across 25 electronics distributors. Alerts and history.
+> Track stock and prices across 30 electronics distributors. Alerts and history.
 
 ## Full description
 
-> Product Stock Finder tracks product availability and prices across 25 global
+> Product Stock Finder tracks product availability and prices across 30 global
 > electronics distributors, with a focus on MikroTik and Ubiquiti networking
 > gear.
 >

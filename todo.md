@@ -6380,3 +6380,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Service worker (`public/sw.js`):** navigation is network-first and refreshes `/index.html` (the URL the offline fallback reads); hashed `/_expo/static/*` bundles are runtime cache-first (not precached, since `addAll` rejects on a 404); `skipWaiting`/`clients.claim` + old-cache purge on activate.
 - [x] **`registerSpa`:** unmatched `/api/*` and `/storage/*` return JSON 404 (not the HTML shell); the shell is `no-store`; hashed bundles are `immutable`.
 - [x] No code change; tree unchanged from Phase 837 (`tsc 0`, lint 0 errors / 157 warnings, `2674 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 839: store-listing.md drift fixed + guarded
+
+- [x] **Gap found:** `docs/store-listing.md` (the live Play Store / App Store submission copy) said "25 electronics distributors" / "25 global electronics distributors" in both the short and full descriptions — the store listing would advertise the wrong number.
+- [x] **Fix:** corrected both to 30 (short description is 78 chars, within the 80-char Play Store limit). Extended `tests/agents-doc-drift.test.ts` to pin the store-listing distributor count and the 80-char short-description cap. Proven non-vacuous: reverting fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2675 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

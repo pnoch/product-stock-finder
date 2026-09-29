@@ -56,6 +56,24 @@ describe("AGENTS.md drift", () => {
   });
 });
 
+describe("store-listing.md drift", () => {
+  const listing = readFileSync("docs/store-listing.md", "utf8");
+
+  it("states the real distributor count and fits the short-description limit", () => {
+    const distributors = readFileSync("shared/src/distributors.ts", "utf8");
+    const distributorCount = new Set(
+      [...distributors.matchAll(/id:\s*"([^"]+)"/g)].map((m) => m[1]),
+    ).size;
+    expect(listing).toContain(`across ${distributorCount} electronics distributors`);
+    expect(listing).toContain(`across ${distributorCount} global`);
+
+    // Play Store short description is capped at 80 characters.
+    const short = listing.match(/> ([^\n]+)\n/);
+    expect(short, "short description not found").not.toBeNull();
+    expect(short![1]!.length).toBeLessThanOrEqual(80);
+  });
+});
+
 describe("design.md drift", () => {
   const design = readFileSync("design.md", "utf8");
 
