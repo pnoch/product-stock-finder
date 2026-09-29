@@ -5986,3 +5986,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - `desktop/src/pages/Home.tsx` / `app/(tabs)/index.tsx` sort listings by status order.
   - `lib/scrapers/health.ts` `timelineSegments` receives already-sorted samples.
 - [x] No code change; tree unchanged from Phase 787 (`tsc 0`, lint 0 errors / 157 warnings, `2652 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 789: Trend/sparkline positional-read audit (clean)
+
+- [x] **`components/price-sparkline.tsx`:** sorts by parsed time before reading `first`/`last`.
+- [x] **`lib/scrapers/health.ts` `computeHealthStats`:** its `slice(half)`/`slice(0, half)` trend split relies on ascending order, which `getHealthHistory` now guarantees (Phase 786); both `HealthDetail` screens read through it.
+- [x] **`desktop/src/pages/Compare.tsx`, `app/compare/[id].tsx`, `desktop/src/pages/ProductDetail.tsx`, `components/best-distributor-card.tsx`, `lib/price-change.ts`:** all sort before comparing first/last.
+- [x] No code change; tree unchanged from Phase 787 (`tsc 0`, lint 0 errors / 157 warnings, `2652 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
