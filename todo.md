@@ -5910,3 +5910,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Fuzzed the health state machine (200k random sample sequences): `detectHealthAlert` and `detectHealthRecovery` are never both true for the same input.
 - [x] Fuzzed `detectPriceEvents` (100k random histories): event `index` always in range and `type` always valid.
 - [x] No code change; tree unchanged from Phase 776 (`tsc 0`, lint 0 errors / 157 warnings, `2646 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 778: Property-based fuzzing (storage concurrency/filtering)
+
+- [x] **Concurrency:** 500 trials of N concurrent `addToWatchlist` — every item persisted (no lost updates); 500 trials of concurrent `removeAlert` — none resurrected.
+- [x] **Sorting:** 20k trials of `sortWatchlist` across all sort keys — output is deterministic, same length, no duplicates.
+- [x] **Filtering/grouping:** 30k trials — `filterWatchlist` never returns more than its input; `groupWatchlist` partitions exactly (union of groups == input).
+- [x] **Tag helpers:** 100k trials — `tagColor`/`nextTagColor` always return a palette color; `matchesTagFilterMode` never throws.
+- [x] **Storage quarantine:** 2k trials with corrupt/non-array JSON pre-seeded — `getWatchlist` returns an array and a subsequent write is not lost.
+- [x] No code change; tree unchanged from Phase 777 (`tsc 0`, lint 0 errors / 157 warnings, `2646 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
