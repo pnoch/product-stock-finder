@@ -5710,3 +5710,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/web-push.ts`:** `urlBase64ToUint8Array` correctly decodes a 65-byte P-256 VAPID key (verified); subscribe/unsubscribe are best-effort with the server token pruned on sign-out.
 - [x] **`lib/push-token.ts`:** web/non-device/project-id guards, 4s timeout, and `unregisterPushToken` prunes both the web subscription and the server token on sign-out.
 - [x] No code change; tree unchanged from Phase 745 (`tsc 0`, lint 0 errors / 157 warnings, `2642 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 747: Seed/manual-add/onboarding audit (clean)
+
+- [x] **`lib/launch-seed.ts`:** idempotent (skips existing ids), only backfills the two MikroTik seeds' listings when missing, per-id error isolation.
+- [x] **`lib/manual-add.ts`:** dedupes on the storage return value (not just the stale `trackedIds`), handles the discovery timeout as an empty result, and `rediscoverMissingListings` rotates attempts (`MISSING_LISTINGS_RETRY_MS`) so permanently-unfindable products can't occupy every run's slots.
+- [x] **`lib/onboarding.ts` / `lib/recent-searches.ts` / `lib/legal-links.ts`:** `isPublicRoute` handles trailing slash/query/hash and rejects non-public routes (verified); recent searches are deduped case-insensitively and capped; the support email uses `||` so an empty override can't produce a bare `mailto:`.
+- [x] No code change; tree unchanged from Phase 746 (`tsc 0`, lint 0 errors / 157 warnings, `2642 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
