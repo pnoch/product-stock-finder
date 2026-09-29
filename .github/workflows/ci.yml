@@ -37,6 +37,10 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm --dir desktop test
+      # The desktop Vite production build: `check:desktop` (tsc) and vitest do
+      # not exercise the bundler, so a build-time regression (e.g. a `define`
+      # that crashes the built app at boot) could merge unchecked.
+      - run: pnpm build:desktop
       # Every DB-gated test file (discovered from the filesystem by
       # scripts/test-db.mjs, so a new one is picked up automatically) — a
       # hand-maintained list had silently stopped covering five suites.

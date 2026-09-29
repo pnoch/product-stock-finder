@@ -5465,3 +5465,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `tests/tauri-version-lockstep.test.ts` keeps root / desktop / `tauri.conf.json` / `Cargo.toml` on the same version, but **`app.config.ts`'s `version` — the value that actually ships to the App Store / Play Store — was unguarded.** A release bump that missed it would silently lag the store build.
 - [x] **Fix:** added a case to `tests/store-config.test.ts` asserting `app.config.ts`'s `version` equals `package.json`'s. Proven non-vacuous: bumping `app.config.ts` to `9.9.9` fails the test; restoring `5.16.0` passes.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2616 passed**; desktop `tsc 0`, **285 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 711: CI never built the desktop Vite bundle
+
+- [x] **Gap found:** CI ran `check:desktop` (tsc) and desktop vitest, but never `pnpm build:desktop` (the Vite production build). That is exactly the class of the Phase-634 `__DEV__` `define` boot crash — it compiles and unit-tests clean, then crashes the built app. Nothing in CI would have caught it.
+- [x] **Fix:** added `pnpm build:desktop` to the `check` job, and a new `tests/ci-workflow.test.ts` guard asserting the workflow keeps the build/test/smoke steps, the Rust job, and that `playwright install` precedes `smoke:web`. Proven non-vacuous: deleting the `build:desktop` step fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2619 passed**; desktop `tsc 0`, **285 passed**; `cargo test` 71, clippy 0, fmt clean.
