@@ -5437,3 +5437,12 @@ Reviewed the components with effects/state in the two largest groups.
 - [x] **`metro.config.js` + `scripts/metro-resolver.js`:** the resolver redirects `lib/scrapers/browser` → the playwright-free `browser.web.ts` stub and `cheerio` → its browser build on native, and the config pre-creates the NativeWind CSS cache file so a clean install (CI/Railway) doesn't fail the web export. The resolver has tests (`tests/metro-resolver.test.ts`).
 - [x] **`eas.json` / `drizzle.config.ts` / `babel.config.js`:** correct (build profiles, a required `DATABASE_URL`, the NativeWind/worklets presets).
 - [x] No code change; tree unchanged from Phase 705 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 707: Full CI pipeline run locally (clean)
+
+Ran the exact CI sequence end to end, including the two steps not exercised since the CI changes.
+
+- [x] **`pnpm build`** (server bundle + web export) succeeds; **`pnpm smoke:web`** renders the SPA (289 chars) with no `import.meta`/blank-page failure.
+- [x] **`pnpm db:push` against a fresh database** generates and applies every migration successfully.
+- [x] **Verified the migrated schema:** 20 app tables + `__drizzle_migrations`, and the Phase-596 `users.credentialsChangedAt` column is present — the migration chain is complete and applies cleanly from scratch (so CI's DB tests run against the real schema).
+- [x] No code change; tree unchanged from Phase 706 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
