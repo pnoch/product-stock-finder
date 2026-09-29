@@ -101,6 +101,14 @@ describe("screen-level fixes", () => {
     expect(src).toContain("if (gen !== loadGenRef.current) return;");
   });
 
+  it("the mobile verify-email refresh sends the Bearer token", () => {
+    const src = read("app/verify-email.tsx");
+    // On React Native the session cookie is not reliably sent cross-origin, so
+    // /api/auth/me 401'd and the "verify your email" banner never cleared.
+    expect(src).toContain("Auth.getSessionToken()");
+    expect(src).toContain("Authorization: `Bearer ${sessionToken}`");
+  });
+
   it("the health detail screen guards against an out-of-order load", () => {
     const src = read("app/health/[id].tsx");
     // `id` comes from the route params, so navigating between two distributors

@@ -50,7 +50,24 @@ export default function VerifyEmailScreen() {
           // emailVerified: false — refresh it or Settings keeps nagging until the
           // next sign-in.
           try {
-            const refreshed = await fetchCurrentUser(baseUrl);
+            // Send the Bearer token: on React Native the session cookie is not
+            // reliably sent cross-origin, so /api/auth/me 401'd and the
+            // "verify your email" banner never cleared (the desktop needed the
+            // same fix).
+            const sessionToken = await Auth.getSessionToken();
+            const refreshed = await fetchCurrentUser(
+              baseUrl,
+              sessionToken
+                ? (input, init) =>
+                    fetch(input, {
+                      ...init,
+                      headers: {
+                        ...((init?.headers as Record<string, string>) ?? {}),
+                        Authorization: `Bearer ${sessionToken}`,
+                      },
+                    })
+                : fetch,
+            );
             if (refreshed && !cancelled) {
               const user = {
                 ...refreshed,

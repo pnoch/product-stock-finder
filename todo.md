@@ -5326,3 +5326,10 @@ Checked whether each mobile fix from this session has a desktop counterpart, and
 - [x] **No desktop counterpart (nothing to fix):** the mobile tag-picker's synced-id reset — the desktop has no tag-picker component.
 - [x] **Not applicable by architecture:** the mobile undo bug (restoring a cascade-cancelled `notificationId`) — the desktop has **no local notification scheduling** at all (it relies on server push and the notification pull), so there is no local id to restore. Its undo correctly restores the product, alerts, reminders, and watches.
 - [x] No code change; tree unchanged from Phase 692 (`tsc 0`, lint 0 errors / 157 warnings, `2614 passed`; desktop `285`).
+
+## Phase 694: Mobile verify-email refresh was unauthenticated (the desktop fix never reached mobile)
+
+- [x] **Found: `app/verify-email.tsx`'s post-verification refresh called `fetchCurrentUser(baseUrl)` with only `credentials: "include"`.** On React Native the session cookie is not reliably sent cross-origin, so `/api/auth/me` 401'd and the "verify your email" banner never cleared until the next sign-in. This is the **mirror** of the Phase-605 desktop fix (which added the Bearer header) — this time the desktop had it and mobile did not.
+- [x] **Fix:** the refresh now passes a fetch wrapper adding `Authorization: Bearer <sessionToken>` (from `Auth.getSessionToken()`), matching `lib/_core/api.ts`'s `apiCall`.
+- [x] **Tests:** a source guard in `tests/screen-fixes-source-guards.test.ts` (non-vacuous — removing the header fails it) and the existing parity test's assertion updated to the new form.
+- [x] Root `tsc 0`, lint 0 errors (157 warnings), `2615 passed` (27 skipped without a DB); desktop `285 passed`.
