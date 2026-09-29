@@ -5993,3 +5993,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/scrapers/health.ts` `computeHealthStats`:** its `slice(half)`/`slice(0, half)` trend split relies on ascending order, which `getHealthHistory` now guarantees (Phase 786); both `HealthDetail` screens read through it.
 - [x] **`desktop/src/pages/Compare.tsx`, `app/compare/[id].tsx`, `desktop/src/pages/ProductDetail.tsx`, `components/best-distributor-card.tsx`, `lib/price-change.ts`:** all sort before comparing first/last.
 - [x] No code change; tree unchanged from Phase 787 (`tsc 0`, lint 0 errors / 157 warnings, `2652 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 790: Silent-error-swallowing audit (clean)
+
+- [x] Reviewed all 514 `catch` blocks in `lib/`, `server/`, `shared/`, `desktop/src/`. The ones returning a default (`[]`/`{}`/`null`/`false`) are all deliberate best-effort paths (network probes, notification scheduling, image/share capture, FX rates, discovery).
+- [x] Critical paths distinguish correctly: `parseBackup` → `null` is the documented contract; `itemBytes` → `Infinity` fails safe (forces a trim); the token-consume paths (Phase 594) only fall back to memory when the DB row is **absent** (a used/expired row stays rejected); `registerSecurityHeaders` ignores a malformed API base (client falls back to same-origin).
+- [x] Storage `enqueue` drops writes only during a wipe (their data is being removed anyway) and isolates throwing observers.
+- [x] No code change; tree unchanged from Phase 789 (`tsc 0`, lint 0 errors / 157 warnings, `2652 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
