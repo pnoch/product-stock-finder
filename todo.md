@@ -5563,3 +5563,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `server/price-history.ts`'s `mergeHistory` memory fallback used `p.date > current.date` (string compare) — the same bug as Phase 724. The `uploadHistory` zod schema accepts both `…:00Z` and `…:00.500Z`, so a mixed-format payload kept the older same-day point. The DB path already compares the numeric `fetchedAt`; only the memory fallback (no `DATABASE_URL`) was wrong.
 - [x] **Fix:** compare `Date.parse(...)`. Added a case to `tests/server-price-history.test.ts`. Proven non-vacuous: reverting fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2635 passed**; DB suite **8 files / 30 passed**; desktop `285`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 726: Date-comparison audit (clean)
+
+- [x] **`lib/alert-state.ts`:** `isAlertActive` parses `snoozedUntil` with `Date.parse` (not string compare) and guards non-finite.
+- [x] **`lib/price-digest.ts` (`triggeredAt >= lastDigestAt`), `components/settings/scraper-status-section.tsx` (`lastChecked > existing`):** both operands are internally generated via `toISOString()`, so the lexical comparison equals chronological; only a hand-edited backup could break them (low risk, left as-is).
+- [x] **`desktop/src/pages/Stats.tsx` (`pt.date < cutoffStr`):** a `YYYY-MM-DD` day-prefix cutoff compared against a date that starts with the same prefix — lexically correct.
+- [x] **`lib/sync.ts` / `server/sync-db.ts` `updatedAt` comparisons:** epoch-millisecond numbers, not strings.
+- [x] No code change; tree unchanged from Phase 725 (`tsc 0`, lint 0 errors / 157 warnings, `2635 passed`; DB 8/30; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
