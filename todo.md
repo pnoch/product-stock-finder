@@ -5647,3 +5647,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Price alerts:** scoped via `listingsForAlert`; claims the transition with `deactivateAlert` before notifying (so a concurrent runner can't double-fire); re-arms on a failed web display; re-reads alerts to avoid duplicates.
 - [x] **`lib/alert-scope.ts`:** `listingsForAlert`/`scopedAlertFor`/`productWideAlert` correctly scope by distributor and skip triggered/inactive alerts.
 - [x] No code change; tree unchanged from Phase 736 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 738: Health probe/alert audit (clean)
+
+- [x] **`detectHealthAlert`/`detectHealthRecovery`:** fire exactly once per edge (require `threshold` consecutive non-working samples preceded by a working one, and vice versa).
+- [x] **`checkHealthAlerts`:** deliberately does *not* bail during quiet hours (the working→down edge is detectable for only one run); `scheduleHealthAlert` suppresses the OS notification and the server holds the event.
+- [x] **`health-collector`/`testAllDistributors`:** single-flight, concurrency-bounded (3), bounded history (`HISTORY_MAX_SAMPLES`), and the collector merges into existing health rather than replacing.
+- [x] No code change; tree unchanged from Phase 737 (`tsc 0`, lint 0 errors / 157 warnings, `2637 passed`; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
