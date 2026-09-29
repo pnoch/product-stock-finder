@@ -5924,3 +5924,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] 30k trials across `computeBasketValue` (finite total, counts partition), `computeStockHealth` (0–100%), `computeDataFreshness` (finite avg), `buildShareRows` (≤5 rows, finite prices), `findBestDeal`, `getTaxRate`, `analyzeDistributors`, `computePriceChange`, `getBestPrice` (finite), `formatPrice` — all invariants held, no throws.
 - [x] No code change; tree unchanged from Phase 778 (`tsc 0`, lint 0 errors / 157 warnings, `2646 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 780: Property-based fuzzing (security parsers/validators)
+
+- [x] 200k random `parseOAuthCallbackParams` inputs — never throws, action always one of redeem/failed/redirect.
+- [x] 50k `sanitizeHistoryPoints` inputs (bad dates/prices/currencies) — output ≤ cap, all finite non-negative prices.
+- [x] 100k `sanitizeTrendingRows` inputs — every field within its column limit, price finite and in `[0, 99999999.99]`.
+- [x] 200k random strings through `isBlockedUrl`/`isAllowedPushEndpoint`/`resolveOllamaLocalUrl`/`isInQuietHours` — never throws.
+- [x] Explicit security invariants: all private/loopback/metadata/IPv4-mapped URLs blocked; public URLs allowed; push allowlist rejects `http://`, `evil.com`, and suffix-confusion (`googleapis.com.evil.com`); accepts real FCM/APNs/Mozilla endpoints.
+- [x] No code change; tree unchanged from Phase 779 (`tsc 0`, lint 0 errors / 157 warnings, `2646 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
