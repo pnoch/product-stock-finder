@@ -6395,3 +6395,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/notifications.ts`:** reminders use a DATE trigger with the actual `Date` object (the OS fires in local time); the Android channel is on the trigger, not `content`.
 - [x] **End-to-end:** the client sends its offset (`server-notifications.ts`), the server mapper preserves it, and `evaluate.ts`/`digest.ts` use it for every quiet-hours check.
 - [x] No code change; tree unchanged from Phase 839 (`tsc 0`, lint 0 errors / 157 warnings, `2675 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 841: Numeric-overflow/large-input audit (clean)
+
+- [x] **Server zod bounds:** every string has `.max()` (ids 191, distributor 64, model 128, currency 8), every array has a cap (`SYNC_PUSH_MAX_ITEMS`, `MAX_UPLOAD_*`), and prices are `.finite().positive().max(99_999_999)`.
+- [x] **Future-stamp clamping (`sync.push`):** a stamp beyond `now + 5min` is clamped to `now` (not rejected) so a bad client clock can't poison LWW forever and the client self-heals.
+- [x] **Byte caps:** the server sums `JSON.stringify(item.data).length` and rejects >5MB with a `BAD_REQUEST`; a cyclic payload throws and is caught → `"Unserializable sync data"`.
+- [x] **Client:** `itemBytes` returns `Infinity` on a cyclic payload (forces a trim rather than aborting sync); `batchSyncItems` batches on both item count and bytes; `serializeItem` progressively trims history (`[20,10,5,2,1,0]`) until the item fits, never touching the local copy.
+- [x] No code change; tree unchanged from Phase 840 (`tsc 0`, lint 0 errors / 157 warnings, `2675 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
