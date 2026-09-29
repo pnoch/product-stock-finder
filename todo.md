@@ -6193,3 +6193,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Pluralization:** every `N item${n === 1 ? "" : "s"}` site uses the same count for the number and the suffix (mobile + desktop). The desktop `Watchlist` "· N tags" fallback shows the raw tag count only when no definitions resolve — a deliberate loading-state fallback (definitions load from settings), not a miscount.
 - [x] **Hook dependencies:** a scanner over every `useMemo`/`useCallback` in `app/`, `components/`, `desktop/src/pages/` found no stale-closure reads of `displayCurrency`/`tagDefinitions`/`shippingRegion`/`regionFilter` (the earlier hits were `setDisplayCurrency` setters — false positives).
 - [x] No code change; tree unchanged from Phase 814 (`tsc 0`, lint 0 errors / 157 warnings, `2661 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 816: Browser click-through verification (clean)
+
+- [x] Built the web export and drove it with Playwright (pre-seeding onboarding + a watchlist so screens render real content). Visited 15 routes — all 9 tabs/screens (`/`, `/watchlist`, `/alerts`, `/rates`, `/settings`, `/stats`, `/health`, `/search`, `/privacy`) plus deep links (`/product/[id]`, `/compare/[id]`, `/health/[id]`, `/distributor-analysis`, `/restock-watches`, `/w/[token]`).
+- [x] **Zero JS errors** on every route (the only console errors were the expected `ERR_FAILED` from offline API calls, filtered out). Interactive tab navigation and product-detail navigation also produced no errors.
+- [x] Error states render correctly (`/w/nonexistent-token` → "Share not found"; `/health/[id]` with no samples → "No data").
+- [x] No code change; tree unchanged from Phase 815 (`tsc 0`, lint 0 errors / 157 warnings, `2661 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
