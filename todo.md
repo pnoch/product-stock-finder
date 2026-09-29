@@ -6028,3 +6028,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** the server mints a fresh `discovered-<timestamp>` id on every discovery, and `addDiscoveredProduct` deduped the *stored catalog* by brand|model (keeping the original id) — but returned `void`, so `discoverProduct` returned the **fresh** time-based id. The search screen then called `addToWatchlist`, which dedups by **id**, so re-discovering the same product added a **second watchlist entry** (verified: 2 entries for one product). Affected mobile and desktop (both add `res.product`).
 - [x] **Fix:** `addDiscoveredProduct` now returns the canonical stored product (existing id when deduped); `discoverProduct` returns that. Added a non-vacuous guard to `tests/discovery-storage.test.ts` and updated the `llm-discovery` mock to return the product. Proven non-vacuous: reverting fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2653 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 794: CSV-import identity audit (not reachable)
+
+- [x] Investigated whether the CSV import path has the same duplicate bug as Phase 793: `detailedCsvToProducts`/`parseWatchlistCsv` build `id: r.model` (raw, e.g. `CRS326-24G-2S+RM`) while the catalog uses `mikrotik-<slug>`, so importing an already-tracked catalog product *would* create a duplicate.
+- [x] **Not reachable:** `parseWatchlistCsv`/`detailedCsvToProducts` are used only by tests — the live import path is the JSON backup (`parseBackup` + `applyBackup`, which merges by id and preserves the existing product) and the bulk import (`parseBulkImportCsv` → catalog lookup by `modelNumber`). No production caller builds a watchlist product from CSV.
+- [x] No code change; tree unchanged from Phase 793 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
