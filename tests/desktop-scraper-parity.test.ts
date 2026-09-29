@@ -95,6 +95,31 @@ describe("desktop/mobile scraper parity", () => {
     expect(checked).toBeGreaterThan(20);
   });
 
+  it("keeps the Rust card/row selectors aligned with mobile", async () => {
+    // The Rust CARD_SELECTOR still listed `.item` after mobile deliberately
+    // dropped it (a generic list wrapper validates a decoy price). The two
+    // lists must stay identical.
+    const rust = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
+    const ts = await readFile("lib/scrapers/utils.ts", "utf8");
+    const parse = (s: string): string[] =>
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .sort();
+    const rustCard = rust.match(/const CARD_SELECTOR: &str = "([^"]+)"/)?.[1];
+    const tsCard = ts.match(/const CARD_SELECTORS =\s*\n?\s*"([^"]+)"/)?.[1];
+    const rustRow = rust.match(/const ROW_SELECTOR: &str = "([^"]+)"/)?.[1];
+    const tsRow = ts.match(/const ROW_SELECTORS = "([^"]+)"/)?.[1];
+    expect(rustCard).toBeDefined();
+    expect(tsCard).toBeDefined();
+    expect(parse(rustCard!), "card selectors drifted").toEqual(parse(tsCard!));
+    expect(parse(rustRow!), "row selectors drifted").toEqual(parse(tsRow!));
+    // `.item` must not be a card selector on either side.
+    expect(parse(rustCard!)).not.toContain(".item");
+    expect(parse(tsCard!)).not.toContain(".item");
+  });
+
   it("keeps the Rust model matcher aligned with the shared parser rules", async () => {
     // The shared `matchesModel` rules the Rust port must mirror: a preceding
     // LETTER is a brand concatenation (allowed), a preceding DIGIT is not, and a

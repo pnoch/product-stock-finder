@@ -351,7 +351,7 @@ pub fn text_mentions_model(text: &str, model: &str) -> bool {
 /// Preferred over the generic row selectors below: a single <tr>/<li> can wrap
 /// SEVERAL product cards (Aerial puts its whole results grid in one <tr>), in
 /// which case the row's text names every model and would validate any price.
-const CARD_SELECTOR: &str = "article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .product-card, .aerial-card, .ac-item, .item";
+const CARD_SELECTOR: &str = "article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .product-card, .aerial-card, .ac-item";
 /// Generic row containers, used only when no specific card is found.
 const ROW_SELECTOR: &str = "tr, li";
 
@@ -985,5 +985,22 @@ mod tests {
             ".stock",
         )
         .is_err());
+    }
+    #[test]
+    fn item_wrapper_is_not_a_card() {
+        // A `.item` list wrapper containing two products; the requested model is
+        // the second. If `.item` is a card selector, the wrapper's text names
+        // BOTH models and the decoy price passes.
+        let html = r#"<ul class="item">
+            <li><h3>MikroTik CRS326-24G-2S+</h3><span class="price">$199.00</span></li>
+            <li><h3>MikroTik CRS804-4DDQ-hRM</h3><span class="price">$480.00</span></li>
+        </ul>"#;
+        let document = Html::parse_document(html);
+        let sel = Selector::parse(".price").unwrap();
+        let prices: Vec<_> = document.select(&sel).collect();
+        // The first card names CRS326; a CRS804 request must reject its price.
+        assert!(model_mismatch(&prices[0], "CRS804-4DDQ-hRM"));
+        // The second card names CRS804; the request matches.
+        assert!(!model_mismatch(&prices[1], "CRS804-4DDQ-hRM"));
     }
 }

@@ -6432,3 +6432,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `tests/desktop-scraper-parity.test.ts` guarded search URLs, price selectors, the model matcher, and browser wait selectors — but **not currency**. A Rust parser declaring the wrong currency (e.g. `"USD"` where mobile says `"GBP"`) would show the wrong price on desktop and pass every existing check.
 - [x] **Fix:** added a currency-parity case (verified all 25 parsers currently match). Proven non-vacuous: changing `linitx`'s Rust currency to `"USD"` fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2676 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 846: Rust CARD_SELECTOR still listed `.item` (decoy-price bug)
+
+- [x] **Gap found:** mobile's `CARD_SELECTORS` deliberately **removed** the bare `.item` alternative (it is a generic list/grid wrapper on many shops, so `closest` returned the wrapper whose text names every product — validating a decoy price). The Rust `CARD_SELECTOR` still had `.item`, so the desktop could return a **wrong-product price**. Confirmed with a Rust test: a `<ul class="item">` grid with a CRS326 card first and a CRS804 card second accepted the CRS326 price for a CRS804 request.
+- [x] **Fix:** removed `.item` from the Rust `CARD_SELECTOR` to match mobile; added a Rust regression test mirroring the mobile `.item`-wrapper case, and a `tests/desktop-scraper-parity.test.ts` case asserting the Rust and TS card/row selector lists are identical (and neither contains `.item`). Both proven non-vacuous.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2677 passed**; desktop `tsc 0`, **289 passed**; `cargo test` **72**, clippy 0, fmt clean.
