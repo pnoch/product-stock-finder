@@ -5571,3 +5571,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`desktop/src/pages/Stats.tsx` (`pt.date < cutoffStr`):** a `YYYY-MM-DD` day-prefix cutoff compared against a date that starts with the same prefix — lexically correct.
 - [x] **`lib/sync.ts` / `server/sync-db.ts` `updatedAt` comparisons:** epoch-millisecond numbers, not strings.
 - [x] No code change; tree unchanged from Phase 725 (`tsc 0`, lint 0 errors / 157 warnings, `2635 passed`; DB 8/30; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 727: Sorting/aggregation audit (clean)
+
+- [x] **`lib/watchlist-org.ts`:** every comparator is NaN-safe with a deterministic `id.localeCompare` tie-breaker (`Date.parse(...) || 0`, `Infinity`/`-Infinity` sentinels); `STATUS_ORDER` lists all four `StockStatus` values so `indexOf` never returns `-1`.
+- [x] **`lib/watchlist-summary.ts`:** counts all listings, converts only finite positive prices with a known rate, and is explicitly documented as "all listings value" (distinct from the basket value).
+- [x] **`lib/price-chart.ts`:** `findNearestIndex` clamps to `[0, count-1]` and handles `count <= 1`; the `.5` tie rounds down consistently.
+- [x] **`lib/last-refreshed.ts`:** guards invalid dates and clamps a negative diff to 0.
+- [x] No code change; tree unchanged from Phase 726 (`tsc 0`, lint 0 errors / 157 warnings, `2635 passed`; DB 8/30; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
