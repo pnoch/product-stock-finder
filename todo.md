@@ -6366,3 +6366,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** AGENTS.md (the entry point for every agent) had stale counts: "25 global electronics distributors" (actually **30**), "25 entries" in the distributors.ts description (30), and "~277 test files / ~1734 tests" (actually **~376 / ~2670**).
 - [x] **Fix:** corrected the distributor, parser, and test counts. Added `tests/agents-doc-drift.test.ts` pinning the distributor count (30), parser count (25), schema table count (20), and a 5%-tolerance test-file count. Proven non-vacuous: reverting a count fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2673 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 837: design.md drift fixed + guarded
+
+- [x] **Gap found:** `design.md` (referenced by AGENTS.md as the live UI/UX spec) said "25 global electronics distributors (15 live parsers + 10 degraded)" and "Pre-loaded Distributor Database (25 sites)", and its catalog list stopped at 20 — omitting the 10 newer distributors. Two names were also wrong (`Allasch`→Allied Electronics, `Valve`→Steam).
+- [x] **Fix:** corrected the counts (30 distributors / 25 parsers), completed the catalog list to all 30, fixed the two names, and extended `tests/agents-doc-drift.test.ts` to pin design.md's distributor count and catalog-list length. Proven non-vacuous: reverting a count fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2674 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.

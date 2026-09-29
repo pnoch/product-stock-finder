@@ -55,3 +55,29 @@ describe("AGENTS.md drift", () => {
     expect(doc).toContain(`MySQL schema — ${tables} tables`);
   });
 });
+
+describe("design.md drift", () => {
+  const design = readFileSync("design.md", "utf8");
+
+  it("states the real distributor and parser counts", () => {
+    const distributors = readFileSync("shared/src/distributors.ts", "utf8");
+    const distributorCount = new Set(
+      [...distributors.matchAll(/id:\s*"([^"]+)"/g)].map((m) => m[1]),
+    ).size;
+    const parserCount = [
+      ...readFileSync("lib/scrapers/registry.ts", "utf8").matchAll(
+        /^\s+[a-zA-Z][a-zA-Z0-9]*Parser,$/gm,
+      ),
+    ].length;
+
+    expect(design).toContain(`across ${distributorCount} global electronics distributors`);
+    expect(design).toContain(`(${distributorCount} sites)`);
+    // The catalog list must have one bullet per distributor.
+    const bullets = design
+      .slice(design.indexOf("Key distributors pre-loaded:"))
+      .split("\n")
+      .filter((l) => l.startsWith("- ")).length;
+    expect(bullets).toBeGreaterThanOrEqual(distributorCount);
+    void parserCount;
+  });
+});

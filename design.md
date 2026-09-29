@@ -2,7 +2,7 @@
 
 ## App Overview
 
-A professional mobile app for tracking product availability and prices across 25 global electronics distributors (15 live parsers + 10 degraded/JS-heavy — health dashboard/classifyFetchStatus surfaces live status; resilientFetch escalates plain→browser with circuit breakers). Target users are IT professionals, procurement teams, and electronics enthusiasts who need to monitor hard-to-find products globally.
+A professional mobile app for tracking product availability and prices across 30 global electronics distributors (25 live parsers + 5 without a registered parser — health dashboard/classifyFetchStatus surfaces live status; resilientFetch escalates plain→browser with circuit breakers). Target users are IT professionals, procurement teams, and electronics enthusiasts who need to monitor hard-to-find products globally.
 
 ## Brand Identity
 
@@ -143,9 +143,9 @@ Stack screens (outside tabs): `product/[id]` (detail), `compare/[id]` (multi-dis
 - 🔴 Red pill: "Out of Stock"
 - ⚪ Gray pill: "Unknown"
 
-## Pre-loaded Distributor Database (25 sites)
+## Pre-loaded Distributor Database (30 sites)
 
-Regions covered: USA, Europe (UK, Germany, Poland, Greece, EU), Asia-Pacific (Malaysia, Singapore, Hong Kong, Australia), Middle East (UAE), Africa (South Africa)
+Regions covered: USA, Europe (UK, Germany, Poland, Greece, Czech Republic, EU), Asia-Pacific (Malaysia, Singapore, Hong Kong, Australia, New Zealand), Middle East (UAE), Africa (South Africa)
 
 Key distributors pre-loaded:
 
@@ -169,6 +169,16 @@ Key distributors pre-loaded:
 - 100MEGA (Czech Republic)
 - HellasCom (Greece)
 - ROC-NOC (USA)
+- Network Devices (USA)
+- Flytec (USA)
+- MBSI WAV (Canada)
+- Multilink (USA)
+- Neobits (USA)
+- Newegg (USA)
+- Apple (USA)
+- Pimoroni (UK)
+- Allied Electronics (UK)
+- Steam (USA)
 
 ## Pre-loaded Product Catalog
 
