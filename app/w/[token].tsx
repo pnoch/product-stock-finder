@@ -210,7 +210,7 @@ export default function SharedWatchlistScreen() {
         <View style={{ marginTop: 16, gap: 12 }}>
           {products.map((product) => {
             const best = getBestPrice(
-              (product.listings ?? []) as never[],
+              product.listings ?? [],
               displayCurrency,
             );
             return (

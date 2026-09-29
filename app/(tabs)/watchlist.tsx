@@ -636,7 +636,7 @@ export default function WatchlistScreen() {
                 currency: row.currency,
                 createdAt: new Date().toISOString(),
                 isActive: true,
-              } as unknown as never);
+              });
               existingAlertProductIds.add(product.id);
             }
           } catch {

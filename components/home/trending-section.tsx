@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingProduct } from "@/lib/types";
+import { TrendingProduct, type DistributorListing } from "@/lib/types";
 import { fetchTrending } from "@shared/trending";
 import { useColors } from "@/hooks/use-colors";
 import { addToWatchlist, getWatchlist } from "@/lib/storage";
@@ -258,9 +258,7 @@ export const TrendingSection = memo(function TrendingSection() {
         showToast("Not yet available", "info");
         return false;
       }
-      const fallbackListings = SAMPLE_LISTINGS[product.id]
-        ? (SAMPLE_LISTINGS[product.id] as unknown as never[])
-        : ([] as never[]);
+      const fallbackListings: DistributorListing[] = SAMPLE_LISTINGS[product.id] ?? [];
       const newProduct = {
         id: product.id,
         name: product.name,
@@ -274,7 +272,7 @@ export const TrendingSection = memo(function TrendingSection() {
         tags: [] as string[],
       };
       try {
-        await addToWatchlist(newProduct as never);
+        await addToWatchlist(newProduct);
       } catch {
         showToast("Couldn't add to watchlist", "error");
         return false;
@@ -460,7 +458,7 @@ export const TrendingSection = memo(function TrendingSection() {
               addedAt: new Date().toISOString(),
               listings: [],
               tags: [],
-            } as never
+            }
           }
           onClose={() => setPickerProduct(null)}
           onChanged={() => {}}
