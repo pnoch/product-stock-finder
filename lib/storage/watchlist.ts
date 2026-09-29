@@ -12,10 +12,22 @@ export function createWatchlistStorage(ctx: StorageContext) {
   }
 
   function trimHistory(listings: DistributorListing[]): DistributorListing[] {
+    // Sort every history by parsed time first: a history restored from a
+    // backup or a server pull is not guaranteed ascending, and both the
+    // `slice(-N)` cap below and the `shift()` eviction loop assume oldest-first
+    // (on a descending array they kept the OLDEST points / dropped the newest).
     let trimmed = listings.map((l) => {
       const h = l.priceHistory ?? [];
-      if (h.length > MAX_HISTORY_PER_LISTING) return { ...l, priceHistory: h.slice(-MAX_HISTORY_PER_LISTING) };
-      return l;
+      const isAscending = h.every(
+        (p, i) => i === 0 || Date.parse(h[i - 1].date) <= Date.parse(p.date),
+      );
+      const sorted = isAscending
+        ? h
+        : [...h].sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+      if (sorted.length > MAX_HISTORY_PER_LISTING) {
+        return { ...l, priceHistory: sorted.slice(-MAX_HISTORY_PER_LISTING) };
+      }
+      return sorted === h ? l : { ...l, priceHistory: sorted };
     });
     let total = trimmed.reduce((s, l) => s + (l.priceHistory?.length ?? 0), 0);
     if (total <= maxHistoryPerProduct) return trimmed;

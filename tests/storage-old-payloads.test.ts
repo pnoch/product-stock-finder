@@ -131,3 +131,59 @@ describe("older stored payloads (app upgrade)", () => {
     expect(store.get(quarantined[0]!)).toBe(JSON.stringify({ products: [] }));
   });
 });
+
+describe("history cap keeps the newest points regardless of stored order", () => {
+  it("sorts a descending history before trimming to the cap", async () => {
+    // A hand-edited backup or a server pull can store history newest-first;
+    // the cap's `slice(-N)`/`shift()` assumed oldest-first and kept the OLDEST.
+    const history = Array.from({ length: 600 }, (_, i) => ({
+      date: new Date(Date.now() - i * 86_400_000).toISOString(),
+      price: 100 + i,
+      currency: "USD",
+      stockStatus: "in_stock",
+    }));
+    const storage = storageWith({
+      watchlist_products: JSON.stringify([
+        {
+          id: "p1",
+          name: "P",
+          modelNumber: "M",
+          brand: "B",
+          category: "C",
+          description: "",
+          isWatched: true,
+          addedAt: new Date().toISOString(),
+          listings: [
+            {
+              distributorId: "d1",
+              productId: "p1",
+              price: 100,
+              currency: "USD",
+              stockStatus: "in_stock",
+              url: "",
+              lastChecked: new Date().toISOString(),
+              priceHistory: history,
+            },
+          ],
+        },
+      ]),
+    });
+    await storage.addToWatchlist({
+      id: "p2",
+      name: "P2",
+      modelNumber: "M2",
+      brand: "B",
+      category: "C",
+      description: "",
+      isWatched: true,
+      addedAt: new Date().toISOString(),
+      listings: [],
+    });
+    const list = await storage.getWatchlist();
+    const kept = list.find((p) => p.id === "p1")!.listings[0]!.priceHistory;
+    expect(kept).toHaveLength(500);
+    // The newest point (price 100) is kept; the oldest (price 699) is dropped.
+    expect(kept.some((p) => p.price === 100)).toBe(true);
+    expect(kept.some((p) => p.price === 699)).toBe(false);
+  });
+});
