@@ -6095,3 +6095,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`check_price_drops_inner`:** gates on `notificationsEnabled` + `priceAlerts` (quiet hours deliberately do NOT gate price alerts, matching mobile); parses timestamps rather than string-comparing; scopes per-distributor alerts; only in-stock listings anchor; converts with the live overlay; boundary semantics match mobile exactly (`>=` rise, `<=` drop).
 - [x] **`update_tray_badge`:** excludes snoozed alerts, excludes `back_in_stock` from the reminder count (they live in their own file and are counted separately), matching the in-app badge.
 - [x] No code change; tree unchanged from Phase 800 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 802: Test-quality audit (clean)
+
+- [x] No assertion-free test files; no `expect(true).toBe(true)`-style tautologies; no test mocks the module under test (self-mock scan: 0).
+- [x] The 13 files whose only assertions are `toHaveBeenCalled*` are legitimate — `toHaveBeenCalledWith` verifies the exact arguments (e.g. `product-parse-ssrf.test.ts` asserts the SSRF guard returns null **and** that `fetch` was never called).
+- [x] All `describe.skipIf` skips are DB-gated (`runDbTests`), not silently disabled.
+- [x] No code change; tree unchanged from Phase 801 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
