@@ -6463,3 +6463,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`fetch_price_insight`:** builds the URL from `api_base_url` (renderer-supplied, same trust boundary as the session token), validates each `x-llm-*` header via `HeaderName::from_bytes`/`HeaderValue::from_str`, and has an 8s timeout.
 - [x] **`open_external` / `start_oauth` / `import_watchlist`:** scheme allowlist / loopback listener with a single-use ticket / size+version+schema validation (audited in Phases 800–801).
 - [x] No code change; tree unchanged from Phase 848 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 850: Rust alert-delivery audit (clean)
+
+- [x] **`delivered_events`:** emits only alerts whose notification was actually delivered (the renderer deactivates every event it receives, so emitting an undelivered one consumed an alert the user never saw).
+- [x] **`deactivate_after_notify`:** `triggered` is index-aligned with `notifications` (a hit with an empty id is still pushed), so a failed toast can't consume a different alert; only `results[i] === true` is deactivated.
+- [x] **`deactivate_alerts_by_id`:** re-reads the file immediately before writing (a minutes-long check must not revert a concurrent add/snooze/delete) and matches by id.
+- [x] **Basket alert:** implemented in the renderer (`desktop/src/App.tsx` → `lib/basket-alert.ts`), matching mobile's semantics (audited in Phase 821).
+- [x] No code change; tree unchanged from Phase 849 (`tsc 0`, lint 0 errors / 157 warnings, `2677 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
