@@ -5743,3 +5743,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/server-prices.ts`:** the backgrounded path bypasses the tRPC batch loader (whose `setTimeout` dispatch freezes) and hits the HTTP endpoint via the native-timeout `backgroundFetch`; the foreground path races a 4s timeout; `JSON.parse` failures are caught by the outer try/catch (return null).
 - [x] **`lib/server-insights.ts` / `lib/server-images.ts` / `lib/server-llm.ts` / `lib/server-notifications.ts`:** all timeout-bounded and best-effort, gated on `isServerConfigured()` where appropriate.
 - [x] No code change; tree unchanged from Phase 750 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 752: Share/utility module audit (clean)
+
+- [x] **`lib/price-share.ts`:** `buildShareRows` prefers in-stock converted prices, falls back to the cheapest converted listing, then to a raw-price sort labelled in the listing's own currency (not misleading); `buildShareText` handles the all-out-of-stock case.
+- [x] **`lib/share-image.ts` / `lib/csv-export.ts` / `lib/utils.ts` / `lib/sync-gate.ts` / `lib/notification-center-helpers.ts`:** platform-specific capture/export with false-on-failure; the sync-generation token is a monotonic counter bumped on account wipe.
+- [x] No code change; tree unchanged from Phase 751 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
