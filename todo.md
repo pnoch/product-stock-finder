@@ -6568,3 +6568,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Basket alert:** computes the total in the display currency (the sheet says the threshold is in that currency); does **not** `return` on a web-display failure (that would skip the price-alert evaluation below); clears the threshold only after the alert actually fired (permission denied / scheduling throw leaves it set to retry); uses the serialized `updateSettings` patch.
 - [x] **Price alerts:** scoped via `listingsForAlert`; only in-stock, finite, positive listings anchor; converts to the alert currency; re-reads alerts before firing (dedup); **claims the transition with `deactivateAlert` before notifying** (a concurrent runner that already triggered returns false, so no double-notify); re-arms on a post-claim display/scheduling failure.
 - [x] No code change; tree unchanged from Phase 862 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 864: Storage wipe/cascade audit (clean)
+
+- [x] **`removeFromWatchlist` cascade:** removes the product, its alerts, and its reminders/watches, cancelling each scheduled notification (an orphaned schedule would still fire).
+- [x] **`clearAccountData`:** bumps the sync generation before touching the store (an in-flight sync can't re-apply the previous account's rows), drains queued writes, cancels all notifications, removes every collection + health/breaker/quarantine keys, and **strips the BYO-LLM credential** (reset to `forge`, delete model/ollama url) so the next account can't reveal or bill the previous user's provider.
+- [x] **`clearAllData`:** drains, cancels notifications, removes every key including `has_seen_onboarding`, the background-task interval marker, and quarantine blobs.
+- [x] **`addToWatchlist` / `updateProductListings`:** enqueued read-modify-write (no lost updates).
+- [x] No code change; tree unchanged from Phase 863 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
