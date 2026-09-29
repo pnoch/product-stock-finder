@@ -6062,3 +6062,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`Home.tsx`:** `recentActivity` guards invalid dates (`isNaN` → 0) and picks the most-recently-checked listing.
 - [x] **`ProductDetail.tsx`:** alert creation gates on notification permission, guards double-submit, returns the alert so the screen state stays in sync, and swallows storage failures into `{ ok: false }`.
 - [x] No code change; tree unchanged from Phase 796 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 798: Desktop Settings audit (clean)
+
+- [x] **Poller lifecycle:** stops before starting (the unawaited start-then-stop race left no poller); reverts to Manual on a start failure.
+- [x] **LLM key drafts:** debounced (500ms) `update`, guarded against re-saving the unchanged value; the key is never logged.
+- [x] **Sync status:** shared `formatSyncStatus` (surfaces `lastSyncError`); 30s refresh interval cleared on unmount.
+- [x] **Delete account:** requires typing the account email, deletes server-side, then logs out and wipes local data; `deleting` guard prevents double-submit.
+- [x] **Test notification:** exercises the real Tauri-native path (the old handler called the web-only no-op).
+- [x] No code change; tree unchanged from Phase 797 (`tsc 0`, lint 0 errors / 157 warnings, `2653 passed`; desktop `289`; `cargo test` 71, clippy 0, fmt clean).
