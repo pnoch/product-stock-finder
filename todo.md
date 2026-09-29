@@ -5879,3 +5879,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Generated coverage and reviewed the lowest-covered non-`_core` modules. The 0%-coverage files are configs (`drizzle/metro/tailwind/theme.config`), Expo Router screens (integration-tested via smoke), and thin wrappers (`lib/legal-links.ts`, `lib/server-llm.ts`, `lib/theme-provider.tsx`) whose empty/failure branches are handled by their callers (`about-section` guards an empty privacy URL; `server-llm` returns null on failure).
 - [x] The low-coverage `lib/`/`server/` files are the platform-specific file/notification wrappers (web/native branches) and the DB-backed paths (covered by the DB-gated suite).
 - [x] No code change; tree unchanged from Phase 771 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 773: Notifications module audit (clean)
+
+- [x] **`lib/notifications.ts`:** every scheduling function guards web and returns null on failure; `immediateTrigger` works around the Android trigger-channel quirk (channelId must be on the trigger, not `content`); `ensureNotificationPermission` is the cross-platform entry point (web uses the Notification API); `scheduleStockWatchConfirmation` is distinct from the real restock alert.
+- [x] No code change; tree unchanged from Phase 772 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
