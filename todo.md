@@ -5381,3 +5381,13 @@ Reviewed `app/_layout.tsx` (458 lines) — the app's entry point.
 - [x] **Sign-in effect:** resets the device-revoked flag and kicks off sync, history backfill, and stale-device cleanup.
 - [x] **FX effect:** both `loadFxRates` and `maybeRefreshFxRates` are caught.
 - [x] No code change; tree unchanged from Phase 698 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
+
+## Phase 700: Mobile product/watchlist components audit (clean)
+
+Reviewed the components with effects/state in the two largest groups.
+
+- [x] **`notes-card`:** loads the note on `productId` change, saves with a `catch` that surfaces an error and does not clear the draft, and haptics are web-guarded. Correct.
+- [x] **`search-bar`:** a controlled input (the parent owns the query) with no internal debounce, a clear button, and a11y labels. Correct.
+- [x] **`edit-product-sheet`:** `canSave` includes `!saving` (in-flight guard), validates name/modelNumber, and on a storage failure shows an alert **without** closing the sheet as if the edit succeeded. Correct.
+- [x] **`price-alert-modal`:** no async effect; the price input is validated by the caller. Correct.
+- [x] No code change; tree unchanged from Phase 699 (`tsc 0`, lint 0 errors / 157 warnings, `2615 passed`; desktop `285`).
