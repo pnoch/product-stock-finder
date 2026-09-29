@@ -6131,3 +6131,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] A third mutation batch found `lib/price-digest.ts`'s zero-baseline guard (`from > 0`) untested: changing it to `from >= 0` survived, because no test used a `bestPrice` of 0 (a sub-cent price rounds to 0, and `(to - from) / from` would be `Infinity` → "+Infinity%").
 - [x] Added a case with `previous.bestPrice = 0`; the mutation now fails the suite. The critical alert guards (`deactivateAlert` stale-event + compare-and-set) were all killed — well-tested.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2656 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
+
+## Phase 807: Mutation pass — isPlausiblePrice boundary gap
+
+- [x] A fourth mutation batch found `shared/const.ts`'s `isPlausiblePrice` had **no direct test**: both `price <= MAX_PLAUSIBLE_PRICE` → `<` and `price > 0` → `>= 0` survived (the price-cache test only used `5e9` and `-5`, far from the boundary). The helper is shared by the server cache and the client device-scrape paths.
+- [x] Added `tests/plausible-price.test.ts` (boundary + zero/negative/non-finite/over-cap); both mutations now fail. The health-dedup `kind`/bucket mutations were killed — well-tested.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2658 passed**; desktop `289`; `cargo test` 71, clippy 0, fmt clean.
