@@ -5776,3 +5776,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/background-price-check.ts`:** a clean re-export barrel.
 - [x] **`lib/storage/index.ts`:** the barrel is the only AsyncStorage importer; `tests/server-bundle-purity.test.ts` guards that server-reachable modules import leaf storage modules, not the barrel.
 - [x] No code change; tree unchanged from Phase 755 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 757: Scraper-parser conformance audit (clean)
+
+- [x] **All 25 parsers gate on `modelMismatch`** (verified by grep); `tests/scrapers/model-gate-conformance.test.ts` asserts each rejects a `__NO_SUCH_MODEL__` against its real fixture (27 cases pass), and requires a fixture per registered parser.
+- [x] **`tests/scrapers/adversarial.test.ts`:** a two-product page (decoy first) must yield the target card's price, never the decoy's; the exception list is explicit and capped at 2.
+- [x] **`tests/scraper-card-boundary.test.ts`:** the card boundary beats a shared row container (the Aerial grid-in-one-`<tr>` case).
+- [x] Every parser has a per-parser test with a positive path.
+- [x] No code change; tree unchanged from Phase 756 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
