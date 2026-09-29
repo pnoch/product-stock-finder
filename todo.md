@@ -5863,3 +5863,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] **`components/settings/llm-settings-section.tsx`:** debounced (500ms) settings updates, the API key is `secureTextEntry` by default with an explicit Show toggle, and the test-connection result distinguishes auth failure from unreachable.
 - [x] No code change; tree unchanged from Phase 768 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 770: Login modal audit (clean)
+
+- [x] **`components/settings/login-modal.tsx`:** validates required fields and register password length; the client doesn't trim the email, but the server normalizes (`trim().toLowerCase()`) before lookup, so it's harmless.
+- [x] No code change; tree unchanged from Phase 769 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
