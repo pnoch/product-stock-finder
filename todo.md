@@ -5579,3 +5579,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/price-chart.ts`:** `findNearestIndex` clamps to `[0, count-1]` and handles `count <= 1`; the `.5` tie rounds down consistently.
 - [x] **`lib/last-refreshed.ts`:** guards invalid dates and clamps a negative diff to 0.
 - [x] No code change; tree unchanged from Phase 726 (`tsc 0`, lint 0 errors / 157 warnings, `2635 passed`; DB 8/30; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 728: Sync-engine audit (clean)
+
+- [x] **LWW/tombstones (`lib/sync.ts`):** pull applies only when `item.updatedAt > local.updatedAt`; tombstones clear local meta; full-resync drops only items with `entry.updatedAt < cutoff && <= oldCursor` (never-synced work preserved); stale tombstones are cleared via a direct delete (not the per-item-merge save).
+- [x] **Push batching:** the client batches on `SYNC_PUSH_MAX_ITEMS`/`SYNC_PUSH_MAX_BYTES` using `JSON.stringify(...).length`, and the server measures the same way (`< 100_000` per item, `<= 5_000_000` per batch) — no UTF-16-vs-bytes mismatch.
+- [x] **Stamps:** pushed stamps are capped at the cursor (`Math.min(stampedAt, nextCursor)`) so `collectDirty` doesn't re-collect every sync; partial-batch stamps are persisted on a mid-push failure; `stale_write` rejections are not retried (would revert the remote edit), while validation/transient ones are.
+- [x] **`serializeItem`:** trims history to fit `SYNC_PUSH_ITEM_MAX_BYTES` (never the local copy) with a defensive `?? []`.
+- [x] No code change; tree unchanged from Phase 727 (`tsc 0`, lint 0 errors / 157 warnings, `2635 passed`; DB 8/30; desktop `285`; `cargo test` 71, clippy 0, fmt clean).
