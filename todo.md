@@ -5884,3 +5884,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] **`lib/notifications.ts`:** every scheduling function guards web and returns null on failure; `immediateTrigger` works around the Android trigger-channel quirk (channelId must be on the trigger, not `content`); `ensureNotificationPermission` is the cross-platform entry point (web uses the Notification API); `scheduleStockWatchConfirmation` is distinct from the real restock alert.
 - [x] No code change; tree unchanged from Phase 772 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 774: Product detail screen audit (clean)
+
+- [x] **`app/product/[id].tsx`:** cancellation signal on the async load, per-read `.catch` (a storage failure doesn't hang the skeleton), the alert-creation guard is claimed *before* the async permission round-trip (double-tap safe), and reminder creation cancels the notification it replaced.
+- [x] No code change; tree unchanged from Phase 773 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
