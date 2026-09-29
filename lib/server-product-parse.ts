@@ -1,4 +1,5 @@
 import { createTRPCClient } from "./trpc";
+import { withTimeout } from "./with-timeout";
 
 const TIMEOUT_MS = 8000;
 
@@ -15,12 +16,13 @@ export async function fetchParsedProduct(
 ): Promise<ParsedProduct | null> {
   try {
     const client = createTRPCClient();
-    const result = await Promise.race([
+    // `withTimeout` clears its timer on settle (a bare Promise.race leaked the
+    // timer, keeping the event loop alive up to the deadline) and uses the
+    // background-safe poll loop while the app is backgrounded.
+    const result = await withTimeout(
       client.products.parse.query({ raw: raw.slice(0, 2000) }),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), TIMEOUT_MS),
-      ),
-    ]);
+      TIMEOUT_MS,
+    );
     return result?.product ?? null;
   } catch {
     return null;

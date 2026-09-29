@@ -5762,3 +5762,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/storage/alerts.ts`:** every mutation is an enqueued read-modify-write; `deactivateAlert` is a compare-and-set (only the first runner transitions) with a stale-event guard (`eventAt < createdAt`); `rearmAlert`/`updateAlert` re-stamp `createdAt` so a stale server event can't immediately re-deactivate.
 - [x] **`lib/storage/reminders.ts`:** dedups by `(productId, distributorId)` as well as id and returns the replaced `notificationId` so the caller can cancel the orphaned schedule.
 - [x] No code change; tree unchanged from Phase 753 (`tsc 0`, lint 0 errors / 157 warnings, `2643 passed`; desktop `286`; `cargo test` 71, clippy 0, fmt clean).
+
+## Phase 755: `server-product-parse` leaked its timeout timer
+
+- [x] **Gap found:** `fetchParsedProduct` raced a bare `new Promise((resolve) => setTimeout(...))` without clearing the timer, so a fast response still kept the event loop alive up to the 8s deadline (and the race used a plain `setTimeout`, which freezes while backgrounded). `lib/server-prices.ts` already cleared its timer in `finally`.
+- [x] **Fix:** use the shared `withTimeout` (clears its timer on settle; background-safe poll loop). Behavior-preserving; existing tests pass.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2643 passed**; desktop `286`; `cargo test` 71, clippy 0, fmt clean.
