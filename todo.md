@@ -6935,3 +6935,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Built the web export + server bundle, migrated a fresh DB, and drove the SPA in headless Chromium against the **real API server** (same-origin). **7/7 passed:** SPA shell renders, browser register → login → `/api/auth/me` authenticated, `sync.push` → `sync.pull` round-trip, and **zero JS errors** during the flow.
 - [x] Two earlier "failures" were harness mismatches, not bugs: the bundle baked `localhost:3000` from `.env` while the test server ran on another port, and the **CSP correctly blocked the cross-origin call** (`connect-src 'self' <configured API>`). Re-running same-origin passed cleanly. Also re-confirmed the documented `expo export --clear` gotcha (a stale `127.0.0.1:4650` from a prior build's Metro cache).
 - [x] No code change; tree unchanged from Phase 915 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 917: Rust merge/import audit (clean)
+
+- [x] **`merge_listings`:** compares parsed instants (`parse_iso_to_epoch_ms`), not strings; `listing_distributor_id` returns `None` (not `""`) for a missing id so two id-less listings don't collide; keeps id-less and disk-only listings.
+- [x] **`merge_watchlist`:** merges by product id, keeping the disk listings' newer checks (the poller refreshed them after the UI snapshot).
+- [x] **`is_allowed_storage_key`:** allowlists the six mirrored keys.
+- [x] **`export_watchlist`:** normalizes a never-written collection (Null → `[]`) so the app can restore its own export on a fresh profile; strips the device-local BYO-LLM key.
+- [x] No code change; tree unchanged from Phase 916 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
