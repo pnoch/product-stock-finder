@@ -6950,3 +6950,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`export_to_csv`:** returns `Err("CSV export not yet implemented")` — but it is **unreachable**: the desktop CSV export runs in the renderer (`watchlistToCsv` in `Settings.tsx`), and nothing invokes `export_watchlist` with `format: "csv"` (only `format: "json"` in `import-export.ts`). Dead stub, not a bug.
 - [x] **`strip_device_local_settings` / `array_or_empty` / `object_or_empty`:** tested.
 - [x] No code change; tree unchanged from Phase 917 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 919: CI workflow / doc-count sync (clean)
+
+- [x] **CI service config matches the tests:** the MySQL service (`psf_test`, root/root, 3306) matches both `DATABASE_URL` and `TEST_DATABASE_URL`; `scripts/test-db.mjs` discovers every `RUN_DB_TESTS` file; the `rust` job installs the GTK/WebKit headers and runs test/fmt/clippy.
+- [x] **Stale counts fixed:** the `rust` job comment said "71 tests" (now 72) and AGENTS.md said "~2670 tests" (now 2682). Both corrected; the AGENTS.md drift guard still passes.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2682 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.

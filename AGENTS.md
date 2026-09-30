@@ -129,7 +129,7 @@ desktop/              Tauri desktop app (Vite + React 19 + Tailwind 4) — versi
                       lockstep with root package.json; `desktop/src/` mirrors mobile
                       surfaces (Watchlist, Settings, Rates), `desktop/tests/` vitest suite
 shared/               Cross-platform types/consts; shared/_core/ — don't modify
-tests/                vitest (~376 files: ~344 root + 32 scrapers, ~2670 tests, incl. per-scraper tests under tests/scrapers/)
+tests/                vitest (~376 files: ~344 root + 32 scrapers, ~2682 tests, incl. per-scraper tests under tests/scrapers/)
 docs/superpowers/     Design specs (specs/) + implementation plans (plans/)
 scripts/              load-env.js, generate_qr.mjs, reset-project.js
 references/           periodic-updates.md (reference docs)
@@ -177,7 +177,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - **No comments** unless explaining non-obvious logic. Existing code uses `// ─── Section ───` banners in storage/notifications — match that style for section dividers.
 - **Client/server payload caps:** Any server-side `.max()`/limit on a payload the client sends must live in `shared/const.ts` (e.g. `MAX_UPLOAD_ALERTS`, `SYNC_PUSH_MAX_ITEMS`) and the client must trim/batch to it before sending. A server cap the client doesn't respect rejects the whole payload, silently disabling the feature (see Phases 211/213).
 - **Commit style:** Checkpoint commits follow `Checkpoint: vX.Y: <features>. TypeScript: 0 errors.` — match this when committing.
-- **Tests:** vitest. ~376 test files under `tests/` (~344 root + 32 scrapers, ~2670 tests). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
+- **Tests:** vitest. ~376 test files under `tests/` (~344 root + 32 scrapers, ~2682 tests). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
 
 ## Brand / Theme (theme.config.js)
 

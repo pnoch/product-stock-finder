@@ -60,7 +60,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: pnpm smoke:web
 
-  # The desktop Rust backend (71 tests + clippy) ran only on developer machines;
+  # The desktop Rust backend (72 tests + clippy) ran only on developer machines;
   # nothing in CI compiled it, so a Rust regression could merge unchecked.
   rust:
     runs-on: ubuntu-latest
