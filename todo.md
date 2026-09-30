@@ -7072,3 +7072,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] No `it.skip`/`describe.skip`/`it.todo`/`xit` anywhere — the only skips are 8 `describe.skipIf(!runDbTests)` blocks (DB-gated).
 - [x] With `RUN_DB_TESTS=1`: **2711 passed, 0 skipped**; without: **2684 passed, 27 skipped** — the 27 are exactly the DB-gated tests, all of which run when the DB is available. No silently disabled coverage.
 - [x] No code change; tree unchanged from Phase 936 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 938: Mutation pass — sync collection-rank cursor gap
+
+- [x] A mutation batch on the server notification/sync logic found `SYNC_COLLECTION_ORDER` (the composite cursor's collection rank) untested: emptying it survived, because the existing `listChangedItems` tests use distinct server stamps where the rank never matters.
+- [x] **Fix:** added a DB test that inserts one row per collection with an **identical** stamp (so the rank decides order) and drains with a page size of 1, asserting every item is delivered exactly once in the deterministic `(stamp, collection, id)` order. Proven non-vacuous: emptying `SYNC_COLLECTION_ORDER` fails the test.
+- [x] The other mutations (evaluate blocking, digest hold, dedup bucket, pull cap) were killed.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2684 passed**; DB suite **8 files / 31 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.

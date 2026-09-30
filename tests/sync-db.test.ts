@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { users } from "../drizzle/schema";
+import { backOrderReminders, priceAlerts, users, watchlistItems } from "../drizzle/schema";
 import { getDb } from "../server/db";
 import {
   listChangedItems,
@@ -108,6 +108,42 @@ describe.skipIf(!runDbTests)("sync-db", () => {
     const since = first.find((i) => i.id === "p1")!.updatedAt;
     const second = await listChangedItems(userA, since);
     expect(second.map((i) => i.id)).toEqual(["p2"]);
+  });
+
+  it("pages across collections without dropping or duplicating items", async () => {
+    // The composite cursor's collection rank (SYNC_COLLECTION_ORDER) decides
+    // which rows sort after the cursor. A wrong rank either skips rows (data
+    // loss on the client) or re-sends them forever. Mirrors the router's global
+    // (stamp, collection, id) sort + prefix page. Insert directly with an
+    // identical stamp so the collection rank — not the stamp — decides order.
+    const db = (await getDb())!;
+    const stamp = Date.now();
+    await db.insert(watchlistItems).values({ userId: userA, productId: "w1", data: { id: "w1" }, updatedAtMs: stamp });
+    await db.insert(priceAlerts).values({ userId: userA, alertId: "a1", data: { id: "a1" }, updatedAtMs: stamp });
+    await db.insert(backOrderReminders).values({ userId: userA, reminderId: "r1", data: { id: "r1" }, updatedAtMs: stamp });
+
+    const ORDER = ["watchlist", "alerts", "reminders", "settings"];
+    const stampOf = (i: SyncItem) => Math.max(i.updatedAt, i.deletedAt ?? 0);
+    const sortKey = (i: SyncItem) =>
+      `${stampOf(i)}:${ORDER.indexOf(i.collection)}:${i.id}`;
+
+    const seen: string[] = [];
+    let cursor: { stamp: number; collection: string; id: string } | null = null;
+    for (let guard = 0; guard < 20; guard++) {
+      const rows = await listChangedItems(userA, null, 100, cursor as never);
+      const sorted = [...rows].sort((a, b) => (sortKey(a) < sortKey(b) ? -1 : 1));
+      const page = sorted.slice(0, 1);
+      if (page.length === 0) break;
+      const last = page[0]!;
+      seen.push(`${last.collection}:${last.id}`);
+      cursor = {
+        stamp: stampOf(last),
+        collection: last.collection,
+        id: last.id,
+      };
+    }
+    // Every item is delivered exactly once, in the deterministic order.
+    expect(seen).toEqual(["watchlist:w1", "alerts:a1", "reminders:r1"]);
   });
 
   it("isolates changes per user", async () => {
