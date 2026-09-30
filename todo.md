@@ -7105,3 +7105,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Every `server/*.ts` module is referenced by at least one test; `server/notifications/*` (7) and `server/routers/*` (3) are all covered.
 - [x] The 5 untested `server/_core/*` files (`dataApi`, `heartbeat`, `notification`, `systemRouter`, `voiceTranscription`) are hands-off framework scaffolding; `heartbeat` and `system.notifyOwner` are unreachable from app code.
 - [x] No code change; tree unchanged from Phase 941 (`tsc 0`, lint 0 errors / 157 warnings, `2688 passed`; DB 8/31; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 943: Desktop untested-module scan — checkNotificationPermission
+
+- [x] **Gap found:** a scan for `desktop/src/lib/` modules not referenced by any test found `notification-permission.ts` (`checkNotificationPermission`, used by the ProductDetail and Compare alert/watch flows to gate notification-backed records). The other two hits are stubs.
+- [x] **Fix:** added `desktop/tests/notification-permission.test.ts` (granted, denied, request→granted, request→denied, Tauri fallthrough). Proven non-vacuous: removing the denied check fails a case.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2688 passed**; desktop `tsc 0`, **294 passed**; `cargo test` 72, clippy 0, fmt clean.
