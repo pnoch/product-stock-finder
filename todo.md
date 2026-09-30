@@ -6968,3 +6968,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] `tests/scrapers/model-gate-conformance.test.ts` already enforces **exact** parser↔fixture parity: `withFixtures.map(id).sort()` must equal `PARSERS.map(id).sort()` (fixtures are named `<distributorId>-<region>.html`). 25 parsers ↔ 25 fixtures, no orphans. (An ad-hoc scan comparing parser variable names to distributor ids was misleading; the guard is authoritative.)
 - [x] No code change; tree unchanged from Phase 920 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 922: Logging-hygiene audit (clean)
+
+- [x] **No stray `console.log` in production paths:** the only mobile one is `debugLog` (guarded by `__DEV__`); the server logs are startup/port messages.
+- [x] **No sensitive values logged:** storage warnings log only the key name (never the payload); auth logs are generic (`"Missing session cookie"`, `"Session verification failed"`, `"change-password failed"`) — no password/token/secret values.
+- [x] No code change; tree unchanged from Phase 921 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
