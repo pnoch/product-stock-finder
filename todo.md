@@ -6900,3 +6900,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`uncaughtException`:** logged, exits 1 (state is unknown).
 - [x] **`startServer().catch`:** a startup failure exits non-zero (a logged-and-swallowed failure previously exited 0, which a platform could treat as a healthy deploy).
 - [x] No code change; tree unchanged from Phase 910 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 912: Rate-limit/spend-budget coverage audit (clean)
+
+- [x] **Every tRPC procedure is rate-limited** (30+ `checkRateLimit` calls across `routers.ts`, `discovery.ts`, `trending.ts`), with tighter limits on expensive/abuse-prone endpoints (`sync.push` 30/min, `health.check` 5/min, `products.parse` 10/min, `trending.refresh` 2/min).
+- [x] **Every LLM/image/parse endpoint consumes the spend budget:** `discovery.discover` (server-funded only), `trending.refresh`, `llm.test` (server-funded only), `insights.get` (server-funded only), `images.get`, `products.parseUrl`. A BYO-LLM key skips the budget (the user pays).
+- [x] **Public share endpoint** has a dual limit (per-IP + per-token).
+- [x] No code change; tree unchanged from Phase 911 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
