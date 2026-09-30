@@ -6923,3 +6923,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`_core/systemRouter.ts`:** `notifyOwner` is `adminProcedure`-gated.
 - [x] **`_core/dataApi.ts` / `_core/voiceTranscription.ts`:** unreachable framework scaffolding (no callers) — hands-off per AGENTS.md.
 - [x] No code change; tree unchanged from Phase 913 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 915: Config-reference resolution audit (clean)
+
+- [x] Every `require`/preset/plugin in `metro.config.js`, `babel.config.js`, and `tailwind.config.js` resolves: `expo/metro-config`, `nativewind/metro`, `./scripts/metro-resolver`, `babel-preset-expo`, `nativewind/babel`, `react-native-worklets/plugin`, `nativewind/preset`, `./theme.config`. The cheerio browser build and the `browser.web.ts` stub both exist.
+- [x] `tailwind.config.js` content globs cover `app/`, `components/`, `lib/`, `hooks/`; `theme.config.js` exports `themeColors`/`spacing`/`radius`.
+- [x] No code change; tree unchanged from Phase 914 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
