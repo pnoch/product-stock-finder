@@ -6722,3 +6722,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`resolveTrustProxy`:** defaults to 1 hop; overridable (number/false/true/IPs).
 - [x] **Body parsers:** the 10mb limit is scoped to the sync.push procedure **exactly** (a prefix match would grant unauthenticated 10mb buffering to `/api/trpc/sync.pushX`); handles the comma-batched shape; mounted before the 256kb default.
 - [x] No code change; tree unchanged from Phase 883 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 885: Desktop health events missing the lowercased id
+
+- [x] **Gap found:** the desktop's `emitHealthEvent` pushed pending health events **without an `id`**. The upload layer synthesizes a fallback id (`health-${distributorId}-${status}-${createdAt}`) that is **not lowercased**, while the locally-recorded event id **is** (`health-${distributorId.toLowerCase()}-...`). For a mixed-case distributor id the server event would not dedupe against the local one → a duplicate notification. (Mobile sends the lowercased id.)
+- [x] **Fix:** include `id: eventId` (the already-lowercased local id) in the pending event, matching mobile. Added a guard to `desktop/tests/health-probe.test.tsx` asserting every pending event carries a lowercased id. Proven non-vacuous: removing the id fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2679 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 72, clippy 0, fmt clean.

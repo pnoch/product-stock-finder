@@ -64,7 +64,12 @@ async function emitHealthEvent(
   // Carry `kind`: the server's health dedup key separates an alert from its
   // recovery, so without it a recovery collapses onto its alert and is dropped
   // (mobile sends this since the Phase-240 dedup fix).
+  // Carry `id` too: the server's upload schema REQUIRES it (`id: z.string()
+  // .min(1).max(128)`), so omitting it rejected the whole uploadConfig call and
+  // silently disabled server-side health notifications on desktop. Reusing the
+  // local event id also lets the pulled event dedupe against it.
   pending.push({
+    id: eventId,
     distributorId,
     distributorName: name,
     status,

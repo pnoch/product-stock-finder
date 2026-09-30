@@ -234,8 +234,16 @@ describe("runHealthProbeIfDue", () => {
     // recovery dedupes onto its alert and is silently dropped.
     const pending = mockStorage.savePendingHealthEvents.mock.calls[0][0] as {
       kind?: string;
+      id?: string;
     }[];
     expect(pending.every((e) => e.kind === "alert")).toBe(true);
+    // Each pending event must carry the lowercased local id: the upload layer's
+    // fallback id is NOT lowercased, so a mixed-case distributor id would fail
+    // to dedupe against the locally-recorded event and double-notify.
+    for (const e of pending) {
+      expect(e.id, "pending health event must carry an id").toBeTruthy();
+      expect(e.id).toBe(e.id!.toLowerCase());
+    }
   });
 });
 
