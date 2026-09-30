@@ -7031,3 +7031,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `vitest.config.ts` had no `coverage.exclude`, so `coverage.all` walked the whole tree including `desktop/src-tauri/target/**` (thousands of generated Rust/doc/Playwright files) — the report was unusable and `getUntestedFiles` was slow/fragile.
 - [x] **Fix:** added a `coverage.exclude` for `desktop/**`, `node_modules/**`, `dist*/**`, `coverage/**`, `*.config.*`, `*.d.ts`. The report is now 733 app files (no Rust artifacts); the 130 zero-coverage files are React components/screens (integration-tested via the browser click-through, not unit tests).
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2684 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 932: Partial-coverage audit (clean)
+
+- [x] **`lib/backup-files.ts` (38%):** a platform wrapper (web download / native DocumentPicker); the untested branch is the native one, exercised only on device.
+- [x] **`shared/src/fx.ts` (49%):** the pure stub module; `lib/fx.ts` overrides `loadFxRates`/`refreshFxRates`/`maybeRefreshFxRates` with persistence, and `tests/fx-client.test.ts` covers them thoroughly (timeout, malformed response, fresh/stale skip, single-flight dedup, keep-last-known).
+- [x] No code change; tree unchanged from Phase 931 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
