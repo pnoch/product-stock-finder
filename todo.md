@@ -6827,3 +6827,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Ran the full suite 3× — identical results each time (**2679 passed / 27 skipped**), no flakiness.
 - [x] The `stderr` stack traces in the output are expected: tests that deliberately exercise error paths (restock storage failure, warmer step isolation, login failure, FX provider failure) log via `console.error`. No test failed.
 - [x] No code change; tree unchanged from Phase 898 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 900: Cross-suite stability audit (clean)
+
+- [x] Desktop suite 3×: **289 passed** each time. `cargo test` 3×: **72 passed** each time. DB suite 3×: **30 passed** each time. No flakiness across any suite.
+- [x] No code change; tree unchanged from Phase 899 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
