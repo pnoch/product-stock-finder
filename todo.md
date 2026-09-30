@@ -6621,3 +6621,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Request:** bounds the query to `MAX_DISCOVERY_QUERY` (the server rejects longer ones outright); 15s abort timeout cleared in `finally`; injectable auth/BYO-LLM headers (mobile/desktop register their own — the module can't import either); `credentials: "include"` for the web cookie path.
 - [x] **Response:** parses the tRPC envelope, returns null when there's no product, and uses the canonical stored product (Phase 793) so a re-discovery dedups.
 - [x] No code change; tree unchanged from Phase 869 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 871: Price-source/server-prices audit (clean)
+
+- [x] **`price-source.ts`:** device scrapes bounded by a 3-slot semaphore; rejects implausible prices (Phase 739); server-first with a freshness gate; a stale/absent server snapshot falls through to a device scrape (returning the stale snapshot silently missed the distributor); a stale server snapshot still beats nothing.
+- [x] **`server-prices.ts`:** the backgrounded path bypasses the tRPC batch loader (whose `setTimeout` dispatch freezes) and hits the HTTP endpoint via the native-timeout `backgroundFetch`; the foreground path races a 4s timeout with the timer cleared in `finally`; `uploadServerHistory` returns a boolean so callers can distinguish success.
+- [x] No code change; tree unchanged from Phase 870 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
