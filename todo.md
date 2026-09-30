@@ -7087,3 +7087,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Intentionally public** (read-only, rate-limited, budget-capped): `auth.me`/`logout`, `prices.get`, `health.check`, `fx.get`, `insights.get`, `images.get`, `products.parse`, `llm.test`, `sharedWatchlists.get`, `trending.get`. Each has a `checkRateLimit`; the LLM/image/parse ones also consume the spend budget (server-funded only).
 - [x] **`sharedWatchlists.get`:** dual rate limit (IP + token); expiry enforced (row deleted); `membersOnly` requires owner/member.
 - [x] No code change; tree unchanged from Phase 938 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; DB 8/31; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 940: DB-suite flake observation (no repro)
+
+- [x] One `RUN_DB_TESTS=1 pnpm test` run showed 2 DB-test failures, but the suite then passed **70+ consecutive runs** (both `pnpm test:db` and the full `RUN_DB_TESTS=1 pnpm test`) with no reproduction. The failure was transient (likely DB contention during the first run after adding a new DB test, which inserts rows directly).
+- [x] The new `sync-db` cursor test passed 8/8 targeted runs and 20+ full-suite runs.
+- [x] No code change; tree unchanged from Phase 939 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; DB 8/31; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
