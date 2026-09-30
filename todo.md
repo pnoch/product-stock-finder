@@ -6661,3 +6661,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Concurrency:** `mapWithConcurrency(items, 8)` bounds the INSERT+SELECT round trips while preserving order (the stamped/rejected arrays stay index-aligned).
 - [x] **Rate limit:** 30/min; tombstone purge is interval-gated.
 - [x] No code change; tree unchanged from Phase 875 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 877: Server devices audit (clean)
+
+- [x] **`assertDeviceAccess`:** enforces per-user ownership (unbound or same-user allowed, else FORBIDDEN).
+- [x] **`unbindDevice`:** ownership-checked; removes config/tokens/deliveries/events/labels (labels have no FK, so a re-bound deviceId would inherit the previous owner's label); clears the device + user digest buffers.
+- [x] **`unrevokeDevice`:** lifts the user's wildcard on sign-in (proving current credentials).
+- [x] **`cleanupStaleDevices` / `purgeOldRevokedDevices`:** 30-day idle cleanup; revoked rows purged in batches (1000 × 10/tick) after 90 days.
+- [x] **`isDeviceRevoked`:** matches the device-specific or wildcard revocation for the user.
+- [x] No code change; tree unchanged from Phase 876 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
