@@ -7007,3 +7007,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`shared/const.ts`:** all client/server payload caps live here (AGENTS.md rule) — `MAX_UPLOAD_*`, `SYNC_PUSH_*`, `MAX_UPLOAD_HISTORY_POINTS`, `MAX_DISCOVERY_QUERY`, `MAX_PLAUSIBLE_PRICE`/`isPlausiblePrice`.
 - [x] **`shared/oauth-state.ts`:** a client-side base64 state helper — **test-only dead code** (the server signs its own state envelope in `_core/oauth.ts`); no production importer.
 - [x] No code change; tree unchanged from Phase 926 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 928: Desktop top-level module audit (clean)
+
+- [x] **`background.ts`:** poller start/stop + typed event listeners (`listing-updated`, `prices-checked`, `price-drops-triggered`) returning `UnlistenFn`.
+- [x] **`notifications.ts`:** Tauri `send_notification` with a web-display fallback that reports whether the browser **actually** displayed it (returning `true` unconditionally made callers consume state for an unseen notification); `onNotificationActivated` validates the route starts with `/`.
+- [x] No code change; tree unchanged from Phase 927 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
