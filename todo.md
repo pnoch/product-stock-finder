@@ -6641,3 +6641,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`listChangedItems`:** composite `(effectiveStamp, collection, id)` cursor makes the page order total (a stamp-only cursor would loop forever on bulk edits); `SYNC_COLLECTION_ORDER` must match the router's sort (documented); `GREATEST(updatedAtMs, COALESCE(deletedAtMs, 0))`; per-collection cap (5000).
 - [x] **`upsertSyncItem`:** the LWW verdict is snapshotted into `@__lww_ok` on first evaluation — MySQL evaluates `ON DUPLICATE KEY UPDATE` assignments left-to-right with intermediate values visible, so a bare per-column condition would read the just-overwritten `clientUpdatedAtMs` and silently drop deletes; the acceptance check re-reads the row.
 - [x] No code change; tree unchanged from Phase 872 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 874: Server sync router audit (clean)
+
+- [x] **`pull`:** captures `lastSyncedAt` before the SELECT (writes committed during the query aren't missed); detects a full resync when the client cursor predates the tombstone window (an incremental pull would omit untouched live rows and the client would delete them); pages with the composite cursor (inclusive at the boundary so no item is skipped; the client dedupes); sorts the merged list by the same `(stamp, collection, id)` key the cursor uses; `SYNC_PULL_MAX_ITEMS + 1` detects `hasMore`.
+- [x] **Rate limit:** 60/min.
+- [x] No code change; tree unchanged from Phase 873 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
