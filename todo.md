@@ -7019,3 +7019,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `vitest --coverage` crashed with `TypeError: (0, brace_expansion_1.expand) is not a function` in `@vitest/coverage-v8`'s `getUntestedFiles`. Root cause: a **stale nested `node_modules/@vitest/coverage-v8/node_modules`** left over from the Phase-834 override bisecting — the override was removed, but the broken `brace-expansion@2.0.2` copy (which the bundled `minimatch` needs at `^5.0.2`) persisted locally.
 - [x] **Fix:** removed the stale nested directory and re-ran `pnpm install`. `pnpm-lock.yaml` was already correct (only `brace-expansion@1.1.21` and `5.0.12`), so a fresh CI install is unaffected. Coverage now runs and writes `coverage-summary.json`.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2682 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 930: Coverage-driven gap — clearDistributorBreaker untested
+
+- [x] **Gap found:** coverage showed `lib/scrapers/breaker-clear.ts` at **0%** — `clearDistributorBreaker` (the Settings "Re-enable" action) was only referenced by source-scan tests, never exercised behaviorally. Its doc comment warns that clearing the wrong store leaves the real breaker in cooldown, yet nothing verified the clear.
+- [x] **Fix:** added `tests/breaker-clear.test.ts` (clears the given adapter's entry + persisted list; no-op for an unknown distributor). Proven non-vacuous: removing the `store.clear` call fails the test.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2684 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
