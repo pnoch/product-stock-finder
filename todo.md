@@ -7129,3 +7129,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `urlBase64ToUint8Array` is duplicated in `lib/web-push.ts` (mobile) and `desktop/src/lib/web-push.ts` (desktop) — a divergence would break push on one platform only. The mobile copy was tested; nothing compared the two.
 - [x] **Fix:** exported the desktop copy and added a source-parity case to `tests/web-push.test.ts` asserting both contain the same base64url decode (padding, `-`→`+`, `_`→`/`). (A cross-import was rejected because it pulls `import.meta.env` into the root tsc without its types.) Proven non-vacuous: mutating the desktop decode fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2689 passed**; desktop `tsc 0`, **300 passed**; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 947: Desktop testLlmConnection missing timeout
+
+- [x] **Gap found:** the desktop `testLlmConnection` (Settings "Test connection") had **no timeout**, while mobile's wraps the call in `withTimeout(…, 20_000)`. An unreachable server would hang the button until the OS TCP timeout.
+- [x] **Fix:** wrapped the desktop call in the shared `withTimeout(…, 20_000)`. Added `desktop/tests/server-llm.test.ts` (success, auth failure, throw, and a fake-timer timeout case). Proven non-vacuous: removing the timeout fails the timeout case.
+- [x] Verified: root `tsc 0`, lint 0 errors / 158 warnings (baseline); **2689 passed**; desktop `tsc 0`, **304 passed**; `cargo test` 72, clippy 0, fmt clean.

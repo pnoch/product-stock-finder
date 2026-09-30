@@ -1,13 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { testLlmConnection } from "../lib/server-llm";
+import { testLlmConnection } from "../src/lib/server-llm";
 
 const mockMutate = vi.hoisted(() => vi.fn());
-const mockConfigured = vi.hoisted(() => vi.fn(() => true));
-vi.mock("../lib/trpc", () => ({
+vi.mock("../src/lib/trpc", () => ({
   createTRPCClient: () => ({ llm: { test: { mutate: mockMutate } } }),
-}));
-vi.mock("../constants/oauth", () => ({
-  isServerConfigured: mockConfigured,
 }));
 
 function setResult(result: unknown) {
@@ -17,17 +13,10 @@ function setResult(result: unknown) {
   });
 }
 
-describe("testLlmConnection", () => {
+describe("desktop testLlmConnection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockConfigured.mockReturnValue(true);
     setResult({ ok: true, provider: "openai" });
-  });
-
-  it("returns null when the server is not configured", async () => {
-    mockConfigured.mockReturnValue(false);
-    expect(await testLlmConnection()).toBeNull();
-    expect(mockMutate).not.toHaveBeenCalled();
   });
 
   it("returns the provider result on success", async () => {
@@ -43,8 +32,20 @@ describe("testLlmConnection", () => {
     });
   });
 
-  it("returns null when the call throws (unreachable server)", async () => {
+  it("returns null when the call throws", async () => {
     setResult(new Error("network down"));
     expect(await testLlmConnection()).toBeNull();
+  });
+
+  it("times out (returns null) when the call never resolves", async () => {
+    vi.useFakeTimers();
+    try {
+      mockMutate.mockImplementation(() => new Promise(() => {}));
+      const promise = testLlmConnection();
+      await vi.advanceTimersByTimeAsync(20_000);
+      expect(await promise).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
