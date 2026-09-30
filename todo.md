@@ -6891,3 +6891,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] `docs/superpowers/` holds 338 dated design specs and implementation plans. They are **historical artifacts** (each describes the state at its date), so the stale counts they contain are expected — AGENTS.md describes them as "design specs + implementation plans for recent phases", not live references, and no live doc points to them as current.
 - [x] No code change; tree unchanged from Phase 909 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 911: Server process-lifecycle audit (clean)
+
+- [x] **Graceful shutdown:** SIGTERM/SIGINT stop the warmer, drain in-flight requests (`server.close` with a 5s unref'd timeout) **before** closing the DB pool (closing the pool first made drain-window requests fail), then exit 0.
+- [x] **`server.on("error")`:** a bind failure exits 1.
+- [x] **`unhandledRejection`:** logged, process stays up (a transient rejection shouldn't kill the server).
+- [x] **`uncaughtException`:** logged, exits 1 (state is unknown).
+- [x] **`startServer().catch`:** a startup failure exits non-zero (a logged-and-swallowed failure previously exited 0, which a platform could treat as a healthy deploy).
+- [x] No code change; tree unchanged from Phase 910 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
