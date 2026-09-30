@@ -6749,3 +6749,14 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`Search.tsx`:** `handleDiscover`/`handleManualParse` guard double-submit; `handleBulkImport` uses `Promise.allSettled` and counts only fulfilled `true` (a duplicate resolves `false`, which the fulfilled-status check used to count as an import); marks newly-tracked ids so the catalog row stops offering "Add".
 - [x] **`Watchlist.tsx`:** six effects (load, storage subscription, interval, etc.) with cleanup; the tag-count fallback is a deliberate loading-state fallback.
 - [x] No code change; tree unchanged from Phase 887 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 889: Remaining lib-module audit (clean)
+
+- [x] **`alert.ts`:** web fallback; Android's 3-button limit handled with a "More…" sequential choice (extras are otherwise silently dropped).
+- [x] **`navigation.ts`:** `goBackOrHome` falls back to replace when there's no history (a deep link / cold start).
+- [x] **`product-notes.ts`:** module-local write chain (callers inject their own store, so the storage enqueue doesn't fit); the chain never stays rejected.
+- [x] **`search-preview.ts`:** unscored ids tie at 0 and keep input order (no fake scores).
+- [x] **`share-text.ts`:** web Web-Share-API with a clipboard fallback (react-native-web's Share rejects on desktop browsers); reports the outcome.
+- [x] **`toast-colors.ts`:** success pairs a light bg with dark text (white-on-foreground is unreadable in dark mode).
+- [x] **`watchlist-share.ts`:** correct pluralization; `formatPrice` in the display currency.
+- [x] No code change; tree unchanged from Phase 888 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
