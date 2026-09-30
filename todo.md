@@ -6907,3 +6907,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Every LLM/image/parse endpoint consumes the spend budget:** `discovery.discover` (server-funded only), `trending.refresh`, `llm.test` (server-funded only), `insights.get` (server-funded only), `images.get`, `products.parseUrl`. A BYO-LLM key skips the budget (the user pays).
 - [x] **Public share endpoint** has a dual limit (per-IP + per-token).
 - [x] No code change; tree unchanged from Phase 911 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 913: Server core/mappers audit (clean)
+
+- [x] **`_core/context.ts`:** auth is optional (only a 403 is swallowed); the `x-device-id` header is clamped to the column width (128) so an oversized value is a clean reject, not a 500; the session-claim device id wins over the header.
+- [x] **`_core/cookies.ts`:** `Secure` is only trusted from `X-Forwarded-Proto` when `trust proxy` is enabled; a host-only cookie is used unless a parent domain is explicitly configured (guessing breaks on public-suffix hosts).
+- [x] **`_core/env.ts`:** production requires `JWT_SECRET`; otherwise an ephemeral per-process random secret (a hard-coded fallback let anyone forge sessions).
+- [x] **`_core/heartbeat.ts`:** callback paths must start with `/api/scheduled/`.
+- [x] **`notifications/mappers.ts`:** preserves the client's `utcOffsetMinutes` (dropping it evaluated quiet hours in the server timezone).
+- [x] No code change; tree unchanged from Phase 912 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
