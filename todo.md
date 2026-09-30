@@ -7079,3 +7079,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Fix:** added a DB test that inserts one row per collection with an **identical** stamp (so the rank decides order) and drains with a page size of 1, asserting every item is delivered exactly once in the deterministic `(stamp, collection, id)` order. Proven non-vacuous: emptying `SYNC_COLLECTION_ORDER` fails the test.
 - [x] The other mutations (evaluate blocking, digest hold, dedup bucket, pull cap) were killed.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2684 passed**; DB suite **8 files / 31 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 939: tRPC auth-coverage audit (clean)
+
+- [x] **`protectedProcedure`** on every mutating/user-scoped route: `deleteAccount`, `sync.pull`/`push`, `prices.uploadHistory`, `notifications.*`, `devices.*`, `sharedWatchlists.*` (except the public `get`), `discovery.discover`.
+- [x] **`adminProcedure`** on `trending.refresh` and `system.notifyOwner`.
+- [x] **Intentionally public** (read-only, rate-limited, budget-capped): `auth.me`/`logout`, `prices.get`, `health.check`, `fx.get`, `insights.get`, `images.get`, `products.parse`, `llm.test`, `sharedWatchlists.get`, `trending.get`. Each has a `checkRateLimit`; the LLM/image/parse ones also consume the spend budget (server-funded only).
+- [x] **`sharedWatchlists.get`:** dual rate limit (IP + token); expiry enforced (row deleted); `membersOnly` requires owner/member.
+- [x] No code change; tree unchanged from Phase 938 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; DB 8/31; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
