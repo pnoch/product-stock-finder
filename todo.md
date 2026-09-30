@@ -6943,3 +6943,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`is_allowed_storage_key`:** allowlists the six mirrored keys.
 - [x] **`export_watchlist`:** normalizes a never-written collection (Null → `[]`) so the app can restore its own export on a fresh profile; strips the device-local BYO-LLM key.
 - [x] No code change; tree unchanged from Phase 916 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 918: Rust helper audit (clean)
+
+- [x] **`parse_iso_to_epoch_ms`:** Howard Hinnant civil-date conversion; validates separators and month/day ranges; returns None for anything unparseable. (It ignores a timezone offset suffix, but every internal writer emits `Z`/`.mmmZ`, and `sanitizeHistoryPoints` enforces the canonical form server-side.)
+- [x] **`export_to_csv`:** returns `Err("CSV export not yet implemented")` — but it is **unreachable**: the desktop CSV export runs in the renderer (`watchlistToCsv` in `Settings.tsx`), and nothing invokes `export_watchlist` with `format: "csv"` (only `format: "json"` in `import-export.ts`). Dead stub, not a bug.
+- [x] **`strip_device_local_settings` / `array_or_empty` / `object_or_empty`:** tested.
+- [x] No code change; tree unchanged from Phase 917 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
