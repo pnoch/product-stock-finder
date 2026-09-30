@@ -6760,3 +6760,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`toast-colors.ts`:** success pairs a light bg with dark text (white-on-foreground is unreadable in dark mode).
 - [x] **`watchlist-share.ts`:** correct pluralization; `formatPrice` in the display currency.
 - [x] No code change; tree unchanged from Phase 888 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 890: Hooks/constants/shared audit (clean)
+
+- [x] **`use-search-data.ts`:** per-read `.catch`; prunes selected tag ids that no longer exist.
+- [x] **`use-server-config.ts` / `use-color-scheme.ts` / `use-colors.ts`:** memoized; the web color-scheme hook has a hydration guard (returns "light" until hydrated) to avoid a hydration mismatch.
+- [x] **`shared/src/log.ts`:** `LOG_ERROR` is a no-op in production (`__DEV__` guard).
+- [x] **`constants/oauth.ts`:** static `process.env.EXPO_PUBLIC_*` access (Expo's env plugin only inlines literals); the web redirect is the SPA route (not a nonexistent API path); the device header is omitted on web (it would force the native ticket branch, no cookie).
+- [x] No code change; tree unchanged from Phase 889 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
