@@ -7037,3 +7037,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`lib/backup-files.ts` (38%):** a platform wrapper (web download / native DocumentPicker); the untested branch is the native one, exercised only on device.
 - [x] **`shared/src/fx.ts` (49%):** the pure stub module; `lib/fx.ts` overrides `loadFxRates`/`refreshFxRates`/`maybeRefreshFxRates` with persistence, and `tests/fx-client.test.ts` covers them thoroughly (timeout, malformed response, fresh/stale skip, single-flight dedup, keep-last-known).
 - [x] No code change; tree unchanged from Phase 931 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 933: Desktop hooks audit (clean)
+
+- [x] **`use-storage.ts`:** `loadedRef` distinguishes the first-load spinner from later refreshes (the Rust poller emits `listing-updated` per scraped listing, so resetting `loading` each time blanked the page N times per sweep); the listener is unlistened on unmount.
+- [x] **`use-connection.ts`:** probes the dependency-free `/api/health` (probing `fx.get` made connectivity depend on a rate-limited query); 3s timeout cleared in `finally`; 60s refetch + window-focus refetch.
+- [x] **`use-toast.ts`:** clears the previous timer on each new toast.
+- [x] No code change; tree unchanged from Phase 932 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
