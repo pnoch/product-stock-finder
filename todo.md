@@ -6576,3 +6576,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`clearAllData`:** drains, cancels notifications, removes every key including `has_seen_onboarding`, the background-task interval marker, and quarantine blobs.
 - [x] **`addToWatchlist` / `updateProductListings`:** enqueued read-modify-write (no lost updates).
 - [x] No code change; tree unchanged from Phase 863 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 865: Remaining storage-module audit (clean)
+
+- [x] **`discovery.ts`:** product dedup by id/identity with a cap (200) and canonical return (Phase 793); `addDiscoveredDistributor` dedups by id and caps at 200. `getDiscoveredDistributors` is stored/tested but unused in production (dead storage, not a bug).
+- [x] **`digest-fx.ts`:** validates the digest-snapshot shape (a non-array `products` would throw in `computeDigest`'s `.map` inside a `useMemo` with no boundary); filters FX rates to finite numbers; enqueued writes.
+- [x] **`notifications.ts`:** displayed-event ids and history dedup by id and cap at 200; `markNotificationRead`/`markAllNotificationsRead` only write when something changed; pending-health-events buffer is enqueued.
+- [x] No code change; tree unchanged from Phase 864 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
