@@ -6699,3 +6699,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`resetPasswordWithToken`:** sets `credentialsChangedAt` in the same transaction (the credential epoch).
 - [x] **`purgeExpiredAuthTokens`:** purges both token tables.
 - [x] No code change; tree unchanged from Phase 880 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 882: SDK session/token audit (clean)
+
+- [x] **`createSessionToken`/`signSession`:** HS256 JWT with the `cca` (credential epoch) claim; `deviceId` only when present.
+- [x] **`verifySession`:** requires `openId`+`appId` (not `name` — an OAuth account with no profile name would otherwise mint tokens the server rejects, locking the user out); a pre-claim token carries no `cca` → treated as epoch 0 so it's invalidated once the account changes credentials.
+- [x] **`authenticateRequest`:** Bearer or cookie; rejects a token whose `cca` predates the user's `credentialsChangedAt` (the only check that reaches unregistered device ids); throttles the `lastSignedIn` write (60s).
+- [x] No code change; tree unchanged from Phase 881 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
