@@ -6614,3 +6614,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`manualAddProduct`:** checks `trackedIds` then the storage return value (a sync landing between the check and the write makes `trackedIds` stale; storage dedupes — running discovery then would replace the existing product's listings/history with a fresh single-point array); timeout → empty listings + `timedOut`.
 - [x] **`rediscoverMissingListings`:** bounded per run (`MISSING_LISTINGS_PER_RUN = 2`), rotates attempts (`MISSING_LISTINGS_RETRY_MS = 6h`) so permanently-unfindable products can't occupy every run's slots; `customProductSlug` (`custom-<slug>`) can't collide with catalog ids (`mikrotik-<slug>`).
 - [x] No code change; tree unchanged from Phase 868 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 870: LLM discovery audit (clean)
+
+- [x] **Error taxonomy:** typed `DiscoveryAuthError` (401/403) and `DiscoveryError` (network/timeout/server/parse/byo-auth); `toDiscoverErrorState` maps each to a user-facing title/message/retry, including the distinct "Check your API key" for a rejected BYO key.
+- [x] **Request:** bounds the query to `MAX_DISCOVERY_QUERY` (the server rejects longer ones outright); 15s abort timeout cleared in `finally`; injectable auth/BYO-LLM headers (mobile/desktop register their own — the module can't import either); `credentials: "include"` for the web cookie path.
+- [x] **Response:** parses the tRPC envelope, returns null when there's no product, and uses the canonical stored product (Phase 793) so a re-discovery dedups.
+- [x] No code change; tree unchanged from Phase 869 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
