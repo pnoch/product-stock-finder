@@ -7117,3 +7117,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** `desktop/src/hooks/use-theme.ts` (`useTheme`) had no test despite real logic: preference resolution from `app_settings.theme` → legacy `theme-preference` → `auto`, invalid-value rejection, dark-class application, and toggle persistence.
 - [x] **Fix:** added `desktop/tests/use-theme.test.tsx` (6 cases). Proven non-vacuous: disabling the `app_settings.theme` branch fails 2 cases.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2688 passed**; desktop `tsc 0`, **300 passed**; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 945: Mobile component coverage scan (clean)
+
+- [x] 48 `components/`/`app/` files aren't referenced by a unit test — all are React components/screens exercised by the browser click-through (Phase 816) and the desktop bundle smoke (Phase 901), not pure logic.
+- [x] Spot-checked the ones with the most logic: `multi-line-chart` (chart math guarded by `tests/desktop-chart-guard.test.ts`/`mobile-criticals.test.ts`), `pill-picker`/`radio-picker` (presentational, correct `accessibilityRole="radio"` + `accessibilityState`).
+- [x] No code change; tree unchanged from Phase 944 (`tsc 0`, lint 0 errors / 157 warnings, `2688 passed`; desktop `300`; `cargo test` 72, clippy 0, fmt clean).
