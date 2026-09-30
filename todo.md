@@ -6627,3 +6627,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`price-source.ts`:** device scrapes bounded by a 3-slot semaphore; rejects implausible prices (Phase 739); server-first with a freshness gate; a stale/absent server snapshot falls through to a device scrape (returning the stale snapshot silently missed the distributor); a stale server snapshot still beats nothing.
 - [x] **`server-prices.ts`:** the backgrounded path bypasses the tRPC batch loader (whose `setTimeout` dispatch freezes) and hits the HTTP endpoint via the native-timeout `backgroundFetch`; the foreground path races a 4s timeout with the timer cleared in `finally`; `uploadServerHistory` returns a boolean so callers can distinguish success.
 - [x] No code change; tree unchanged from Phase 870 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 872: Server notification index audit (clean)
+
+- [x] **`pullPendingEvents`:** selects + marks-delivered in **one transaction with `FOR UPDATE`** (two overlapping pulls can't deliver the same rows twice); bounds the page (`PULL_MAX_EVENTS = 200`) so a 30-day backlog can't return thousands at once; memory branch mirrors the semantics.
+- [x] **`upsertDeviceConfig`:** only overwrites quiet hours when the client sent them (an older client must not wipe a newer one's setting); an explicit `null` clears it; preserves the existing user binding when the caller sends none (the health-event path needs it, or events are dropped in DB mode).
+- [x] **`purgeOldNotificationEvents`:** 30-day retention, batched (1000 × 10/tick) so a large table never holds a long lock.
+- [x] No code change; tree unchanged from Phase 871 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
