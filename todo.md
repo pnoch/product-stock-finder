@@ -6706,3 +6706,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`verifySession`:** requires `openId`+`appId` (not `name` — an OAuth account with no profile name would otherwise mint tokens the server rejects, locking the user out); a pre-claim token carries no `cca` → treated as epoch 0 so it's invalidated once the account changes credentials.
 - [x] **`authenticateRequest`:** Bearer or cookie; rejects a token whose `cca` predates the user's `credentialsChangedAt` (the only check that reaches unregistered device ids); throttles the `lastSignedIn` write (60s).
 - [x] No code change; tree unchanged from Phase 881 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 883: Server entry/middleware-order audit (clean)
+
+- [x] **Ordering:** `trust proxy` → security headers → CORS → `/api` no-store → body parsers → storage proxy → OAuth → health → tRPC → well-known → SPA (after `/api/*`).
+- [x] **Body limits:** the sync.push limit is mounted for that procedure only, before the small default — a global 50mb limit let concurrent unauthenticated POSTs inflate memory before the rate limit (which runs inside the handler, after buffering).
+- [x] **`/api/healthz`:** logs the DB error server-side and returns a generic 503 (driver errors can leak host/user/schema to an unauthenticated caller).
+- [x] **Port:** production fails fast on the preferred port (silently binding another makes the health check fail with no clear cause); dev finds an available port.
+- [x] No code change; tree unchanged from Phase 882 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
