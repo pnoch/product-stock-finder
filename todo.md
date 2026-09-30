@@ -6821,3 +6821,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`edit-product-sheet.tsx`:** `canSave` requires non-empty name + model (matching the storage contract); disabled state + a11y.
 - [x] **`distributor-listing-section.tsx`:** receives pre-sorted listings; effects with cleanup; best-listing selection skips out-of-stock.
 - [x] No code change; tree unchanged from Phase 897 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 899: Flakiness/stability audit (clean)
+
+- [x] Ran the full suite 3× — identical results each time (**2679 passed / 27 skipped**), no flakiness.
+- [x] The `stderr` stack traces in the output are expected: tests that deliberately exercise error paths (restock storage failure, warmer step isolation, login failure, FX provider failure) log via `console.error`. No test failed.
+- [x] No code change; tree unchanged from Phase 898 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
