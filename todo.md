@@ -6929,3 +6929,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Every `require`/preset/plugin in `metro.config.js`, `babel.config.js`, and `tailwind.config.js` resolves: `expo/metro-config`, `nativewind/metro`, `./scripts/metro-resolver`, `babel-preset-expo`, `nativewind/babel`, `react-native-worklets/plugin`, `nativewind/preset`, `./theme.config`. The cheerio browser build and the `browser.web.ts` stub both exist.
 - [x] `tailwind.config.js` content globs cover `app/`, `components/`, `lib/`, `hooks/`; `theme.config.js` exports `themeColors`/`spacing`/`radius`.
 - [x] No code change; tree unchanged from Phase 914 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 916: Full-stack browser integration (clean)
+
+- [x] Built the web export + server bundle, migrated a fresh DB, and drove the SPA in headless Chromium against the **real API server** (same-origin). **7/7 passed:** SPA shell renders, browser register → login → `/api/auth/me` authenticated, `sync.push` → `sync.pull` round-trip, and **zero JS errors** during the flow.
+- [x] Two earlier "failures" were harness mismatches, not bugs: the bundle baked `localhost:3000` from `.env` while the test server ran on another port, and the **CSP correctly blocked the cross-origin call** (`connect-src 'self' <configured API>`). Re-running same-origin passed cleanly. Also re-confirmed the documented `expo export --clear` gotcha (a stale `127.0.0.1:4650` from a prior build's Metro cache).
+- [x] No code change; tree unchanged from Phase 915 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
