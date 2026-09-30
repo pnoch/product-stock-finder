@@ -6963,3 +6963,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Mobile timeouts:** 4s background / 15s foreground (an unreachable server would otherwise hang until the OS TCP timeout).
 - [x] **Desktop `api-base.ts`:** `VITE_API_BASE_URL` with a trailing-slash strip.
 - [x] No code change; tree unchanged from Phase 919 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 921: Parser/fixture parity audit (clean)
+
+- [x] `tests/scrapers/model-gate-conformance.test.ts` already enforces **exact** parser↔fixture parity: `withFixtures.map(id).sort()` must equal `PARSERS.map(id).sort()` (fixtures are named `<distributorId>-<region>.html`). 25 parsers ↔ 25 fixtures, no orphans. (An ad-hoc scan comparing parser variable names to distributor ids was misleading; the guard is authoritative.)
+- [x] No code change; tree unchanged from Phase 920 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
