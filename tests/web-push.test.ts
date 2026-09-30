@@ -133,3 +133,20 @@ describe("web push client", () => {
     expect(sub.unsubscribe).toHaveBeenCalled();
   });
 });
+
+describe("web-push base64url parity", () => {
+  it("mobile and desktop use the same base64url decode", async () => {
+    // The two implementations are duplicated (mobile uses Platform.OS, desktop
+    // uses vite env), so a divergence would break push on one platform only.
+    // Compared as source (importing desktop/src into the root tsc pulls in
+    // import.meta.env without its types).
+    const { readFile } = await import("node:fs/promises");
+    const mobile = await readFile("lib/web-push.ts", "utf8");
+    const desktop = await readFile("desktop/src/lib/web-push.ts", "utf8");
+    for (const src of [mobile, desktop]) {
+      expect(src).toContain('replace(/-/g, "+")');
+      expect(src).toContain('replace(/_/g, "/")');
+      expect(src).toContain('"=".repeat((4 - (');
+    }
+  });
+});

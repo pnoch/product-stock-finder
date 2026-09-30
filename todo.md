@@ -7123,3 +7123,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] 48 `components/`/`app/` files aren't referenced by a unit test — all are React components/screens exercised by the browser click-through (Phase 816) and the desktop bundle smoke (Phase 901), not pure logic.
 - [x] Spot-checked the ones with the most logic: `multi-line-chart` (chart math guarded by `tests/desktop-chart-guard.test.ts`/`mobile-criticals.test.ts`), `pill-picker`/`radio-picker` (presentational, correct `accessibilityRole="radio"` + `accessibilityState`).
 - [x] No code change; tree unchanged from Phase 944 (`tsc 0`, lint 0 errors / 157 warnings, `2688 passed`; desktop `300`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 946: Web-push base64url parity guard
+
+- [x] **Gap found:** `urlBase64ToUint8Array` is duplicated in `lib/web-push.ts` (mobile) and `desktop/src/lib/web-push.ts` (desktop) — a divergence would break push on one platform only. The mobile copy was tested; nothing compared the two.
+- [x] **Fix:** exported the desktop copy and added a source-parity case to `tests/web-push.test.ts` asserting both contain the same base64url decode (padding, `-`→`+`, `_`→`/`). (A cross-import was rejected because it pulls `import.meta.env` into the root tsc without its types.) Proven non-vacuous: mutating the desktop decode fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2689 passed**; desktop `tsc 0`, **300 passed**; `cargo test` 72, clippy 0, fmt clean.

@@ -37,7 +37,7 @@ export async function getPushStatus(): Promise<"on" | "off"> {
   }
 }
 
-function urlBase64ToUint8Array(base64: string): Uint8Array {
+export function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const raw = window.atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
   const out = new Uint8Array(raw.length);
