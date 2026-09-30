@@ -6974,3 +6974,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **No stray `console.log` in production paths:** the only mobile one is `debugLog` (guarded by `__DEV__`); the server logs are startup/port messages.
 - [x] **No sensitive values logged:** storage warnings log only the key name (never the payload); auth logs are generic (`"Missing session cookie"`, `"Session verification failed"`, `"change-password failed"`) — no password/token/secret values.
 - [x] No code change; tree unchanged from Phase 921 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 923: Android release-config audit (clean)
+
+- [x] **Custom plugins registered + exist:** `with-android-release-signing` (persists the release signingConfig across `expo prebuild --clean`) and `with-android-cleartext-traffic`; both have tests.
+- [x] **Cleartext trade-off:** the plugin sets `android:usesCleartextTraffic="true"` globally. Production bakes an HTTPS API URL (`scripts/android-release.sh`), so the app makes no cleartext request in production; the flag also supports the BYO-LLM `ollama-local` feature (a user's `http://192.168.x.x` URL). The comment's "only relaxes dev" is slightly loose but the practical effect is dev/local-only.
+- [x] **`expo-background-task` plugin** injects the iOS background modes (without it `registerTaskAsync` silently no-ops on release builds).
+- [x] No code change; tree unchanged from Phase 922 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
