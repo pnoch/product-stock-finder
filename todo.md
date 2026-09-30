@@ -7053,3 +7053,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`search-chrome.tsx`:** recent-search persistence with try/catch and a cap.
 - [x] **`EmptyState` / `LoadingSpinner` / `StockBadge`:** presentational.
 - [x] No code change; tree unchanged from Phase 933 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 935: Desktop Health/SharedWatchlist/Stats audit (clean)
+
+- [x] **`Health.tsx`:** `testingRef` double-submit guard; progress clamped to `[0,100]` and finite; Tauri event listener unlistened in `finally`; server-side fallback when Tauri is unavailable; stats persistence best-effort.
+- [x] **`SharedWatchlist.tsx`:** `adding` guard; `addedIds` set; display-currency read with catch.
+- [x] **`Stats.tsx`:** lazy-loaded cards with `Suspense`; null-products loading state.
+- [x] No code change; tree unchanged from Phase 934 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
