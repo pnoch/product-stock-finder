@@ -7099,3 +7099,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** a scan for `lib/` modules not referenced by any test found exactly one — `lib/server-llm.ts` (`testLlmConnection`, used by both settings screens to probe the BYO-LLM key). It had no test.
 - [x] **Fix:** added `tests/server-llm.test.ts` (unconfigured → null without a client; success; auth failure; throw → null). Proven non-vacuous: removing the `isServerConfigured` guard fails a case.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2688 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 942: Server-module coverage scan (clean)
+
+- [x] Every `server/*.ts` module is referenced by at least one test; `server/notifications/*` (7) and `server/routers/*` (3) are all covered.
+- [x] The 5 untested `server/_core/*` files (`dataApi`, `heartbeat`, `notification`, `systemRouter`, `voiceTranscription`) are hands-off framework scaffolding; `heartbeat` and `system.notifyOwner` are unreachable from app code.
+- [x] No code change; tree unchanged from Phase 941 (`tsc 0`, lint 0 errors / 157 warnings, `2688 passed`; DB 8/31; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
