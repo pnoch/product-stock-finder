@@ -6684,3 +6684,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Callback:** rate-limited; verifies the signed state; the web flow must echo the nonce cookie (login-CSRF guard) while native flows are bound by the device-scoped ticket; clears the cookie; links an existing email account only when the provider vouches for the email (linking on an unverified email lets an attacker pre-register a victim's address — the pre-hijack fix).
 - [x] **`/consume`:** rate-limited; single-use ticket; unrevokes the device; mints a session with the credential epoch.
 - [x] No code change; tree unchanged from Phase 878 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 880: Auth endpoints audit (clean)
+
+- [x] **`delete-account`:** device-allowed check; requires `confirm === "DELETE"`; deletes the user and clears the cookie.
+- [x] **`resend-verification`:** per-IP + per-account throttle; device-allowed; short-circuits when already verified; stores only the token hash.
+- [x] **`verify`:** per-IP throttle; consumes the hashed token.
+- [x] **`forgot`:** per-IP + per-target throttle (rotating IPs must not bomb one inbox); **no enumeration** — always returns `{ success: true }` whether or not the email exists; stores only the token hash, sends the plaintext only by email.
+- [x] No code change; tree unchanged from Phase 879 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
