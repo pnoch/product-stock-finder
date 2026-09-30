@@ -6775,3 +6775,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`notifications-section.tsx`:** the web-notifications toggle is permission-gated (`setWebNotificationsEnabled` returns the permission; the switch only stays on when granted) and shows a hint on denial; persists via `updateSetting`.
 - [x] **`data-section.tsx` / `about-section.tsx` / `device-management-section.tsx`:** audited in earlier phases (JSON backup import, empty privacy-URL guard, device list).
 - [x] No code change; tree unchanged from Phase 890 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 892: UI-primitive components audit (clean)
+
+- [x] **`cross-platform-date-picker.tsx`:** web renders a native `<input type="date">` (the community picker renders null on web, making the pickers a dead end); constructs the Date from local Y/M/D parts (not a UTC parse).
+- [x] **`toast.tsx`:** timer cleared on each new toast and on unmount; the exit animation only hides when `finished` (starting a new toast during the exit stops the animation, and an unconditional hide swallowed the new toast).
+- [x] **`empty-state-view.tsx` / `skeleton.tsx` / `icon-action-button.tsx`:** typed `IconSymbolName` (Phase 717).
+- [x] No code change; tree unchanged from Phase 891 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
