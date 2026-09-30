@@ -6592,3 +6592,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`getHealthHistory`:** sorts each distributor's samples on read (positional alert/recovery detection).
 - [x] **`testAllDistributors`:** single-flight (the background probe and manual "Test All" can overlap); concurrency-bounded (3); `recordSample` prunes to the age/sample caps.
 - [x] No code change; tree unchanged from Phase 865 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 867: Price-digest computation audit (clean)
+
+- [x] **`computeDigest`:** `valueDelta` requires no currency change and both totals > 0 (a zero baseline would be `Infinity`); `alertTargetsHit` uses parsed-time comparison and falls back to `targetPrice` when `triggeredPrice` is 0 (a server-detected trigger can store 0, which rendered "target hit at $0.00"); `stockChanges` compares per-product status.
+- [x] **`formatDigestNotification`:** caps each section (3 price changes, 2 stock changes, 2 alerts) and the total body to 9 lines; emits "No changes" when nothing changed.
+- [x] No code change; tree unchanged from Phase 866 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
