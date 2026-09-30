@@ -6714,3 +6714,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`/api/healthz`:** logs the DB error server-side and returns a generic 503 (driver errors can leak host/user/schema to an unauthenticated caller).
 - [x] **Port:** production fails fast on the preferred port (silently binding another makes the health check fail with no clear cause); dev finds an available port.
 - [x] No code change; tree unchanged from Phase 882 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 884: HTTP middleware audit (clean)
+
+- [x] **CORS:** allowlisted origins only (exact match; credentials never granted to an unknown origin); `X-LLM-*` headers allowed (else the preflight blocks BYO-LLM calls).
+- [x] **Security headers:** `nosniff`, `X-Frame-Options: DENY` + `frame-ancestors 'none'`, `Referrer-Policy` (keeps the `/w/<token>` out of the Referer), HSTS, a CSP whose `connect-src` includes the configured API origin (a separate api host would otherwise be blocked), `X-Powered-By` removed.
+- [x] **`resolveTrustProxy`:** defaults to 1 hop; overridable (number/false/true/IPs).
+- [x] **Body parsers:** the 10mb limit is scoped to the sync.push procedure **exactly** (a prefix match would grant unauthenticated 10mb buffering to `/api/trpc/sync.pushX`); handles the comma-batched shape; mounted before the 256kb default.
+- [x] No code change; tree unchanged from Phase 883 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
