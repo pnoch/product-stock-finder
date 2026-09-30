@@ -6916,3 +6916,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`_core/heartbeat.ts`:** callback paths must start with `/api/scheduled/`.
 - [x] **`notifications/mappers.ts`:** preserves the client's `utcOffsetMinutes` (dropping it evaluated quiet hours in the server timezone).
 - [x] No code change; tree unchanged from Phase 912 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 914: Server core-scaffolding audit (clean)
+
+- [x] **`_core/storageProxy.ts`:** `isValidStorageKey` rejects traversal, absolute paths, URLs, backslashes, control chars, and empty/`.`/`..` segments (without it the proxy forwards an attacker-controlled `path` to the forge presign endpoint and 307-redirects to the result); `fetchWithTimeout`.
+- [x] **`_core/systemRouter.ts`:** `notifyOwner` is `adminProcedure`-gated.
+- [x] **`_core/dataApi.ts` / `_core/voiceTranscription.ts`:** unreachable framework scaffolding (no callers) — hands-off per AGENTS.md.
+- [x] No code change; tree unchanged from Phase 913 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
