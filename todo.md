@@ -6994,3 +6994,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`_core/api.ts`:** `apiCall`/`exchangeOAuthCode`/`logout`/`getMe`/`establishSession` — the app's `use-auth` wraps these with the device header.
 - [x] Hands-off per AGENTS.md; the app-side wrappers were audited in earlier phases.
 - [x] No code change; tree unchanged from Phase 924 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 926: Rust dependency security audit — 2 vulnerabilities fixed
+
+- [x] `cargo audit` found **2 vulnerabilities** (both transitive via Tauri's HTTP stack): `h2` 0.4.15 (unbounded empty DATA frames, DoS) and `rustls` 0.23.43 (TLS 1.3 handshake messages accepted across encryption-level boundaries). Plus 9 unmaintained/yanked warnings.
+- [x] **Fixed** via `cargo update -p h2 --precise 0.4.16` and `cargo update -p rustls --precise 0.23.45` (rustls-webpki also bumped). `cargo audit` now reports **0 vulnerabilities**.
+- [x] Verified: `cargo test` **72 passed**, clippy 0 warnings, fmt clean; desktop `tsc 0`, **289 passed**.
