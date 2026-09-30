@@ -6653,3 +6653,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Created a brand-new database, ran `pnpm db:push` (all migrations), and ran the DB-gated suite: **8 files / 30 tests pass** — the suite works against a clean schema, not just the accumulated audit DB.
 - [x] Confirmed the DB tests genuinely exercise the DB: `sync-e2e.test.ts` runs 6 tests with `RUN_DB_TESTS=1` and **skips all 6** without it (no silent pass).
 - [x] No code change; tree unchanged from Phase 874 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 876: Server sync push audit (clean)
+
+- [x] **Payload caps:** `SYNC_PUSH_MAX_ITEMS` on the array and a 5MB total-bytes cap (200 × 100KB would force ~20MB of upserts); a cyclic payload throws → `BAD_REQUEST`.
+- [x] **Stamp clamping:** a future stamp (`> now + 5min`) is clamped to `now` rather than rejected (rejecting wedged sync permanently — the client re-sends the same future stamp every retry).
+- [x] **Concurrency:** `mapWithConcurrency(items, 8)` bounds the INSERT+SELECT round trips while preserving order (the stamped/rejected arrays stay index-aligned).
+- [x] **Rate limit:** 30/min; tombstone purge is interval-gated.
+- [x] No code change; tree unchanged from Phase 875 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
