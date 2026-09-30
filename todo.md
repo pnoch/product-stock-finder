@@ -6814,3 +6814,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`fx-rate-grid.tsx` / `fx-sparkline-card.tsx`:** grid layout; per-currency fallbacks (`?? 1`, `?? 0`, `?? []`).
 - [x] **`stats-share-card.tsx`:** `forwardRef` for image capture; correct pluralization; display-currency formatting.
 - [x] No code change; tree unchanged from Phase 896 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 898: Product-detail components audit (clean)
+
+- [x] **`price-alert-modal.tsx`:** presentational (state in the parent); currency chips from `EXCHANGE_RATES`.
+- [x] **`edit-product-sheet.tsx`:** `canSave` requires non-empty name + model (matching the storage contract); disabled state + a11y.
+- [x] **`distributor-listing-section.tsx`:** receives pre-sorted listings; effects with cleanup; best-listing selection skips out-of-stock.
+- [x] No code change; tree unchanged from Phase 897 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
