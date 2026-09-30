@@ -6583,3 +6583,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`digest-fx.ts`:** validates the digest-snapshot shape (a non-array `products` would throw in `computeDigest`'s `.map` inside a `useMemo` with no boundary); filters FX rates to finite numbers; enqueued writes.
 - [x] **`notifications.ts`:** displayed-event ids and history dedup by id and cap at 200; `markNotificationRead`/`markAllNotificationsRead` only write when something changed; pending-health-events buffer is enqueued.
 - [x] No code change; tree unchanged from Phase 864 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 866: Health service/probe audit (clean)
+
+- [x] **`lib/health.ts`:** 3s abort timeout cleared in `finally`.
+- [x] **`computeHealthStats`:** trend split is guarded (`half > 0`), sparkline maps an unknown status to 0 (a corrupt status would yield NaN → malformed SVG).
+- [x] **`computeHealthSummary` / `timelineSegments`:** ignore unparseable dates; trapezoidal weights sum to 1 and guard a non-finite/zero span; `groupSamplesByDay` sorts newest-first.
+- [x] **`getHealthHistory`:** sorts each distributor's samples on read (positional alert/recovery detection).
+- [x] **`testAllDistributors`:** single-flight (the background probe and manual "Test All" can overlap); concurrency-bounded (3); `recordSample` prunes to the age/sample caps.
+- [x] No code change; tree unchanged from Phase 865 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
