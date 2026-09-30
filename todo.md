@@ -6793,3 +6793,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] **`AppErrorBoundary` / `RouteErrorBoundary`:** `getDerivedStateFromError` never throws (a throw would crash the boundary itself and show a blank screen); grapheme-safe truncation via `Intl.Segmenter` with a code-point fallback (a raw `.slice` could split a surrogate pair); logs to AsyncStorage; themed fallback with retry + home/back.
 - [x] No code change; tree unchanged from Phase 893 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 895: Notification-center / tag-sheet / onboarding audit (clean)
+
+- [x] **`notification-center.tsx`:** functional unread decrement (two quick taps used to read the same stale closure and under-count); storage subscription; refresh control.
+- [x] **`tag-picker-sheet.tsx`:** `loadFailed` state (a failed load doesn't render an empty picker as if there were no tags); keyboard-height handling; save try/catch.
+- [x] **`onboarding-screen.tsx`:** index state, no async races.
+- [x] No code change; tree unchanged from Phase 894 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
