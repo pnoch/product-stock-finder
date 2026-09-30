@@ -6832,3 +6832,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Desktop suite 3×: **289 passed** each time. `cargo test` 3×: **72 passed** each time. DB suite 3×: **30 passed** each time. No flakiness across any suite.
 - [x] No code change; tree unchanged from Phase 899 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 901: Desktop Vite bundle browser smoke (clean)
+
+- [x] Built the desktop Vite production bundle and loaded it in headless Chromium (seeded localStorage so screens render real content). The app mounts and renders the full nav (Home/Watchlist/Alerts/Restock Watches/Search/Rates/Stats/Health/Settings) — **937 chars, zero non-Tauri errors**.
+- [x] No code change; tree unchanged from Phase 900 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
