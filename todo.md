@@ -6768,3 +6768,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`shared/src/log.ts`:** `LOG_ERROR` is a no-op in production (`__DEV__` guard).
 - [x] **`constants/oauth.ts`:** static `process.env.EXPO_PUBLIC_*` access (Expo's env plugin only inlines literals); the web redirect is the SPA route (not a nonexistent API path); the device header is omitted on web (it would force the native ticket branch, no cookie).
 - [x] No code change; tree unchanged from Phase 889 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 891: Settings-section components audit (clean)
+
+- [x] **`connection-section.tsx`:** uses the shared `useConnection` hook; the refresh button is disabled while refreshing; haptics guarded to native.
+- [x] **`notifications-section.tsx`:** the web-notifications toggle is permission-gated (`setWebNotificationsEnabled` returns the permission; the switch only stays on when granted) and shows a hint on denial; persists via `updateSetting`.
+- [x] **`data-section.tsx` / `about-section.tsx` / `device-management-section.tsx`:** audited in earlier phases (JSON backup import, empty privacy-URL guard, device list).
+- [x] No code change; tree unchanged from Phase 890 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
