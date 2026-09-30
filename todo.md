@@ -6677,3 +6677,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Reset:** consumes + applies the token in one transaction (a failure after consumption would burn the one-time token); revokes all devices (a reset is the recovery path for a compromised account).
 - [x] **Change-password:** per-IP + per-account throttle; verifies the current password; bumps `credentialsChangedAt` (rejects every prior session, including unregistered device ids); revokes other devices but re-mints the caller's own session under the new epoch and returns it for Bearer clients.
 - [x] No code change; tree unchanged from Phase 877 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 879: OAuth flow audit (clean)
+
+- [x] **`/start`:** rate-limited; validates the provider; sanitizes `redirectUri` before signing the state envelope (defense in depth).
+- [x] **Callback:** rate-limited; verifies the signed state; the web flow must echo the nonce cookie (login-CSRF guard) while native flows are bound by the device-scoped ticket; clears the cookie; links an existing email account only when the provider vouches for the email (linking on an unverified email lets an attacker pre-register a victim's address — the pre-hijack fix).
+- [x] **`/consume`:** rate-limited; single-use ticket; unrevokes the device; mints a session with the credential epoch.
+- [x] No code change; tree unchanged from Phase 878 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
