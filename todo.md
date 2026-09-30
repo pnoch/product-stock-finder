@@ -6647,3 +6647,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`pull`:** captures `lastSyncedAt` before the SELECT (writes committed during the query aren't missed); detects a full resync when the client cursor predates the tombstone window (an incremental pull would omit untouched live rows and the client would delete them); pages with the composite cursor (inclusive at the boundary so no item is skipped; the client dedupes); sorts the merged list by the same `(stamp, collection, id)` key the cursor uses; `SYNC_PULL_MAX_ITEMS + 1` detects `hasMore`.
 - [x] **Rate limit:** 60/min.
 - [x] No code change; tree unchanged from Phase 873 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 875: Fresh-DB verification (clean)
+
+- [x] Created a brand-new database, ran `pnpm db:push` (all migrations), and ran the DB-gated suite: **8 files / 30 tests pass** — the suite works against a clean schema, not just the accumulated audit DB.
+- [x] Confirmed the DB tests genuinely exercise the DB: `sync-e2e.test.ts` runs 6 tests with `RUN_DB_TESTS=1` and **skips all 6** without it (no silent pass).
+- [x] No code change; tree unchanged from Phase 874 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
