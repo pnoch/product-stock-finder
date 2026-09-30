@@ -7013,3 +7013,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`background.ts`:** poller start/stop + typed event listeners (`listing-updated`, `prices-checked`, `price-drops-triggered`) returning `UnlistenFn`.
 - [x] **`notifications.ts`:** Tauri `send_notification` with a web-display fallback that reports whether the browser **actually** displayed it (returning `true` unconditionally made callers consume state for an unseen notification); `onNotificationActivated` validates the route starts with `/`.
 - [x] No code change; tree unchanged from Phase 927 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 929: Coverage-provider crash (local node_modules residue)
+
+- [x] **Gap found:** `vitest --coverage` crashed with `TypeError: (0, brace_expansion_1.expand) is not a function` in `@vitest/coverage-v8`'s `getUntestedFiles`. Root cause: a **stale nested `node_modules/@vitest/coverage-v8/node_modules`** left over from the Phase-834 override bisecting — the override was removed, but the broken `brace-expansion@2.0.2` copy (which the bundled `minimatch` needs at `^5.0.2`) persisted locally.
+- [x] **Fix:** removed the stale nested directory and re-ran `pnpm install`. `pnpm-lock.yaml` was already correct (only `brace-expansion@1.1.21` and `5.0.12`), so a fresh CI install is unaffected. Coverage now runs and writes `coverage-summary.json`.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2682 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
