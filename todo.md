@@ -6743,3 +6743,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Derived memos:** `bestListing`/`isLowestEver`/`trendSignal` convert to the display currency and skip unconvertible points (mapping them to Infinity made an all-unconvertible history claim "lowest ever"); `bestListing` skips unconvertible listings rather than matching the raw price.
 - [x] **Note/edit:** cancellation flag; `handleSaveEdit` requires non-empty name + model (a blank model silently kept the old one while the UI implied it changed).
 - [x] No code change; tree unchanged from Phase 886 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 888: Desktop Search/Watchlist audit (clean)
+
+- [x] **`Search.tsx`:** `handleDiscover`/`handleManualParse` guard double-submit; `handleBulkImport` uses `Promise.allSettled` and counts only fulfilled `true` (a duplicate resolves `false`, which the fulfilled-status check used to count as an import); marks newly-tracked ids so the catalog row stops offering "Add".
+- [x] **`Watchlist.tsx`:** six effects (load, storage subscription, interval, etc.) with cleanup; the tag-count fallback is a deliberate loading-state fallback.
+- [x] No code change; tree unchanged from Phase 887 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
