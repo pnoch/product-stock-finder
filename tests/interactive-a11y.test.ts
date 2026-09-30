@@ -62,7 +62,46 @@ function desktopIconOnlyButtons(src: string): number[] {
   return lines;
 }
 
+// A desktop <input>/<select> needs a programmatic name: aria-label,
+// aria-labelledby, a placeholder, or an id linked by a <label htmlFor>.
+function desktopUnnamedFields(src: string): number[] {
+  const lines: number[] = [];
+  for (const m of src.matchAll(/<(input|select)\b/g)) {
+    let i = m.index!;
+    let depth = 0;
+    let end = -1;
+    for (; i < src.length; i++) {
+      const c = src[i];
+      if (c === "{") depth++;
+      else if (c === "}") depth--;
+      else if (c === ">" && depth === 0) {
+        end = i;
+        break;
+      }
+    }
+    if (end < 0) continue;
+    const tag = src.slice(m.index!, end + 1);
+    if (/type="(hidden|checkbox|radio|submit|button|range|file)"/.test(tag))
+      continue;
+    if (!/aria-label|aria-labelledby|placeholder=|id=/.test(tag)) {
+      lines.push(src.slice(0, m.index!).split("\n").length);
+    }
+  }
+  return lines;
+}
+
 describe("interactive elements have accessible names", () => {
+  it("every desktop form control carries an accessible name", () => {
+    const missing: string[] = [];
+    for (const file of walk("desktop/src")) {
+      const src = readFileSync(file, "utf8");
+      for (const line of desktopUnnamedFields(src)) {
+        missing.push(`${file}:${line}`);
+      }
+    }
+    expect(missing, `unnamed fields:\n${missing.join("\n")}`).toEqual([]);
+  });
+
   it("every desktop icon-only button carries an aria-label", () => {
     const missing: string[] = [];
     for (const file of walk("desktop/src")) {
