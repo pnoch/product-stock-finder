@@ -6736,3 +6736,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`share.ts`:** clipboard with a `execCommand` fallback; PNG export.
 - [x] **`server-notifications.ts`:** single-flight sync; a pending unregister retries and clears on success; master-switch off retracts the server config and drops the health buffer (intentional suppression); sends the model number for every referenced product (manually-added/rediscovered products get server-side notifications); health events carry the lowercased id (Phase 885).
 - [x] No code change; tree unchanged from Phase 885 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 887: Desktop ProductDetail audit (clean)
+
+- [x] **`loadProduct`:** generation guard (`loadIdRef`); `Promise.all` of the four reads; seeds every alert-currency field from the display currency (the main Set Alert modal was left at "USD", so a EUR/GBP user's alert was created in the wrong currency).
+- [x] **Derived memos:** `bestListing`/`isLowestEver`/`trendSignal` convert to the display currency and skip unconvertible points (mapping them to Infinity made an all-unconvertible history claim "lowest ever"); `bestListing` skips unconvertible listings rather than matching the raw price.
+- [x] **Note/edit:** cancellation flag; `handleSaveEdit` requires non-empty name + model (a blank model silently kept the old one while the UI implied it changed).
+- [x] No code change; tree unchanged from Phase 886 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
