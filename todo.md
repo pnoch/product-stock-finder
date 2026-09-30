@@ -6807,3 +6807,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`privacy.tsx`:** static content.
 - [x] **`w/[token].tsx`:** join/leave mutations with `isPending` guards (buttons disabled while pending) and user-facing error alerts; display-currency read with a catch.
 - [x] No code change; tree unchanged from Phase 895 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 897: Product re-exports / rates / share-card audit (clean)
+
+- [x] **`app/product/_components.tsx`:** re-export barrel.
+- [x] **`fx-rate-grid.tsx` / `fx-sparkline-card.tsx`:** grid layout; per-currency fallbacks (`?? 1`, `?? 0`, `?? []`).
+- [x] **`stats-share-card.tsx`:** `forwardRef` for image capture; correct pluralization; display-currency formatting.
+- [x] No code change; tree unchanged from Phase 896 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
