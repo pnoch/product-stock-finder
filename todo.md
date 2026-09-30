@@ -6870,3 +6870,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Scanned every `<TextInput>` in `app/` and `components/` (full opening tag) for `accessibilityLabel`/`aria-label`/`placeholder`. All have one — the single hit was a false positive (`useRef<TextInput | null>` type annotation).
 - [x] No code change; tree unchanged from Phase 906 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 908: Tab-layout / badge / tag-component audit (clean)
+
+- [x] **`(tabs)/_layout.tsx`:** safe-area-aware tab bar height; alert badge only when > 0.
+- [x] **`haptic-tab.tsx`:** haptics guarded to iOS (`EXPO_OS`); forwards `onPressIn`.
+- [x] **`stock-badge.tsx`:** unknown status falls back to the "Unknown" config.
+- [x] **`tag-filter-row.tsx` / `bulk-tag-sheet.tsx` / `tag-manage-sheet.tsx`:** no async races.
+- [x] No code change; tree unchanged from Phase 907 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
