@@ -6837,3 +6837,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Built the desktop Vite production bundle and loaded it in headless Chromium (seeded localStorage so screens render real content). The app mounts and renders the full nav (Home/Watchlist/Alerts/Restock Watches/Search/Rates/Stats/Health/Settings) — **937 chars, zero non-Tauri errors**.
 - [x] No code change; tree unchanged from Phase 900 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 902: Web-export secret/leak audit (clean)
+
+- [x] Built the web export and scanned it: **no source maps**, no server-only env names (`RESEND_API_KEY`, `VAPID_PRIVATE_KEY`, `JWT_SECRET`, `DATABASE_URL`, `SPEND_BUDGET_*`, `TRUST_PROXY`, `EMAIL_FROM`), no absolute local paths (`/home/...`), and no API-key-shaped strings. Bundle is 4.8 MB.
+- [x] No code change; tree unchanged from Phase 901 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
