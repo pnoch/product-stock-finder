@@ -6878,3 +6878,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`stock-badge.tsx`:** unknown status falls back to the "Unknown" config.
 - [x] **`tag-filter-row.tsx` / `bulk-tag-sheet.tsx` / `tag-manage-sheet.tsx`:** no async races.
 - [x] No code change; tree unchanged from Phase 907 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 909: Scripts-directory audit (clean)
+
+- [x] **`android-keystore.sh` / `android-release.sh`:** keystore stored outside `android/` (prebuild --clean would delete it); release script bakes the production API URL and forces the bundle task to re-run (Gradle cached the localhost bundle).
+- [x] **`setup-test-db.sh`:** idempotent; reads container credentials.
+- [x] **`generate-fixtures.ts`:** regenerates the per-parser fixtures from the registry.
+- [x] **`reset-project.js`:** template reset (documented as removable).
+- [x] No code change; tree unchanged from Phase 908 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
