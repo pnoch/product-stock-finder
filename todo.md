@@ -6670,3 +6670,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`cleanupStaleDevices` / `purgeOldRevokedDevices`:** 30-day idle cleanup; revoked rows purged in batches (1000 × 10/tick) after 90 days.
 - [x] **`isDeviceRevoked`:** matches the device-specific or wildcard revocation for the user.
 - [x] No code change; tree unchanged from Phase 876 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 878: Server auth-flows audit (clean)
+
+- [x] **Register/login:** per-IP + per-account rate limits (a distributed spray rotates IPs); a fresh login from a signed-out device unrevokes it; session cookie set.
+- [x] **Reset:** consumes + applies the token in one transaction (a failure after consumption would burn the one-time token); revokes all devices (a reset is the recovery path for a compromised account).
+- [x] **Change-password:** per-IP + per-account throttle; verifies the current password; bumps `credentialsChangedAt` (rejects every prior session, including unregistered device ids); revokes other devices but re-mints the caller's own session under the new epoch and returns it for Bearer clients.
+- [x] No code change; tree unchanged from Phase 877 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
