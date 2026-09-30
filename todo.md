@@ -6842,3 +6842,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Built the web export and scanned it: **no source maps**, no server-only env names (`RESEND_API_KEY`, `VAPID_PRIVATE_KEY`, `JWT_SECRET`, `DATABASE_URL`, `SPEND_BUDGET_*`, `TRUST_PROXY`, `EMAIL_FROM`), no absolute local paths (`/home/...`), and no API-key-shaped strings. Bundle is 4.8 MB.
 - [x] No code change; tree unchanged from Phase 901 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 903: Server-bundle leak audit (clean)
+
+- [x] Built the server bundle (360 KB) and scanned it: **no actual `require`/`import` of client modules** (`react-native`, `expo-router`, `react-native-web`, `@react-navigation`) — the single `react-native` match is a code comment; no API-key-shaped secrets. `tests/server-bundle-purity.test.ts` passes.
+- [x] No code change; tree unchanged from Phase 902 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
