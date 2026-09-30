@@ -6692,3 +6692,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`verify`:** per-IP throttle; consumes the hashed token.
 - [x] **`forgot`:** per-IP + per-target throttle (rotating IPs must not bomb one inbox); **no enumeration** — always returns `{ success: true }` whether or not the email exists; stores only the token hash, sends the plaintext only by email.
 - [x] No code change; tree unchanged from Phase 879 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 881: DB token-helper audit (clean)
+
+- [x] **`consumePasswordResetToken` / `resetPasswordWithToken`:** consume + apply in one transaction with `FOR UPDATE` (a failure after consumption can't burn the token without changing the password); the memory fallback only triggers when the DB has **no row at all** — a row that exists but is used/expired stays rejected (a dual-stored token can't be consumed twice).
+- [x] **`resetPasswordWithToken`:** sets `credentialsChangedAt` in the same transaction (the credential epoch).
+- [x] **`purgeExpiredAuthTokens`:** purges both token tables.
+- [x] No code change; tree unchanged from Phase 880 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
