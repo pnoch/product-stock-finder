@@ -6865,3 +6865,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** the reminder "Distributor" `<select>` had a visual `<label>` but no programmatic association (`htmlFor`/`id`/`aria-label`), so screen readers announced it as an unnamed combobox.
 - [x] **Fix:** added `aria-label="Distributor"`. Extended `tests/interactive-a11y.test.ts` with a desktop case flagging any `<input>`/`<select>` (excluding hidden/checkbox/radio/submit/button/range/file) lacking `aria-label`/`aria-labelledby`/`placeholder`/`id`. Proven non-vacuous: removing the label fails the guard. (All other desktop inputs already had an `aria-label` or `placeholder`.)
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2682 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 907: Mobile TextInput a11y audit (clean)
+
+- [x] Scanned every `<TextInput>` in `app/` and `components/` (full opening tag) for `accessibilityLabel`/`aria-label`/`placeholder`. All have one — the single hit was a false positive (`useRef<TextInput | null>` type annotation).
+- [x] No code change; tree unchanged from Phase 906 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
