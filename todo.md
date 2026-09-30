@@ -7044,3 +7044,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`use-connection.ts`:** probes the dependency-free `/api/health` (probing `fx.get` made connectivity depend on a rate-limited query); 3s timeout cleared in `finally`; 60s refetch + window-focus refetch.
 - [x] **`use-toast.ts`:** clears the previous timer on each new toast.
 - [x] No code change; tree unchanged from Phase 932 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 934: Desktop components audit (clean)
+
+- [x] **`ConnectionBadge` / `TimeRangeChips` / `TagFilterRow`:** `aria-label`/`role` on every control (radiogroup, tag select/deselect, match-mode, clear).
+- [x] **`Sidebar`:** alerts badge effect with catch; `aria-label` per nav item.
+- [x] **`TrendingSection`:** `loadError` state with a retry button; `addedIds` set; aria-labels per card action.
+- [x] **`search-chrome.tsx`:** recent-search persistence with try/catch and a cap.
+- [x] **`EmptyState` / `LoadingSpinner` / `StockBadge`:** presentational.
+- [x] No code change; tree unchanged from Phase 933 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
