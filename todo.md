@@ -6607,3 +6607,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Launch sequence:** seeds, starts the poller, loads FX, runs one price check.
 - [x] **Price-sweep handler:** records health samples, rediscoveries missing listings, evaluates restock watches with the **desktop store + Tauri notifier** (the shared default resolves to IndexedDB / the browser Notification API, which is not granted in the webview), and sends the digest — each step in its own try/catch.
 - [x] No code change; tree unchanged from Phase 867 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 869: Listing-discovery/manual-add audit (clean)
+
+- [x] **`discoverListings`:** concurrency-bounded (3), rejects stale snapshots (would masquerade as fresh discoveries), best-effort per distributor, progress callback.
+- [x] **`manualAddProduct`:** checks `trackedIds` then the storage return value (a sync landing between the check and the write makes `trackedIds` stale; storage dedupes — running discovery then would replace the existing product's listings/history with a fresh single-point array); timeout → empty listings + `timedOut`.
+- [x] **`rediscoverMissingListings`:** bounded per run (`MISSING_LISTINGS_PER_RUN = 2`), rotates attempts (`MISSING_LISTINGS_RETRY_MS = 6h`) so permanently-unfindable products can't occupy every run's slots; `customProductSlug` (`custom-<slug>`) can't collide with catalog ids (`mikrotik-<slug>`).
+- [x] No code change; tree unchanged from Phase 868 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
