@@ -19,5 +19,19 @@ export default defineConfig({
     exclude: ["desktop/**", "node_modules/**"],
     setupFiles: ["tests/setup.ts"],
     fileParallelism: !process.env.RUN_DB_TESTS,
+    coverage: {
+      // `coverage.all` scans the whole tree; without this it walks the Rust
+      // build output (`desktop/src-tauri/target/**`, thousands of generated
+      // files) and the report is unusable.
+      exclude: [
+        "desktop/**",
+        "node_modules/**",
+        "dist/**",
+        "dist-web/**",
+        "coverage/**",
+        "**/*.config.*",
+        "**/*.d.ts",
+      ],
+    },
   },
 });

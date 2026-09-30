@@ -7025,3 +7025,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** coverage showed `lib/scrapers/breaker-clear.ts` at **0%** — `clearDistributorBreaker` (the Settings "Re-enable" action) was only referenced by source-scan tests, never exercised behaviorally. Its doc comment warns that clearing the wrong store leaves the real breaker in cooldown, yet nothing verified the clear.
 - [x] **Fix:** added `tests/breaker-clear.test.ts` (clears the given adapter's entry + persisted list; no-op for an unknown distributor). Proven non-vacuous: removing the `store.clear` call fails the test.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2684 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 931: Coverage config scanned Rust build artifacts
+
+- [x] **Gap found:** `vitest.config.ts` had no `coverage.exclude`, so `coverage.all` walked the whole tree including `desktop/src-tauri/target/**` (thousands of generated Rust/doc/Playwright files) — the report was unusable and `getUntestedFiles` was slow/fragile.
+- [x] **Fix:** added a `coverage.exclude` for `desktop/**`, `node_modules/**`, `dist*/**`, `coverage/**`, `*.config.*`, `*.d.ts`. The report is now 733 app files (no Rust artifacts); the 130 zero-coverage files are React components/screens (integration-tested via the browser click-through, not unit tests).
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2684 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
