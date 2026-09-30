@@ -65,6 +65,8 @@ export function RescheduleModal({
         }}
         onPress={onCancel}
         accessibilityViewIsModal
+        accessibilityLabel="Dismiss"
+        accessibilityRole="button"
       >
         <Pressable
           onPress={(e) => e.stopPropagation()}

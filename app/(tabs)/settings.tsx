@@ -416,6 +416,9 @@ function ShareWatchlistButton({
     <TouchableOpacity
       onPress={handleShare}
       disabled={sharing || createMutation.isPending}
+      accessibilityLabel="Share watchlist"
+      accessibilityRole="button"
+      accessibilityState={{ disabled: sharing || createMutation.isPending }}
       style={{
         backgroundColor: colors.primary,
         borderRadius: 12,

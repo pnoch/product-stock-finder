@@ -6847,3 +6847,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Built the server bundle (360 KB) and scanned it: **no actual `require`/`import` of client modules** (`react-native`, `expo-router`, `react-native-web`, `@react-navigation`) — the single `react-native` match is a code comment; no API-key-shaped secrets. `tests/server-bundle-purity.test.ts` passes.
 - [x] No code change; tree unchanged from Phase 902 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 904: Interactive-element a11y audit (2 gaps fixed)
+
+- [x] **Gap found:** two tappable controls lacked an accessible name — the Settings "Share watchlist" button and the reschedule-modal backdrop (tap-to-dismiss). Screen readers would announce them as unlabeled buttons.
+- [x] **Fix:** added `accessibilityLabel`/`accessibilityRole` (and `accessibilityState` for the disabled share button). Added `tests/interactive-a11y.test.ts`, which scans the **full** opening tag of every `Touchable*`/`Pressable` with a real `onPress` (excluding `stopPropagation` containers) and fails on a missing label. Proven non-vacuous: removing a label fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2680 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
