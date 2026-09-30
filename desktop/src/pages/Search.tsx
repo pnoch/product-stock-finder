@@ -466,7 +466,7 @@ export function Search() {
       {tagPickerFor && (
         <DialogOverlay open onClose={() => setTagPickerFor(null)} label="Assign tags">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
-            <div className="flex items-center justify-between mb-3"><h3 className="font-semibold text-sm">Assign tags</h3><button onClick={() => setTagPickerFor(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button></div>
+            <div className="flex items-center justify-between mb-3"><h3 className="font-semibold text-sm">Assign tags</h3><button onClick={() => setTagPickerFor(null)} aria-label="Close" className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button></div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {Object.values(tagDefinitions).map((def) => {
                 const sel = (pendingTags[tagPickerFor] ?? []).includes(def.id);

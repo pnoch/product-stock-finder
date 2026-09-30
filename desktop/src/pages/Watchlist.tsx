@@ -1440,7 +1440,7 @@ export function Watchlist() {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold flex items-center gap-2"><TagIcon className="w-4 h-4" /> Manage Tags</h3>
-              <button onClick={() => { setManageOpen(false); setEditingTagId(null); setManageError(null); }} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
+              <button onClick={() => { setManageOpen(false); setEditingTagId(null); setManageError(null); }} aria-label="Close" className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
             </div>
             {manageError && <p className="text-xs text-red-600 dark:text-red-400 mb-3">{manageError}</p>}
             <div className="space-y-3 mb-4 max-h-[360px] overflow-y-auto pr-1">
@@ -1502,7 +1502,7 @@ export function Watchlist() {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-semibold flex items-center gap-2"><TagIcon className="w-4 h-4" /> Add Tags</h3>
-              <button onClick={() => setBulkOpen(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
+              <button onClick={() => setBulkOpen(false)} aria-label="Close" className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Apply to {selectedIds.size} product{selectedIds.size !== 1 ? "s" : ""}</p>
             {bulkError && <p className="text-xs text-red-600 dark:text-red-400 mb-2">{bulkError}</p>}

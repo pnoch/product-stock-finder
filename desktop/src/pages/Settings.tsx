@@ -1481,7 +1481,7 @@ export function Settings() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-sm">Rename device</h3>
-                  <button onClick={() => setRenameTarget(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
+                  <button onClick={() => setRenameTarget(null)} aria-label="Close" className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button>
                 </div>
                 <input value={renameLabel} onChange={(e) => setRenameLabel(e.target.value)} maxLength={64} placeholder="Device label" className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm mb-3" />
                 <div className="flex justify-end gap-2">

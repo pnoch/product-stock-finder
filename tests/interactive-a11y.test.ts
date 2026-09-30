@@ -24,7 +24,58 @@ function isControl(tag: string): boolean {
   return true;
 }
 
+// Desktop uses plain <button>; a button with only a text child is fine, but an
+// icon-only one (a single self-closing component) needs an aria-label.
+function desktopIconOnlyButtons(src: string): number[] {
+  const lines: number[] = [];
+  const re = /<button\b/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src))) {
+    let i = m.index + m[0].length;
+    let depth = 0;
+    let end = -1;
+    for (; i < src.length; i++) {
+      const c = src[i];
+      if (c === "{") depth++;
+      else if (c === "}") depth--;
+      else if (c === ">" && depth === 0) {
+        end = i;
+        break;
+      }
+    }
+    if (end < 0) continue;
+    const tag = src.slice(m.index, end + 1);
+    if (/aria-label|aria-labelledby|title=/.test(tag)) continue;
+    let j = end + 1;
+    let close = -1;
+    for (; j < src.length; j++)
+      if (src.startsWith("</button>", j)) {
+        close = j;
+        break;
+      }
+    if (close < 0) continue;
+    const children = src.slice(end + 1, close).trim();
+    if (/^<[A-Z][A-Za-z0-9]*\b[^>]*\/>$/.test(children)) {
+      lines.push(src.slice(0, m.index).split("\n").length);
+    }
+  }
+  return lines;
+}
+
 describe("interactive elements have accessible names", () => {
+  it("every desktop icon-only button carries an aria-label", () => {
+    const missing: string[] = [];
+    for (const file of walk("desktop/src")) {
+      const src = readFileSync(file, "utf8");
+      for (const line of desktopIconOnlyButtons(src)) {
+        missing.push(`${file}:${line}`);
+      }
+    }
+    expect(missing, `unlabeled icon buttons:\n${missing.join("\n")}`).toEqual(
+      [],
+    );
+  });
+
   it("every Touchable/Pressable control carries a11y attributes", () => {
     const missing: string[] = [];
     for (const file of [...walk("app"), ...walk("components")]) {

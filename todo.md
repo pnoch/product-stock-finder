@@ -6853,3 +6853,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** two tappable controls lacked an accessible name — the Settings "Share watchlist" button and the reschedule-modal backdrop (tap-to-dismiss). Screen readers would announce them as unlabeled buttons.
 - [x] **Fix:** added `accessibilityLabel`/`accessibilityRole` (and `accessibilityState` for the disabled share button). Added `tests/interactive-a11y.test.ts`, which scans the **full** opening tag of every `Touchable*`/`Pressable` with a real `onPress` (excluding `stopPropagation` containers) and fails on a missing label. Proven non-vacuous: removing a label fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2680 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 905: Desktop icon-only button a11y (5 gaps fixed)
+
+- [x] **Gap found:** five desktop close buttons rendered only an `<X>` icon with no `aria-label` — screen readers announced them as unlabeled buttons. (The desktop uses plain `<button>`; a text child is a valid name, so only genuinely icon-only buttons are affected.)
+- [x] **Fix:** added `aria-label="Close"` to all five. Extended `tests/interactive-a11y.test.ts` with a desktop case that flags any `<button>` whose only child is a single self-closing component and lacks `aria-label`/`title`. Proven non-vacuous: removing a label fails the guard.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2681 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 72, clippy 0, fmt clean.
