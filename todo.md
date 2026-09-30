@@ -7093,3 +7093,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] One `RUN_DB_TESTS=1 pnpm test` run showed 2 DB-test failures, but the suite then passed **70+ consecutive runs** (both `pnpm test:db` and the full `RUN_DB_TESTS=1 pnpm test`) with no reproduction. The failure was transient (likely DB contention during the first run after adding a new DB test, which inserts rows directly).
 - [x] The new `sync-db` cursor test passed 8/8 targeted runs and 20+ full-suite runs.
 - [x] No code change; tree unchanged from Phase 939 (`tsc 0`, lint 0 errors / 157 warnings, `2684 passed`; DB 8/31; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 941: Untested-module scan — testLlmConnection
+
+- [x] **Gap found:** a scan for `lib/` modules not referenced by any test found exactly one — `lib/server-llm.ts` (`testLlmConnection`, used by both settings screens to probe the BYO-LLM key). It had no test.
+- [x] **Fix:** added `tests/server-llm.test.ts` (unconfigured → null without a client; success; auth failure; throw → null). Proven non-vacuous: removing the `isServerConfigured` guard fails a case.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2688 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
