@@ -6598,3 +6598,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`computeDigest`:** `valueDelta` requires no currency change and both totals > 0 (a zero baseline would be `Infinity`); `alertTargetsHit` uses parsed-time comparison and falls back to `targetPrice` when `triggeredPrice` is 0 (a server-detected trigger can store 0, which rendered "target hit at $0.00"); `stockChanges` compares per-product status.
 - [x] **`formatDigestNotification`:** caps each section (3 price changes, 2 stock changes, 2 alerts) and the total body to 9 lines; emits "No changes" when nothing changed.
 - [x] No code change; tree unchanged from Phase 866 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 868: Desktop App orchestration audit (clean)
+
+- [x] **Keyboard shortcuts dialog:** focus trap + restore, Escape close, `isTyping` guard (a shortcut doesn't fire while typing).
+- [x] **Sync setup:** `syncRef` + `registerSyncSetup` (the Settings "Sync now" button works); sign-in triggers `syncNow` + device cleanup + history backfill; foreground retry mirrors mobile.
+- [x] **Web push:** registers the SW `web-push-shown` dedup listener.
+- [x] **Launch sequence:** seeds, starts the poller, loads FX, runs one price check.
+- [x] **Price-sweep handler:** records health samples, rediscoveries missing listings, evaluates restock watches with the **desktop store + Tauri notifier** (the shared default resolves to IndexedDB / the browser Notification API, which is not granted in the webview), and sends the digest — each step in its own try/catch.
+- [x] No code change; tree unchanged from Phase 867 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
