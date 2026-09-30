@@ -6634,3 +6634,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`upsertDeviceConfig`:** only overwrites quiet hours when the client sent them (an older client must not wipe a newer one's setting); an explicit `null` clears it; preserves the existing user binding when the caller sends none (the health-event path needs it, or events are dropped in DB mode).
 - [x] **`purgeOldNotificationEvents`:** 30-day retention, batched (1000 × 10/tick) so a large table never holds a long lock.
 - [x] No code change; tree unchanged from Phase 871 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 873: Server sync-db audit (clean)
+
+- [x] **`shouldAcceptSyncWrite`:** legacy rows without a client stamp fall back to the server-stamped comparison (not unconditional accept).
+- [x] **`listChangedItems`:** composite `(effectiveStamp, collection, id)` cursor makes the page order total (a stamp-only cursor would loop forever on bulk edits); `SYNC_COLLECTION_ORDER` must match the router's sort (documented); `GREATEST(updatedAtMs, COALESCE(deletedAtMs, 0))`; per-collection cap (5000).
+- [x] **`upsertSyncItem`:** the LWW verdict is snapshotted into `@__lww_ok` on first evaluation — MySQL evaluates `ON DUPLICATE KEY UPDATE` assignments left-to-right with intermediate values visible, so a bare per-column condition would read the just-overwritten `clientUpdatedAtMs` and silently drop deletes; the acceptance check re-reads the row.
+- [x] No code change; tree unchanged from Phase 872 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
