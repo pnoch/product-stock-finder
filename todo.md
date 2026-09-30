@@ -6788,3 +6788,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`catalog-product-card.tsx` / `recent-searches.tsx`:** memoized; haptics guarded to native.
 - [x] **`distributor-analysis.ts`:** filters to in-stock, positive, convertible listings; uses the cheapest per product (deterministic); guards a non-finite `taxRate` (`??` doesn't sanitize NaN, which would render the row as `$NaN`); sorted by total cost.
 - [x] No code change; tree unchanged from Phase 892 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 894: Error-boundary audit (clean)
+
+- [x] **`AppErrorBoundary` / `RouteErrorBoundary`:** `getDerivedStateFromError` never throws (a throw would crash the boundary itself and show a blank screen); grapheme-safe truncation via `Intl.Segmenter` with a code-point fallback (a raw `.slice` could split a surrogate pair); logs to AsyncStorage; themed fallback with retry + home/back.
+- [x] No code change; tree unchanged from Phase 893 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
