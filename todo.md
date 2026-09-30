@@ -6800,3 +6800,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`tag-picker-sheet.tsx`:** `loadFailed` state (a failed load doesn't render an empty picker as if there were no tags); keyboard-height handling; save try/catch.
 - [x] **`onboarding-screen.tsx`:** index state, no async races.
 - [x] No code change; tree unchanged from Phase 894 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 896: Remaining app-screen audit (clean)
+
+- [x] **`distributor-analysis.tsx` / `restock-watches.tsx`:** explicit error state; catch handling.
+- [x] **`privacy.tsx`:** static content.
+- [x] **`w/[token].tsx`:** join/leave mutations with `isPending` guards (buttons disabled while pending) and user-facing error alerts; display-currency read with a catch.
+- [x] No code change; tree unchanged from Phase 895 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
