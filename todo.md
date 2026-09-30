@@ -6886,3 +6886,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`generate-fixtures.ts`:** regenerates the per-parser fixtures from the registry.
 - [x] **`reset-project.js`:** template reset (documented as removable).
 - [x] No code change; tree unchanged from Phase 908 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 910: Design-spec/plan docs audit (clean)
+
+- [x] `docs/superpowers/` holds 338 dated design specs and implementation plans. They are **historical artifacts** (each describes the state at its date), so the stale counts they contain are expected — AGENTS.md describes them as "design specs + implementation plans for recent phases", not live references, and no live doc points to them as current.
+- [x] No code change; tree unchanged from Phase 909 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
