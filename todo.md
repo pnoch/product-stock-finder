@@ -7111,3 +7111,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** a scan for `desktop/src/lib/` modules not referenced by any test found `notification-permission.ts` (`checkNotificationPermission`, used by the ProductDetail and Compare alert/watch flows to gate notification-backed records). The other two hits are stubs.
 - [x] **Fix:** added `desktop/tests/notification-permission.test.ts` (granted, denied, request→granted, request→denied, Tauri fallthrough). Proven non-vacuous: removing the denied check fails a case.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2688 passed**; desktop `tsc 0`, **294 passed**; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 944: Desktop untested-hook scan — useTheme
+
+- [x] **Gap found:** `desktop/src/hooks/use-theme.ts` (`useTheme`) had no test despite real logic: preference resolution from `app_settings.theme` → legacy `theme-preference` → `auto`, invalid-value rejection, dark-class application, and toggle persistence.
+- [x] **Fix:** added `desktop/tests/use-theme.test.tsx` (6 cases). Proven non-vacuous: disabling the `app_settings.theme` branch fails 2 cases.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2688 passed**; desktop `tsc 0`, **300 passed**; `cargo test` 72, clippy 0, fmt clean.
