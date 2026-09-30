@@ -6728,3 +6728,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** the desktop's `emitHealthEvent` pushed pending health events **without an `id`**. The upload layer synthesizes a fallback id (`health-${distributorId}-${status}-${createdAt}`) that is **not lowercased**, while the locally-recorded event id **is** (`health-${distributorId.toLowerCase()}-...`). For a mixed-case distributor id the server event would not dedupe against the local one → a duplicate notification. (Mobile sends the lowercased id.)
 - [x] **Fix:** include `id: eventId` (the already-lowercased local id) in the pending event, matching mobile. Added a guard to `desktop/tests/health-probe.test.tsx` asserting every pending event carries a lowercased id. Proven non-vacuous: removing the id fails the guard.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2679 passed**; desktop `tsc 0`, **289 passed**; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 886: Desktop notification-lib audit (clean)
+
+- [x] **`notification-permission.ts`:** web checks/requests the Notification permission; Tauri (no `Notification` API) falls through to granted.
+- [x] **`push-unregister.ts`:** 5s timeout, returns false on failure (the caller keeps the pending flag).
+- [x] **`share.ts`:** clipboard with a `execCommand` fallback; PNG export.
+- [x] **`server-notifications.ts`:** single-flight sync; a pending unregister retries and clears on success; master-switch off retracts the server config and drops the health buffer (intentional suppression); sends the model number for every referenced product (manually-added/rediscovered products get server-side notifications); health events carry the lowercased id (Phase 885).
+- [x] No code change; tree unchanged from Phase 885 (`tsc 0`, lint 0 errors / 157 warnings, `2679 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
