@@ -6987,3 +6987,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Only three markers exist: a leftover template `// TODO: add feature queries here` at the end of `server/db.ts` (removed — dead guidance in a mature codebase), and two Rust CSV stubs (`import`/`export` "not yet implemented"). Both Rust stubs are **unreachable**: the desktop CSV import/export runs in the renderer (`lib/csv.ts`), and nothing invokes `import_watchlist`/`export_watchlist` with `format: "csv"`.
 - [x] No `FIXME`/`HACK`/`@deprecated`/`unimplemented` in the app code.
 - [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2682 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 925: `lib/_core` contract audit (clean)
+
+- [x] **`_core/auth.ts`:** native uses `SecureStore`, web uses cookie auth (returns null); logs token *presence*, never the value; `setSessionToken` rethrows on failure (callers must know).
+- [x] **`_core/api.ts`:** `apiCall`/`exchangeOAuthCode`/`logout`/`getMe`/`establishSession` — the app's `use-auth` wraps these with the device header.
+- [x] Hands-off per AGENTS.md; the app-side wrappers were audited in earlier phases.
+- [x] No code change; tree unchanged from Phase 924 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
