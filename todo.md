@@ -6981,3 +6981,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Cleartext trade-off:** the plugin sets `android:usesCleartextTraffic="true"` globally. Production bakes an HTTPS API URL (`scripts/android-release.sh`), so the app makes no cleartext request in production; the flag also supports the BYO-LLM `ollama-local` feature (a user's `http://192.168.x.x` URL). The comment's "only relaxes dev" is slightly loose but the practical effect is dev/local-only.
 - [x] **`expo-background-task` plugin** injects the iOS background modes (without it `registerTaskAsync` silently no-ops on release builds).
 - [x] No code change; tree unchanged from Phase 922 (`tsc 0`, lint 0 errors / 157 warnings, `2682 passed`; desktop `289`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 924: Incomplete-work-marker audit (clean)
+
+- [x] Only three markers exist: a leftover template `// TODO: add feature queries here` at the end of `server/db.ts` (removed — dead guidance in a mature codebase), and two Rust CSV stubs (`import`/`export` "not yet implemented"). Both Rust stubs are **unreachable**: the desktop CSV import/export runs in the renderer (`lib/csv.ts`), and nothing invokes `import_watchlist`/`export_watchlist` with `format: "csv"`.
+- [x] No `FIXME`/`HACK`/`@deprecated`/`unimplemented` in the app code.
+- [x] Verified: root `tsc 0`, lint 0 errors / 157 warnings, **2682 passed**; desktop `289`; `cargo test` 72, clippy 0, fmt clean.

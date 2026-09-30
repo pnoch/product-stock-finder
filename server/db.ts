@@ -576,5 +576,3 @@ export async function purgeExpiredAuthTokens(now: number): Promise<void> {
     if (!Number.isFinite(affected) || affected < TOKEN_PURGE_BATCH_SIZE) break;
   }
 }
-
-// TODO: add feature queries here as your schema grows.
