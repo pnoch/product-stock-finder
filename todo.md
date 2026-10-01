@@ -7265,3 +7265,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `tests/fx-client.test.ts` (9 → 13 tests): unchanged payload applies rates and skips the storage rewrite; same `fetchedAt` with a changed value, a changed currency set, and a swapped key all re-save (incl. the duplicate-timestamp history replace).
 - [x] `tests/fx-history.test.ts` (8 → 14 tests): duplicate timestamp replaces the last point / repeats prev; non-finite incoming treated as absent; first-seen currency padded back to existing timestamps; a known currency missing from a new fetch records `null`; `getFxChange` null endpoints.
 - [x] Coverage **fx.ts 75.4% → 98.2%**, **fx-history.ts 75.5% → 91.0%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2812 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 968: Cover the CSV/image/text share native paths (~69% → 97%)
+
+- [x] `lib/csv-export.ts` (68.6%), `lib/share-image.ts` (69.4%), and `lib/share-text.ts` (70.6%) had only their web branches tested; the native share-sheet paths (and share-text's non-AbortError → clipboard fallback) were uncovered.
+- [x] Rewrote the three tests with a mutable `Platform.OS`: CSV native write+share / sharing-unavailable / write-throws; image native capture-to-tmpfile+share / sharing-unavailable / capture-throws; share-text native shared/dismissed/throws plus the web non-abort fallback and clipboard-throw.
+- [x] Coverage **each ~69% → ~97%** lines (csv 68.6→97.1, image 69.4→97.2, text 70.6→97.1); tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2823 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
