@@ -227,4 +227,39 @@ describe("server digest hold-and-flush", () => {
     const events = await pullPendingEvents("dev-1");
     expect(events.map((e) => e.type)).toContain("price_drop");
   });
+
+  it("holds and flushes a user-scoped digest", async () => {
+    const now = Date.now();
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 480,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "https://example.com",
+      fetchedAt: now,
+    });
+    await upsertDeviceConfig(
+      "dev-user",
+      {
+        ...baseConfig,
+        alerts: [
+          {
+            id: "a1",
+            productId: "mikrotik-crs804-4ddq-hrm",
+            targetPrice: 500,
+            currency: "USD",
+          },
+        ],
+        quietHours: windowAround(now, 30, 30),
+      },
+      7,
+    );
+    await evaluateNotifications(now);
+    expect(await pullPendingEvents("dev-user", 7)).toEqual([]);
+
+    await evaluateNotifications(now + 3600000);
+    const events = await pullPendingEvents("dev-user", 7);
+    expect(events).toHaveLength(1);
+    expect(events[0]?.type).toBe("digest");
+    expect(events[0]?.body).toContain("480");
+  });
 });

@@ -7505,3 +7505,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/product-parse.ts` was at **91.8%**: the `parseFromHtml` h1 fallback, the URL-path model extraction, the scrape-throw catch, and the unresolvable-host block were uncovered.
 - [x] Extended `tests/product-parse.test.ts` (11 → 15 tests, `node:dns/promises` mocked + a `fetch` helper): the h1 is used when no title/og:title exists; the model comes from the URL path when the title has no model token; a throwing scrape returns null via the LLM path; an unresolvable host is blocked without any fetch.
 - [x] Coverage **91.8% → 93.9%** lines (remaining are the literal-IP/unparseable-URL defensive branches). Offline `tsc 0`, lint 0 errors / 158 warnings, `3031 passed` / `74 skipped`; DB suite **16 files / 77 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1008: Cover the user-scoped memory digest merge (90% → 94%)
+
+- [x] `server/notifications/evaluate.ts` was at **90.5%**: the user-scoped in-memory digest hold-and-flush merge was uncovered (the existing memory test only used anonymous devices).
+- [x] Extended `tests/server-digest.test.ts` (+1): a user-bound device holds during quiet hours, then flushes a single user-scoped digest (fetched via `pullPendingEvents(deviceId, userId)`).
+- [x] Coverage **90.5% → 93.7%** lines (remaining are paging / duplicate-key / delivery-count edges). Offline `tsc 0`, lint 0 errors / 158 warnings, `3032 passed` / `74 skipped`; DB suite **16 files / 77 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
