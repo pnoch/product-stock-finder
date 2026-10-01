@@ -7457,3 +7457,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/product-images.ts` was at **86.5%**: `readCached`/`writeCached` DB paths, `listProductsMissingImage` DB, `clearImagesForTests` DB, and `purgeOrphanedImages` DB had no DB test (the offline suite mocks `getDb` to undefined).
 - [x] New `tests/product-images-db.test.ts` (5 DB-gated tests, `generateImage` mocked): generate once + DB cache + serve cache next time; unknown product returns null without generating; `listProductsMissingImage` excludes cached ids; `clearImagesForTests` deletes shared rows; `purgeOrphanedImages` drops non-catalog rows.
 - [x] Coverage **86.5% → 94.4%** lines (remaining are DB-error catches + an unreachable memory-orphan branch). DB suite now **14 files / 67 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3002 passed` / `64 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1000: Cover the sync-db reminders + validation branches (87% → 99%)
+
+- [x] `server/sync-db.ts` was at **86.9%**: the `reminders` upsert branch (`backOrderReminders`), the non-canonical settings id, and the unknown-collection default were uncovered.
+- [x] Extended `tests/sync-db.test.ts` (12 → 15 tests): a reminder upserts through the reminders branch and rejects a stale follow-up; a settings item with a non-canonical id is a validation error; an unknown collection is a validation error.
+- [x] Coverage **86.9% → 98.7%** lines (only the db-null branch remains). DB suite now **14 files / 70 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3002 passed` / `67 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.

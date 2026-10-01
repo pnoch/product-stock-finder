@@ -209,6 +209,49 @@ describe.skipIf(!runDbTests)("sync-db", () => {
     const changed = await listChangedItems(userA, null);
     expect((changed[0]!.data as { name: string }).name).toBe("E2");
   });
+
+  it("upserts a reminder through the reminders branch and rejects a stale one", async () => {
+    const db = await getDb();
+    const now = Date.now();
+    const first = await upsertSyncItem(
+      userA,
+      item({ collection: "reminders", id: "r1", updatedAt: now }),
+    );
+    expect(first.accepted).toBe(true);
+
+    const rows = await db!
+      .select({ reminderId: backOrderReminders.reminderId })
+      .from(backOrderReminders)
+      .where(eq(backOrderReminders.userId, userA));
+    expect(rows.map((r) => r.reminderId)).toEqual(["r1"]);
+
+    const stale = await upsertSyncItem(
+      userA,
+      item({ collection: "reminders", id: "r1", updatedAt: now - 1000 }),
+    );
+    expect(stale.accepted).toBe(false);
+  });
+
+  it("rejects a settings item with a non-canonical id", async () => {
+    const result = await upsertSyncItem(
+      userA,
+      item({ collection: "settings", id: "not-settings", data: {} }),
+    );
+    expect(result).toEqual({
+      accepted: false,
+      updatedAt: 1000,
+      reason: "validation_error",
+    });
+  });
+
+  it("rejects an unknown collection", async () => {
+    const result = await upsertSyncItem(
+      userA,
+      item({ collection: "bogus" as never }),
+    );
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toBe("validation_error");
+  });
 });
 
 describe("shouldAcceptSyncWrite", () => {
