@@ -7325,3 +7325,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/storage/discovery.ts` was at **87.0%**: the standalone save functions, the no-model identity fallback, the distributor 200-cap, and the background-interval delete/empty-key paths were uncovered.
 - [x] Extended `tests/discovery-storage.test.ts` (7 → 14 tests): `saveDiscoveredProducts`/`saveDiscoveredDistributors` overwrite; products without a model append (no cross-dedup); distributors cap at 200 keeping the newest; corrupt interval data → `null`; saving `null` drops the marker and removes the emptied key.
 - [x] Coverage **87.0% → 97.8%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2877 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 978: Cover the pending health-event buffer (84% → 99%)
+
+- [x] `lib/storage/notifications.ts` was at **84%**: the pending-health-event buffer (`getPendingHealthEvents`/`savePendingHealthEvents`/`clearPendingHealthEvents`, used to mirror health alerts to the server) was uncovered.
+- [x] New `tests/storage-notifications.test.ts` (4 tests) with a Map-backed `createStorage`: starts empty; saves and reads back buffered events; overwrites the buffer; clears it.
+- [x] Coverage **84.0% → 98.8%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2881 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
