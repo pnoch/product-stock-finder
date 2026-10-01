@@ -7385,3 +7385,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/prices.ts` was at **91.6%**: `startWarmer` (singleton lifecycle), the `pLimit` queue + synchronous-throw branches, the scrape-throw catch, image-rotation sort, near-expiry refresh map, and the per-step error boundary were uncovered.
 - [x] Extended `tests/prices.test.ts` (12 → 18 tests): a thrown scrape returns a null snapshot; `warmProductImages` warms up to `count`; `pLimit` queues beyond the limit and releases the slot on a synchronous throw; `startWarmer` no-ops under test and starts/clears a singleton timer; `runWarmerTick` refreshes near-expiry pairs and logs+continues when one step throws.
 - [x] Coverage **91.6% → 99.2%** lines (only the unreachable outer `runWarmerTick` catch remains); tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2935 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 988: Cover all 25 scraper network wrappers (71-78% → 97-99%)
+
+- [x] Every `lib/scrapers/*.ts` `scrape*` wrapper was uncovered (the per-parser tests only call `parsePrice`). New `tests/scrapers/scrape-wrappers.test.ts` discovers the scraper modules via `readdirSync` and, for each, mocks the shared `fetchWithRateLimit`/`fetchWithParser` helpers.
+- [x] Pins the wrapper contract for all 25: exactly one rate-limited fetch with the parser's `buildSearchUrl` result (and its `rateLimitMs`, or the parser object), and a rejected fetch swallowed to `null`. No real network. Scrapers dir overall went from ~78% to **92.4%**.
+- [x] Tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2960 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
