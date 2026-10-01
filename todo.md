@@ -7222,3 +7222,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/push-token.ts` was at **47%**: only `registerPushToken`'s guards were tested — `unregisterPushToken` (the sign-out path) was entirely untested. If it regresses, the server keeps the device bound and keeps pushing the signed-out account's alerts.
 - [x] Extended `tests/push-token.test.ts` (5 → 11 tests): native unregister; web unsubscribe + server prune; and both failure paths resolve (server down on native/web; a failing local web unsubscribe still prunes the server token) plus `registerPushToken` never throwing on a token-request failure.
 - [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2722 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 961: Cover `ThemeProvider` (0% → 99%)
+
+- [x] `lib/theme-provider.tsx` was at **0%** though it backs every themed screen (DOM vars, NativeWind scheme, `Appearance`, system-follow/override). New `tests/theme-provider.test.tsx` (jsdom + `@testing-library/react`) covers it.
+- [x] Pinned: `useThemeContext` throws outside the provider; initializes from the system scheme; `setColorScheme` updates context + NativeWind + `Appearance` + `<html>` dataset/class/CSS vars; system changes apply until a manual override (then ignored); the `Appearance` listener is removed on unmount; `vars()` receives the active palette tokens.
+- [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2729 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
