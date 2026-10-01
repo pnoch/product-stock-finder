@@ -10,7 +10,19 @@ vi.mock("@/constants/oauth", () => ({
   getApiBaseUrl: vi.fn(() => "https://api.example.com"),
 }));
 
+const bg = vi.hoisted(() => ({
+  state: "active" as "active" | "background",
+  fetch: vi.fn(),
+}));
+vi.mock("../lib/background-safe-timers", () => ({
+  getBackgroundAppState: () => bg.state,
+}));
+vi.mock("../lib/background-fetch", () => ({
+  backgroundFetch: (...a: unknown[]) => bg.fetch(...(a as [])),
+}));
+
 import { createTRPCClient } from "../lib/trpc";
+import { getApiBaseUrl } from "@/constants/oauth";
 import { fetchServerPrice, uploadServerHistory } from "../lib/server-prices";
 
 const mockedCreateClient = vi.mocked(createTRPCClient);
@@ -33,7 +45,10 @@ function mockClient(query: Mock, mutation: Mock) {
 }
 
 describe("fetchServerPrice", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    bg.state = "active";
+  });
 
   it("returns the snapshot and history from the server", async () => {
     const query = vi.fn().mockResolvedValue({
@@ -78,6 +93,15 @@ describe("fetchServerPrice", () => {
     expect(await fetchServerPrice("server2u-my", "CRS804")).toBeNull();
   });
 
+  it("defaults a missing history array to empty", async () => {
+    const query = vi.fn().mockResolvedValue({ snapshot });
+    mockClient(query, vi.fn());
+    expect(await fetchServerPrice("server2u-my", "CRS804")).toEqual({
+      snapshot,
+      history: [],
+    });
+  });
+
   it("returns null when the query times out", async () => {
     const query = vi
       .fn()
@@ -91,6 +115,63 @@ describe("fetchServerPrice", () => {
     mockClient(query, vi.fn());
     const result = await fetchServerPrice("server2u-my", "CRS804");
     expect(result).toBeNull();
+  });
+});
+
+describe("fetchServerPrice (backgrounded)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    bg.state = "background";
+    vi.mocked(getApiBaseUrl).mockReturnValue("https://api.example.com");
+  });
+
+  function respond(body: unknown, status = 200) {
+    bg.fetch.mockResolvedValue({ html: JSON.stringify(body), status });
+  }
+
+  it("bypasses the tRPC client with a direct GET using the 4s deadline", async () => {
+    respond([
+      { result: { data: { json: { snapshot, history: [] } } } },
+    ]);
+    const result = await fetchServerPrice("server2u-my", "CRS804");
+    expect(result).toEqual({ snapshot, history: [] });
+    expect(mockedCreateClient).not.toHaveBeenCalled();
+    const [url, timeout] = bg.fetch.mock.calls[0]!;
+    expect(url).toContain("/api/trpc/prices.get?batch=1&input=");
+    expect(url).toContain(encodeURIComponent("CRS804"));
+    expect(timeout).toBe(4_000);
+  });
+
+  it("defaults a missing history array to empty", async () => {
+    respond([{ result: { data: { json: { snapshot } } } }]);
+    const result = await fetchServerPrice("server2u-my", "CRS804");
+    expect(result).toEqual({ snapshot, history: [] });
+  });
+
+  it("returns null on a non-200 status", async () => {
+    respond([{ result: { data: { json: { snapshot, history: [] } } } }], 500);
+    expect(await fetchServerPrice("server2u-my", "CRS804")).toBeNull();
+  });
+
+  it("returns null when the payload has no usable json", async () => {
+    respond([{ result: { data: { json: null } } }]);
+    expect(await fetchServerPrice("server2u-my", "CRS804")).toBeNull();
+  });
+
+  it("returns null when neither snapshot nor history is present", async () => {
+    respond([{ result: { data: { json: { snapshot: null, history: [] } } } }]);
+    expect(await fetchServerPrice("server2u-my", "CRS804")).toBeNull();
+  });
+
+  it("returns null when no API base is configured", async () => {
+    vi.mocked(getApiBaseUrl).mockReturnValue("");
+    expect(await fetchServerPrice("server2u-my", "CRS804")).toBeNull();
+    expect(bg.fetch).not.toHaveBeenCalled();
+  });
+
+  it("returns null when the native fetch throws", async () => {
+    bg.fetch.mockRejectedValue(new Error("offscreen"));
+    expect(await fetchServerPrice("server2u-my", "CRS804")).toBeNull();
   });
 });
 

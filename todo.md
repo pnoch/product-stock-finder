@@ -7234,3 +7234,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/trpc.ts` was at **49.5%**: `byoLlmHeaders`/`trpcHeaders` were tested but `createTRPCClient` (the whole transport) and `revokedDeviceLink` were not — including the background-vs-foreground fetch deadline, which is easy to break silently.
 - [x] New `tests/trpc-client.test.ts` captures the link options: asserts the API URL/superjson/auth headers; the foreground fetch (credentials `include` + an `AbortSignal` that fires at the **15s** deadline); and the backgrounded path (native `backgroundFetch` with the **4s** deadline, response mapped back to `Response`). Also tests `revokedDeviceLink` clears the session on `DEVICE_REVOKED_ERR_MSG` and ignores unrelated errors.
 - [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2735 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 963: Cover the backgrounded server-price fetch (68% → 99%)
+
+- [x] `lib/server-prices.ts` was at **68.5%**: only the foreground client path was tested. `fetchServerPriceDirect` — the backgrounded tRPC-bypass (JS timers freeze, so it hits `prices.get?batch=1` directly via native `backgroundFetch` with a 4s deadline) — was entirely uncovered.
+- [x] Extended `tests/server-prices.test.ts` (9 → 17 tests): direct GET URL/batch encoding + deadline; missing-history default; non-200 status; unusable json; neither snapshot nor history; no API base; native fetch throws; plus a foreground missing-history default.
+- [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2743 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
