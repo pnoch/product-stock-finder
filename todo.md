@@ -7331,3 +7331,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/storage/notifications.ts` was at **84%**: the pending-health-event buffer (`getPendingHealthEvents`/`savePendingHealthEvents`/`clearPendingHealthEvents`, used to mirror health alerts to the server) was uncovered.
 - [x] New `tests/storage-notifications.test.ts` (4 tests) with a Map-backed `createStorage`: starts empty; saves and reads back buffered events; overwrites the buffer; clears it.
 - [x] Coverage **84.0% → 98.8%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2881 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 979: Cover the digest-snapshot + FX-rates storage (86% → 98%)
+
+- [x] `lib/storage/digest-fx.ts` was at **85.9%**: `savePriceDigestSnapshot` and the corrupt-JSON catch in `getPriceDigestSnapshot` were uncovered.
+- [x] New `tests/storage-digest-fx.test.ts` (9 tests) with a Map-backed `createStorage`: snapshot round-trip; null when absent / non-array `products` / corrupt JSON; FX rates round-trip; null when absent; non-finite rates dropped + missing `fetchedAt` defaulted to 0; null when no rate is usable / corrupt JSON.
+- [x] Coverage **85.9% → 98.4%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2890 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
