@@ -7463,3 +7463,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/sync-db.ts` was at **86.9%**: the `reminders` upsert branch (`backOrderReminders`), the non-canonical settings id, and the unknown-collection default were uncovered.
 - [x] Extended `tests/sync-db.test.ts` (12 → 15 tests): a reminder upserts through the reminders branch and rejects a stale follow-up; a settings item with a non-canonical id is a validation error; an unknown collection is a validation error.
 - [x] Coverage **86.9% → 98.7%** lines (only the db-null branch remains). DB suite now **14 files / 70 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3002 passed` / `67 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1001: Cover the DB digest merges in evaluate.ts (84% → 91%)
+
+- [x] `server/notifications/evaluate.ts` was at **83.7%**: the DB digest hold-and-flush merges (`evaluateConfigDb` for anonymous devices and `evaluateUserDb` for user-bound devices) were uncovered — only the in-memory path had tests.
+- [x] New `tests/server-digest-db.test.ts` (2 DB-gated tests): an anonymous device holds during quiet hours then flushes one grouped digest; a user-bound device does the same (scoped by user id).
+- [x] Coverage **83.7% → 90.5%** lines. DB suite now **15 files / 72 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3002 passed` / `69 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
