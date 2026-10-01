@@ -7427,3 +7427,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] The offline coverage ceiling had been reached (remaining gaps are DB-gated). Provisioned the dedicated test DB via the shipped `scripts/setup-test-db.sh` (uses the running `promptgen-mysql` container; pruned migrations) and ran the gated suite: **all 8 pre-existing DB-gated files / 31 tests pass**.
 - [x] `server/price-history.ts` stayed at **58.5%** even with a DB — its DB branches (`getHistory`/`mergeHistory`/`purgeOldHistory`/`rowToPoint`) had no DB test. New `tests/price-history-db.test.ts` (4 DB-gated tests): record + same-day newest-wins + distinct days, empty merge no-op, and the 90-day purge.
 - [x] Coverage **58.5% → 99.2%** lines; DB suite now **9 files / 35 tests green**. Offline: `tsc 0`, lint 0 errors / 158 warnings, `3000 passed` / `32 skipped` (the DB file skips without a DB); desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 995: Cover the server/db.ts user + auth-token helpers (55% → 86%)
+
+- [x] With the test DB now available, `server/db.ts` was the biggest remaining server gap at **55.1%**: the user CRUD and auth-token helpers had DB tests only for a few branches.
+- [x] New `tests/db-helpers-db.test.ts` (12 DB-gated tests): `affectedRowsOf` shapes; `upsertUser` create/update + openId guard; lookups by openId/email/id; `createUserWithPassword`; `linkUserOpenIdByEmail` clears a pre-existing password (pre-hijack); password-hash updates by openId/id; `deleteUserById`; single-use + expired password-reset and email-verification consumes; `setUserEmailVerified`; and `purgeExpiredAuthTokens` (expired/used dropped, live kept).
+- [x] Coverage **55.1% → 86.3%** lines (remaining gaps are DB-error fallback branches). DB suite now **10 files / 47 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3000 passed` / `44 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
