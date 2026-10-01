@@ -7493,3 +7493,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/db.ts` was at **86.3%**: every `if (!db)` fallback was untested (offline tests mock the module; DB tests use a live pool, so neither hit them).
 - [x] New `tests/db-offline-null.test.ts` (5 offline tests, real module with `DATABASE_URL` removed + `closeDb()`): `getDb` null + `affectedRowsOf`; user helpers no-op/return null (incl. the openId guard); single-use + expiry-checked password-reset and email-verification memory tokens; `purgeExpiredAuthTokens` clears used/expired memory rows.
 - [x] Coverage **86.3% → 88.2%** lines (remaining are DB-op throw catches). Offline `tsc 0`, lint 0 errors / 158 warnings, `3020 passed` / `74 skipped`; DB suite **16 files / 77 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1006: Cover fx/parse routers + shared-watchlist expiry branches (95%)
+
+- [x] `server/routers.ts` (92.0% with DB): the public `fx.get`/`products.parse` handlers and the per-endpoint expired-share guards (get/members/inviteByEmail/join) plus `leave` were uncovered.
+- [x] `tests/routers-guards.test.ts` (+2): `fx.get` serves rates and `products.parse` returns a parsed product (both deps mocked). `tests/shared-watchlists.test.ts` (+5): get/members/inviteByEmail/join each reject an expired share; `leave` removes membership.
+- [x] Coverage **93.0% → 95.0%** (offline). Offline `tsc 0`, lint 0 errors / 158 warnings, `3027 passed` / `74 skipped`; DB suite **16 files / 77 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.

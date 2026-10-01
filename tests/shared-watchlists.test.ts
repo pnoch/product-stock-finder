@@ -428,4 +428,83 @@ describe("sharedWatchlists router", () => {
     const res = await appRouter.createCaller(createAuthedContext(2)).sharedWatchlists.listJoined();
     expect(res.shares).toHaveLength(0);
   });
+
+  it("get rejects an expired share", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [
+          {
+            ownerId: 1,
+            token: "tok",
+            title: "T",
+            expiresAt: new Date(Date.now() - 1000),
+          },
+        ],
+      }) as never,
+    );
+    await expect(
+      appRouter
+        .createCaller(createPublicContext())
+        .sharedWatchlists.get({ token: "tok" }),
+    ).rejects.toThrow(/expired/i);
+  });
+
+  it("members rejects an expired share", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [
+          { ownerId: 2, token: "tok", expiresAt: new Date(Date.now() - 1000) },
+        ],
+      }) as never,
+    );
+    await expect(
+      appRouter
+        .createCaller(createAuthedContext(1))
+        .sharedWatchlists.members({ token: "tok" }),
+    ).rejects.toThrow(/expired/i);
+  });
+
+  it("inviteByEmail rejects an expired share for the owner", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [
+          { ownerId: 1, token: "tok", expiresAt: new Date(Date.now() - 1000) },
+        ],
+      }) as never,
+    );
+    await expect(
+      appRouter
+        .createCaller(createAuthedContext(1))
+        .sharedWatchlists.inviteByEmail({ token: "tok", email: "a@x.com" }),
+    ).rejects.toThrow(/expired/i);
+  });
+
+  it("join rejects an expired share", async () => {
+    mockedGetDb.mockResolvedValue(
+      fakeDb({
+        sharedRows: [
+          {
+            ownerId: 2,
+            token: "tok",
+            expiresAt: new Date(Date.now() - 1000),
+            membersOnly: false,
+          },
+        ],
+      }) as never,
+    );
+    await expect(
+      appRouter
+        .createCaller(createAuthedContext(1))
+        .sharedWatchlists.join({ token: "tok" }),
+    ).rejects.toThrow(/expired/i);
+  });
+
+  it("leave removes the caller's membership", async () => {
+    mockedGetDb.mockResolvedValue(fakeDb({}) as never);
+    await expect(
+      appRouter
+        .createCaller(createAuthedContext(1))
+        .sharedWatchlists.leave({ token: "tok" }),
+    ).resolves.toEqual({ left: true });
+  });
 });

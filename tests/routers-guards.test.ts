@@ -7,6 +7,18 @@ vi.mock("../server/db", () => ({ getDb: vi.fn(async () => null) }));
 vi.mock("../server/devices", () => ({
   assertDeviceAccess: vi.fn(async () => {}),
 }));
+vi.mock("../server/product-parse", () => ({
+  parseProductText: vi.fn(async () => ({
+    name: "Widget",
+    modelNumber: "W1",
+    brand: "B",
+    category: "C",
+    description: "",
+  })),
+}));
+vi.mock("../server/fx", () => ({
+  getFxRates: vi.fn(async () => ({ USD: 1, EUR: 0.9 })),
+}));
 
 function ctx(overrides: Partial<TrpcContext> = {}): TrpcContext {
   return {
@@ -134,5 +146,19 @@ describe("device-scoped router guards", () => {
       code: "BAD_REQUEST",
       message: "Unsupported push endpoint",
     });
+  });
+});
+
+describe("public data routers", () => {
+  it("serves FX rates", async () => {
+    const res = await appRouter.createCaller(ctx()).fx.get();
+    expect(res).toEqual({ USD: 1, EUR: 0.9 });
+  });
+
+  it("parses a product from raw text", async () => {
+    const res = await appRouter
+      .createCaller(ctx())
+      .products.parse({ raw: "MikroTik CRS804" });
+    expect(res.product).toMatchObject({ name: "Widget", modelNumber: "W1" });
   });
 });
