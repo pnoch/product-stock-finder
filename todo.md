@@ -7252,3 +7252,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/storage/alerts.ts` was at **70.4%**: the CRUD read paths were exercised indirectly, but `snoozeAlert`, `updateAlert`, `rearmAlert`, and `deactivateAlert` (the compare-and-set + stale-event guards) had no direct test.
 - [x] New `tests/storage-alerts.test.ts` (16 tests) with a Map-backed `createStorage`: unshift/remove/toggle; snooze set/clear; `updateAlert` field application, `distributorId: null` clearing, omitted-field preservation, unknown id, and re-arm (clears trigger/snooze, re-stamps `createdAt`); `rearmAlert`; and `deactivateAlert` (transition once, already-triggered false, unknown id, stale event ignored, fresh event honored, unparseable `createdAt`).
 - [x] Coverage **70.4% → 97.4%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2791 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 966: Cover the IndexedDB storage adapter happy paths (64% → 95%)
+
+- [x] `lib/storage/idb-adapter.ts` was at **64.4%**: only failure paths were tested. New `tests/idb-adapter-happy.test.ts` (11 tests) adds an in-memory fake IndexedDB (readonly get, readwrite put/delete, `onupgradeneeded`, commit/abort/error).
+- [x] Pinned: setItem stores in IDB and clears the localStorage shadow; the store is created on upgrade; a legacy localStorage value is adopted into IDB on a miss (and kept + returned when the migration write fails); null when absent; removeItem + multiRemove clear both stores; and setItem/multiRemove **reject** on a transaction abort/error (write durability) rather than silently falling back.
+- [x] Coverage **64.4% → 95.1%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2802 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
