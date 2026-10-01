@@ -134,4 +134,56 @@ describe("computeDropCalendar", () => {
     expect(result.totalDrops).toBe(0);
     expect(result.byDay.size).toBe(0);
   });
+
+  it("keeps the largest same-day drop for one product/distributor", () => {
+    const l = {
+      productId: "p",
+      distributorId: "a",
+      price: 76,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "",
+      lastChecked: new Date(NOW).toISOString(),
+      priceHistory: [
+        { date: new Date(NOW - 5 * 3600_000).toISOString(), price: 100, currency: "USD", stockStatus: "in_stock" as const },
+        { date: new Date(NOW - 3 * 3600_000).toISOString(), price: 95, currency: "USD", stockStatus: "in_stock" as const },
+        { date: new Date(NOW - 1 * 3600_000).toISOString(), price: 76, currency: "USD", stockStatus: "in_stock" as const },
+      ],
+    } as DistributorListing;
+    const result = computeDropCalendar([product("p1", [l])], "USD", 30, NOW);
+    expect(result.totalDrops).toBe(1);
+    const day = [...result.byDay.values()][0]!;
+    expect(day.dropCount).toBe(1);
+    expect(day.drops).toHaveLength(1);
+    // The 100→95 (-5%) entry is replaced by the larger 95→76 (-20%) move.
+    expect(day.drops[0]!.from).toBeCloseTo(95, 5);
+    expect(day.drops[0]!.to).toBeCloseTo(76, 5);
+    expect(day.drops[0]!.percent).toBeCloseTo(-20, 1);
+    expect(day.biggestPct).toBeCloseTo(-20, 1);
+  });
+
+  it("keeps the first same-day drop when a later move is smaller", () => {
+    const l = {
+      productId: "p",
+      distributorId: "a",
+      price: 85,
+      currency: "USD",
+      stockStatus: "in_stock",
+      url: "",
+      lastChecked: new Date(NOW).toISOString(),
+      priceHistory: [
+        { date: new Date(NOW - 5 * 3600_000).toISOString(), price: 100, currency: "USD", stockStatus: "in_stock" as const },
+        { date: new Date(NOW - 3 * 3600_000).toISOString(), price: 90, currency: "USD", stockStatus: "in_stock" as const },
+        { date: new Date(NOW - 1 * 3600_000).toISOString(), price: 85, currency: "USD", stockStatus: "in_stock" as const },
+      ],
+    } as DistributorListing;
+    const result = computeDropCalendar([product("p1", [l])], "USD", 30, NOW);
+    const day = [...result.byDay.values()][0]!;
+    expect(day.drops).toHaveLength(1);
+    // 100→90 (-10%) beats the later 90→85 (-5.6%), so the first stays.
+    expect(day.drops[0]!.from).toBeCloseTo(100, 5);
+    expect(day.drops[0]!.to).toBeCloseTo(90, 5);
+    expect(day.drops[0]!.percent).toBeCloseTo(-10, 1);
+    expect(day.biggestPct).toBeCloseTo(-10, 1);
+  });
 });

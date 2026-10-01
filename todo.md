@@ -7307,3 +7307,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/web-push.ts` was at **82.7%**: the Node `Buffer` decode fallback, the service-worker register failure, the no-registration guard, the push-manager reject, and the unsubscribe failure were uncovered.
 - [x] Extended `tests/web-push.test.ts` (9 → 16 tests): base64url decode via `Buffer` when `window.atob` is absent; register failure returns null; subscribe registers a worker when none exists; subscribe returns false when no registration can be obtained; subscribe returns false when the push manager rejects; unsubscribe swallows registration errors.
 - [x] Coverage **82.7% → 98.7%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2866 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 975: Cover the same-day largest-drop dedupe (87% → 99%)
+
+- [x] `lib/drop-calendar.ts` was at **86.9%**: the branch that keeps only the largest same-day drop per product/distributor (a 5%-then-20% move the same day must report -20%) was uncovered.
+- [x] Extended `tests/drop-calendar.test.ts` (7 → 9 tests): a later larger same-day move replaces the entry (from/to/percent and `biggestPct` all update), and a later smaller move keeps the first entry (no replacement).
+- [x] Coverage **86.9% → 99.2%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2868 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
