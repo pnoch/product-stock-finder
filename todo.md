@@ -7183,3 +7183,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`hasExchangeRate`/`getExchangeRate`:** `hasOwnProperty` guards.
 - [x] **`getBestPrice`:** in_stock + back_order only, positive prices, converts then `roundMoney` at the comparison boundary, deterministic cheapest.
 - [x] No code change; tree unchanged from Phase 953 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 955: DB flake isolated (test-infra, not app)
+
+- [x] The rare DB-suite flake (2 occurrences in ~100 runs, never reproducible on re-run) is **not** an app bug: each of the 8 DB-gated files passes 5/5 when run individually, and 25+ consecutive full `test:db` runs pass. `vitest.config.ts` sets `fileParallelism: false` when `RUN_DB_TESTS` is set, so the files run serially.
+- [x] Likely cause: a transient MySQL connection/timing hiccup in the shared test DB under load (the pool is bounded at 10 with a 200-deep queue). No code change warranted.
+- [x] No code change; tree unchanged from Phase 954 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
