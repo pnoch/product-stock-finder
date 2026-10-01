@@ -83,6 +83,10 @@ describe("resolveOllamaLocalUrl", () => {
       "http://localhost:11434/api/chat",
     );
   });
+
+  it("returns null for an unparseable URL", () => {
+    expect(resolveOllamaLocalUrl("not a url")).toBeNull();
+  });
 });
 
 describe("invokeUserLlm", () => {
@@ -144,6 +148,41 @@ describe("invokeUserLlm", () => {
     await expect(
       invokeUserLlm({ provider: "ollama" }, { messages: [] }),
     ).rejects.toThrow("Ollama Cloud API key");
+  });
+
+  it("defaults the model per provider when none is configured", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(okJson({ message: { content: "x" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    await invokeUserLlm({ provider: "ollama", apiKey: "k" }, { messages: [] });
+    expect(
+      JSON.parse(String((fetchMock.mock.calls[0]![1] as RequestInit).body)).model,
+    ).toBe("gpt-oss:20b");
+
+    await invokeUserLlm({ provider: "ollama-local" }, { messages: [] });
+    expect(
+      JSON.parse(String((fetchMock.mock.calls[1]![1] as RequestInit).body)).model,
+    ).toBe("llama3.2");
+  });
+
+  it("rejects an Ollama response without string content", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(okJson({ message: { content: 42 } })),
+    );
+    await expect(
+      invokeUserLlm({ provider: "ollama", apiKey: "k" }, { messages: [] }),
+    ).rejects.toThrow("Invalid Ollama response");
+  });
+
+  it("falls back to the built-in LLM for an unknown provider", async () => {
+    vi.mocked(invokeLLM).mockResolvedValue({ choices: [] } as never);
+    await invokeUserLlm(
+      { provider: "anthropic" as never },
+      { messages: [] },
+    );
+    expect(invokeLLM).toHaveBeenCalledTimes(1);
   });
 
   it("posts to a loopback Ollama without auth and rejects a remote URL", async () => {
