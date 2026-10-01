@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   backgroundSafeDelay,
   backgroundSafeRace,
+  getBackgroundAppState,
   setBackgroundAppState,
   type BackgroundAppState,
 } from "../lib/background-safe-timers";
@@ -67,6 +68,19 @@ describe("background-safe timers (Android backgrounded)", () => {
     await expect(backgroundSafeDelay(0)).resolves.toBeUndefined();
   });
 
+  it("delay keeps polling while still backgrounded before the deadline", async () => {
+    const base = Date.now();
+    let call = 0;
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => {
+      call += 1;
+      // 1st call sets the deadline; the 2nd (first tick) is still before it,
+      // forcing another scheduleTick; the 3rd is past it.
+      return call <= 2 ? base : base + 60;
+    });
+    await expect(backgroundSafeDelay(50)).resolves.toBeUndefined();
+    nowSpy.mockRestore();
+  });
+
   it("race resolves the winner while backgrounded", async () => {
     const winner = backgroundSafeRace(
       new Promise<string>((r) => queueMicrotask(() => r("fast"))),
@@ -81,6 +95,34 @@ describe("background-safe timers (Android backgrounded)", () => {
     const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => base + 20);
     await expect(p).resolves.toBeUndefined();
     nowSpy.mockRestore();
+  });
+
+  it("race keeps polling while backgrounded before the deadline", async () => {
+    const base = Date.now();
+    let call = 0;
+    const nowSpy = vi.spyOn(Date, "now").mockImplementation(() => {
+      call += 1;
+      return call <= 2 ? base : base + 60;
+    });
+    const p = backgroundSafeRace(new Promise<string>(() => {}), 50);
+    await expect(p).resolves.toBeUndefined();
+    nowSpy.mockRestore();
+  });
+
+  it("race switches to a plain setTimeout when foregrounded mid-wait", async () => {
+    vi.useFakeTimers();
+    try {
+      const p = backgroundSafeRace(new Promise<string>(() => {}), 1000);
+      setBackgroundAppState("foreground");
+      const assertion = expect(p).resolves.toBeUndefined();
+      // Under fake timers Date.now advances with the clock, so the handoff
+      // setTimeout fires once the deadline is reached.
+      await vi.advanceTimersByTimeAsync(1200);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+      setBackgroundAppState("background");
+    }
   });
 
   it("race leaves no pending timers after settle", async () => {
@@ -122,6 +164,19 @@ describe("background-safe timers (foreground fast path)", () => {
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
   });
+
+  it("race uses a plain setTimeout and resolves the winner in the foreground", async () => {
+    const spy = vi.spyOn(globalThis, "setTimeout");
+    await expect(backgroundSafeRace(Promise.resolve("x"), 5)).resolves.toBe("x");
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("race resolves undefined on a foreground timeout", async () => {
+    await expect(
+      backgroundSafeRace(new Promise<string>(() => {}), 1),
+    ).resolves.toBeUndefined();
+  });
 });
 
 describe("state transitions", () => {
@@ -136,5 +191,12 @@ describe("state transitions", () => {
     await backgroundSafeDelay(1);
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
+  });
+
+  it("setBackgroundAppState updates getBackgroundAppState", () => {
+    setBackgroundAppState("background");
+    expect(getBackgroundAppState()).toBe("background");
+    setBackgroundAppState("foreground");
+    expect(getBackgroundAppState()).toBe("foreground");
   });
 });

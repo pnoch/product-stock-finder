@@ -7295,3 +7295,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/best-deal.ts` was at **78.7%**: the whole fallback block (lines 68-85) — used when no listing has regional shipping data — was uncovered.
 - [x] Extended `tests/best-deal.test.ts` (11 → 15 tests): a lone in-stock listing with no regional shipping returns price+tax and `shipping: null` (no fabricated free shipping); a non-finite `taxRate` is treated as tax-free in the fallback; multiple in-stock listings with no shipping data return `null` (unrankable); and a lone listing whose currency cannot be converted returns `null`.
 - [x] Coverage **78.7% → 98.9%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2854 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 973: Cover the background-safe timer poll/handoff paths (80% → 96%)
+
+- [x] `lib/background-safe-timers.ts` was at **80.3%**: the poll-again-while-backgrounded branch, the backgrounded race retry, the foreground race path, and `getBackgroundAppState` were uncovered — the primitives that keep Android background work alive.
+- [x] Extended `tests/background-safe-timers.test.ts` (8 → 14 tests): controllable-clock cases that force an extra `setImmediate` tick before the deadline for both delay and race; the race foreground path (`setTimeout` + winner/timeout); the race handoff to a plain timer when foregrounded mid-wait; and `set/getBackgroundAppState` round-trip. (The only remaining gap is the unreachable `scheduleTick(false, …)` fallback.)
+- [x] Coverage **80.3% → 96.1%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2860 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
