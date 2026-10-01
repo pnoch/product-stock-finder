@@ -7,6 +7,15 @@ import {
   readCapped,
 } from "../server/product-parse";
 
+const dnsLookup = vi.hoisted(() => vi.fn());
+vi.mock("node:dns/promises", () => ({ lookup: dnsLookup }));
+
+function htmlResponse(html: string) {
+  return { ok: true, status: 200, body: null, text: async () => html };
+}
+
+const LONG = "x".repeat(220);
+
 function llmReturning(content: string | null) {
   return vi.fn().mockResolvedValue({
     choices: content === null ? [] : [{ message: { content } }],
@@ -138,6 +147,61 @@ describe("URL scrape hardening", () => {
     } finally {
       vi.unstubAllGlobals();
       spy.mockRestore();
+    }
+  });
+
+  it("parses the h1 when the page has no title or og:title", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        htmlResponse(`<html><body>${LONG}<h1>MikroTik hEX S</h1></body></html>`),
+      ),
+    );
+    try {
+      const result = await parseProductText("http://93.184.216.34/");
+      expect(result?.name).toBe("MikroTik hEX S");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("derives the model from the URL path when the title has none", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        htmlResponse(`<html><head><title>A1 22</title></head><body>${LONG}</body></html>`),
+      ),
+    );
+    try {
+      const result = await parseProductText("http://93.184.216.34/CRS328/");
+      expect(result?.modelNumber).toBe("CRS328");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("returns null when the scrape throws and the LLM finds nothing", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("connection refused")));
+    try {
+      expect(
+        await parseProductText("http://93.184.216.34/", llmReturning(null)),
+      ).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("treats an unresolvable host as blocked", async () => {
+    dnsLookup.mockRejectedValueOnce(new Error("ENOTFOUND"));
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      expect(
+        await parseProductText("http://rebind.example/product", llmReturning(null)),
+      ).toBeNull();
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 });

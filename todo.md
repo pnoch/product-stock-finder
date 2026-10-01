@@ -7499,3 +7499,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/routers.ts` (92.0% with DB): the public `fx.get`/`products.parse` handlers and the per-endpoint expired-share guards (get/members/inviteByEmail/join) plus `leave` were uncovered.
 - [x] `tests/routers-guards.test.ts` (+2): `fx.get` serves rates and `products.parse` returns a parsed product (both deps mocked). `tests/shared-watchlists.test.ts` (+5): get/members/inviteByEmail/join each reject an expired share; `leave` removes membership.
 - [x] Coverage **93.0% → 95.0%** (offline). Offline `tsc 0`, lint 0 errors / 158 warnings, `3027 passed` / `74 skipped`; DB suite **16 files / 77 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1007: Cover the product-parse scrape branches (92% → 94%)
+
+- [x] `server/product-parse.ts` was at **91.8%**: the `parseFromHtml` h1 fallback, the URL-path model extraction, the scrape-throw catch, and the unresolvable-host block were uncovered.
+- [x] Extended `tests/product-parse.test.ts` (11 → 15 tests, `node:dns/promises` mocked + a `fetch` helper): the h1 is used when no title/og:title exists; the model comes from the URL path when the title has no model token; a throwing scrape returns null via the LLM path; an unresolvable host is blocked without any fetch.
+- [x] Coverage **91.8% → 93.9%** lines (remaining are the literal-IP/unparseable-URL defensive branches). Offline `tsc 0`, lint 0 errors / 158 warnings, `3031 passed` / `74 skipped`; DB suite **16 files / 77 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
