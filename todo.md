@@ -7421,3 +7421,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/routers.ts` was at **89%**: the `getOrigin` API-base-URL branch (port 3000 remap, non-3000, unparseable, non-http) was uncovered; the rest of the file's gaps are DB-gated.
 - [x] `lib/web-notifications.ts` (90.4%): permission-request throw, notification `onclick`, constructor throw, auth-lookup throw, and the focus-triggered poll. `lib/device-revoked.ts` (90.6%): the returned deregister. `lib/history-sync.ts` (90.3%): a throwing watchlist read. `lib/oauth-callback.ts` (90.2%): array query params.
 - [x] Extended the corresponding tests (share-origin, web-notifications, device-revoked, history-sync, oauth-callback); each module is now ~97-99% (only the import line remains). Tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `3000 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 994: Run the gated DB suite + cover the price-history DB branches
+
+- [x] The offline coverage ceiling had been reached (remaining gaps are DB-gated). Provisioned the dedicated test DB via the shipped `scripts/setup-test-db.sh` (uses the running `promptgen-mysql` container; pruned migrations) and ran the gated suite: **all 8 pre-existing DB-gated files / 31 tests pass**.
+- [x] `server/price-history.ts` stayed at **58.5%** even with a DB — its DB branches (`getHistory`/`mergeHistory`/`purgeOldHistory`/`rowToPoint`) had no DB test. New `tests/price-history-db.test.ts` (4 DB-gated tests): record + same-day newest-wins + distinct days, empty merge no-op, and the 90-day purge.
+- [x] Coverage **58.5% → 99.2%** lines; DB suite now **9 files / 35 tests green**. Offline: `tsc 0`, lint 0 errors / 158 warnings, `3000 passed` / `32 skipped` (the DB file skips without a DB); desktop `304`; `cargo test` 72, clippy 0, fmt clean.
