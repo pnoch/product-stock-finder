@@ -7202,3 +7202,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Turns the Phase 953/954 audit findings into durable regression guards: `convertPrice` returns null for a prototype-key currency (`toString`/`valueOf`/`constructor`/`__proto__`) and for a non-finite/negative amount; `hasExchangeRate`/`getExchangeRate` are own-property only; `getTaxRate` returns 0 (finite) for those keys instead of an inherited function.
 - [x] Also pins `setExchangeRates` filtering: an all-invalid batch clears the overlay (falls back to static) and a mixed batch keeps only the valid entries.
 - [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2696 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 958: Cover `lib/legal-links` (0% → full), the store-compliance surface
+
+- [x] A v8 coverage pass (now installable) named the app-owned gaps; `lib/legal-links.ts` was at **0%** though both stores require a reachable privacy-policy URL and the support mailbox is user-facing. New `tests/legal-links.test.ts` exercises every branch.
+- [x] Pinned: the `EXPO_PUBLIC_PRIVACY_URL` override is used verbatim (no slash normalization); `EXPO_PUBLIC_WEB_URL` wins over `EXPO_PUBLIC_API_BASE_URL` with one trailing slash stripped; the API-base fallback; and `""` when nothing is configured.
+- [x] Pinned: `getSupportEmail` uses `||` (so an empty override falls back to the default rather than a bare `mailto:`) and `getSupportMailtoUrl` wraps it.
+- [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2704 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
