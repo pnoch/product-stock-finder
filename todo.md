@@ -7163,3 +7163,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`buildSummary`:** partitions every product into exactly one bucket.
 - [x] **`buildDigestSnapshot`:** records `lastDigestAt`, `displayCurrency`, and per-product state.
 - [x] No code change; tree unchanged from Phase 950 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 952: Digest diff audit (clean)
+
+- [x] **`computeDigest`:** matches previous↔current by `productId`; skips price changes when the display currency changed (a currency switch would report every price as a change); requires both prices non-null and `from > 0` (a sub-cent baseline would yield `Infinity`); stock changes compare per-product status.
+- [x] No code change; tree unchanged from Phase 951 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
