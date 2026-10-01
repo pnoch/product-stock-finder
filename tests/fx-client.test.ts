@@ -137,4 +137,54 @@ describe("fx client", () => {
     expect(query).toHaveBeenCalledTimes(1);
     expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(88);
   });
+
+  it("applies rates without rewriting storage when the payload is unchanged", async () => {
+    // Same fetchedAt + identical rates must skip the save + history append.
+    store.set(
+      "fx_rates",
+      JSON.stringify({ rates: { EUR: 0.9 }, fetchedAt: 2000 }),
+    );
+    mockQuery({ rates: { EUR: 0.9 }, fetchedAt: 2000 });
+    await refreshFxRates();
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(90);
+    expect(store.has("fx_rate_history")).toBe(false);
+  });
+
+  it("re-saves when the fetchedAt matches but a rate changed", async () => {
+    store.set(
+      "fx_rates",
+      JSON.stringify({ rates: { EUR: 0.9 }, fetchedAt: 2000 }),
+    );
+    store.set(
+      "fx_rate_history",
+      JSON.stringify({ rates: { EUR: [0.9] }, timestamps: [2000] }),
+    );
+    mockQuery({ rates: { EUR: 0.8 }, fetchedAt: 2000 });
+    await refreshFxRates();
+    expect(JSON.parse(store.get("fx_rates")!).rates.EUR).toBe(0.8);
+    // Duplicate timestamp: the last history point is replaced, not appended.
+    expect(JSON.parse(store.get("fx_rate_history")!).rates.EUR).toEqual([0.8]);
+  });
+
+  it("re-saves when the currency set changes at the same fetchedAt", async () => {
+    store.set(
+      "fx_rates",
+      JSON.stringify({ rates: { EUR: 0.9 }, fetchedAt: 2000 }),
+    );
+    mockQuery({ rates: { EUR: 0.9, GBP: 0.8 }, fetchedAt: 2000 });
+    await refreshFxRates();
+    expect(JSON.parse(store.get("fx_rates")!).rates.GBP).toBe(0.8);
+    expect(store.has("fx_rate_history")).toBe(true);
+  });
+
+  it("re-saves when a stored currency is absent at the same fetchedAt", async () => {
+    // Equal key counts but a swapped key must still count as a change.
+    store.set(
+      "fx_rates",
+      JSON.stringify({ rates: { EUR: 0.9, GBP: 0.8 }, fetchedAt: 2000 }),
+    );
+    mockQuery({ rates: { EUR: 0.9, JPY: 150 }, fetchedAt: 2000 });
+    await refreshFxRates();
+    expect(JSON.parse(store.get("fx_rates")!).rates.JPY).toBe(150);
+  });
 });

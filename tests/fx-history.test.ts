@@ -97,6 +97,61 @@ describe("appendFxHistory", () => {
     expect(result.rates.USD).toEqual([1]);
     expect(result.timestamps).toEqual([1000]);
   });
+
+  it("replaces the last point for a duplicate timestamp", async () => {
+    const { appendFxHistory } = await import("@/lib/fx-history");
+    const history = { rates: { USD: [1], EUR: [0.92] }, timestamps: [1000] };
+    const result = appendFxHistory(history, { USD: 1, EUR: 0.8 }, 1000);
+    expect(result.rates.EUR).toEqual([0.8]);
+    expect(result.timestamps).toEqual([1000]);
+  });
+
+  it("repeats the previous value when a currency is absent at a duplicate timestamp", async () => {
+    const { appendFxHistory } = await import("@/lib/fx-history");
+    const history = {
+      rates: { USD: [1], EUR: [0.92], GBP: [0.8] },
+      timestamps: [1000],
+    };
+    const result = appendFxHistory(history, { USD: 1, EUR: 0.92 }, 1000);
+    expect(result.rates.GBP).toEqual([0.8]);
+    expect(result.timestamps).toEqual([1000]);
+  });
+
+  it("treats a non-finite incoming rate as absent", async () => {
+    const { appendFxHistory } = await import("@/lib/fx-history");
+    const history = { rates: { EUR: [0.92] }, timestamps: [1000] };
+    const result = appendFxHistory(history, { EUR: Number.NaN }, 2000);
+    expect(result.rates.EUR).toEqual([0.92, null]);
+  });
+
+  it("pads a first-seen currency back to the existing timestamps", async () => {
+    const { appendFxHistory } = await import("@/lib/fx-history");
+    const history = { rates: { EUR: [0.9, 0.91] }, timestamps: [1000, 2000] };
+    const result = appendFxHistory(history, { EUR: 0.92, JPY: 150 }, 3000);
+    expect(result.rates.EUR).toEqual([0.9, 0.91, 0.92]);
+    expect(result.rates.JPY).toEqual([null, null, 150]);
+  });
+
+  it("records a null point for a known currency missing from a new fetch", async () => {
+    const { appendFxHistory } = await import("@/lib/fx-history");
+    const history = { rates: { EUR: [0.9], GBP: [0.8] }, timestamps: [1000] };
+    const result = appendFxHistory(history, { EUR: 0.91 }, 2000);
+    expect(result.rates.EUR).toEqual([0.9, 0.91]);
+    expect(result.rates.GBP).toEqual([0.8, null]);
+  });
+});
+
+describe("getFxChange null handling", () => {
+  it("returns null when an endpoint is null or non-finite", async () => {
+    const { getFxChange } = await import("@/lib/fx-history");
+    const history = {
+      rates: { EUR: [0.9, null], JPY: [null, 150] },
+      timestamps: [1000, 2000],
+    };
+    const change = getFxChange(history);
+    expect(change.EUR).toBeNull();
+    expect(change.JPY).toBeNull();
+  });
 });
 
 describe("getFxChange", () => {

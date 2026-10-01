@@ -7258,3 +7258,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/storage/idb-adapter.ts` was at **64.4%**: only failure paths were tested. New `tests/idb-adapter-happy.test.ts` (11 tests) adds an in-memory fake IndexedDB (readonly get, readwrite put/delete, `onupgradeneeded`, commit/abort/error).
 - [x] Pinned: setItem stores in IDB and clears the localStorage shadow; the store is created on upgrade; a legacy localStorage value is adopted into IDB on a miss (and kept + returned when the migration write fails); null when absent; removeItem + multiRemove clear both stores; and setItem/multiRemove **reject** on a transaction abort/error (write durability) rather than silently falling back.
 - [x] Coverage **64.4% → 95.1%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2802 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 967: Cover the FX persistence + history accumulation (75% → 98% / 91%)
+
+- [x] `lib/fx.ts` (75.4%) never exercised `ratesEqual`: the dedupe guard short-circuits unless `stored.fetchedAt === result.fetchedAt`, so identical-payload refreshes were untested. `lib/fx-history.ts` (75.5%) left the currency-set-change / padding / null branches of `appendFxHistory` uncovered — FX data-correctness paths.
+- [x] `tests/fx-client.test.ts` (9 → 13 tests): unchanged payload applies rates and skips the storage rewrite; same `fetchedAt` with a changed value, a changed currency set, and a swapped key all re-save (incl. the duplicate-timestamp history replace).
+- [x] `tests/fx-history.test.ts` (8 → 14 tests): duplicate timestamp replaces the last point / repeats prev; non-finite incoming treated as absent; first-seen currency padded back to existing timestamps; a known currency missing from a new fetch records `null`; `getFxChange` null endpoints.
+- [x] Coverage **fx.ts 75.4% → 98.2%**, **fx-history.ts 75.5% → 91.0%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2812 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
