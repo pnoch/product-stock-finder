@@ -7174,3 +7174,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`getTaxRate`:** real VAT/GST rates (AU 10%, CA 13%, CZ 21%, EU 20%, DE 19%, GR 24%, MY 0%, NZ 15%, PL 23%, ZA 15%, UAE 0%, UK 20%, US 0%); `hasOwnProperty` guard prevents a prototype key (`toString`) returning a function → NaN tax.
 - [x] **Shipping costs:** all 30 distributors define a cost for each of the three regions (Asia-Pacific/Europe/North America); no missing entries.
 - [x] No code change; tree unchanged from Phase 952 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 954: Currency-layer audit (clean)
+
+- [x] **`setExchangeRates`:** filters to finite positive rates; an all-invalid batch clears the overlay (falls back to static).
+- [x] **`effectiveRates`:** live overlay wins over static.
+- [x] **`convertPrice`:** rejects non-finite/negative amounts, unknown currencies, and non-finite/non-positive rates; a prototype key (`toString`) returns null (the `isFinite` check catches the inherited function).
+- [x] **`hasExchangeRate`/`getExchangeRate`:** `hasOwnProperty` guards.
+- [x] **`getBestPrice`:** in_stock + back_order only, positive prices, converts then `roundMoney` at the comparison boundary, deterministic cheapest.
+- [x] No code change; tree unchanged from Phase 953 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
