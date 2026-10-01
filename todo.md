@@ -7451,3 +7451,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/price-cache.ts` was at **85.1%**: `getCachedPrice`/`setCachedPrice` upsert, `listNearExpiry`, `getAllFetchedAt` (newest-first), and `purgeStalePriceCache` had no DB test.
 - [x] New `tests/price-cache-db.test.ts` (5 DB-gated tests): store/read + upsert overwrite; implausible price rejects without writing; near-expiry listing + limit; fetched-at rows newest-first; the 30-day purge keeps fresh rows.
 - [x] Coverage **85.1% → 98.2%** lines. DB suite now **13 files / 62 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3002 passed` / `59 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 999: Cover the product-images DB cache (86% → 94%)
+
+- [x] `server/product-images.ts` was at **86.5%**: `readCached`/`writeCached` DB paths, `listProductsMissingImage` DB, `clearImagesForTests` DB, and `purgeOrphanedImages` DB had no DB test (the offline suite mocks `getDb` to undefined).
+- [x] New `tests/product-images-db.test.ts` (5 DB-gated tests, `generateImage` mocked): generate once + DB cache + serve cache next time; unknown product returns null without generating; `listProductsMissingImage` excludes cached ids; `clearImagesForTests` deletes shared rows; `purgeOrphanedImages` drops non-catalog rows.
+- [x] Coverage **86.5% → 94.4%** lines (remaining are DB-error catches + an unreachable memory-orphan branch). DB suite now **14 files / 67 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3002 passed` / `64 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
