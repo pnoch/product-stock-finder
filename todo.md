@@ -7397,3 +7397,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/scrapers/resilient.ts` was at **83.1%**: `fetchAndParse` (the second-hop resolution + parse) and the backgrounded branch of `fetchPlain` (native `backgroundFetch` with a capped timeout) were uncovered.
 - [x] Extended `tests/resilient-fetch.test.ts` (35 → 41 tests): not-ok search returns `null`; no-second-hop parses the search page; a relative `resolveProductUrl` is normalized against the search URL and parsed; an un-normalizable URL is kept raw; an empty resolver falls back; a failed second hop returns `null` with the product URL; and while backgrounded the native fetch (≤10s, `Accept` header) is used instead of `window.fetch`.
 - [x] Coverage **83.1% → 92.5%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2967 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 990: Cover the rate-limited fetch helpers (89% → 99%)
+
+- [x] `lib/scrapers/utils.ts` was at **88.9%**: `fetchWithRateLimit` (foreground + backgrounded paths, the non-ok throw), `fetchWithParser` (plain vs browser, and the Playwright-unavailable fallback), and the comma-decimal/dot-group `parsePriceFromText` branches were uncovered.
+- [x] Extended `tests/scrapers/utils.test.ts` (28 → 37 tests): foreground 200 body, non-ok throw, backgrounded fetch skipping the delay (and its non-ok throw); `fetchWithParser` plain / browser / browser-fallback; `€ 1.234,56` / `12,5` and `1.299` / `R 12 345.67` price parsing.
+- [x] Coverage **88.9% → 98.9%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2976 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).

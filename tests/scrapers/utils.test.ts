@@ -1,12 +1,45 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import * as cheerio from "cheerio";
 import {
+  fetchWithParser,
+  fetchWithRateLimit,
   findPriceElement,
   matchesModel,
   parsePriceFromText,
   productRowContext,
   modelMismatch,
 } from "../../lib/scrapers/utils";
+import type { DistributorParser } from "../../lib/scrapers/types";
+
+const bg = vi.hoisted(() => ({ state: "active" as string }));
+vi.mock("../../lib/background-safe-timers", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../lib/background-safe-timers")>();
+  return { ...actual, getBackgroundAppState: () => bg.state };
+});
+
+const browserMock = vi.hoisted(() => ({ fetchWithBrowser: vi.fn() }));
+vi.mock("../../lib/scrapers/browser", () => ({
+  fetchWithBrowser: (...a: unknown[]) =>
+    browserMock.fetchWithBrowser(...(a as [string, unknown])),
+}));
+
+function stubParser(overrides: Partial<DistributorParser> = {}): DistributorParser {
+  return {
+    id: "d1",
+    baseUrl: "https://example.com",
+    buildSearchUrl: (model) => `https://example.com/search?q=${model}`,
+    parsePrice: () => null,
+    rateLimitMs: 0,
+    ...overrides,
+  };
+}
+
+afterEach(() => {
+  bg.state = "active";
+  vi.unstubAllGlobals();
+  browserMock.fetchWithBrowser.mockReset();
+});
 
 describe("matchesModel", () => {
   it("matches the spec-table positives", () => {
@@ -253,5 +286,99 @@ describe("findPriceElement model-digit guard", () => {
       "CRS804",
     );
     expect(el).not.toBeNull();
+  });
+});
+
+describe("fetchWithRateLimit", () => {
+  it("returns the body on a foreground 200", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("<html>ok</html>", { status: 200 })),
+    );
+    expect(await fetchWithRateLimit("https://x/", 0)).toBe("<html>ok</html>");
+  });
+
+  it("throws with the status on a non-ok response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response("no", {
+            status: 503,
+            statusText: "Service Unavailable",
+          }),
+      ),
+    );
+    await expect(fetchWithRateLimit("https://x/", 0)).rejects.toThrow(
+      "HTTP 503",
+    );
+  });
+
+  it("skips the politeness delay and fetches directly when backgrounded", async () => {
+    bg.state = "background";
+    const fetchMock = vi.fn(async () => new Response("bg", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await fetchWithRateLimit("https://x/", 5000)).toBe("bg");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("fetchWithParser", () => {
+  it("uses the plain rate-limited fetch when no browser is configured", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("plain", { status: 200 })),
+    );
+    expect(await fetchWithParser(stubParser(), "https://x/")).toBe("plain");
+  });
+
+  it("uses the browser when the parser opts in", async () => {
+    browserMock.fetchWithBrowser.mockResolvedValue("<html>b</html>");
+    expect(
+      await fetchWithParser(stubParser({ useBrowser: true }), "https://x/"),
+    ).toBe("<html>b</html>");
+    expect(browserMock.fetchWithBrowser).toHaveBeenCalledWith(
+      "https://x/",
+      undefined,
+    );
+  });
+
+  it("falls back to plain HTTP when the browser module is unavailable", async () => {
+    browserMock.fetchWithBrowser.mockRejectedValue(new Error("no playwright"));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("fallback", { status: 200 })),
+    );
+    expect(
+      await fetchWithParser(stubParser({ useBrowser: true }), "https://x/"),
+    ).toBe("fallback");
+  });
+});
+
+describe("fetchWithRateLimit background failure", () => {
+  it("throws with the status when backgrounded and not ok", async () => {
+    bg.state = "background";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response("no", { status: 502, statusText: "Bad Gateway" }),
+      ),
+    );
+    await expect(fetchWithRateLimit("https://x/", 5000)).rejects.toThrow(
+      "HTTP 502",
+    );
+  });
+});
+
+describe("parsePriceFromText separator styles", () => {
+  it("reads a comma-decimal with dot thousands grouping", () => {
+    expect(parsePriceFromText("€ 1.234,56")).toBe(1234.56);
+    expect(parsePriceFromText("12,5")).toBe(12.5);
+  });
+
+  it("reads dot-only groups of three as thousands separators", () => {
+    expect(parsePriceFromText("1.299")).toBe(1299);
+    expect(parsePriceFromText("R 12 345.67")).toBe(12345.67);
   });
 });
