@@ -7246,3 +7246,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/notifications.ts` (the **client** scheduler — the existing `notifications.test.ts` covers the *server* one) was at **58.5%**: most scheduling/cancel/push-tracking functions were untested, including the Android channel-on-trigger workaround and the quiet-hours/permission gates.
 - [x] New `tests/notifications-scheduling.test.ts` (32 tests): channel helpers + Android channel setup; stock/watch/price/back-order scheduling (incl. DATE trigger + Android channel); `sendTestNotification` native+web; cancel helpers; digest quiet-hours/permission/record path; `scheduleServerEventNotification`; and `setupPushEventTracking` (web no-op, event-id recording from received/tapped/last response, non-string/empty ids ignored).
 - [x] Coverage **58.5% → 92.7%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2775 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 965: Cover the price-alert storage mutations (70% → 97%)
+
+- [x] `lib/storage/alerts.ts` was at **70.4%**: the CRUD read paths were exercised indirectly, but `snoozeAlert`, `updateAlert`, `rearmAlert`, and `deactivateAlert` (the compare-and-set + stale-event guards) had no direct test.
+- [x] New `tests/storage-alerts.test.ts` (16 tests) with a Map-backed `createStorage`: unshift/remove/toggle; snooze set/clear; `updateAlert` field application, `distributorId: null` clearing, omitted-field preservation, unknown id, and re-arm (clears trigger/snooze, re-stamps `createdAt`); `rearmAlert`; and `deactivateAlert` (transition once, already-triggered false, unknown id, stale event ignored, fresh event honored, unparseable `createdAt`).
+- [x] Coverage **70.4% → 97.4%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2791 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
