@@ -17,7 +17,20 @@ vi.mock("../lib/device-id", () => ({
   getDeviceId: vi.fn(async () => "dev-1"),
 }));
 
+const binding = vi.hoisted(() => ({
+  registerPushToken: vi.fn(async () => {}),
+  syncServerNotifications: vi.fn(async () => {}),
+}));
+vi.mock("../lib/push-token", () => ({
+  registerPushToken: (...a: unknown[]) => binding.registerPushToken(...(a as [])),
+}));
+vi.mock("../lib/server-notifications", () => ({
+  syncServerNotifications: (...a: unknown[]) =>
+    binding.syncServerNotifications(...(a as [])),
+}));
+
 import {
+  bindCurrentDevice,
   cleanupStaleDevices,
   fetchCurrentDeviceBinding,
   fetchDevices,
@@ -67,5 +80,34 @@ describe("client device API", () => {
     expect(await cleanupStaleDevices()).toBe(3);
     mockClient.devices.cleanupStale.mutate.mockRejectedValueOnce(new Error("x"));
     expect(await cleanupStaleDevices()).toBe(0);
+  });
+});
+
+describe("bindCurrentDevice", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    binding.registerPushToken.mockResolvedValue(undefined);
+    binding.syncServerNotifications.mockResolvedValue(undefined);
+  });
+
+  it("registers the push token then syncs server notifications", async () => {
+    await bindCurrentDevice();
+    expect(binding.registerPushToken).toHaveBeenCalledTimes(1);
+    expect(binding.syncServerNotifications).toHaveBeenCalledTimes(1);
+    // Ordering matters: the token must be registered before the pull.
+    expect(
+      binding.registerPushToken.mock.invocationCallOrder[0]!,
+    ).toBeLessThan(binding.syncServerNotifications.mock.invocationCallOrder[0]!);
+  });
+
+  it("never throws when push registration fails", async () => {
+    binding.registerPushToken.mockRejectedValueOnce(new Error("no permission"));
+    await expect(bindCurrentDevice()).resolves.toBeUndefined();
+    expect(binding.syncServerNotifications).not.toHaveBeenCalled();
+  });
+
+  it("never throws when the notification sync fails", async () => {
+    binding.syncServerNotifications.mockRejectedValueOnce(new Error("offline"));
+    await expect(bindCurrentDevice()).resolves.toBeUndefined();
   });
 });

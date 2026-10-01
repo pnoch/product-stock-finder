@@ -7313,3 +7313,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/drop-calendar.ts` was at **86.9%**: the branch that keeps only the largest same-day drop per product/distributor (a 5%-then-20% move the same day must report -20%) was uncovered.
 - [x] Extended `tests/drop-calendar.test.ts` (7 → 9 tests): a later larger same-day move replaces the entry (from/to/percent and `biggestPct` all update), and a later smaller move keeps the first entry (no replacement).
 - [x] Coverage **86.9% → 99.2%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2868 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 976: Cover `bindCurrentDevice` post-login binding (87% → 99%)
+
+- [x] `lib/devices.ts` was at **87.2%**: `bindCurrentDevice` (register the push token, then sync server notifications) was entirely untested.
+- [x] Extended `tests/client-devices.test.ts` (4 → 6 tests): registers the push token **before** the notification sync (call-order asserted); and never throws when push registration or the notification sync fails (and skips the sync when registration fails).
+- [x] Coverage **87.2% → 98.7%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2871 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
