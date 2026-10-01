@@ -7433,3 +7433,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] With the test DB now available, `server/db.ts` was the biggest remaining server gap at **55.1%**: the user CRUD and auth-token helpers had DB tests only for a few branches.
 - [x] New `tests/db-helpers-db.test.ts` (12 DB-gated tests): `affectedRowsOf` shapes; `upsertUser` create/update + openId guard; lookups by openId/email/id; `createUserWithPassword`; `linkUserOpenIdByEmail` clears a pre-existing password (pre-hijack); password-hash updates by openId/id; `deleteUserById`; single-use + expired password-reset and email-verification consumes; `setUserEmailVerified`; and `purgeExpiredAuthTokens` (expired/used dropped, live kept).
 - [x] Coverage **55.1% → 86.3%** lines (remaining gaps are DB-error fallback branches). DB suite now **10 files / 47 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3000 passed` / `44 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 996: Cover the notification health-event DB path (76% → 98%)
+
+- [x] `server/notifications/index.ts` was at **75.7%**: the entire `processHealthEvents` DB branch (dedupe query, insert, push-to-user) and the DB `purgeOldNotificationEvents` batch were uncovered — only the in-memory paths had tests.
+- [x] New `tests/notifications-health-db.test.ts` (3 DB-gated tests): a bound device stores health events and dedupes a repeated alert while keeping a distinct recovery, then pull marks them delivered; a device with no bound user drops health events; and the 30-day event purge keeps fresh rows (deliveries cascade).
+- [x] Coverage **75.7% → 97.6%** lines. DB suite now **11 files / 50 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3000 passed` / `47 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
