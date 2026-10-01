@@ -7196,3 +7196,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`updateProductDetails`:** applies only non-empty name/model (trimmed); brand/category/description applied when defined.
 - [x] **`setProductTags`/`addTagsToProducts`:** stamp `tagsUpdatedAt` (the tag-LWW merge key) and notify the watchlist; `setTagDefinitions` notifies `settings` (or products would reference tag ids that never sync).
 - [x] No code change; tree unchanged from Phase 955 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 957: Pin the currency/tax prototype-key guards (tests)
+
+- [x] Turns the Phase 953/954 audit findings into durable regression guards: `convertPrice` returns null for a prototype-key currency (`toString`/`valueOf`/`constructor`/`__proto__`) and for a non-finite/negative amount; `hasExchangeRate`/`getExchangeRate` are own-property only; `getTaxRate` returns 0 (finite) for those keys instead of an inherited function.
+- [x] Also pins `setExchangeRates` filtering: an all-invalid batch clears the overlay (falls back to static) and a mixed batch keeps only the valid entries.
+- [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2696 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).

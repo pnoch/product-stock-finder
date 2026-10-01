@@ -16,4 +16,14 @@ describe("getTaxRate", () => {
   it("returns 0 for unknown countries", () => {
     expect(getTaxRate("Atlantis")).toBe(0);
   });
+
+  it("returns 0 for prototype keys instead of an inherited function", () => {
+    // `COUNTRY_TAX_RATES["toString"]` is an inherited function; without the
+    // own-property guard it would return that function and make the tax NaN.
+    for (const key of ["toString", "valueOf", "constructor", "__proto__"]) {
+      const rate = getTaxRate(key);
+      expect(rate).toBe(0);
+      expect(Number.isFinite(rate)).toBe(true);
+    }
+  });
 });

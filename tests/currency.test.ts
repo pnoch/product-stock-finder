@@ -2,6 +2,8 @@ import { describe, expect, it, afterEach } from "vitest";
 import {
   convertPrice,
   getBestPrice,
+  getExchangeRate,
+  hasExchangeRate,
   setExchangeRates,
 } from "../lib/currency";
 import { formatPrice, roundMoney } from "../shared/src/currency";
@@ -40,6 +42,52 @@ describe("convertPrice", () => {
   it("returns null for unknown currencies", () => {
     expect(convertPrice(100, "XYZ", "USD")).toBeNull();
     expect(convertPrice(100, "USD", "XYZ")).toBeNull();
+  });
+
+  it("returns null for a prototype-key currency", () => {
+    // `in` accepts inherited keys, so these resolve to an inherited function
+    // rather than a rate; the isFinite guard must reject them instead of
+    // producing NaN.
+    for (const key of ["toString", "valueOf", "constructor", "__proto__"]) {
+      expect(convertPrice(100, key, "USD")).toBeNull();
+      expect(convertPrice(100, "USD", key)).toBeNull();
+    }
+  });
+
+  it("returns null for a non-finite or negative amount", () => {
+    expect(convertPrice(Number.NaN, "USD", "USD")).toBeNull();
+    expect(convertPrice(Number.POSITIVE_INFINITY, "USD", "USD")).toBeNull();
+    expect(convertPrice(-1, "USD", "USD")).toBeNull();
+  });
+});
+
+describe("exchange-rate lookups", () => {
+  afterEach(() => setExchangeRates(null));
+
+  it("reports a known static rate", () => {
+    expect(hasExchangeRate("USD")).toBe(true);
+    expect(getExchangeRate("USD")).toBe(1);
+  });
+
+  it("ignores prototype keys (own-property only)", () => {
+    for (const key of ["toString", "valueOf", "constructor", "__proto__"]) {
+      expect(hasExchangeRate(key)).toBe(false);
+      expect(getExchangeRate(key)).toBeNull();
+    }
+  });
+
+  it("drops non-finite and non-positive live rates", () => {
+    setExchangeRates({ EUR: -1, GBP: Number.NaN, USD: 0 });
+    // All entries invalid -> overlay cleared -> static EUR rate.
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(92);
+  });
+
+  it("keeps only the valid entries of a mixed live batch", () => {
+    setExchangeRates({ EUR: 0.9, XYZ: -5, ABC: Number.NaN });
+    expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(90);
+    // A missing-but-invalid code was not stored, so it stays unknown.
+    expect(convertPrice(100, "USD", "XYZ")).toBeNull();
+    expect(convertPrice(100, "USD", "ABC")).toBeNull();
   });
 });
 
