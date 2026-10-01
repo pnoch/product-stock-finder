@@ -7355,3 +7355,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/routers/llm.ts` was at **80%**: the server-funded provider budget guard (`ollama-local` must consume the process-wide budget before probing) was uncovered.
 - [x] Extended `tests/llm-router-test.test.ts` (5 → 7 tests): a server-funded provider whose budget is exhausted returns `{ok:false, reason:"error"}` without fetching, and `tryConsumeBudget("llm.test")` is called; a user-funded provider never touches the budget.
 - [x] Coverage **80.0% → 97.1%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2911 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 983: Cover the discovery-router output shaping (70% → 97%)
+
+- [x] `server/routers/discovery.ts` was at **69.9%**: the success-path shaping — retailer mapping, `cleanUrl` (non-http scheme rejection), non-array retailers, and the non-string-content guard — was uncovered (existing tests only exercised errors/limits with `retailers: []`).
+- [x] New `tests/discovery-router-output.test.ts` (5 tests): maps retailers keeping only valid http(s) websites, turns a non-object retailer into an empty entry, treats a non-array `retailers` as `[]`, and rejects non-JSON / incomplete-product / non-string-content responses.
+- [x] Coverage **69.9% → 96.8%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2916 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
