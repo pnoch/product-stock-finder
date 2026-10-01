@@ -7240,3 +7240,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/server-prices.ts` was at **68.5%**: only the foreground client path was tested. `fetchServerPriceDirect` — the backgrounded tRPC-bypass (JS timers freeze, so it hits `prices.get?batch=1` directly via native `backgroundFetch` with a 4s deadline) — was entirely uncovered.
 - [x] Extended `tests/server-prices.test.ts` (9 → 17 tests): direct GET URL/batch encoding + deadline; missing-history default; non-200 status; unusable json; neither snapshot nor history; no API base; native fetch throws; plus a foreground missing-history default.
 - [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2743 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 964: Cover the client notifications scheduler (58% → 93%)
+
+- [x] `lib/notifications.ts` (the **client** scheduler — the existing `notifications.test.ts` covers the *server* one) was at **58.5%**: most scheduling/cancel/push-tracking functions were untested, including the Android channel-on-trigger workaround and the quiet-hours/permission gates.
+- [x] New `tests/notifications-scheduling.test.ts` (32 tests): channel helpers + Android channel setup; stock/watch/price/back-order scheduling (incl. DATE trigger + Android channel); `sendTestNotification` native+web; cancel helpers; digest quiet-hours/permission/record path; `scheduleServerEventNotification`; and `setupPushEventTracking` (web no-op, event-id recording from received/tapped/last response, non-string/empty ids ignored).
+- [x] Coverage **58.5% → 92.7%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2775 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
