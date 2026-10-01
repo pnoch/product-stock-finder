@@ -7216,3 +7216,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/backup-files.ts` was at **38.5%**: only the web `exportBackupFile` happy/error path was tested — the entire restore (`pickBackupFile`) and every native branch were untested, in a data-loss-critical flow.
 - [x] Extended `tests/backup-files.test.ts` (2 → 14 tests) with a mutable `Platform.OS` and a configurable `FileReader`: native export (write+share, sharing unavailable, write throws), web pick (read, no file, reader error, non-string result, user cancel), and native pick (read, canceled, empty assets, picker throws).
 - [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2716 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 960: Cover `unregisterPushToken` sign-out cleanup (47% → 98%)
+
+- [x] `lib/push-token.ts` was at **47%**: only `registerPushToken`'s guards were tested — `unregisterPushToken` (the sign-out path) was entirely untested. If it regresses, the server keeps the device bound and keeps pushing the signed-out account's alerts.
+- [x] Extended `tests/push-token.test.ts` (5 → 11 tests): native unregister; web unsubscribe + server prune; and both failure paths resolve (server down on native/web; a failing local web unsubscribe still prunes the server token) plus `registerPushToken` never throwing on a token-request failure.
+- [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2722 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
