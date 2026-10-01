@@ -7168,3 +7168,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] **`computeDigest`:** matches previous↔current by `productId`; skips price changes when the display currency changed (a currency switch would report every price as a change); requires both prices non-null and `from > 0` (a sub-cent baseline would yield `Infinity`); stock changes compare per-product status.
 - [x] No code change; tree unchanged from Phase 951 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 953: Tax/shipping data audit (clean)
+
+- [x] **`getTaxRate`:** real VAT/GST rates (AU 10%, CA 13%, CZ 21%, EU 20%, DE 19%, GR 24%, MY 0%, NZ 15%, PL 23%, ZA 15%, UAE 0%, UK 20%, US 0%); `hasOwnProperty` guard prevents a prototype key (`toString`) returning a function → NaN tax.
+- [x] **Shipping costs:** all 30 distributors define a cost for each of the three regions (Asia-Pacific/Europe/North America); no missing entries.
+- [x] No code change; tree unchanged from Phase 952 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
