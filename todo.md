@@ -7469,3 +7469,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/notifications/evaluate.ts` was at **83.7%**: the DB digest hold-and-flush merges (`evaluateConfigDb` for anonymous devices and `evaluateUserDb` for user-bound devices) were uncovered — only the in-memory path had tests.
 - [x] New `tests/server-digest-db.test.ts` (2 DB-gated tests): an anonymous device holds during quiet hours then flushes one grouped digest; a user-bound device does the same (scoped by user id).
 - [x] Coverage **83.7% → 90.5%** lines. DB suite now **15 files / 72 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3002 passed` / `69 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1002: Cover auth.me + the router guards (92% → 95%)
+
+- [x] `server/routers.ts` was at **92.0%**: `auth.me`'s authenticated mapping and the device-scoped guards (missing device id; malformed/unsupported web push token) were uncovered.
+- [x] New `tests/routers-guards.test.ts` (8 offline tests): `auth.me` returns null signed-out, maps the user without leaking `passwordHash`/`role`, and nulls `lastSignedIn`; `notifications.uploadConfig`/`pull`/`registerPushToken` reject a missing device id; `registerPushToken` rejects malformed JSON and a non-push endpoint.
+- [x] Coverage **92.0% → 95.1%** lines (with DB). Offline `tsc 0`, lint 0 errors / 158 warnings, `3010 passed` / `69 skipped`; DB suite **15 files / 72 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
