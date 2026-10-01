@@ -3,6 +3,7 @@ import {
   classifyFetchStatus,
   createMemoryBreakerStore,
   createStorageBreakerStore,
+  fetchAndParse,
   resilientFetch,
   BrowserBlockedError,
   BrowserUnavailableError,
@@ -14,6 +15,26 @@ const browserMock = vi.hoisted(() => ({ fetchWithBrowser: vi.fn() }));
 
 vi.mock("../lib/scrapers/browser", () => ({
   fetchWithBrowser: browserMock.fetchWithBrowser,
+}));
+
+const bg = vi.hoisted(() => ({
+  state: "active" as string,
+  fetch: vi.fn(
+    async (
+      _url: string,
+      _timeout?: number,
+      _headers?: Record<string, string>,
+    ) => ({ html: "<html>price</html>", status: 200 }),
+  ),
+}));
+vi.mock("../lib/background-safe-timers", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../lib/background-safe-timers")>();
+  return { ...actual, getBackgroundAppState: () => bg.state };
+});
+vi.mock("../lib/background-fetch", () => ({
+  backgroundFetch: (...a: unknown[]) =>
+    bg.fetch(...(a as [string, number, Record<string, string>])),
 }));
 
 function makeParser(
@@ -622,5 +643,148 @@ describe("classifyFetchStatus anti-bot markers", () => {
       '<script>var cfg = { captcha_setkey: "6LdGN_sgAAAAAGYFg1lmVoakQ8QXxbhWqZ1GpYaJ" };</script>' +
       "<h1>MikroTik CRS326</h1><span class=\"price\">$499</span></body></html>";
     expect(classifyFetchStatus(healthy, 200)).toBe("ok");
+  });
+});
+
+describe("resilientFetch while backgrounded", () => {
+  afterEach(() => {
+    bg.state = "active";
+    vi.unstubAllGlobals();
+  });
+
+  it("uses the native background fetch with a capped timeout", async () => {
+    bg.state = "background";
+    bg.fetch.mockClear();
+    bg.fetch.mockResolvedValueOnce({ html: "<html>price</html>", status: 200 });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const outcome = await resilientFetch({
+      parser: makeParser(),
+      url: "https://example.com/search?q=CRS804",
+      state: createMemoryBreakerStore(),
+    });
+    expect(outcome.status).toBe("ok");
+    expect(outcome.html).toBe("<html>price</html>");
+    // JS timers are frozen in the background, so window.fetch must not be used.
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(bg.fetch).toHaveBeenCalledTimes(1);
+    const call = bg.fetch.mock.calls[0]!;
+    expect(call[0]).toBe("https://example.com/search?q=CRS804");
+    expect(call[1]).toBeLessThanOrEqual(10_000);
+    expect((call[2] as Record<string, string>).Accept).toContain("text/html");
+  });
+});
+
+describe("fetchAndParse", () => {
+  beforeEach(() => {
+    browserMock.fetchWithBrowser.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns a null result when the search fetch is not ok", async () => {
+    browserMock.fetchWithBrowser.mockRejectedValue(
+      new BrowserBlockedError("challenge"),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("403 Forbidden", { status: 403 })),
+    );
+    const r = await fetchAndParse(
+      makeParser(),
+      "CRS804",
+      createMemoryBreakerStore(),
+    );
+    expect(r.result).toBeNull();
+    expect(r.url).toBe("https://example.com/search?q=CRS804");
+  });
+
+  it("parses the search page when there is no second hop", async () => {
+    const html = "<html>product 42</html>";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(html, { status: 200 })),
+    );
+    const parser = makeParser({
+      parsePrice: (h) => (h === html ? ({ price: 42 } as never) : null),
+    });
+    const r = await fetchAndParse(parser, "CRS804", createMemoryBreakerStore());
+    expect(r.url).toBe("https://example.com/search?q=CRS804");
+    expect((r.result as { price: number }).price).toBe(42);
+  });
+
+  it("resolves a relative product URL and parses the second hop", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        calls.push(url);
+        return new Response(
+          url.includes("/product/") ? "<html>second</html>" : "<html>search</html>",
+          { status: 200 },
+        );
+      }),
+    );
+    const parser = makeParser({
+      resolveProductUrl: () => "/product/1",
+      parsePrice: (h) => (h.includes("second") ? ({ price: 9 } as never) : null),
+    });
+    const r = await fetchAndParse(parser, "CRS804", createMemoryBreakerStore());
+    expect(r.url).toBe("https://example.com/product/1");
+    expect((r.result as { price: number }).price).toBe(9);
+    expect(calls[1]).toBe("https://example.com/product/1");
+  });
+
+  it("keeps a raw URL it cannot normalize", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        new Response(url.includes("[bad") ? "<html>second</html>" : "<html>search</html>", {
+          status: 200,
+        }),
+      ),
+    );
+    const parser = makeParser({
+      resolveProductUrl: () => "http://[bad",
+      parsePrice: (h) => (h.includes("second") ? ({ price: 3 } as never) : null),
+    });
+    const r = await fetchAndParse(parser, "CRS804", createMemoryBreakerStore());
+    expect(r.url).toBe("http://[bad");
+    expect((r.result as { price: number }).price).toBe(3);
+  });
+
+  it("falls back to the search page when the resolver returns nothing", async () => {
+    const html = "<html>first</html>";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(html, { status: 200 })),
+    );
+    const parser = makeParser({
+      resolveProductUrl: () => "",
+      parsePrice: (h) => (h === html ? ({ price: 7 } as never) : null),
+    });
+    const r = await fetchAndParse(parser, "CRS804", createMemoryBreakerStore());
+    expect(r.url).toBe("https://example.com/search?q=CRS804");
+    expect((r.result as { price: number }).price).toBe(7);
+  });
+
+  it("returns null with the product URL when the second hop fails", async () => {
+    browserMock.fetchWithBrowser.mockRejectedValue(
+      new BrowserBlockedError("challenge"),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        new Response(url.includes("/product/") ? "403 Forbidden" : "search", {
+          status: url.includes("/product/") ? 403 : 200,
+        }),
+      ),
+    );
+    const parser = makeParser({ resolveProductUrl: () => "/product/1" });
+    const r = await fetchAndParse(parser, "CRS804", createMemoryBreakerStore());
+    expect(r.result).toBeNull();
+    expect(r.url).toBe("https://example.com/product/1");
   });
 });

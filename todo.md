@@ -7391,3 +7391,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Every `lib/scrapers/*.ts` `scrape*` wrapper was uncovered (the per-parser tests only call `parsePrice`). New `tests/scrapers/scrape-wrappers.test.ts` discovers the scraper modules via `readdirSync` and, for each, mocks the shared `fetchWithRateLimit`/`fetchWithParser` helpers.
 - [x] Pins the wrapper contract for all 25: exactly one rate-limited fetch with the parser's `buildSearchUrl` result (and its `rateLimitMs`, or the parser object), and a rejected fetch swallowed to `null`. No real network. Scrapers dir overall went from ~78% to **92.4%**.
 - [x] Tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2960 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 989: Cover `fetchAndParse` + the backgrounded fetch (83% → 92%)
+
+- [x] `lib/scrapers/resilient.ts` was at **83.1%**: `fetchAndParse` (the second-hop resolution + parse) and the backgrounded branch of `fetchPlain` (native `backgroundFetch` with a capped timeout) were uncovered.
+- [x] Extended `tests/resilient-fetch.test.ts` (35 → 41 tests): not-ok search returns `null`; no-second-hop parses the search page; a relative `resolveProductUrl` is normalized against the search URL and parsed; an un-normalizable URL is kept raw; an empty resolver falls back; a failed second hop returns `null` with the product URL; and while backgrounded the native fetch (≤10s, `Accept` header) is used instead of `window.fetch`.
+- [x] Coverage **83.1% → 92.5%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2967 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
