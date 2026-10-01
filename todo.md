@@ -7151,3 +7151,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Desktop `import-export.ts` re-hydration:** after the Rust import, it re-reads and re-saves all five collections (watchlist, alerts, reminders, settings, stock watches) into the renderer store — omitting any would let the next renderer write mirror a stale copy back over the import.
 - [x] **Rust `import_watchlist`:** writes the same five collections (`back_in_stock_watches` only when present), so the renderer re-hydration matches.
 - [x] No code change; tree unchanged from Phase 948 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 950: Digest scheduling audit (clean)
+
+- [x] **`maybeSendDigest`:** honours the master `notificationsEnabled` toggle (undefined counts as enabled) and quiet hours (defers, retries next tick); weekly gate compares **calendar days** (DST-safe) and requires the configured day; invalid `lastDigestAt` skips the interval check but still respects the weekly day gate; the snapshot advances **only when the notification was delivered** (advancing on a skipped/failed send delayed the next digest a full interval).
+- [x] No code change; tree unchanged from Phase 949 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
