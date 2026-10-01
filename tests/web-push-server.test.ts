@@ -96,4 +96,19 @@ describe("web-push server", () => {
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });
+
+  it("refuses to send to a non-push endpoint (SSRF guard)", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    process.env.VAPID_SUBJECT = "mailto:test@example.com";
+    process.env.VAPID_PUBLIC_KEY = "pub";
+    process.env.VAPID_PRIVATE_KEY = "priv";
+    await sendWebPush(
+      "dev-1",
+      { ...subscription, endpoint: "https://169.254.169.254/latest/meta-data/" },
+      event,
+    );
+    expect(sent).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
 });

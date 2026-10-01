@@ -7361,3 +7361,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/routers/discovery.ts` was at **69.9%**: the success-path shaping — retailer mapping, `cleanUrl` (non-http scheme rejection), non-array retailers, and the non-string-content guard — was uncovered (existing tests only exercised errors/limits with `retailers: []`).
 - [x] New `tests/discovery-router-output.test.ts` (5 tests): maps retailers keeping only valid http(s) websites, turns a non-object retailer into an empty entry, treats a non-array `retailers` as `[]`, and rejects non-JSON / incomplete-product / non-string-content responses.
 - [x] Coverage **69.9% → 96.8%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2916 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 984: Cover the email + web-push delivery guards (90% → 98% / 95%)
+
+- [x] `server/email.ts` (90.2%) and `server/web-push.ts` (90.5%) were missing their last failure branches: a throwing network request, and the SSRF refusal when a registered push endpoint is not a real push host.
+- [x] `tests/email.test.ts` (4 → 5): returns false and logs when the Resend request throws. `tests/web-push-server.test.ts` (7 → 8): refuses to send to `169.254.169.254` and warns instead of leaking the VAPID JWT.
+- [x] Coverage **email 90.2% → 97.6%**, **web-push 90.5% → 95.2%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2918 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).

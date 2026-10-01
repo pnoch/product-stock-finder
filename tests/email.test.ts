@@ -58,4 +58,17 @@ describe("email delivery", () => {
     const ok = await sendEmail({ to: "a@b.com", subject: "s", html: "h", text: "t" });
     expect(ok).toBe(false);
   });
+
+  it("returns false when the network request throws", async () => {
+    process.env.RESEND_API_KEY = "re_test";
+    process.env.EMAIL_FROM = "no-reply@example.com";
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error("network down");
+    }) as unknown as typeof fetch;
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(
+      sendEmail({ to: "a@b.com", subject: "s", html: "h", text: "t" }),
+    ).resolves.toBe(false);
+    expect(errSpy).toHaveBeenCalled();
+  });
 });
