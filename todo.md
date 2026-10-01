@@ -7210,3 +7210,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Pinned: `getSupportEmail` uses `||` (so an empty override falls back to the default rather than a bare `mailto:`) and `getSupportMailtoUrl` wraps it.
 - [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2704 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
 - [x] `.gitignore` now ignores vitest's `coverage/` output (was dirtying the tree on every `--coverage` run).
+
+## Phase 959: Cover the backup export/restore file paths (38% → 98%)
+
+- [x] `lib/backup-files.ts` was at **38.5%**: only the web `exportBackupFile` happy/error path was tested — the entire restore (`pickBackupFile`) and every native branch were untested, in a data-loss-critical flow.
+- [x] Extended `tests/backup-files.test.ts` (2 → 14 tests) with a mutable `Platform.OS` and a configurable `FileReader`: native export (write+share, sharing unavailable, write throws), web pick (read, no file, reader error, non-string result, user cancel), and native pick (read, canceled, empty assets, picker throws).
+- [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2716 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
