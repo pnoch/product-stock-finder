@@ -70,6 +70,9 @@ Thumbs.db
 *.tar.gz
 .cache/
 
+# Test coverage output (vitest --coverage)
+coverage/
+
 # Rust
 desktop/src-tauri/target/
 desktop/src-tauri/gen/
