@@ -91,6 +91,17 @@ describe("web push client", () => {
     expect(Array.from(bytes)).toEqual([1, 2]);
   });
 
+  it("urlBase64ToUint8Array falls back to Buffer without atob", () => {
+    const original = window.atob;
+    (window as unknown as { atob?: unknown }).atob = undefined;
+    try {
+      const bytes = urlBase64ToUint8Array("AQID");
+      expect(Array.from(bytes)).toEqual([1, 2, 3]);
+    } finally {
+      (window as unknown as { atob?: unknown }).atob = original;
+    }
+  });
+
   it("isPushSupported is true on web with PushManager and Notification", () => {
     expect(isPushSupported()).toBe(true);
   });
@@ -112,6 +123,15 @@ describe("web push client", () => {
     expect(state.registered).toBe(true);
   });
 
+  it("registerWebPushServiceWorker returns null when registration fails", async () => {
+    (
+      navigator.serviceWorker.register as unknown as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(new Error("blocked"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await registerWebPushServiceWorker()).toBeNull();
+    warn.mockRestore();
+  });
+
   it("subscribeWebPush registers the subscription with the server", async () => {
     const result = await subscribeWebPush();
     expect(result).toBe(true);
@@ -126,11 +146,61 @@ describe("web push client", () => {
     expect(result).toBe(false);
   });
 
+  it("subscribeWebPush registers a service worker when none exists", async () => {
+    (
+      navigator.serviceWorker.getRegistration as unknown as ReturnType<
+        typeof vi.fn
+      >
+    ).mockResolvedValueOnce(null);
+    expect(await subscribeWebPush()).toBe(true);
+    expect(state.registered).toBe(true);
+  });
+
+  it("subscribeWebPush returns false when no registration can be obtained", async () => {
+    (
+      navigator.serviceWorker.getRegistration as unknown as ReturnType<
+        typeof vi.fn
+      >
+    ).mockResolvedValueOnce(null);
+    (
+      navigator.serviceWorker.register as unknown as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce(null);
+    expect(await subscribeWebPush()).toBe(false);
+  });
+
+  it("subscribeWebPush returns false when the push manager rejects", async () => {
+    (
+      navigator.serviceWorker.getRegistration as unknown as ReturnType<
+        typeof vi.fn
+      >
+    ).mockResolvedValueOnce({
+      pushManager: {
+        subscribe: vi.fn(async () => {
+          throw new Error("permission denied");
+        }),
+      },
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await subscribeWebPush()).toBe(false);
+    warn.mockRestore();
+  });
+
   it("unsubscribeWebPush unsubscribes the active subscription", async () => {
     const sub = { unsubscribe: vi.fn(async () => true) };
     state.subscription = sub;
     await unsubscribeWebPush();
     expect(sub.unsubscribe).toHaveBeenCalled();
+  });
+
+  it("unsubscribeWebPush swallows registration errors", async () => {
+    (
+      navigator.serviceWorker.getRegistration as unknown as ReturnType<
+        typeof vi.fn
+      >
+    ).mockRejectedValueOnce(new Error("no service worker"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(unsubscribeWebPush()).resolves.toBeUndefined();
+    warn.mockRestore();
   });
 });
 

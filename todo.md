@@ -7301,3 +7301,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/background-safe-timers.ts` was at **80.3%**: the poll-again-while-backgrounded branch, the backgrounded race retry, the foreground race path, and `getBackgroundAppState` were uncovered — the primitives that keep Android background work alive.
 - [x] Extended `tests/background-safe-timers.test.ts` (8 → 14 tests): controllable-clock cases that force an extra `setImmediate` tick before the deadline for both delay and race; the race foreground path (`setTimeout` + winner/timeout); the race handoff to a plain timer when foregrounded mid-wait; and `set/getBackgroundAppState` round-trip. (The only remaining gap is the unreachable `scheduleTick(false, …)` fallback.)
 - [x] Coverage **80.3% → 96.1%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2860 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 974: Cover the web-push subscription lifecycle (83% → 99%)
+
+- [x] `lib/web-push.ts` was at **82.7%**: the Node `Buffer` decode fallback, the service-worker register failure, the no-registration guard, the push-manager reject, and the unsubscribe failure were uncovered.
+- [x] Extended `tests/web-push.test.ts` (9 → 16 tests): base64url decode via `Buffer` when `window.atob` is absent; register failure returns null; subscribe registers a worker when none exists; subscribe returns false when no registration can be obtained; subscribe returns false when the push manager rejects; unsubscribe swallows registration errors.
+- [x] Coverage **82.7% → 98.7%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2866 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
