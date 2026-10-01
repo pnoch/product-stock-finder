@@ -5,6 +5,14 @@ import type { TrpcContext } from "../server/_core/context";
 
 vi.mock("../server/_core/llm", () => ({ invokeLLM: vi.fn() }));
 
+const budget = vi.hoisted(() => ({
+  tryConsumeBudget: vi.fn((_key: string) => true),
+}));
+vi.mock("../server/spend-budget", () => ({
+  tryConsumeBudget: (...a: unknown[]) =>
+    budget.tryConsumeBudget(...(a as [string])),
+}));
+
 function ctx(headers: Record<string, string> = {}, user: unknown = { id: 1, openId: "o", name: "U", role: "user" }): TrpcContext {
   return {
     user: user as never,
@@ -20,6 +28,7 @@ describe("llm.test", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
+    budget.tryConsumeBudget.mockReturnValue(true);
   });
 
   it("reports forge as ok without calling any provider", async () => {
@@ -85,5 +94,35 @@ describe("llm.test", () => {
       provider: "openai",
       reason: "error",
     });
+  });
+
+  it("spends budget for a server-funded provider and refuses when exhausted", async () => {
+    budget.tryConsumeBudget.mockReturnValueOnce(false);
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const caller = llmRouter.createCaller(ctx({ "x-llm-provider": "ollama-local" }));
+    await expect(caller.test()).resolves.toEqual({
+      ok: false,
+      provider: "ollama-local",
+      reason: "error",
+    });
+    expect(budget.tryConsumeBudget).toHaveBeenCalledWith("llm.test");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not spend budget for a user-funded provider", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: "ok" } }] }),
+        text: async () =>
+          JSON.stringify({ choices: [{ message: { content: "ok" } }] }),
+      }),
+    );
+    const caller = llmRouter.createCaller(ctx(byo));
+    await caller.test();
+    expect(budget.tryConsumeBudget).not.toHaveBeenCalled();
   });
 });

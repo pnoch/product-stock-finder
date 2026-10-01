@@ -7349,3 +7349,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/product-parse.ts` was at **88.9%**: the IPv6 hextet classification in `isPrivateHostname` — IPv4-mapped, NAT64, 6to4, Teredo, link-local/ULA/multicast — was uncovered, i.e. the SSRF guard against metadata reachable over IPv6 had no regression test.
 - [x] Extended `tests/product-parse-ssrf.test.ts` (2 → 15 tests): direct `isBlockedUrl` coverage for the IPv4-mapped metadata address, NAT64 `64:ff9b::`, 6to4/Teredo embedded `127.0.0.1`, link-local/ULA/multicast/loopback/unspecified IPv6, public IPv6 allowed, invalid URLs/non-http/userinfo, and the IPv4 private ranges (with `172.32.x` allowed).
 - [x] Coverage **88.9% → 91.8%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2909 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 982: Cover the LLM test-router budget gate (80% → 97%)
+
+- [x] `server/routers/llm.ts` was at **80%**: the server-funded provider budget guard (`ollama-local` must consume the process-wide budget before probing) was uncovered.
+- [x] Extended `tests/llm-router-test.test.ts` (5 → 7 tests): a server-funded provider whose budget is exhausted returns `{ok:false, reason:"error"}` without fetching, and `tryConsumeBudget("llm.test")` is called; a user-funded provider never touches the budget.
+- [x] Coverage **80.0% → 97.1%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2911 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
