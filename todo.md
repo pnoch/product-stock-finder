@@ -7228,3 +7228,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/theme-provider.tsx` was at **0%** though it backs every themed screen (DOM vars, NativeWind scheme, `Appearance`, system-follow/override). New `tests/theme-provider.test.tsx` (jsdom + `@testing-library/react`) covers it.
 - [x] Pinned: `useThemeContext` throws outside the provider; initializes from the system scheme; `setColorScheme` updates context + NativeWind + `Appearance` + `<html>` dataset/class/CSS vars; system changes apply until a manual override (then ignored); the `Appearance` listener is removed on unmount; `vars()` receives the active palette tokens.
 - [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2729 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 962: Cover the tRPC client transport + revoked-device link (49% → 99%)
+
+- [x] `lib/trpc.ts` was at **49.5%**: `byoLlmHeaders`/`trpcHeaders` were tested but `createTRPCClient` (the whole transport) and `revokedDeviceLink` were not — including the background-vs-foreground fetch deadline, which is easy to break silently.
+- [x] New `tests/trpc-client.test.ts` captures the link options: asserts the API URL/superjson/auth headers; the foreground fetch (credentials `include` + an `AbortSignal` that fires at the **15s** deadline); and the backgrounded path (native `backgroundFetch` with the **4s** deadline, response mapped back to `Response`). Also tests `revokedDeviceLink` clears the session on `DEVICE_REVOKED_ERR_MSG` and ignores unrelated errors.
+- [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2735 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
