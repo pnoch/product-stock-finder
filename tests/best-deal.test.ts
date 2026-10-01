@@ -137,6 +137,63 @@ describe("findBestDeal", () => {
     const deal = findBestDeal(listings, "Asia-Pacific", "USD");
     expect(deal!.tax).toBe(0);
   });
+
+  it("falls back to a shipping-less deal for a lone in-stock listing", () => {
+    // A single in-stock option with no shipping data for the region: return
+    // price + tax without fabricating free shipping.
+    const listings = [
+      makeListing({
+        distributorId: "ghost-distributor",
+        price: 100,
+        currency: "USD",
+        taxRate: 0.1,
+      }),
+    ];
+    const deal = findBestDeal(listings, "Asia-Pacific", "USD");
+    expect(deal).toEqual({
+      distributorId: "ghost-distributor",
+      price: 100,
+      tax: 10,
+      shipping: null,
+      total: 110,
+      currency: "USD",
+    });
+  });
+
+  it("treats a non-finite taxRate as tax-free in the fallback", () => {
+    const listings = [
+      makeListing({
+        distributorId: "ghost-distributor",
+        price: 100,
+        currency: "USD",
+        taxRate: Number.NaN,
+      }),
+    ];
+    const deal = findBestDeal(listings, "Asia-Pacific", "USD");
+    expect(deal!.tax).toBe(0);
+    expect(deal!.total).toBeCloseTo(100, 2);
+    expect(deal!.shipping).toBeNull();
+  });
+
+  it("returns null when multiple in-stock listings lack shipping data", () => {
+    // With several options and no shipping data they cannot be ranked fairly.
+    const listings = [
+      makeListing({ distributorId: "ghost-a", price: 100, currency: "USD" }),
+      makeListing({ distributorId: "ghost-b", price: 90, currency: "USD" }),
+    ];
+    expect(findBestDeal(listings, "Asia-Pacific", "USD")).toBeNull();
+  });
+
+  it("returns null when the lone in-stock listing cannot be converted", () => {
+    const listings = [
+      makeListing({
+        distributorId: "ghost-distributor",
+        price: 100,
+        currency: "XYZ",
+      }),
+    ];
+    expect(findBestDeal(listings, "Asia-Pacific", "USD")).toBeNull();
+  });
 });
 
 describe("findBestInStockListing", () => {

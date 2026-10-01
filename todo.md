@@ -7289,3 +7289,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/background-tasks/tasks.ts` was at **78%** with **no dedicated test**: the two global `defineTask` handlers and the register/manual/skip/re-register logic were uncovered. New `tests/background-tasks.test.ts` (18 tests) mocks `expo-task-manager`/`expo-background-task`/storage/instances and captures the handlers.
 - [x] Pinned: price/health handlers return Success↔Failed; web no-op; manual mode unregisters + clears the interval (registered and not); hourly=60 / daily=1440 registration; skip when the interval is unchanged; re-register on interval change; the per-task interval marker for the health probe; error swallowing; and `syncBackgroundTasks` registering both.
 - [x] Coverage **78.0% → 96.3%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2850 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 972: Cover the best-deal single-listing fallback (79% → 99%)
+
+- [x] `lib/best-deal.ts` was at **78.7%**: the whole fallback block (lines 68-85) — used when no listing has regional shipping data — was uncovered.
+- [x] Extended `tests/best-deal.test.ts` (11 → 15 tests): a lone in-stock listing with no regional shipping returns price+tax and `shipping: null` (no fabricated free shipping); a non-finite `taxRate` is treated as tax-free in the fallback; multiple in-stock listings with no shipping data return `null` (unrankable); and a lone listing whose currency cannot be converted returns `null`.
+- [x] Coverage **78.7% → 98.9%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2854 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
