@@ -7283,3 +7283,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/alert.ts` was at **76.2%**: the web numbered-prompt path (used when >1 web action must stay reachable, since `window.confirm` is yes/no) and the Android cancel-fit branch were untested.
 - [x] Extended `tests/alert.test.ts` (7 → 13 tests): web multi-action lists every option and runs the chosen one; a dismissed/out-of-range numbered answer runs Cancel; the `window`-undefined guard; and Android appends the Cancel button when no action is hidden (and passes three actions through with no cancel). Also verified `window.alert`/`confirm` paths.
 - [x] Coverage **76.2% → 96.3%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2832 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 971: Cover the background task registration (78% → 96%)
+
+- [x] `lib/background-tasks/tasks.ts` was at **78%** with **no dedicated test**: the two global `defineTask` handlers and the register/manual/skip/re-register logic were uncovered. New `tests/background-tasks.test.ts` (18 tests) mocks `expo-task-manager`/`expo-background-task`/storage/instances and captures the handlers.
+- [x] Pinned: price/health handlers return Success↔Failed; web no-op; manual mode unregisters + clears the interval (registered and not); hourly=60 / daily=1440 registration; skip when the interval is unchanged; re-register on interval change; the per-task interval marker for the health probe; error swallowing; and `syncBackgroundTasks` registering both.
+- [x] Coverage **78.0% → 96.3%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2850 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
