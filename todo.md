@@ -7144,3 +7144,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **`server-llm.ts`:** fixed in Phase 947 (desktop now has the 20s timeout).
 - [x] **`web-push.ts`:** parity-guarded in Phase 946.
 - [x] No code change; tree unchanged from Phase 947 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 949: Backup import/export parity audit (clean)
+
+- [x] **Shared `lib/backup.ts`:** desktop imports `buildBackup`/`parseBackup`/`applyBackup` (no duplication); the shared module was audited in Phases 740/749.
+- [x] **Desktop `import-export.ts` re-hydration:** after the Rust import, it re-reads and re-saves all five collections (watchlist, alerts, reminders, settings, stock watches) into the renderer store — omitting any would let the next renderer write mirror a stale copy back over the import.
+- [x] **Rust `import_watchlist`:** writes the same five collections (`back_in_stock_watches` only when present), so the renderer re-hydration matches.
+- [x] No code change; tree unchanged from Phase 948 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
