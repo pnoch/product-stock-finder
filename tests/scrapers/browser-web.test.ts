@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readdir, readFile, stat } from "fs/promises";
 import path from "path";
 
@@ -34,6 +34,60 @@ describe("browser web stub", () => {
     await expect(fetchWithBrowser("https://example.com")).rejects.toThrow(
       "browser escalation unavailable on this platform",
     );
+  });
+
+  it("rejects every browserPool operation", async () => {
+    const { browserPool } = await import("@/lib/scrapers/browser.web");
+    const { BrowserUnavailableError } = await import(
+      "@/lib/scrapers/resilient"
+    );
+    await expect(browserPool.acquire()).rejects.toBeInstanceOf(
+      BrowserUnavailableError,
+    );
+    await expect(browserPool.shutdown()).rejects.toBeInstanceOf(
+      BrowserUnavailableError,
+    );
+    // release is synchronous: an escalation that somehow reached it must fail
+    // loudly rather than silently proceeding without a browser.
+    expect(() => browserPool.release({})).toThrow(BrowserUnavailableError);
+  });
+
+  it("teardown closes the page and context, then releases", async () => {
+    const { teardownBrowserSession } = await import(
+      "@/lib/scrapers/browser.web"
+    );
+    const page = { close: vi.fn(async () => {}) };
+    const context = { close: vi.fn(async () => {}) };
+    const release = vi.fn();
+    await teardownBrowserSession(page, context, release);
+    expect(page.close).toHaveBeenCalledTimes(1);
+    expect(context.close).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  it("teardown still releases when close throws or handles are absent", async () => {
+    const { teardownBrowserSession } = await import(
+      "@/lib/scrapers/browser.web"
+    );
+    const page = {
+      close: vi.fn(async () => {
+        throw new Error("already closed");
+      }),
+    };
+    const context = {
+      close: vi.fn(async () => {
+        throw new Error("already closed");
+      }),
+    };
+    const release = vi.fn();
+    await expect(
+      teardownBrowserSession(page, context, release),
+    ).resolves.toBeUndefined();
+    expect(release).toHaveBeenCalledTimes(1);
+
+    const release2 = vi.fn();
+    await teardownBrowserSession(undefined, undefined, release2);
+    expect(release2).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -7271,3 +7271,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/csv-export.ts` (68.6%), `lib/share-image.ts` (69.4%), and `lib/share-text.ts` (70.6%) had only their web branches tested; the native share-sheet paths (and share-text's non-AbortError → clipboard fallback) were uncovered.
 - [x] Rewrote the three tests with a mutable `Platform.OS`: CSV native write+share / sharing-unavailable / write-throws; image native capture-to-tmpfile+share / sharing-unavailable / capture-throws; share-text native shared/dismissed/throws plus the web non-abort fallback and clipboard-throw.
 - [x] Coverage **each ~69% → ~97%** lines (csv 68.6→97.1, image 69.4→97.2, text 70.6→97.1); tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2823 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 969: Cover the Playwright web-stub contract (33% → 97%)
+
+- [x] A fresh lib coverage pass (88.97% total) named `lib/scrapers/browser.web.ts` as the lowest non-`_core` file at **33.3%**: only `fetchWithBrowser`'s throw was tested; `browserPool` and `teardownBrowserSession` were not — and this stub is the guard that keeps Playwright out of the web bundle.
+- [x] Extended `tests/scrapers/browser-web.test.ts` (2 → 7 tests): every `browserPool` entry point (`acquire`/`shutdown` reject, sync `release` throws) fails with `BrowserUnavailableError`; teardown closes page+context then releases; teardown still releases when close throws or handles are absent.
+- [x] Coverage **33.3% → 97.0%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2826 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
