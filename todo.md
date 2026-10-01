@@ -7445,3 +7445,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/routers/trending.ts` was at **83.1%**: the DB `get`/`refresh` paths and the model-failure branches were uncovered.
 - [x] Pure tests in `tests/trending-server.test.ts`: `buildTrendingPrompt` watchlist exclusion and `sanitizeTrendingRows` price clamp + field truncation. New DB-gated `tests/trending-db.test.ts` (7 tests): refresh from feeds + LLM and serve; a zero-row refresh must not clobber existing rows; non-JSON content / non-array content / all-feeds-fail / non-JSON body / exhausted budget all return `{count:0}` (and the budget path makes no network call).
 - [x] Coverage **83.1% → 98.1%** lines. Also refreshed AGENTS.md's stated test-file count (~376 → ~396: ~363 root + 33 scrapers) after the doc-drift guard tripped. DB suite now **12 files / 57 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3002 passed` / `54 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 998: Cover the price-cache DB branches (85% → 98%)
+
+- [x] `server/price-cache.ts` was at **85.1%**: `getCachedPrice`/`setCachedPrice` upsert, `listNearExpiry`, `getAllFetchedAt` (newest-first), and `purgeStalePriceCache` had no DB test.
+- [x] New `tests/price-cache-db.test.ts` (5 DB-gated tests): store/read + upsert overwrite; implausible price rejects without writing; near-expiry listing + limit; fetched-at rows newest-first; the 30-day purge keeps fresh rows.
+- [x] Coverage **85.1% → 98.2%** lines. DB suite now **13 files / 62 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3002 passed` / `59 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
