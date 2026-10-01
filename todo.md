@@ -7439,3 +7439,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/notifications/index.ts` was at **75.7%**: the entire `processHealthEvents` DB branch (dedupe query, insert, push-to-user) and the DB `purgeOldNotificationEvents` batch were uncovered — only the in-memory paths had tests.
 - [x] New `tests/notifications-health-db.test.ts` (3 DB-gated tests): a bound device stores health events and dedupes a repeated alert while keeping a distinct recovery, then pull marks them delivered; a device with no bound user drops health events; and the 30-day event purge keeps fresh rows (deliveries cascade).
 - [x] Coverage **75.7% → 97.6%** lines. DB suite now **11 files / 50 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3000 passed` / `47 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 997: Cover the trending refresh router (83% → 98%)
+
+- [x] `server/routers/trending.ts` was at **83.1%**: the DB `get`/`refresh` paths and the model-failure branches were uncovered.
+- [x] Pure tests in `tests/trending-server.test.ts`: `buildTrendingPrompt` watchlist exclusion and `sanitizeTrendingRows` price clamp + field truncation. New DB-gated `tests/trending-db.test.ts` (7 tests): refresh from feeds + LLM and serve; a zero-row refresh must not clobber existing rows; non-JSON content / non-array content / all-feeds-fail / non-JSON body / exhausted budget all return `{count:0}` (and the budget path makes no network call).
+- [x] Coverage **83.1% → 98.1%** lines. Also refreshed AGENTS.md's stated test-file count (~376 → ~396: ~363 root + 33 scrapers) after the doc-drift guard tripped. DB suite now **12 files / 57 tests green**; offline `tsc 0`, lint 0 errors / 158 warnings, `3002 passed` / `54 skipped`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.

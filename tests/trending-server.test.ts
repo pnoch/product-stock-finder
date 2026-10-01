@@ -16,4 +16,54 @@ describe("trending server", () => {
     const items = await fetchRssFeeds();
     expect(items).toEqual([]);
   });
+
+  it("buildTrendingPrompt adds the watchlist exclusion when present", async () => {
+    const { buildTrendingPrompt } = await import("../server/routers/trending");
+    const withList = buildTrendingPrompt(
+      [{ title: "Item", link: "u", source: "s" }],
+      ["CRS804", "hEX"],
+    );
+    expect(withList).toContain(
+      "Exclude these products already in the user's watchlist: CRS804, hEX",
+    );
+    const without = buildTrendingPrompt(
+      [{ title: "Item", link: "u", source: "s" }],
+      [],
+    );
+    expect(without).not.toContain("Exclude these products");
+  });
+
+  it("sanitizeTrendingRows clamps prices and truncates oversized fields", async () => {
+    const { sanitizeTrendingRows } = await import("../server/routers/trending");
+    const rows = sanitizeTrendingRows([
+      {
+        name: "x".repeat(300),
+        brand: "NVIDIA",
+        category: "GPU",
+        estimatedPrice: 1e12,
+        reason: "r",
+        source: "s",
+      },
+      {
+        name: "Cheap",
+        brand: "",
+        category: "",
+        estimatedPrice: -5,
+        reason: "",
+        source: "",
+      },
+      {
+        name: "NaN price",
+        brand: "",
+        category: "",
+        estimatedPrice: Number.NaN,
+        reason: "",
+        source: "",
+      },
+    ]);
+    expect(rows[0]!.name).toHaveLength(255);
+    expect(rows[0]!.estimatedPrice).toBe("99999999.99");
+    expect(rows[1]!.estimatedPrice).toBe("0.00");
+    expect(rows[2]!.estimatedPrice).toBe("0.00");
+  });
 });
