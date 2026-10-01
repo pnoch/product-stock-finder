@@ -7209,3 +7209,4 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Pinned: the `EXPO_PUBLIC_PRIVACY_URL` override is used verbatim (no slash normalization); `EXPO_PUBLIC_WEB_URL` wins over `EXPO_PUBLIC_API_BASE_URL` with one trailing slash stripped; the API-base fallback; and `""` when nothing is configured.
 - [x] Pinned: `getSupportEmail` uses `||` (so an empty override falls back to the default rather than a bare `mailto:`) and `getSupportMailtoUrl` wraps it.
 - [x] Tests only; no source change (`tsc 0`, lint 0 errors / 158 warnings, `2704 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+- [x] `.gitignore` now ignores vitest's `coverage/` output (was dirtying the tree on every `--coverage` run).
