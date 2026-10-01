@@ -13,6 +13,7 @@ describe("showAlert on web", () => {
     alertMock.mockClear();
     window.confirm = vi.fn(() => true);
     window.alert = vi.fn();
+    window.prompt = vi.fn(() => "1");
   });
 
   it("runs the destructive onPress when confirmed", () => {
@@ -24,6 +25,66 @@ describe("showAlert on web", () => {
     expect(window.confirm).toHaveBeenCalledWith("Remove\n\nRemove this?");
     expect(onPress).toHaveBeenCalled();
     expect(alertMock).not.toHaveBeenCalled();
+  });
+
+  it("numbers every action when more than one is available", () => {
+    const share = vi.fn();
+    const remove = vi.fn();
+    (window.prompt as ReturnType<typeof vi.fn>).mockReturnValue("2");
+    showAlert("Choose", "What next?", [
+      { text: "Share", onPress: share },
+      { text: "Remove", style: "destructive", onPress: remove },
+    ]);
+    const promptText = (window.prompt as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0] as string;
+    expect(promptText).toContain("1. Share");
+    expect(promptText).toContain("2. Remove");
+    expect(remove).toHaveBeenCalled();
+    expect(share).not.toHaveBeenCalled();
+  });
+
+  it("runs the cancel action when the numbered prompt is dismissed", () => {
+    const share = vi.fn();
+    const cancel = vi.fn();
+    (window.prompt as ReturnType<typeof vi.fn>).mockReturnValue(null);
+    showAlert("Choose", "What next?", [
+      { text: "Share", onPress: share },
+      { text: "Remove", style: "destructive" },
+      { text: "Cancel", style: "cancel", onPress: cancel },
+    ]);
+    expect(cancel).toHaveBeenCalled();
+    expect(share).not.toHaveBeenCalled();
+  });
+
+  it("runs the cancel action on an out-of-range numbered answer", () => {
+    const share = vi.fn();
+    const cancel = vi.fn();
+    (window.prompt as ReturnType<typeof vi.fn>).mockReturnValue("9");
+    showAlert("Choose", "What next?", [
+      { text: "Share", onPress: share },
+      { text: "Remove", style: "destructive" },
+      { text: "Cancel", style: "cancel", onPress: cancel },
+    ]);
+    expect(cancel).toHaveBeenCalled();
+    expect(share).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when the DOM window is unavailable", () => {
+    const original = globalThis.window;
+    Object.defineProperty(globalThis, "window", {
+      value: undefined,
+      configurable: true,
+    });
+    try {
+      expect(() =>
+        showAlert("Choose", "What next?", [{ text: "A" }, { text: "B" }]),
+      ).not.toThrow();
+    } finally {
+      Object.defineProperty(globalThis, "window", {
+        value: original,
+        configurable: true,
+      });
+    }
   });
 
   it("does not run the destructive onPress when cancelled", () => {
@@ -99,5 +160,30 @@ describe("showAlert on native", () => {
     const withCancel = alertMock.mock.calls.at(-1)![2] as unknown[];
     expect(withCancel.length).toBeLessThanOrEqual(3);
     expect((withCancel.at(-1) as { text: string }).text).toBe("More…");
+  });
+
+  it("appends the cancel button when no actions are hidden", async () => {
+    const { Platform } = await import("react-native");
+    Platform.OS = "android";
+    const cancel = { text: "Cancel", style: "cancel" as const };
+    showAlert("Pick", "Choose one", [
+      { text: "A" },
+      { text: "B" },
+      cancel,
+    ]);
+    const buttons = alertMock.mock.calls.at(-1)![2] as Array<{ text: string }>;
+    expect(buttons.map((b) => b.text)).toEqual(["A", "B", "Cancel"]);
+  });
+
+  it("passes three actions through when there is no cancel", async () => {
+    const { Platform } = await import("react-native");
+    Platform.OS = "android";
+    showAlert("Pick", "Choose one", [
+      { text: "A" },
+      { text: "B" },
+      { text: "C" },
+    ]);
+    const buttons = alertMock.mock.calls.at(-1)![2] as Array<{ text: string }>;
+    expect(buttons.map((b) => b.text)).toEqual(["A", "B", "C"]);
   });
 });

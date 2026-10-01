@@ -7277,3 +7277,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] A fresh lib coverage pass (88.97% total) named `lib/scrapers/browser.web.ts` as the lowest non-`_core` file at **33.3%**: only `fetchWithBrowser`'s throw was tested; `browserPool` and `teardownBrowserSession` were not — and this stub is the guard that keeps Playwright out of the web bundle.
 - [x] Extended `tests/scrapers/browser-web.test.ts` (2 → 7 tests): every `browserPool` entry point (`acquire`/`shutdown` reject, sync `release` throws) fails with `BrowserUnavailableError`; teardown closes page+context then releases; teardown still releases when close throws or handles are absent.
 - [x] Coverage **33.3% → 97.0%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2826 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 970: Cover the alert dialog fallbacks (76% → 96%)
+
+- [x] `lib/alert.ts` was at **76.2%**: the web numbered-prompt path (used when >1 web action must stay reachable, since `window.confirm` is yes/no) and the Android cancel-fit branch were untested.
+- [x] Extended `tests/alert.test.ts` (7 → 13 tests): web multi-action lists every option and runs the chosen one; a dismissed/out-of-range numbered answer runs Cancel; the `window`-undefined guard; and Android appends the Cancel button when no action is hidden (and passes three actions through with no cancel). Also verified `window.alert`/`confirm` paths.
+- [x] Coverage **76.2% → 96.3%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2832 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
