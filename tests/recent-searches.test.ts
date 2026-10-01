@@ -5,7 +5,6 @@ import {
   recordSearch,
   type KeyValueStore,
 } from "../lib/recent-searches";
-
 function memoryStore(initial: Record<string, string> = {}): KeyValueStore & {
   data: Map<string, string>;
 } {
@@ -59,6 +58,39 @@ describe("recent searches", () => {
     await recordSearch("crs326", store);
     await clearRecentSearches(store);
     expect(await getRecentSearches(store)).toEqual([]);
+  });
+
+  it("survives a store read failure", async () => {
+    const store: KeyValueStore = {
+      getItem: async () => {
+        throw new Error("io");
+      },
+      setItem: async () => {},
+      removeItem: async () => {},
+    };
+    await expect(getRecentSearches(store)).resolves.toEqual([]);
+  });
+
+  it("survives a store write failure while recording", async () => {
+    const store: KeyValueStore = {
+      getItem: async () => null,
+      setItem: async () => {
+        throw new Error("quota");
+      },
+      removeItem: async () => {},
+    };
+    await expect(recordSearch("crs326", store)).resolves.toEqual(["crs326"]);
+  });
+
+  it("survives a store remove failure while clearing", async () => {
+    const store: KeyValueStore = {
+      getItem: async () => null,
+      setItem: async () => {},
+      removeItem: async () => {
+        throw new Error("io");
+      },
+    };
+    await expect(clearRecentSearches(store)).resolves.toBeUndefined();
   });
 });
 import { addRecentSearch, parseRecentSearches, MAX_RECENT_SEARCHES } from "../lib/recent-searches";

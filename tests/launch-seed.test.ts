@@ -56,4 +56,41 @@ describe("seedWatchlistProducts", () => {
     expect(agents).toContain("SEED_IDS");
     expect(agents).toContain("lib/launch-seed.ts");
   });
+
+  it("logs and gives up when the watchlist cannot be read", async () => {
+    const storage = {
+      getWatchlist: vi.fn(async () => {
+        throw new Error("db down");
+      }),
+      addToWatchlist: vi.fn(async () => {}),
+      updateProductListings: vi.fn(async () => {}),
+    };
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(
+      seedWatchlistProducts({
+        storage,
+        catalog: [],
+        sampleListings: {},
+        freshen: (l) => l,
+      }),
+    ).resolves.toBeUndefined();
+    expect(storage.addToWatchlist).not.toHaveBeenCalled();
+    err.mockRestore();
+  });
+
+  it("continues seeding the rest after a per-product failure", async () => {
+    const storage = mockStorage();
+    storage.addToWatchlist.mockRejectedValueOnce(new Error("bad product"));
+    const catalog = SEED_IDS.map((id) => ({ id }));
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    await seedWatchlistProducts({
+      storage,
+      catalog,
+      sampleListings: {},
+      freshen: (l) => l,
+    });
+    expect(storage.addToWatchlist).toHaveBeenCalledTimes(SEED_IDS.length);
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+  });
 });

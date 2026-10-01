@@ -7409,3 +7409,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/scrapers/browser.ts` was at **79.6%**: the pool's launch-failure rollback and drop-dead-handle-on-release, the Cloudflare wait/timeout branches, the double-navigation failure, the selector-timeout catch, and the node `teardownBrowserSession` were uncovered.
 - [x] Extended `tests/scrapers/browser.test.ts` (11 → 17 tests): a failed `chromium.launch` frees the reserved slot and reports the cause; `release` drops a browser whose `isConnected` throws; a challenge that clears is waited out; a challenge that outlasts the timeout throws `BrowserBlockedError`; both nav attempts failing rethrows; a missing selector is tolerated; teardown still releases when page+context closes throw.
 - [x] Coverage **79.6% → 84.7%** lines (the injected anti-detection `addInitScript` body is unreachable outside a real browser); tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2983 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 992: Cover the seeding + recent-search failure paths (89-90% → 98%)
+
+- [x] `lib/launch-seed.ts` (89.6%) and `lib/recent-searches.ts` (89.1%) were missing only their error/edge branches.
+- [x] Extended `tests/launch-seed.test.ts` (→ +2): logs and gives up when the watchlist cannot be read; continues seeding the rest after a per-product failure. Extended `tests/recent-searches.test.ts` (+3): a throwing `getItem`/`setItem`/`removeItem` never breaks read/record/clear.
+- [x] Coverage **launch-seed 89.6% → 97.9%**, **recent-searches 89.1% → 97.8%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2988 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
