@@ -52,6 +52,17 @@ describe("registerCors", () => {
     expect(denied.headers.get("access-control-allow-origin")).toBeNull();
     expect(denied.headers.get("access-control-allow-credentials")).toBeNull();
   });
+
+  it("answers a CORS preflight with 200", async () => {
+    const request = serve((app) => {
+      registerCors(app, new Set(["https://app.example.com"]));
+    });
+    const res = await request("/api/thing", {
+      method: "OPTIONS",
+      headers: { origin: "https://app.example.com" },
+    });
+    expect(res.status).toBe(200);
+  });
 });
 
 describe("registerBodyParsers", () => {
@@ -156,6 +167,25 @@ describe("registerSecurityHeaders", () => {
       );
       // A separate API host would otherwise be blocked by `connect-src 'self'`.
       expect(csp).toContain("connect-src 'self' https://api.example.com");
+    } finally {
+      if (previous === undefined) delete process.env.EXPO_PUBLIC_API_BASE_URL;
+      else process.env.EXPO_PUBLIC_API_BASE_URL = previous;
+    }
+  });
+
+  it("ignores a malformed API base and keeps connect-src same-origin", async () => {
+    const previous = process.env.EXPO_PUBLIC_API_BASE_URL;
+    process.env.EXPO_PUBLIC_API_BASE_URL = "not a url";
+    try {
+      const request = serve((app) => {
+        registerSecurityHeaders(app);
+        app.get("/api/thing", (_req, res) => res.json({ ok: true }));
+      });
+      const csp = (await request("/api/thing")).headers.get(
+        "content-security-policy",
+      );
+      expect(csp).toContain("connect-src 'self'");
+      expect(csp).not.toContain("not a url");
     } finally {
       if (previous === undefined) delete process.env.EXPO_PUBLIC_API_BASE_URL;
       else process.env.EXPO_PUBLIC_API_BASE_URL = previous;
