@@ -39,6 +39,7 @@ const pushState = vi.hoisted(() => ({
     status: string;
     details?: { error?: string };
   }>,
+  fail: false,
 }));
 
 vi.mock("expo-server-sdk", () => ({
@@ -49,6 +50,7 @@ vi.mock("expo-server-sdk", () => ({
       return [messages];
     }
     async sendPushNotificationsAsync(chunk: unknown) {
+      if (pushState.fail) throw new Error("expo down");
       sent.push(chunk as PushMessage[]);
       return pushState.tickets;
     }
@@ -79,6 +81,7 @@ describe("push-notifications", () => {
     clearPushTokensForTests();
     sent.length = 0;
     pushState.tickets = [{ status: "ok" }];
+    pushState.fail = false;
     vi.clearAllMocks();
     mockedGetDb.mockResolvedValue(dbStub as never);
   });
@@ -364,5 +367,45 @@ describe("push-notifications", () => {
       expect(sent).toHaveLength(1);
       expect(sent[0]![0]!.to).toBe("ExponentPushToken[dbpath]");
     });
+  });
+});
+
+describe("push-notifications failure paths", () => {
+  beforeEach(() => {
+    clearPushTokensForTests();
+    sent.length = 0;
+    pushState.fail = false;
+    vi.clearAllMocks();
+    mockedGetDb.mockResolvedValue(null as never);
+  });
+
+  it("warns when a web push send throws", async () => {
+    await upsertPushToken(
+      "dev-1",
+      JSON.stringify({ endpoint: "https://push.example.com/x" }),
+      "web",
+    );
+    vi.mocked(sendWebPush).mockRejectedValueOnce(new Error("endpoint down"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(sendPushForDevice("dev-1", [event])).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns when the Expo send throws", async () => {
+    await upsertPushToken("dev-1", "ExponentPushToken[abc]", "ios");
+    pushState.fail = true;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(sendPushForDevice("dev-1", [event])).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns and returns when reading the user's tokens fails", async () => {
+    mockedGetDb.mockRejectedValueOnce(new Error("db down"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(sendPushForUser(7, [event])).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

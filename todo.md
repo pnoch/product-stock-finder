@@ -7475,3 +7475,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/routers.ts` was at **92.0%**: `auth.me`'s authenticated mapping and the device-scoped guards (missing device id; malformed/unsupported web push token) were uncovered.
 - [x] New `tests/routers-guards.test.ts` (8 offline tests): `auth.me` returns null signed-out, maps the user without leaking `passwordHash`/`role`, and nulls `lastSignedIn`; `notifications.uploadConfig`/`pull`/`registerPushToken` reject a missing device id; `registerPushToken` rejects malformed JSON and a non-push endpoint.
 - [x] Coverage **92.0% → 95.1%** lines (with DB). Offline `tsc 0`, lint 0 errors / 158 warnings, `3010 passed` / `69 skipped`; DB suite **15 files / 72 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1003: Cover the push-notification failure branches (92% → 94%)
+
+- [x] `server/push-notifications.ts` was at **92.1%**: the web-push send failure, the Expo send failure, and the user-token read failure all lacked tests.
+- [x] Extended `tests/push-notifications.test.ts` (24 → 27 tests, Expo mock gains a failure flag): a throwing web push warns without throwing; a throwing Expo send warns; a failing user-token read warns and returns.
+- [x] Coverage **92.1% → 94.4%** lines. Offline `tsc 0`, lint 0 errors / 158 warnings, `3013 passed` / `69 skipped`; DB suite **15 files / 72 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
