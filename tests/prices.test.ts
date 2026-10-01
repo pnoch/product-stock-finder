@@ -80,6 +80,8 @@ import { listProductsMissingImage } from "../server/product-images";
 import {
   getPrice,
   PRICE_TTL_MS,
+  pLimit,
+  startWarmer,
   warmCatalogRotation,
   warmProductImages,
   runWarmerTick,
@@ -200,6 +202,17 @@ describe("getPrice", () => {
     expect(mockedSetCached).not.toHaveBeenCalled();
   });
 
+  it("swallows a thrown scrape and returns a null snapshot", async () => {
+    mockedGetCached.mockResolvedValue(null);
+    mockedFetch.mockRejectedValueOnce(new Error("boom"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = await getPrice("server2u-my", "CRS804");
+    expect(result).toEqual({ snapshot: null, history: [] });
+    await vi.waitFor(() => expect(warn).toHaveBeenCalled());
+    expect(mockedSetCached).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it("returns null snapshot when no parser exists for the distributor", async () => {
     mockedGetCached.mockResolvedValue(null);
     mockedGetParser.mockReturnValue(undefined);
@@ -277,6 +290,81 @@ describe("warmProductImages", () => {
     const warmed = await warmProductImages(2);
     expect(warmed).toBe(0);
   });
+
+  it("warms up to `count` images from the missing set", async () => {
+    const { listProductsMissingImage, getProductImage } =
+      await import("../server/product-images");
+    vi.mocked(listProductsMissingImage).mockResolvedValue(["a", "b", "c"]);
+    vi.mocked(getProductImage).mockResolvedValue({ imageUrl: "u" });
+    const warmed = await warmProductImages(2);
+    expect(warmed).toBe(2);
+    expect(getProductImage).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("pLimit", () => {
+  it("runs up to the limit and queues the rest", async () => {
+    const limit = pLimit(1);
+    const order: string[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const first = limit(async () => {
+      order.push("a-start");
+      await gate;
+      order.push("a-end");
+    });
+    const second = limit(async () => {
+      order.push("b");
+    });
+    await Promise.resolve();
+    // The second task is queued, not started, while the slot is occupied.
+    expect(order).toEqual(["a-start"]);
+    release();
+    await Promise.all([first, second]);
+    expect(order).toEqual(["a-start", "a-end", "b"]);
+  });
+
+  it("does not leak a slot when a task throws synchronously", async () => {
+    const limit = pLimit(1);
+    await expect(
+      limit(() => {
+        throw new Error("sync");
+      }),
+    ).rejects.toThrow("sync");
+    // The slot was released, so a follow-up task still runs.
+    await expect(limit(async () => "ok")).resolves.toBe("ok");
+  });
+});
+
+describe("startWarmer", () => {
+  it("no-ops under NODE_ENV=test", () => {
+    const stop = startWarmer({ intervalMs: 10 });
+    expect(typeof stop).toBe("function");
+    expect(() => stop()).not.toThrow();
+  });
+
+  it("starts a singleton timer and clears it on cleanup", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("NODE_ENV", "development");
+    vi.mocked(listNearExpiry).mockResolvedValue([]);
+    vi.mocked(getAllFetchedAt).mockResolvedValue([]);
+    vi.mocked(listProductsMissingImage).mockResolvedValue([]);
+    try {
+      const stop = startWarmer({ intervalMs: 5 });
+      // A second call is a no-op that must NOT stop the running timer.
+      const stopAgain = startWarmer({ intervalMs: 5 });
+      expect(() => stopAgain()).not.toThrow();
+      await vi.advanceTimersByTimeAsync(5);
+      stop();
+      // Idempotent cleanup.
+      expect(() => stop()).not.toThrow();
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllEnvs();
+    }
+  });
 });
 
 describe("runWarmerTick", () => {
@@ -292,5 +380,32 @@ describe("runWarmerTick", () => {
     const mockedEvaluate = vi.mocked(evaluateNotifications);
     await runWarmerTick();
     expect(mockedEvaluate).toHaveBeenCalled();
+  });
+
+  it("refreshes near-expiry pairs without throwing", async () => {
+    vi.mocked(listNearExpiry).mockResolvedValue([
+      { distributorId: "server2u-my", modelNumber: "CRS804" },
+    ] as never);
+    mockedGetParser.mockReturnValue(parser);
+    mockedFetch.mockResolvedValue({
+      status: "ok",
+      html: "<html>price</html>",
+      method: "plain",
+    });
+    parser.parsePrice = () => scrapeResult;
+    mockedSetCached.mockResolvedValue(undefined);
+    await runWarmerTick();
+    expect(mockedFetch).toHaveBeenCalled();
+  });
+
+  it("logs and continues when an individual step throws", async () => {
+    vi.mocked(listNearExpiry).mockRejectedValueOnce(new Error("db down"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await runWarmerTick();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Warmer step failed"),
+      expect.anything(),
+    );
+    warn.mockRestore();
   });
 });
