@@ -7403,3 +7403,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/scrapers/utils.ts` was at **88.9%**: `fetchWithRateLimit` (foreground + backgrounded paths, the non-ok throw), `fetchWithParser` (plain vs browser, and the Playwright-unavailable fallback), and the comma-decimal/dot-group `parsePriceFromText` branches were uncovered.
 - [x] Extended `tests/scrapers/utils.test.ts` (28 → 37 tests): foreground 200 body, non-ok throw, backgrounded fetch skipping the delay (and its non-ok throw); `fetchWithParser` plain / browser / browser-fallback; `€ 1.234,56` / `12,5` and `1.299` / `R 12 345.67` price parsing.
 - [x] Coverage **88.9% → 98.9%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2976 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 991: Cover the Playwright pool + Cloudflare handling (80% → 85%)
+
+- [x] `lib/scrapers/browser.ts` was at **79.6%**: the pool's launch-failure rollback and drop-dead-handle-on-release, the Cloudflare wait/timeout branches, the double-navigation failure, the selector-timeout catch, and the node `teardownBrowserSession` were uncovered.
+- [x] Extended `tests/scrapers/browser.test.ts` (11 → 17 tests): a failed `chromium.launch` frees the reserved slot and reports the cause; `release` drops a browser whose `isConnected` throws; a challenge that clears is waited out; a challenge that outlasts the timeout throws `BrowserBlockedError`; both nav attempts failing rethrows; a missing selector is tolerated; teardown still releases when page+context closes throw.
+- [x] Coverage **79.6% → 84.7%** lines (the injected anti-detection `addInitScript` body is unreachable outside a real browser); tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2983 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).

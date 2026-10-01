@@ -138,3 +138,105 @@ describe("fetchWithBrowser", () => {
     );
   });
 });
+
+describe("BrowserPool launch + release failures", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockBrowser.isConnected.mockReturnValue(true);
+  });
+
+  it("reports a launch failure and frees the reserved slot", async () => {
+    const { chromium } = await import("playwright");
+    const { browserPool } = await import("@/lib/scrapers/browser");
+    // Empty the shared pool so acquire must launch rather than reuse.
+    await browserPool.shutdown();
+    const launchMock = vi.mocked(chromium.launch);
+    launchMock.mockRejectedValueOnce(new Error("boom"));
+    await expect(browserPool.acquire()).rejects.toThrow(
+      "Failed to launch browser: boom",
+    );
+    // The failed launch must not leak the reserved slot.
+    const browser = await browserPool.acquire();
+    browserPool.release(browser);
+  });
+
+  it("does not pool a browser whose isConnected throws on release", async () => {
+    const { browserPool } = await import("@/lib/scrapers/browser");
+    await browserPool.shutdown();
+    const browser = await browserPool.acquire();
+    mockBrowser.isConnected.mockImplementationOnce(() => {
+      throw new Error("dead handle");
+    });
+    await expect(browserPool.release(browser)).resolves.toBeUndefined();
+    // A dead browser is dropped, so the next acquire still succeeds.
+    const next = await browserPool.acquire();
+    browserPool.release(next);
+  });
+});
+
+describe("fetchWithBrowser cloudflare handling", () => {
+  beforeEach(() => {
+    mockPage.goto.mockReset().mockResolvedValue(undefined);
+    mockPage.content.mockReset();
+    mockPage.waitForTimeout.mockReset().mockResolvedValue(undefined);
+    mockPage.waitForSelector.mockReset();
+  });
+
+  it("waits out a challenge and returns the resolved page", async () => {
+    mockPage.content
+      .mockResolvedValueOnce("Checking your browser...")
+      .mockResolvedValue("<html>resolved</html>");
+    const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+    await expect(
+      fetchWithBrowser("https://example.com", { timeoutMs: 5000 }),
+    ).resolves.toBe("<html>resolved</html>");
+    expect(mockPage.waitForTimeout).toHaveBeenCalledWith(2000);
+  });
+
+  it("throws when the challenge outlasts the timeout", async () => {
+    mockPage.content.mockResolvedValue("Just a moment...");
+    const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+    await expect(
+      fetchWithBrowser("https://example.com", { timeoutMs: 1 }),
+    ).rejects.toThrow("Cloudflare challenge could not be resolved");
+  });
+
+  it("throws the navigation error after both attempts fail", async () => {
+    mockPage.goto.mockReset().mockRejectedValue(new Error("nav down"));
+    const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+    await expect(fetchWithBrowser("https://example.com")).rejects.toThrow(
+      "nav down",
+    );
+    expect(mockPage.goto).toHaveBeenCalledTimes(2);
+  });
+
+  it("continues when the waited-for selector never appears", async () => {
+    mockPage.content.mockResolvedValue("<html>x</html>");
+    mockPage.waitForSelector.mockRejectedValue(new Error("timeout"));
+    const { fetchWithBrowser } = await import("@/lib/scrapers/browser");
+    await expect(
+      fetchWithBrowser("https://example.com", { waitForSelector: ".nope" }),
+    ).resolves.toBe("<html>x</html>");
+  });
+});
+
+describe("teardownBrowserSession (node)", () => {
+  it("still releases when page and context closes both throw", async () => {
+    const { teardownBrowserSession } = await import("@/lib/scrapers/browser");
+    const page = {
+      close: vi.fn(async () => {
+        throw new Error("page dead");
+      }),
+    };
+    const context = {
+      close: vi.fn(async () => {
+        throw new Error("context dead");
+      }),
+    };
+    const release = vi.fn();
+    await expect(
+      teardownBrowserSession(page, context, release),
+    ).resolves.toBeUndefined();
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+});
