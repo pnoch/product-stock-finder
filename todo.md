@@ -7373,3 +7373,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/user-llm.ts` was at **95.3%**: the unparseable-URL catch, the per-provider default models, the invalid-Ollama-response guard, and the unknown-provider fallback to the built-in LLM were uncovered.
 - [x] Extended `tests/user-llm.test.ts` (16 → 20 tests): `resolveOllamaLocalUrl("not a url") → null`; Ollama Cloud defaults to `gpt-oss:20b` and loopback to `llama3.2`; a non-string content rejects with "Invalid Ollama response"; an unknown provider falls through to `invokeLLM`.
 - [x] Coverage **95.3% → 97.1%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2922 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 986: Cover the notification event builder edge cases (95% → 99%)
+
+- [x] `server/notifications/build-events.ts` was at **95.2%**: the snooze skip, single-distributor alert scoping, rise-below-target skip, distributor-name fallback, and the no-`crypto` event-id fallback were uncovered.
+- [x] New `tests/build-events.test.ts` (5 tests) drives `buildEvents` directly with a stub price lookup: a drop alert queries only its configured distributor; a snoozed alert is skipped without a lookup; a rise alert below target emits nothing; an unknown reminder distributor falls back to its id; `newEventId` yields an `evt-…` fallback without `crypto.randomUUID`.
+- [x] Coverage **95.2% → 99.4%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2927 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
