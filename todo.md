@@ -7343,3 +7343,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] A server coverage pass named `server/storage.ts` (the Forge-presign → S3 direct-PUT helper) as the lowest non-`_core` server file at **3.7%** with **no test importing it**.
 - [x] New `tests/server-storage.test.ts` (6 tests) mocks `ENV` + `fetchWithTimeout`: presign URL/path/auth header, S3 PUT method/content-type/body, and the returned hashed `/storage/{key}`; no-extension key hashing; missing config, non-ok presign, empty presign URL, and failed upload all throw.
 - [x] Coverage **3.7% → 98.1%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2896 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 981: Cover the IPv6 embedded-IPv4 SSRF classification (89% → 92%)
+
+- [x] `server/product-parse.ts` was at **88.9%**: the IPv6 hextet classification in `isPrivateHostname` — IPv4-mapped, NAT64, 6to4, Teredo, link-local/ULA/multicast — was uncovered, i.e. the SSRF guard against metadata reachable over IPv6 had no regression test.
+- [x] Extended `tests/product-parse-ssrf.test.ts` (2 → 15 tests): direct `isBlockedUrl` coverage for the IPv4-mapped metadata address, NAT64 `64:ff9b::`, 6to4/Teredo embedded `127.0.0.1`, link-local/ULA/multicast/loopback/unspecified IPv6, public IPv6 allowed, invalid URLs/non-http/userinfo, and the IPv4 private ranges (with `172.32.x` allowed).
+- [x] Coverage **88.9% → 91.8%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2909 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
