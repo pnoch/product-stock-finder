@@ -7511,3 +7511,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/notifications/evaluate.ts` was at **90.5%**: the user-scoped in-memory digest hold-and-flush merge was uncovered (the existing memory test only used anonymous devices).
 - [x] Extended `tests/server-digest.test.ts` (+1): a user-bound device holds during quiet hours, then flushes a single user-scoped digest (fetched via `pullPendingEvents(deviceId, userId)`).
 - [x] Coverage **90.5% → 93.7%** lines (remaining are paging / duplicate-key / delivery-count edges). Offline `tsc 0`, lint 0 errors / 158 warnings, `3032 passed` / `74 skipped`; DB suite **16 files / 77 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1009: Cover sync rejections + deleteAccount + schema guard (95% → 99%)
+
+- [x] `server/routers.ts` was at **95.1%** (with DB): `sync.push`'s stale-write rejection and future-`deletedAt` clamp, `auth.deleteAccount`, and the circular-data schema refine were uncovered.
+- [x] `tests/sync-e2e.test.ts` (+2): a stale push lands in `rejected` with reason `stale_write`; a far-future `deletedAt` is clamped (the batch is accepted). `tests/routers-guards.test.ts` (+2): `deleteAccount` requires `confirm: "DELETE"`; a circular sync payload is rejected at validation.
+- [x] Coverage **95.1% → 98.7%** (with DB). Offline `tsc 0`, lint 0 errors / 158 warnings, `3034 passed` / `76 skipped`; DB suite **16 files / 79 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.

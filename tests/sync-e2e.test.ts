@@ -350,4 +350,51 @@ describe.skipIf(!runDbTests)("sync e2e", () => {
     await syncDevice(deviceB);
     expect(await deviceB.getWatchlist()).toEqual([]);
   });
+
+  it("reports a stale write in the rejected array", async () => {
+    const now = Date.now();
+    await caller.sync.push({
+      items: [
+        {
+          collection: "watchlist",
+          id: "rej-1",
+          data: { id: "rej-1" },
+          updatedAt: now,
+          deletedAt: null,
+        },
+      ],
+    });
+    const res = await caller.sync.push({
+      items: [
+        {
+          collection: "watchlist",
+          id: "rej-1",
+          data: { id: "rej-1" },
+          updatedAt: now - 1000,
+          deletedAt: null,
+        },
+      ],
+    });
+    expect(res.accepted).toBe(0);
+    expect(res.rejected).toEqual([
+      { collection: "watchlist", id: "rej-1", reason: "stale_write" },
+    ]);
+  });
+
+  it("clamps a future deletedAt instead of rejecting the batch", async () => {
+    const now = Date.now();
+    const res = await caller.sync.push({
+      items: [
+        {
+          collection: "watchlist",
+          id: "future-del",
+          data: { id: "future-del" },
+          updatedAt: now,
+          deletedAt: now + 10 * 24 * 3_600_000,
+        },
+      ],
+    });
+    expect(res.accepted).toBe(1);
+    expect(res.stamped.map((s) => s.id)).toContain("future-del");
+  });
 });

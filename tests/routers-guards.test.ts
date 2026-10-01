@@ -3,7 +3,10 @@ import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
 import { clearRateLimitsForTests } from "../server/rate-limit";
 
-vi.mock("../server/db", () => ({ getDb: vi.fn(async () => null) }));
+vi.mock("../server/db", () => ({
+  getDb: vi.fn(async () => null),
+  deleteUserById: vi.fn(async () => {}),
+}));
 vi.mock("../server/devices", () => ({
   assertDeviceAccess: vi.fn(async () => {}),
 }));
@@ -160,5 +163,37 @@ describe("public data routers", () => {
       .createCaller(ctx())
       .products.parse({ raw: "MikroTik CRS804" });
     expect(res.product).toMatchObject({ name: "Widget", modelNumber: "W1" });
+  });
+});
+
+describe("destructive + validation guards", () => {
+  it("deletes the account only when confirmed", async () => {
+    const res = await appRouter
+      .createCaller(authedCtx(1))
+      .auth.deleteAccount({ confirm: "DELETE" });
+    expect(res).toEqual({ success: true });
+    await expect(
+      appRouter
+        .createCaller(authedCtx(2))
+        .auth.deleteAccount({ confirm: "nope" as never }),
+    ).rejects.toBeTruthy();
+  });
+
+  it("rejects unserializable sync data at validation", async () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    await expect(
+      appRouter.createCaller(authedCtx(1)).sync.push({
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: circular,
+            updatedAt: 1,
+            deletedAt: null,
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
