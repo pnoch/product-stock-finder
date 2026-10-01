@@ -33,6 +33,26 @@ describe("parseOAuthCallbackParams", () => {
   it("redirects home when no ticket or error is present", () => {
     expect(parseOAuthCallbackParams({})).toEqual({ action: "redirect", to: "/" });
   });
+
+  it("takes the first string from array params (duplicated query keys)", () => {
+    expect(
+      parseOAuthCallbackParams({ ticket: ["ticket-abc", "ticket-def"] }),
+    ).toEqual({
+      action: "redeem",
+      ticket: "ticket-abc",
+    });
+    expect(
+      parseOAuthCallbackParams({
+        error: ["access_denied"],
+        error_description: ["nope"],
+      }),
+    ).toEqual({ action: "failed", message: "nope" });
+    // An array with no strings is treated as absent.
+    expect(parseOAuthCallbackParams({ ticket: [1, 2] })).toEqual({
+      action: "redirect",
+      to: "/",
+    });
+  });
 });
 
 describe("redeemOAuthTicket", () => {

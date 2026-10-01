@@ -33,4 +33,28 @@ describe("getOrigin", () => {
     delete process.env.EXPO_PUBLIC_API_BASE_URL;
     expect(getOrigin()).toBe("http://localhost:8081");
   });
+
+  it("derives the origin from the API base URL and remaps port 3000", () => {
+    delete process.env.EXPO_PUBLIC_WEB_URL;
+    process.env.EXPO_PUBLIC_API_BASE_URL = "http://api.example.com:3000/api";
+    expect(getOrigin()).toBe("http://api.example.com:8081");
+  });
+
+  it("keeps a non-3000 API port and strips the path", () => {
+    delete process.env.EXPO_PUBLIC_WEB_URL;
+    process.env.EXPO_PUBLIC_API_BASE_URL = "https://api.example.com:8443/trpc";
+    expect(getOrigin()).toBe("https://api.example.com:8443");
+  });
+
+  it("falls back to localhost for an unparseable API base URL", () => {
+    delete process.env.EXPO_PUBLIC_WEB_URL;
+    process.env.EXPO_PUBLIC_API_BASE_URL = "not a url";
+    expect(getOrigin()).toBe("http://localhost:8081");
+  });
+
+  it("falls back to localhost for a non-http API base URL", () => {
+    delete process.env.EXPO_PUBLIC_WEB_URL;
+    process.env.EXPO_PUBLIC_API_BASE_URL = "ftp://api.example.com";
+    expect(getOrigin()).toBe("http://localhost:8081");
+  });
 });

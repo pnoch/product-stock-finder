@@ -7415,3 +7415,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/launch-seed.ts` (89.6%) and `lib/recent-searches.ts` (89.1%) were missing only their error/edge branches.
 - [x] Extended `tests/launch-seed.test.ts` (→ +2): logs and gives up when the watchlist cannot be read; continues seeding the rest after a per-product failure. Extended `tests/recent-searches.test.ts` (+3): a throwing `getItem`/`setItem`/`removeItem` never breaks read/record/clear.
 - [x] Coverage **launch-seed 89.6% → 97.9%**, **recent-searches 89.1% → 97.8%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2988 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 993: Cover the remaining helper edge branches
+
+- [x] `server/routers.ts` was at **89%**: the `getOrigin` API-base-URL branch (port 3000 remap, non-3000, unparseable, non-http) was uncovered; the rest of the file's gaps are DB-gated.
+- [x] `lib/web-notifications.ts` (90.4%): permission-request throw, notification `onclick`, constructor throw, auth-lookup throw, and the focus-triggered poll. `lib/device-revoked.ts` (90.6%): the returned deregister. `lib/history-sync.ts` (90.3%): a throwing watchlist read. `lib/oauth-callback.ts` (90.2%): array query params.
+- [x] Extended the corresponding tests (share-origin, web-notifications, device-revoked, history-sync, oauth-callback); each module is now ~97-99% (only the import line remains). Tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `3000 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).

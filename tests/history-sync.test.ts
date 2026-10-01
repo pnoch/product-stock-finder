@@ -28,6 +28,7 @@ vi.mock("@/constants/oauth", () => ({
 }));
 
 import { backfillLocalHistory } from "../lib/history-sync";
+import { getWatchlist } from "../lib/storage";
 
 function makeProduct(modelNumber: string, historyLength: number): Product {
   const points = Array.from({ length: historyLength }, (_, i) => ({
@@ -127,5 +128,10 @@ describe("backfillLocalHistory", () => {
     vi.mocked(uploadServerHistory).mockRejectedValueOnce(new Error("network"));
     const count = await backfillLocalHistory();
     expect(count).toBe(0);
+  });
+
+  it("returns 0 when reading the watchlist throws", async () => {
+    vi.mocked(getWatchlist).mockRejectedValueOnce(new Error("storage down"));
+    await expect(backfillLocalHistory()).resolves.toBe(0);
   });
 });

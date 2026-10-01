@@ -6,10 +6,12 @@ const state = vi.hoisted(() => ({
   permission: "default" as NotificationPermission,
   requestResult: "granted" as NotificationPermission,
   displayed: [] as Array<{ title: string; body: string }>,
+  instances: [] as Array<{ onclick: (() => void) | null; close: () => void }>,
   syncCalls: 0,
   webNotificationsEnabled: false,
   recordedEventIds: [] as string[],
   authenticated: true,
+  authThrows: false,
 }));
 
 vi.mock("react-native", () => ({
@@ -46,8 +48,9 @@ vi.mock("../lib/server-notifications", () => ({
 }));
 
 vi.mock("../lib/_core/auth", () => ({
-  getUserInfo: vi.fn(async () =>
-    state.authenticated
+  getUserInfo: vi.fn(async () => {
+    if (state.authThrows) throw new Error("auth backend down");
+    return state.authenticated
       ? ({
           id: 1,
           openId: "open-1",
@@ -56,8 +59,8 @@ vi.mock("../lib/_core/auth", () => ({
           loginMethod: null,
           lastSignedIn: new Date(),
         } as const)
-      : null,
-  ),
+      : null;
+  }),
 }));
 
 vi.mock("../lib/web-push", () => ({
@@ -87,6 +90,7 @@ class MockNotification {
     this.title = title;
     this.body = options?.body ?? "";
     state.displayed.push({ title: this.title, body: this.body });
+    state.instances.push(this);
   }
 }
 
@@ -105,6 +109,8 @@ describe("web notifications", () => {
     // @ts-expect-error jsdom has no Notification
     window.Notification = MockNotification;
     state.recordedEventIds = [];
+    state.instances = [];
+    state.authThrows = false;
     const serviceWorkerListeners: Record<
       string,
       Array<(event: MessageEvent) => void>
@@ -278,6 +284,69 @@ describe("web notifications", () => {
     state.authenticated = true;
     await vi.advanceTimersByTimeAsync(60_000);
     expect(state.syncCalls).toBe(1);
+    cleanup();
+  });
+
+  it("returns denied when the permission request throws", async () => {
+    MockNotification.requestPermission.mockRejectedValueOnce(
+      new Error("blocked by policy"),
+    );
+    await expect(requestWebNotificationPermission()).resolves.toBe("denied");
+  });
+
+  it("focuses the window and closes the notification on click", () => {
+    state.permission = "granted";
+    MockNotification.permission = "granted";
+    const focus = vi.spyOn(window, "focus").mockImplementation(() => {});
+    displayWebNotification("T", "B");
+    const notification = state.instances.at(-1)!;
+    notification.onclick?.();
+    expect(focus).toHaveBeenCalled();
+    expect(notification.close).toHaveBeenCalled();
+    focus.mockRestore();
+  });
+
+  it("returns false when the Notification constructor throws", () => {
+    const original = window.Notification;
+    class Thrower {
+      static permission = "granted";
+      constructor() {
+        throw new Error("constructor blocked");
+      }
+    }
+    // @ts-expect-error test double
+    window.Notification = Thrower;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(displayWebNotification("T", "B")).toBe(false);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+    window.Notification = original;
+  });
+
+  it("polls when the window regains focus", async () => {
+    state.webNotificationsEnabled = true;
+    state.permission = "granted";
+    MockNotification.permission = "granted";
+    vi.useFakeTimers();
+    const cleanup = setupWebNotifications();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(state.syncCalls).toBe(0);
+    window.dispatchEvent(new Event("focus"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(state.syncCalls).toBe(1);
+    cleanup();
+  });
+
+  it("does not poll when the auth lookup throws", async () => {
+    state.authThrows = true;
+    state.webNotificationsEnabled = true;
+    state.permission = "granted";
+    MockNotification.permission = "granted";
+    vi.useFakeTimers();
+    const cleanup = setupWebNotifications();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(state.syncCalls).toBe(0);
     cleanup();
   });
 });

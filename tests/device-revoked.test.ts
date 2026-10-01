@@ -222,4 +222,14 @@ describe("lib/device-revoked", () => {
     await handleDeviceRevoked();
     expect(handler).toHaveBeenCalledTimes(2);
   });
+
+  it("stops firing the handler after the returned deregister runs", async () => {
+    const handler = vi.fn();
+    const deregister = registerDeviceRevokedHandler(handler);
+    deregister();
+    await handleDeviceRevoked();
+    // Local cleanup still happens, but the stale handler is not invoked.
+    expect(mockedRemove).toHaveBeenCalledTimes(1);
+    expect(handler).not.toHaveBeenCalled();
+  });
 });
