@@ -7156,3 +7156,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] **`maybeSendDigest`:** honours the master `notificationsEnabled` toggle (undefined counts as enabled) and quiet hours (defers, retries next tick); weekly gate compares **calendar days** (DST-safe) and requires the configured day; invalid `lastDigestAt` skips the interval check but still respects the weekly day gate; the snapshot advances **only when the notification was delivered** (advancing on a skipped/failed send delayed the next digest a full interval).
 - [x] No code change; tree unchanged from Phase 949 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 951: Digest snapshot/state audit (clean)
+
+- [x] **`productState`:** guards a malformed row (`listings ?? []`); uses `getBestPrice` (display currency) and the canonical `productStatus` rollup so the digest agrees with the watchlist card (the old inline logic reported "unknown" for a mixed out_of_stock+unknown product, a spurious stock change).
+- [x] **`buildSummary`:** partitions every product into exactly one bucket.
+- [x] **`buildDigestSnapshot`:** records `lastDigestAt`, `displayCurrency`, and per-product state.
+- [x] No code change; tree unchanged from Phase 950 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
