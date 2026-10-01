@@ -7135,3 +7135,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Gap found:** the desktop `testLlmConnection` (Settings "Test connection") had **no timeout**, while mobile's wraps the call in `withTimeout(…, 20_000)`. An unreachable server would hang the button until the OS TCP timeout.
 - [x] **Fix:** wrapped the desktop call in the shared `withTimeout(…, 20_000)`. Added `desktop/tests/server-llm.test.ts` (success, auth failure, throw, and a fake-timer timeout case). Proven non-vacuous: removing the timeout fails the timeout case.
 - [x] Verified: root `tsc 0`, lint 0 errors / 158 warnings (baseline); **2689 passed**; desktop `tsc 0`, **304 passed**; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 948: Mobile/desktop pair parity audit (clean)
+
+- [x] **`server-prices.ts`:** intentionally different — mobile's `fetchServerPrice` (4s timeout, background-direct path via `backgroundFetch`) vs desktop's `fetchListingsWithTimeout` (20s, injected client, per-listing). Both clear their timer in `finally`.
+- [x] **`notification-routing.ts`:** desktop *imports* the shared `notificationRouteFor` (no duplication) and layers `resolveEventRoute`.
+- [x] **`device-id.ts`:** platform variants (AsyncStorage vs localStorage) with identical logic (crypto.randomUUID + in-memory fallback).
+- [x] **`server-llm.ts`:** fixed in Phase 947 (desktop now has the 20s timeout).
+- [x] **`web-push.ts`:** parity-guarded in Phase 946.
+- [x] No code change; tree unchanged from Phase 947 (`tsc 0`, lint 0 errors / 158 warnings, `2689 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
