@@ -7337,3 +7337,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/storage/digest-fx.ts` was at **85.9%**: `savePriceDigestSnapshot` and the corrupt-JSON catch in `getPriceDigestSnapshot` were uncovered.
 - [x] New `tests/storage-digest-fx.test.ts` (9 tests) with a Map-backed `createStorage`: snapshot round-trip; null when absent / non-array `products` / corrupt JSON; FX rates round-trip; null when absent; non-finite rates dropped + missing `fetchedAt` defaulted to 0; null when no rate is usable / corrupt JSON.
 - [x] Coverage **85.9% → 98.4%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2890 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
+
+## Phase 980: Cover the server S3 upload helper (4% → 98%)
+
+- [x] A server coverage pass named `server/storage.ts` (the Forge-presign → S3 direct-PUT helper) as the lowest non-`_core` server file at **3.7%** with **no test importing it**.
+- [x] New `tests/server-storage.test.ts` (6 tests) mocks `ENV` + `fetchWithTimeout`: presign URL/path/auth header, S3 PUT method/content-type/body, and the returned hashed `/storage/{key}`; no-extension key hashing; missing config, non-ok presign, empty presign URL, and failed upload all throw.
+- [x] Coverage **3.7% → 98.1%** lines; tests only, no source change (`tsc 0`, lint 0 errors / 158 warnings, `2896 passed`; desktop `304`; `cargo test` 72, clippy 0, fmt clean).
