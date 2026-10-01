@@ -21,8 +21,10 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
 import {
   getDiscoveredProducts,
   addDiscoveredProduct,
+  saveDiscoveredProducts,
   getDiscoveredDistributors,
   addDiscoveredDistributor,
+  saveDiscoveredDistributors,
   saveBackgroundTaskInterval,
   getBackgroundTaskInterval,
 } from "../lib/storage";
@@ -116,6 +118,48 @@ describe("discovery storage", () => {
     const distributors = await getDiscoveredDistributors();
     expect(distributors).toHaveLength(1);
   });
+
+  it("overwrites the discovered products list", async () => {
+    await saveDiscoveredProducts([
+      { ...mockProduct, id: "a" },
+      { ...mockProduct, id: "b" },
+    ]);
+    expect((await getDiscoveredProducts()).map((p) => p.id)).toEqual([
+      "a",
+      "b",
+    ]);
+  });
+
+  it("appends products without a model instead of cross-deduping", async () => {
+    const noModel = { ...mockProduct, modelNumber: "", brand: "X" };
+    await addDiscoveredProduct({ ...noModel, id: "n1" });
+    await addDiscoveredProduct({ ...noModel, id: "n2" });
+    expect((await getDiscoveredProducts()).map((p) => p.id)).toEqual([
+      "n1",
+      "n2",
+    ]);
+  });
+
+  it("overwrites the discovered distributors list", async () => {
+    await saveDiscoveredDistributors([
+      mockDistributor,
+      { ...mockDistributor, id: "d2" },
+    ]);
+    expect((await getDiscoveredDistributors()).map((d) => d.id)).toEqual([
+      "test-distributor-1",
+      "d2",
+    ]);
+  });
+
+  it("caps discovered distributors at 200, keeping the newest", async () => {
+    for (let i = 0; i < 201; i++) {
+      await addDiscoveredDistributor({ ...mockDistributor, id: `d${i}` });
+    }
+    const distributors = await getDiscoveredDistributors();
+    expect(distributors).toHaveLength(200);
+    expect(distributors[0]!.id).toBe("d1");
+    expect(distributors.at(-1)!.id).toBe("d200");
+  });
 });
 
 describe("background task interval markers", () => {
@@ -129,5 +173,17 @@ describe("background task interval markers", () => {
     ]);
     expect(await getBackgroundTaskInterval("price-drop-check")).toBe(60);
     expect(await getBackgroundTaskInterval("health-probe")).toBe(60);
+  });
+
+  it("returns null for corrupt interval data", async () => {
+    store.set("background_task_interval", "not-json");
+    expect(await getBackgroundTaskInterval("price-drop-check")).toBeNull();
+  });
+
+  it("drops a marker when saved as null and removes the emptied key", async () => {
+    await saveBackgroundTaskInterval(60, "price-drop-check");
+    await saveBackgroundTaskInterval(null, "price-drop-check");
+    expect(await getBackgroundTaskInterval("price-drop-check")).toBeNull();
+    expect(store.has("background_task_interval")).toBe(false);
   });
 });
