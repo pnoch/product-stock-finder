@@ -7487,3 +7487,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/http-middleware.ts` (94.2%): CORS preflight and a malformed API base. Extended `tests/http-middleware.test.ts` (→ 2 tests): an `OPTIONS` preflight answers 200; a malformed `EXPO_PUBLIC_API_BASE_URL` is ignored so `connect-src` stays same-origin. Coverage **94.2% → 98.9%**.
 - [x] `server/price-insights.ts` (93.2%): the DB read/write cache, clear, and orphan purge. New `tests/price-insights-db.test.ts` (5 DB-gated tests, LLM mocked): generate + DB cache + serve cache next time; null without price data; `clearInsightsForTests` deletes rows; `purgeOrphanedInsights` drops non-catalog rows; a stale row is a miss. Coverage **93.2% → 96.3%**.
 - [x] Offline `tsc 0`, lint 0 errors / 158 warnings, `3015 passed` / `74 skipped`; DB suite now **16 files / 77 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1005: Cover the server/db.ts no-database fallbacks (86% → 88%)
+
+- [x] `server/db.ts` was at **86.3%**: every `if (!db)` fallback was untested (offline tests mock the module; DB tests use a live pool, so neither hit them).
+- [x] New `tests/db-offline-null.test.ts` (5 offline tests, real module with `DATABASE_URL` removed + `closeDb()`): `getDb` null + `affectedRowsOf`; user helpers no-op/return null (incl. the openId guard); single-use + expiry-checked password-reset and email-verification memory tokens; `purgeExpiredAuthTokens` clears used/expired memory rows.
+- [x] Coverage **86.3% → 88.2%** lines (remaining are DB-op throw catches). Offline `tsc 0`, lint 0 errors / 158 warnings, `3020 passed` / `74 skipped`; DB suite **16 files / 77 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
