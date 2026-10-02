@@ -258,6 +258,7 @@ export function NotificationsSection({
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
+            editable={isAuthenticated}
             accessibilityLabel="Webhook URL"
             style={{
               borderWidth: 1,

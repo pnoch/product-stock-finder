@@ -52,6 +52,7 @@ function neutralizeMentions(text: string): string {
   return text
     .replace(/@everyone/gi, "@\u200beveryone")
     .replace(/@here/gi, "@\u200bhere")
+    .replace(/@channel/gi, "@\u200bchannel")
     .replace(/<@[^>]*>/g, "[mention]")
     .replace(/<!([^>]+)>/g, "[$1]");
 }

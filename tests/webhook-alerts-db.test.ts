@@ -11,7 +11,7 @@ process.env.EXPO_PUBLIC_WEB_URL = "https://app.example.com";
 const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
 vi.stubGlobal("fetch", fetchMock);
 
-import { deliverWebhookForEvent, purgeOldWebhookLog } from "../server/notifications/webhook-alerts";
+import { deliverWebhookForEvent, purgeOldWebhookLog, sendTestWebhook } from "../server/notifications/webhook-alerts";
 
 async function setWebhookConfig(userId: number, enabled: boolean, url: string) {
   const db = await getDb();
@@ -119,5 +119,16 @@ describe.skipIf(!runDbTests)("webhook alerts delivery (DB)", () => {
     await deliverWebhookForEvent(userId, event);
     await deliverWebhookForEvent(userId, event);
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("test send does not write the webhook log or consume the cap", async () => {
+    await setWebhookConfig(userId, true, VALID_URL);
+    const result = await sendTestWebhook(VALID_URL);
+    expect(result.ok).toBe(true);
+    const db = await getDb();
+    const rows = await db!
+      .select({ dedupKey: notificationWebhookLog.dedupKey })
+      .from(notificationWebhookLog);
+    expect(rows).toHaveLength(0);
   });
 });

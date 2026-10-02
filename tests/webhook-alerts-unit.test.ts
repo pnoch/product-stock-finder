@@ -59,12 +59,13 @@ describe("buildWebhookPayload", () => {
   });
 
   it("neutralizes Slack mention formats", () => {
-    const slack = buildWebhookPayload("slack", "<@U012AB3CD> <@U123|name> <!subteam^S123> @here") as {
+    const slack = buildWebhookPayload("slack", "<@U012AB3CD> <@U123|name> <!subteam^S123> @here @channel") as {
       text: string;
     };
     expect(slack.text).not.toContain("<@");
     expect(slack.text).not.toContain("<!");
     expect(slack.text).not.toContain("@here");
+    expect(slack.text).not.toContain("@channel");
     expect(slack.text).toContain("[mention]");
     expect(slack.text).toContain("[subteam^S123]");
   });
