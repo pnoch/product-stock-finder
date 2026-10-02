@@ -13,7 +13,7 @@ import { useToast } from "../hooks/use-toast";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import { runDiscoveryBatch } from "../../../lib/bulk-discovery";
 import { nextTagColor } from "../../../lib/tags";
-import type { TagDefinition } from "../../../lib/types";
+import type { TagDefinition, DistributorListing } from "../../../lib/types";
 
 import { RECENT_KEY, loadRecent, recordRecent, type CatalogSort, CATALOG_SORT_OPTIONS, PillFilterRow } from "./search-chrome";
 
@@ -203,31 +203,39 @@ export function SearchModal({
           results[i]!.status === "fulfilled" &&
           (results[i] as PromiseFulfilledResult<boolean>).value === true,
       );
+      setTrackedIds((prev) => new Set([...prev, ...added.map((p) => p.id)]));
+      setBulkText("");
+      setBulkOpen(false);
+      const failed = bulkNew.length - added.length;
+      showToast(failed > 0 ? `Imported ${added.length} · ${failed} failed` : `Imported ${added.length} product${added.length !== 1 ? "s" : ""}`);
+      // Settle the import UI before the (slow) discovery loop so the dialog is
+      // not frozen on "Importing…" with no feedback while batches run.
+      setBulkImporting(false);
       let discovered = 0;
       if (added.length > 0) {
         const items = added.map((p) => ({ productId: p.id, modelNumber: p.modelNumber }));
+        const rediscoverStorage = {
+          updateProductListings: (pid: string, listings: DistributorListing[]) =>
+            storage.updateProductListings(pid, listings),
+        };
         let next = 0;
         while (next < items.length) {
           const res = await runDiscoveryBatch({
             items,
             startIndex: next,
-            storage,
+            storage: rediscoverStorage,
             discover: discoverListings,
           });
           next = res.nextIndex;
           discovered += res.discovered;
           if (next < items.length) {
-            const go = window.confirm(`Fetch prices for the remaining ${items.length - next} product(s)?`);
+            const remaining = items.length - next;
+            const go = window.confirm(`Fetch prices for the remaining ${remaining} product${remaining === 1 ? "" : "s"}?`);
             if (!go) break;
           }
         }
       }
-      setTrackedIds((prev) => new Set([...prev, ...added.map((p) => p.id)]));
-      setBulkText("");
-      setBulkOpen(false);
-      const failed = bulkNew.length - added.length;
-      const found = discovered > 0 ? ` · ${discovered} listings found` : "";
-      showToast((failed > 0 ? `Imported ${added.length} · ${failed} failed` : `Imported ${added.length} product${added.length !== 1 ? "s" : ""}`) + found);
+      if (discovered > 0) showToast(`Found ${discovered} listing${discovered === 1 ? "" : "s"}`);
     } finally { setBulkImporting(false); }
   };
 
