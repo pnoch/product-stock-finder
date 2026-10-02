@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { sendDesktopNotification } from "../src/notifications";
 
 vi.mock("@tauri-apps/api/core", () => ({
+  isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri,
   invoke: vi.fn(),
 }));
 

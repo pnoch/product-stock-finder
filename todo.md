@@ -7632,3 +7632,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Kept 11 new bounded overrides (`postcss`, `fast-uri`, `esbuild`, `qs`, `ajv`, `yaml`, `@babel/core`, `body-parser`, `decode-uri-component`, `postcss-selector-parser`, `@humanfs/node`) plus `uuid → 11.1.1`, merged with the existing hardening block.
 - [x] Verified against the build, not just tests: `pnpm build:web` (Metro) and the esbuild server bundle both succeed; root `3085 passed`, desktop `304`, DB `87`, `tsc 0`, lint 0 errors.
 - [x] `pnpm audit`: 18 → **3** (all high). Tried `image-size → 2.0.3`: it **breaks Metro** (`TypeError: The "list" argument must be…`), so it was reverted; `node-forge` has no patched version (`<0.0.0`). Both are Expo/Metro build-time transitives with no safe fix available.
+
+## Phase 1027: Tauri global-API hardening (`withGlobalTauri: false`)
+
+- [x] The renderer only used `window.__TAURI__` for **detection**; all real IPC already imported `@tauri-apps/api/core`. The old build also set `app.withGlobalTauri: true`, exposing the whole `window.__TAURI__` surface to any webview script.
+- [x] Set `withGlobalTauri: false` in `desktop/src-tauri/tauri.conf.json` and migrated every detection site to `isTauri()` from `@tauri-apps/api/core` via a shared `desktop/src/lib/tauri.ts`: `storage.ts`, `hooks/use-auth.ts`, `pages/{Compare,DistributorAnalysis,Settings,ProductDetail}.tsx`.
+- [x] Updated the desktop test mocks of `@tauri-apps/api/core` to expose a global-reading `isTauri`; tests now toggle `globalThis.isTauri` instead of `window.__TAURI__` (15 files).
+- [x] New `tests/desktop-tauri-security.test.ts` (3 guards): `withGlobalTauri` is false, no `__TAURI__` remains anywhere under `desktop/src/`, and detection goes through the shared `isTauri()` helper.
+- [x] Verified: desktop `304` tests, root `3088 passed` / `84 skipped`, DB `87`, `cargo test` 72 / clippy 0 / fmt clean, `tsc 0` (root + desktop), lint 0 errors, and the desktop renderer bundling (`tsc && vite build`) succeeds. The actual webview effect still warrants a packaged build on a real machine.

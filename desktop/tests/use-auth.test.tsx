@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 
 vi.mock("@tauri-apps/api/core", () => ({
+  isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri,
   invoke: vi.fn(),
 }));
 

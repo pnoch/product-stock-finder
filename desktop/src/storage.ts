@@ -1,6 +1,8 @@
 import { createStorage } from "../../lib/storage";
 
-const isTauri = typeof window !== "undefined" && (window as unknown as { __TAURI__?: unknown }).__TAURI__ !== undefined;
+import { isTauri as detectTauri } from "./lib/tauri";
+
+const isTauri = detectTauri();
 
 const localStorageAdapter = {
   getItem: async (key: string) => localStorage.getItem(key),

@@ -31,6 +31,7 @@ vi.mock("../src/lib/trpc", () => ({
 
 const mockTauriInvoke = vi.hoisted(() => vi.fn());
 vi.mock("@tauri-apps/api/core", () => ({
+  isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri,
   invoke: mockTauriInvoke,
 }));
 
@@ -79,7 +80,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
-  delete (window as unknown as { __TAURI__?: boolean }).__TAURI__;
+  delete (window as unknown as { isTauri?: boolean }).isTauri;
 });
 
 describe("insight loading skeleton", () => {
@@ -108,7 +109,7 @@ describe("insight loading skeleton", () => {
 describe("tauri insight fetch", () => {
   it("times out a hung Tauri insight fetch", async () => {
     vi.useFakeTimers();
-    (window as unknown as { __TAURI__?: boolean }).__TAURI__ = true;
+    (window as unknown as { isTauri?: boolean }).isTauri = true;
     mockTauriInvoke.mockReturnValue(new Promise(() => {}));
     renderProductDetail();
 
@@ -134,7 +135,7 @@ describe("tauri insight fetch", () => {
   });
 
   it("logs Tauri insight fetch failures", async () => {
-    (window as unknown as { __TAURI__?: boolean }).__TAURI__ = true;
+    (window as unknown as { isTauri?: boolean }).isTauri = true;
     mockTauriInvoke.mockRejectedValue(new Error("boom"));
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {

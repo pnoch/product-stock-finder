@@ -31,6 +31,7 @@ vi.mock("../src/lib/trpc", () => ({
 
 const mockTauriInvoke = vi.hoisted(() => vi.fn());
 vi.mock("@tauri-apps/api/core", () => ({
+  isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri,
   invoke: mockTauriInvoke,
 }));
 

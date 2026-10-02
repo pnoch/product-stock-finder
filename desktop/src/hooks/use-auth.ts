@@ -1,3 +1,4 @@
+import { isTauri } from "../lib/tauri";
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getApiBaseUrl, getAppId, getOAuthPortalUrl } from "../lib/api-base";
@@ -287,10 +288,7 @@ export function useAuth() {
     setLoading(true);
     setError(null);
     try {
-      const isTauri =
-        typeof window !== "undefined" &&
-        (window as unknown as { __TAURI__?: unknown }).__TAURI__;
-      if (!isTauri) {
+      if (!isTauri()) {
         const webUrl = await buildWebLoginUrl();
         if (!webUrl) {
           setError("OAuth portal is not configured");

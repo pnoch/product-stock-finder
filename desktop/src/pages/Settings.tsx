@@ -1,3 +1,4 @@
+import { isTauri } from "../lib/tauri";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import {
@@ -924,7 +925,7 @@ export function Settings() {
       ]);
       const csv = watchlistToCsv(watchlist, appSettings.displayCurrency ?? "USD");
       const fileName = `product-stock-finder-watchlist-${new Date().toISOString().slice(0, 10)}.csv`;
-      if (typeof window !== "undefined" && (window as unknown as { __TAURI__?: unknown }).__TAURI__) {
+      if (isTauri()) {
         const { save } = await import("@tauri-apps/plugin-dialog");
         const { writeFile } = await import("@tauri-apps/plugin-fs");
         const filePath = await save({ defaultPath: fileName, filters: [{ name: "CSV", extensions: ["csv"] }] });
@@ -962,7 +963,7 @@ export function Settings() {
       ]);
       const json = buildBackup({ watchlist, alerts, reminders, stockWatches, settings });
       const fileName = `product-stock-finder-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      if (typeof window !== "undefined" && (window as unknown as { __TAURI__?: unknown }).__TAURI__) {
+      if (isTauri()) {
         const { save } = await import("@tauri-apps/plugin-dialog");
         const { writeFile } = await import("@tauri-apps/plugin-fs");
         const filePath = await save({ defaultPath: fileName, filters: [{ name: "JSON", extensions: ["json"] }] });
@@ -992,7 +993,7 @@ export function Settings() {
   const handleImportBackup = useCallback(async () => {
     try {
       let contents: string | null = null;
-      if (typeof window !== "undefined" && (window as unknown as { __TAURI__?: unknown }).__TAURI__) {
+      if (isTauri()) {
         const { open } = await import("@tauri-apps/plugin-dialog");
         const { readFile } = await import("@tauri-apps/plugin-fs");
         const picked = await open({ filters: [{ name: "JSON", extensions: ["json"] }], multiple: false });

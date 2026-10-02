@@ -1,3 +1,4 @@
+import { isTauri } from "../lib/tauri";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useSearchParams, Link } from "react-router";
 import { storage } from "../storage";
@@ -544,7 +545,7 @@ export function Compare() {
         modelNumber: product.modelNumber ?? product.id,
       });
       const fileName = `${product.id}-price-history-${new Date().toISOString().slice(0, 10)}.csv`;
-      if (typeof window !== "undefined" && (window as unknown as { __TAURI__?: unknown }).__TAURI__) {
+      if (isTauri()) {
         const { save } = await import("@tauri-apps/plugin-dialog");
         const { writeFile } = await import("@tauri-apps/plugin-fs");
         const filePath = await save({ defaultPath: fileName, filters: [{ name: "CSV", extensions: ["csv"] }] });
