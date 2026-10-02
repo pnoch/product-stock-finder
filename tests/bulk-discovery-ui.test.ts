@@ -20,4 +20,12 @@ describe("bulk discovery UI", () => {
     expect(screen).toContain("onFindPrices={handleFindPrices}");
     expect(screen).toContain("timedOut");
   });
+
+  it("watchlist card offers a no-prices repair CTA (mobile)", () => {
+    const card = readFileSync("components/watchlist/product-card.tsx", "utf8");
+    expect(card).toContain("onFindPrices");
+    expect(card).toContain("No prices — Find");
+    const screen = readFileSync("app/(tabs)/watchlist.tsx", "utf8");
+    expect(screen).toContain("onFindPrices={");
+  });
 });
