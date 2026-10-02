@@ -6,11 +6,12 @@ import {
   getStockWatches,
   subscribeToStorageChanges,
 } from "@/lib/storage";
-import { countActiveAlerts } from "@/lib/alert-state";
+import { countOpenAlerts } from "@/lib/alert-state";
 
 /**
- * Returns the total count of active items for the Alerts tab badge:
- * - Active, non-triggered price alerts
+ * Returns the total count of items the Alerts tab lists, so the badge matches
+ * the cards shown (armed + snoozed + paused):
+ * - Every non-triggered price alert
  * - Scheduled back-order date reminders
  * - Active back-in-stock watches
  *
@@ -31,13 +32,14 @@ export function useAlertBadge(): number {
       getBackOrderReminders().catch(() => []),
       getStockWatches().catch(() => []),
     ]);
-    // Shared predicate so the badge, the Home stat card, and the in-screen
-    // "N alerts" count always agree.
-    const activeAlerts = countActiveAlerts(alerts);
-    const activeReminders = reminders.length;
-    const activeWatches = watches.length;
+    // `countOpenAlerts` (not `countActiveAlerts`): the Alerts tab renders every
+    // non-triggered alert as a card, so the badge must match those cards. The
+    // Home "Active Alerts" stat keeps the stricter armed predicate.
+    const openAlerts = countOpenAlerts(alerts);
+    const reminderCount = reminders.length;
+    const watchCount = watches.length;
     if (mountedRef.current) {
-      setCount(activeAlerts + activeReminders + activeWatches);
+      setCount(openAlerts + reminderCount + watchCount);
     }
   }, []);
 

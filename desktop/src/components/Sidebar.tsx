@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router";
 import { storage } from "../storage";
-import { countActiveAlerts } from "../../../lib/alert-state";
+import { countOpenAlerts } from "../../../lib/alert-state";
 import {
   LayoutDashboard,
   List,
@@ -36,19 +36,19 @@ export function Sidebar() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Match the mobile Alerts tab badge (hooks/use-alert-badge): active
-        // price alerts + date reminders + restock watches, all sharing the
-        // canonical countActiveAlerts predicate. The desktop previously counted
-        // *unread notifications* here — a different sub-tab's data — so the two
-        // platforms disagreed. Unread stays visible on the Alerts page's
-        // Notifications sub-tab.
+        // Match the mobile Alerts tab badge (hooks/use-alert-badge): every
+        // non-triggered price alert (countOpenAlerts, so the badge matches the
+        // cards the Alerts page renders) + date reminders + restock watches.
+        // The desktop previously counted *unread notifications* here — a
+        // different sub-tab's data — so the two platforms disagreed. Unread
+        // stays visible on the Alerts page's Notifications sub-tab.
         const [alerts, reminders, watches] = await Promise.all([
           storage.getAlerts(),
           storage.getBackOrderReminders(),
           storage.getStockWatches(),
         ]);
         setAlertsBadge(
-          countActiveAlerts(alerts) + reminders.length + watches.length,
+          countOpenAlerts(alerts) + reminders.length + watches.length,
         );
       } catch {
         // best-effort — badge stays hidden

@@ -10,12 +10,11 @@ describe("desktop notification history", () => {
     expect(app).toContain("price-drops-triggered");
   });
 
-  it("badges the sidebar with the same active-item count as mobile", async () => {
-    // QA round 281: the sidebar used to count unread notifications (a different
-    // sub-tab's data) while mobile's Alerts tab badge counted active alerts +
-    // reminders + watches. They now share the mobile semantics.
+  it("badges the sidebar with the same count as the mobile Alerts tab badge", async () => {
+    // The badge matches the cards the Alerts page renders (countOpenAlerts:
+    // armed + snoozed + paused), not the stricter Home "Active Alerts" stat.
     const text = await readFile("desktop/src/components/Sidebar.tsx", "utf8");
-    expect(text).toContain("countActiveAlerts(alerts)");
+    expect(text).toContain("countOpenAlerts(alerts)");
     expect(text).toContain("storage.getBackOrderReminders()");
     expect(text).toContain("storage.getStockWatches()");
     expect(text).not.toContain("getNotificationHistory");

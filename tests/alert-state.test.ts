@@ -26,8 +26,9 @@ describe("isAlertActive", () => {
     expect(isAlertActive(alert({ triggeredAt: "2026-09-02T00:00:00.000Z" }), NOW)).toBe(false);
   });
 
-  // The Home stat card, the Alerts tab badge, and the tab counter must agree:
-  // a snoozed alert is not currently armed.
+  // The Home "Active Alerts" stat uses the armed predicate: a snoozed alert is
+  // not currently armed. (The Alerts tab badge/counter use countOpenAlerts so
+  // they match the cards shown.)
   it("excludes an alert whose snooze has not elapsed", () => {
     expect(isAlertActive(alert({ snoozedUntil: "2026-09-30T00:00:00.000Z" }), NOW)).toBe(false);
   });
