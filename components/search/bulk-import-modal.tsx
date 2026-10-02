@@ -80,52 +80,6 @@ export function BulkImportModal({
           console.warn("[BulkImport] Skipping", newProducts[i].modelNumber, (results[i] as PromiseRejectedResult).reason);
         }
       }
-      const addedProducts = newProducts.filter((_, i) => {
-        const settled = results[i];
-        return settled.status === "fulfilled" && settled.value === true;
-      });
-      if (addedProducts.length > 0) {
-        const items = addedProducts.map((p) => ({
-          productId: p.id,
-          modelNumber: p.modelNumber,
-        }));
-        const storage = { updateProductListings };
-        let discovered = 0;
-        let next = 0;
-        const runBatch = async () => {
-          const res = await runDiscoveryBatch({
-            items,
-            startIndex: next,
-            storage,
-            discover: discoverListings,
-            onProgress: (done, total, model) =>
-              setDiscoveryNote(`Finding prices ${done}/${total} — ${model}…`),
-          });
-          next = res.nextIndex;
-          discovered += res.discovered;
-        };
-        await runBatch();
-        setDiscoveryNote(null);
-        if (next < items.length) {
-          const remaining = items.length - next;
-          showAlert(
-            "Prices found",
-            `Fetched prices for the first ${next} product${next === 1 ? "" : "s"}${discovered > 0 ? ` (${discovered} listing${discovered === 1 ? "" : "s"})` : ""}. Fetch prices for the remaining ${remaining}?`,
-            [
-              { text: "Later", style: "cancel" },
-              {
-                text: "Fetch",
-                onPress: () => {
-                  void (async () => {
-                    while (next < items.length) await runBatch();
-                    setDiscoveryNote(null);
-                  })();
-                },
-              },
-            ],
-          );
-        }
-      }
       if (Platform.OS !== "web")
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const unmatchedNote =
@@ -135,12 +89,72 @@ export function BulkImportModal({
       const truncatedNote = parsedInput.truncated
         ? `\nOnly the first ${parsedInput.models.length} models were imported.`
         : "";
-      showAlert(
-        "Import Complete",
-        `${addedCount} added · ${alreadyTracked} already tracked${
-          failedCount > 0 ? ` · ${failedCount} failed` : ""
-        }.${unmatchedNote}${truncatedNote}`,
-      );
+      const summary =
+        `${addedCount} added · ${alreadyTracked} already tracked` +
+        `${failedCount > 0 ? ` · ${failedCount} failed` : ""}.` +
+        `${unmatchedNote}${truncatedNote}`;
+
+      const addedProducts = newProducts.filter((_, i) => {
+        const settled = results[i];
+        return settled?.status === "fulfilled" && settled.value === true;
+      });
+
+      let next = 0;
+      let discovered = 0;
+      let prompt: string | null = null;
+
+      if (addedProducts.length > 0) {
+        const items = addedProducts.map((p) => ({
+          productId: p.id,
+          modelNumber: p.modelNumber,
+        }));
+        const storage = { updateProductListings };
+        const runBatch = async (showProgress: boolean) => {
+          try {
+            const res = await runDiscoveryBatch({
+              items,
+              startIndex: next,
+              storage,
+              discover: discoverListings,
+              onProgress: showProgress
+                ? (done, total, model) =>
+                    setDiscoveryNote(`Finding prices ${done}/${total} — ${model}…`)
+                : undefined,
+            });
+            next = res.nextIndex;
+            discovered += res.discovered;
+          } finally {
+            setDiscoveryNote(null);
+          }
+        };
+        await runBatch(true);
+        if (next < items.length) {
+          const remaining = items.length - next;
+          prompt =
+            `${summary}\n\nFetched prices for the first ${next} product${next === 1 ? "" : "s"}` +
+            `${discovered > 0 ? ` (${discovered} listing${discovered === 1 ? "" : "s"})` : ""}. ` +
+            `Fetch prices for the remaining ${remaining}?`;
+          showAlert("Import Complete", prompt, [
+            { text: "Later", style: "cancel" },
+            {
+              text: "Fetch",
+              onPress: () => {
+                void (async () => {
+                  try {
+                    while (next < items.length) await runBatch(false);
+                  } catch {
+                    // best-effort; the repair CTA covers anything left
+                  }
+                })();
+              },
+            },
+          ]);
+        }
+      }
+
+      if (prompt === null) {
+        showAlert("Import Complete", summary);
+      }
       setText("");
       onImported?.();
       onClose();
