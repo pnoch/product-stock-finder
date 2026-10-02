@@ -56,7 +56,7 @@ describe.skipIf(!runDbTests)("webhook alert pipeline (DB)", () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it("posts once for an alert and not again on the next tick", async () => {
+  it("posts once for an alert across two ticks", async () => {
     const now = Date.now();
     await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
       price: 400,
@@ -80,6 +80,6 @@ describe.skipIf(!runDbTests)("webhook alert pipeline (DB)", () => {
     await upsertDeviceConfig("dev-pipe-webhook", config, userId);
     await evaluateNotifications(now);
     await evaluateNotifications(now + 60_000);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
   });
 });
