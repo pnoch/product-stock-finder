@@ -7625,3 +7625,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Bumped root + desktop `vitest` `^3.2.6 → ^4.1.11` and `@vitest/coverage-v8 → 4.1.11`. Both vitest advisories are now gone (`pnpm audit` has no `vitest`/`@vitest/mocker` entries).
 - [x] Migration was drop-in again: no `vitest.config.ts` changes. Verified root `3085 passed` / `84 skipped` (404 files), desktop `304` (65 files), DB `18 files / 87 tests`, coverage-v8 functional (4.1.11), `tsc 0`, lint 0 errors.
 - [x] `pnpm audit` overall: 24 (2 critical) → **18 (0 critical, 3 high, 11 moderate, 4 low)**. Remaining are Expo/Metro + tooling transitives in `image-size` (major), `node-forge` (no fix), `esbuild`/`qs`/`yaml`/`uuid`/`ajv`/`postcss`/`@babel/core`/`body-parser`/`decode-uri-component`/`@humanfs/node`/`fast-uri`/`postcss-selector-parser` — a build-verified `pnpm.overrides` pass remains the recommended follow-up.
+
+## Phase 1026: Build-verified pnpm.overrides security pass
+
+- [x] Ran `pnpm audit --fix`, then rewrote the results in the repo's own override style (bounded selector → exact patched version) because `audit --fix`'s unbounded `>=` ranges jumped majors and broke Metro (`@babel/core` resolved to 8.x, failing `babel-preset-expo`).
+- [x] Kept 11 new bounded overrides (`postcss`, `fast-uri`, `esbuild`, `qs`, `ajv`, `yaml`, `@babel/core`, `body-parser`, `decode-uri-component`, `postcss-selector-parser`, `@humanfs/node`) plus `uuid → 11.1.1`, merged with the existing hardening block.
+- [x] Verified against the build, not just tests: `pnpm build:web` (Metro) and the esbuild server bundle both succeed; root `3085 passed`, desktop `304`, DB `87`, `tsc 0`, lint 0 errors.
+- [x] `pnpm audit`: 18 → **3** (all high). Tried `image-size → 2.0.3`: it **breaks Metro** (`TypeError: The "list" argument must be…`), so it was reverted; `node-forge` has no patched version (`<0.0.0`). Both are Expo/Metro build-time transitives with no safe fix available.
