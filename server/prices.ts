@@ -17,6 +17,7 @@ import { getProductImage, listProductsMissingImage, purgeOrphanedImages } from "
 import { purgeOrphanedInsights } from "./price-insights";
 import { evaluateNotifications } from "./notifications";
 import { purgeOldNotificationEvents } from "./notifications";
+import { purgeOldEmailLog } from "./notifications/email-alerts";
 import { purgeExpiredAuthTokens } from "./db";
 import { purgeOldRevokedDevices } from "./devices";
 import { PRICE_SNAPSHOT_TTL_MS } from "../shared/const";
@@ -260,6 +261,7 @@ export async function runWarmerTick(): Promise<void> {
     await warmerStep("purgeOldNotificationEvents", () =>
       purgeOldNotificationEvents(Date.now()),
     );
+    await warmerStep("purgeOldEmailLog", () => purgeOldEmailLog(Date.now()));
     await warmerStep("purgeExpiredAuthTokens", () =>
       purgeExpiredAuthTokens(Date.now()),
     );

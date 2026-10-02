@@ -7,7 +7,7 @@ const TEST_URL = process.env.TEST_DATABASE_URL;
 const runDbTests = Boolean(process.env.RUN_DB_TESTS) && Boolean(TEST_URL);
 if (TEST_URL) process.env.DATABASE_URL = TEST_URL;
 
-const sent = vi.hoisted(() => ({ messages: [] as Array<{ to: string; subject: string }> }));
+const sent = vi.hoisted(() => ({ messages: [] as { to: string; subject: string }[] }));
 vi.mock("../server/email", () => ({
   isEmailConfigured: () => true,
   sendEmail: vi.fn(async (m: { to: string; subject: string }) => {
@@ -17,6 +17,7 @@ vi.mock("../server/email", () => ({
 }));
 import {
   deliverEmailForEvent,
+  purgeOldEmailLog,
   unsubscribeUser,
 } from "../server/notifications/email-alerts";
 
@@ -79,5 +80,26 @@ describe.skipIf(!runDbTests)("email alerts delivery (DB)", () => {
     await unsubscribeUser(userId);
     const after = await deliverEmailForEvent(userId, { dedupKey: "u1", title: "T", body: "b", productId: null });
     expect(after).toBe(false);
+  });
+
+  it("keeps a failed send claimed so it counts toward the cap and is not retried", async () => {
+    const email = await import("../server/email");
+    vi.mocked(email.sendEmail).mockResolvedValueOnce(false);
+    expect(await deliverEmailForEvent(userId, { dedupKey: "fail-1", title: "T", body: "b", productId: null })).toBe(false);
+    // Second call short-circuits on the kept claim row (no second send attempt).
+    expect(await deliverEmailForEvent(userId, { dedupKey: "fail-1", title: "T", body: "b", productId: null })).toBe(false);
+    expect(vi.mocked(email.sendEmail)).toHaveBeenCalledTimes(1);
+  });
+
+  it("purges email-log rows older than 30 days", async () => {
+    const db = await getDb();
+    const now = Date.now();
+    await db!.insert(notificationEmailLog).values([
+      { userId, dedupKey: "old", sentAt: now - 40 * 24 * 60 * 60 * 1000 },
+      { userId, dedupKey: "fresh", sentAt: now },
+    ]);
+    await purgeOldEmailLog(now);
+    const rows = await db!.select({ dedupKey: notificationEmailLog.dedupKey }).from(notificationEmailLog);
+    expect(rows.map((r) => r.dedupKey)).toEqual(["fresh"]);
   });
 });

@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, lt } from "drizzle-orm";
 import { appSettings, notificationEmailLog, users } from "../../drizzle/schema";
 import { ENV } from "../_core/env";
 import { affectedRowsOf, getDb } from "../db";
@@ -122,6 +122,8 @@ export async function deliverEmailForEvent(
     // by default, so `ON DUPLICATE KEY UPDATE sentAt = sentAt` reports
     // affectedRows 1 for both a fresh insert and a no-op duplicate. INSERT
     // IGNORE instead reports 1 for a fresh insert and 0 when the row exists.
+    // The claim row is kept even if the send fails, so a provider outage still
+    // counts against DAILY_CAP and is not retried for the same condition.
     const insertResult = await db
       .insert(notificationEmailLog)
       .ignore()
@@ -136,14 +138,8 @@ export async function deliverEmailForEvent(
     });
     const ok = await sendEmail({ ...message, to: email });
     if (!ok) {
-      await db
-        .delete(notificationEmailLog)
-        .where(
-          and(
-            eq(notificationEmailLog.userId, userId),
-            eq(notificationEmailLog.dedupKey, event.dedupKey),
-          ),
-        );
+      // keep the claim row so the failure counts toward DAILY_CAP; the in-app
+      // and push channels already cover the alert, so we don't retry-storm.
       return false;
     }
     return true;
@@ -177,4 +173,14 @@ export async function unsubscribeUser(userId: number): Promise<boolean> {
       },
     });
   return true;
+}
+
+const EMAIL_LOG_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+export async function purgeOldEmailLog(now: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .delete(notificationEmailLog)
+    .where(lt(notificationEmailLog.sentAt, now - EMAIL_LOG_RETENTION_MS));
 }
