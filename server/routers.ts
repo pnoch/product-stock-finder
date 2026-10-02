@@ -645,6 +645,7 @@ export const appRouter = router({
     testWebhook: protectedProcedure
       .input(z.object({ url: z.string().min(1).max(2048) }))
       .mutation(async ({ input, ctx }) => {
+        // Intentionally not device-scoped: it only POSTs a caller-supplied, allowlist-validated URL.
         checkRateLimit(ctx, "notifications.testWebhook", 5, 60_000);
         const { sendTestWebhook } = await import("./notifications/webhook-alerts");
         return sendTestWebhook(input.url);

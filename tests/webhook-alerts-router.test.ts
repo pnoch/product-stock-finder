@@ -36,7 +36,7 @@ describe("notifications.testWebhook", () => {
     expect(sendTestWebhook).toHaveBeenCalledWith("https://discord.com/api/webhooks/1/x");
   });
 
-  it("passes through a validation error", async () => {
+  it("returns sendTestWebhook's failure result", async () => {
     sendTestWebhook.mockResolvedValueOnce({ ok: false, error: "bad" });
     const caller = appRouter.createCaller(authedContext());
     await expect(

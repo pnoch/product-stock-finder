@@ -13,6 +13,10 @@ import type {
 
 const TIMEOUT_MS = 4000;
 
+// Larger than the server's 5s webhook POST budget: a shorter client deadline
+// reports a false failure while the send is still in flight.
+const WEBHOOK_TEST_TIMEOUT_MS = 8_000;
+
 export async function uploadNotificationConfig(
   config: NotificationConfig,
   healthEvents?: Array<{
@@ -318,7 +322,7 @@ export async function testWebhook(
     return (
       (await withTimeout(
         client.notifications.testWebhook.mutate({ url }),
-        TIMEOUT_MS,
+        WEBHOOK_TEST_TIMEOUT_MS,
       )) ?? { ok: false, error: "Could not reach the server. Try again." }
     );
   } catch {
