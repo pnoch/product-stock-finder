@@ -306,7 +306,7 @@ export function SharedWatchlist() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                   aria-label="Add to watchlist"
                 >
-                  {addedIds.has(p.id) ? "Added ✓" : "Add"}
+                  {addedIds.has(p.id) ? "Added" : "Add"}
                 </button>
                 <button
                   onClick={() => handleExportHistory(p as unknown as Product)}

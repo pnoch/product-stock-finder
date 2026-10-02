@@ -4,7 +4,6 @@ import { useColors } from "@/hooks/use-colors";
 
 interface FxSparklineCardProps {
   currency: string;
-  flag: string;
   rate: number;
   change: number;
   history: (number | null)[];
@@ -12,7 +11,6 @@ interface FxSparklineCardProps {
 
 export function FxSparklineCard({
   currency,
-  flag,
   rate,
   change,
   history,
@@ -58,7 +56,6 @@ export function FxSparklineCard({
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <Text style={{ fontSize: 20 }}>{flag}</Text>
         <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }}>
           {currency}
         </Text>

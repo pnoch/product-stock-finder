@@ -8,20 +8,10 @@ import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { useTheme } from "../hooks/use-theme";
 import type { FxHistory } from "../../../lib/storage/fx-history";
 
-const CURRENCY_INFO: Record<string, { flag: string }> = {
-  USD: { flag: "🇺🇸" },
-  EUR: { flag: "🇪🇺" },
-  GBP: { flag: "🇬🇧" },
-  MYR: { flag: "🇲🇾" },
-  AUD: { flag: "🇦🇺" },
-  NZD: { flag: "🇳🇿" },
-  CAD: { flag: "🇨🇦" },
-  ZAR: { flag: "🇿🇦" },
-  THB: { flag: "🇹🇭" },
-  SGD: { flag: "🇸🇬" },
-  HKD: { flag: "🇭🇰" },
-  AED: { flag: "🇦🇪" },
-};
+const CURRENCIES = [
+  "USD", "EUR", "GBP", "MYR", "AUD", "NZD",
+  "CAD", "ZAR", "THB", "SGD", "HKD", "AED",
+];
 
 function Sparkline({ values, color, currency }: { values: (number | null)[]; color: string; currency: string }) {
   const filtered = values.filter((v): v is number => v !== null && Number.isFinite(v));
@@ -104,7 +94,7 @@ export function Rates() {
   const change = history ? getFxWindowChange(history, range) : {};
   const slicedRates = history ? sliceFxHistoryByRange(history, range).rates : {};
 
-  const currencies = Object.keys(CURRENCY_INFO);
+  const currencies = CURRENCIES;
 
   if (loading) {
     return (
@@ -175,7 +165,6 @@ export function Rates() {
           return (
             <div key={code} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center gap-2">
-                <span className="text-xl">{CURRENCY_INFO[code]?.flag ?? ""}</span>
                 <span className="font-semibold text-sm">{code}</span>
               </div>
               <div className="text-lg font-semibold mt-2">{rate >= 10 ? rate.toFixed(2) : rate >= 1 ? rate.toFixed(3) : rate.toFixed(4)}</div>

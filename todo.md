@@ -7653,3 +7653,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] The selected item was already resolved in Phase 551: the periodic digest is recorded to the in-app history on both platforms after a successful delivery — mobile `lib/notifications.ts:416` and desktop `desktop/src/App.tsx:408`, both with a day-keyed `local-digest-<YYYY-MM-DD>` id (same-day retry dedups) and best-effort semantics. Server-batched digests are recorded when pulled (`lib/server-notifications.ts:259`). No code change needed.
 - [x] Remaining genuinely-open items are product/taste calls only: the **emoji sweep** (decorative JSX prefixes) and **Alerts-tab count semantics** (make the tab count match the cards it renders — which would diverge from the Home "active alerts" count, so it needs a decision, not a mechanical fix).
+
+## Phase 1030: Decorative emoji sweep (currency flags + checkmark copy)
+
+- [x] Scoped the "emoji sweep": the only decorative pictographic emoji in UI sources were the **currency flags** in the rates grids (mobile `components/rates/fx-rate-grid.tsx` + `fx-sparkline-card.tsx`, desktop `desktop/src/pages/Rates.tsx`) plus two decorative `✓` suffixes. Notification titles (`lib/notifications.ts`, `lib/restock.ts`, `lib/price-digest.ts`, `lib/background-tasks/*`, `desktop/src/lib/*`) are OS-rendered and intentionally kept, and distributor country flags are data, not literals.
+- [x] Removed the currency-flag maps/props/renders (currency code remains) and dropped the `✓` from "Verified ✓"/"Added ✓". Typographic arrows (`→`) used to express ranges are punctuation, not emoji, and were left.
+- [x] Verified no pictographic emoji remain under `app/`, `components/`, `desktop/src/pages/`, `desktop/src/components/`; root `3088 passed` / `84 skipped`, desktop `304`, `tsc 0` (root + desktop), lint 0 errors.
