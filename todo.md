@@ -7659,3 +7659,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Scoped the "emoji sweep": the only decorative pictographic emoji in UI sources were the **currency flags** in the rates grids (mobile `components/rates/fx-rate-grid.tsx` + `fx-sparkline-card.tsx`, desktop `desktop/src/pages/Rates.tsx`) plus two decorative `✓` suffixes. Notification titles (`lib/notifications.ts`, `lib/restock.ts`, `lib/price-digest.ts`, `lib/background-tasks/*`, `desktop/src/lib/*`) are OS-rendered and intentionally kept, and distributor country flags are data, not literals.
 - [x] Removed the currency-flag maps/props/renders (currency code remains) and dropped the `✓` from "Verified ✓"/"Added ✓". Typographic arrows (`→`) used to express ranges are punctuation, not emoji, and were left.
 - [x] Verified no pictographic emoji remain under `app/`, `components/`, `desktop/src/pages/`, `desktop/src/components/`; root `3088 passed` / `84 skipped`, desktop `304`, `tsc 0` (root + desktop), lint 0 errors.
+
+## Phase 1031: Alerts-tab count matches the cards it renders
+
+- [x] The Alerts tab badge/segment counted only *armed* alerts (`countActiveAlerts`), while the tab lists every **untriggered** alert as a card (armed + snoozed + paused) — so a snoozed/paused alert was a visible card but not counted. (Resolves the long-standing "semantics call".)
+- [x] Added `countOpenAlerts(alerts)` (untriggered) to `lib/alert-state.ts` and used it for the Alerts-tab counters: mobile `useAlertsData.tabCount.alerts` and desktop `Alerts.tsx` segment header. The Home "Active Alerts" stat and the bell/sidebar attention badge keep the armed `countActiveAlerts` metric (a separate indicator), and the doc comment now spells out both.
+- [x] Tests: `tests/alert-state.test.ts` (`countOpenAlerts` includes armed/snoozed/paused, excludes triggered); desktop `ux-alignment` updated to expect `Alerts (3)` for the 3 untriggered cards.
+- [x] Verified: root `3089 passed` / `84 skipped`, desktop `304`, DB `87`, `tsc 0` (root + desktop), lint 0 errors.

@@ -30,7 +30,7 @@ import {
 } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
 import { computeTotalSaved, savingAlerts } from "../../../lib/alert-savings";
-import { countActiveAlerts } from "../../../lib/alert-state";
+import { countOpenAlerts } from "../../../lib/alert-state";
 import { formatRelativeTime } from "../../../lib/relative-time";
 import { StockBadge } from "../components/StockBadge";
 import { EmptyState } from "../components/EmptyState";
@@ -188,7 +188,7 @@ export function Alerts() {
   const loading = alertsLoading || remindersLoading;
 
   const activeAlertCount = useMemo(
-    () => countActiveAlerts(alerts),
+    () => countOpenAlerts(alerts),
     [alerts],
   );
 

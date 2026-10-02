@@ -1,9 +1,11 @@
 import type { PriceAlert } from "./types";
 
-// A price alert that is currently armed: enabled, not yet triggered, and not
-// snoozed (or its snooze has elapsed). Every user-visible "active alerts" count
-// must use this, or the Home stat card, the Alerts tab badge, and the tab
-// counter disagree (they previously used three different predicates).
+// Two distinct user-visible metrics:
+// - "armed" (`isAlertActive`): enabled, untriggered, not currently snoozed —
+//   the Home "Active Alerts" stat.
+// - "open" (`countOpenAlerts`): every untriggered alert the Alerts tab renders
+//   as a card (armed + snoozed + paused). The Alerts tab badge/segment uses
+//   this so the count matches the cards shown.
 export function isAlertActive(
   alert: Pick<PriceAlert, "isActive" | "triggeredAt" | "snoozedUntil">,
   now: number = Date.now(),
@@ -21,4 +23,9 @@ export function countActiveAlerts(
   now: number = Date.now(),
 ): number {
   return alerts.filter((a) => isAlertActive(a, now)).length;
+}
+
+/** Every untriggered alert the Alerts tab lists as a card (armed + snoozed + paused). */
+export function countOpenAlerts(alerts: PriceAlert[]): number {
+  return alerts.filter((a) => !a.triggeredAt).length;
 }

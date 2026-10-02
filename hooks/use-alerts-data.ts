@@ -23,7 +23,7 @@ import {
 } from "@/lib/storage";
 import { PriceAlert, Product, BackOrderReminder } from "@/lib/types";
 import { computeTotalSaved } from "@/lib/alert-savings";
-import { countActiveAlerts } from "@/lib/alert-state";
+import { countOpenAlerts } from "@/lib/alert-state";
 import { showAlert } from "@/lib/alert";
 import {
   cancelNotification,
@@ -350,7 +350,7 @@ export function useAlertsData() {
   );
 
   const tabCount = {
-    alerts: countActiveAlerts(alerts),
+    alerts: countOpenAlerts(alerts),
     reminders: reminders.length + stockWatches.length,
     notifications: unreadNotifications,
   };

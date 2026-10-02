@@ -48,7 +48,7 @@ function renderWatchlist(initialEntry = "/watchlist") {
 beforeEach(() => { vi.clearAllMocks(); });
 
 describe("alerts tab count", () => {
-  it("counts only active, untriggered, unsnoozed alerts", async () => {
+  it("counts every untriggered alert the tab lists as a card", async () => {
     const snoozed = new Date(Date.now() + 86400000).toISOString();
     const now = new Date().toISOString();
     mockStorage.getAlerts.mockResolvedValue([
@@ -58,7 +58,9 @@ describe("alerts tab count", () => {
       { id: "a4", productId: "p", targetPrice: 10, currency: "USD", isActive: false, createdAt: now },
     ]);
     renderAlerts();
-    await waitFor(() => expect(screen.getByRole("button", { name: /show price alerts/i })).toHaveTextContent("Alerts (1)"));
+    // Armed (a1) + snoozed (a3) + paused (a4) all render as cards; the
+    // triggered one (a2) does not.
+    await waitFor(() => expect(screen.getByRole("button", { name: /show price alerts/i })).toHaveTextContent("Alerts (3)"));
   });
 });
 
