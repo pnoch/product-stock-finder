@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Download } from "lucide-react";
 import { Modal } from "./Modal";
 import { priceHistoryToCsv } from "../../../lib/csv";
+import { saveCsv } from "../lib/save-csv";
 import type { DistributorListing } from "../../../lib/types";
 
 const PriceHistoryChart = lazy(() =>
@@ -37,15 +38,7 @@ export function DistributorHistoryModal({
       (listing.priceHistory ?? []).map((pt) => ({ ...pt, distributor: distributorName })),
       { name: distributorName, modelNumber: productId },
     );
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${productId}-${listing.distributorId}-history.csv`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
+    void saveCsv(`${productId}-${listing.distributorId}-history.csv`, csv);
   };
 
   return (

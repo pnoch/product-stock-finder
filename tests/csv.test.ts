@@ -165,6 +165,11 @@ describe("hasExportablePriceData", () => {
       product("zero", [listing({ price: 0, priceHistory: [] })]),
       product("none", [listing({ price: Number.NaN, priceHistory: [] })]),
       product("empty", []),
+      product("mixed", [
+        listing({ distributorId: "d1", price: Number.NaN, priceHistory: [{ date: "2026-09-01", price: 100, currency: "USD", stockStatus: "in_stock" }] }),
+        listing({ distributorId: "d2", price: 42, priceHistory: [] }),
+      ]),
+      product("undefinedHistory", [listing({ price: 10, priceHistory: undefined as never })]),
     ];
     for (const p of cases) {
       const emitsRows = productHistoryToCsv(p).split("\n").length > 1;
