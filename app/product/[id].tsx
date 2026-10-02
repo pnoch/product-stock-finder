@@ -14,7 +14,9 @@ import { buildShareText } from "@/lib/price-share";
 import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
 import * as Linking from "expo-linking";
 import { captureAndShareImage } from "@/lib/share-image";
-import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch } from "@/lib/storage";
+import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings } from "@/lib/storage";
+import { rediscoverProduct } from "@/lib/manual-add";
+import { discoverListings } from "@/lib/listing-discovery";
 import { formatPrice } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
@@ -44,6 +46,30 @@ export default function ProductDetailScreen() {
   const colors = useColors();
   const { showToast } = useToast();
   const { product, listings, loaded, lastUpdatedAt, refresh } = useLiveProduct(id ?? "");
+  const [findingPrices, setFindingPrices] = useState(false);
+  const handleFindPrices = useCallback(async () => {
+    if (!product?.modelNumber) return;
+    setFindingPrices(true);
+    try {
+      const { discovered } = await rediscoverProduct({
+        storage: { updateProductListings },
+        discover: discoverListings,
+        productId: product.id,
+        modelNumber: product.modelNumber,
+      });
+      await refresh();
+      showAlert(
+        discovered > 0 ? "Prices found" : "No prices found",
+        discovered > 0
+          ? `Found prices at ${discovered} distributor${discovered === 1 ? "" : "s"}.`
+          : "No distributor had this model in stock. Try again later.",
+      );
+    } catch {
+      showAlert("Couldn't find prices", "Please try again later.");
+    } finally {
+      setFindingPrices(false);
+    }
+  }, [product?.id, product?.modelNumber, refresh]);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
   const [productImage, setProductImage] = useState<string | null>(null);
@@ -516,7 +542,7 @@ export default function ProductDetailScreen() {
             </View>
           )}
           {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={effectiveCurrency} />}
-          <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)} onRemind={setReminderListing} />
+          <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)} onRemind={setReminderListing} onFindPrices={handleFindPrices} findingPrices={findingPrices} />
         </View>
         {/* Notes and distributor targets sit outside the shareRef capture: notes
             are device-private and targets are personal, so neither belongs in a

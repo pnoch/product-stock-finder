@@ -34,6 +34,8 @@ interface DistributorListingSectionProps {
   onToggleStockWatch: (listing: DistributorListing) => void;
   onOpenChart: (listing: DistributorListing) => void;
   onRemind?: (listing: DistributorListing) => void;
+  onFindPrices?: () => void;
+  findingPrices?: boolean;
 }
 
 function InsightSkeleton() {
@@ -127,6 +129,8 @@ export function DistributorListingSection({
   onToggleStockWatch,
   onOpenChart,
   onRemind,
+  onFindPrices,
+  findingPrices,
 }: DistributorListingSectionProps) {
   const colors = useColors();
   const globalBestInStockListing = (() => {
@@ -174,6 +178,26 @@ export function DistributorListingSection({
           <Text style={{ color: colors.muted, fontSize: 14 }}>
             No distributor data available yet.
           </Text>
+          {onFindPrices && (
+            <TouchableOpacity activeOpacity={0.85}
+              onPress={onFindPrices}
+              disabled={findingPrices}
+              style={{
+                marginTop: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 16,
+                backgroundColor: colors.primary,
+                opacity: findingPrices ? 0.6 : 1,
+              }}
+              accessibilityLabel="Find prices"
+              accessibilityRole="button"
+            >
+              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+                {findingPrices ? "Finding prices…" : "Find prices"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : visibleListings.length === 0 ? (
         <View

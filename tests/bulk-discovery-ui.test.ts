@@ -7,4 +7,15 @@ describe("bulk discovery UI", () => {
     expect(src).toContain("runDiscoveryBatch");
     expect(src).toContain("Fetch prices for the remaining");
   });
+
+  it("product detail offers a Find prices CTA (mobile)", () => {
+    const section = readFileSync(
+      "components/product/distributor-listing-section.tsx",
+      "utf8",
+    );
+    expect(section).toContain("onFindPrices");
+    expect(section).toContain("Find prices");
+    const screen = readFileSync("app/product/[id].tsx", "utf8");
+    expect(screen).toContain("rediscoverProduct");
+  });
 });
