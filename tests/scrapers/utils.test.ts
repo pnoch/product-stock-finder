@@ -382,3 +382,24 @@ describe("parsePriceFromText separator styles", () => {
     expect(parsePriceFromText("R 12 345.67")).toBe(12345.67);
   });
 });
+
+describe("parsePriceFromText currency anchoring", () => {
+  it("ignores model digits that precede a currency-anchored price", () => {
+    expect(parsePriceFromText("CRS804-4DDQ+RM $480.00")).toBe(480);
+    expect(parsePriceFromText("MikroTik CRS326-24G $1,299.00")).toBe(1299);
+    expect(parsePriceFromText("RB4011 $ 219.99")).toBe(219.99);
+    expect(parsePriceFromText("CRS804 USD 480.00")).toBe(480);
+    expect(parsePriceFromText("480.00 EUR")).toBe(480);
+  });
+
+  it("keeps the first run when no currency marker is adjacent", () => {
+    expect(parsePriceFromText("804")).toBe(804);
+    expect(parsePriceFromText("1 234,56 Kč")).toBe(1234.56);
+    expect(parsePriceFromText("12,345")).toBe(12345);
+  });
+
+  it("prefers a decimal-bearing price over a trailing integer quantity", () => {
+    expect(parsePriceFromText("480.00 EUR 2")).toBe(480);
+    expect(parsePriceFromText("480.00 USD 2 pack")).toBe(480);
+  });
+});

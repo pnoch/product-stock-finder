@@ -31,6 +31,12 @@ describe("Flytec Parser", () => {
     expect(result!.stockStatus).toBe("in_stock");
   });
 
+  it("does not read the model number as the price when both share the price cell", () => {
+    const html = `<div><span data-product-price-without-tax>CRS804-4DDQ+RM $480.00</span></div>`;
+    const result = flytecParser.parsePrice(html, "CRS804-4DDQ+RM");
+    expect(result?.price).toBe(480);
+  });
+
   // The real search-results fixture is ~570 KB with 8 product cards. The
   // model-mismatch path evaluates every price selector against every candidate,
   // re-checking the same card context many times. Without a per-call memo of
