@@ -39,6 +39,7 @@ export const ProductCard = memo(function ProductCard({
   dealScore,
   displayCurrency,
   onFindPrices,
+  findingPrices = false,
 }: {
   product: Product;
   onPress: () => void;
@@ -52,6 +53,7 @@ export const ProductCard = memo(function ProductCard({
   dealScore?: DealScore | null;
   displayCurrency?: string;
   onFindPrices?: () => void;
+  findingPrices?: boolean;
 }) {
   const colors = useColors();
   const currency = displayCurrency ?? "USD";
@@ -329,13 +331,18 @@ export const ProductCard = memo(function ProductCard({
           {(product.listings ?? []).length === 0 && onFindPrices && (
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={onFindPrices}
-              accessibilityLabel="Find prices"
+              onPress={(e) => {
+                if (Platform.OS === "web") e?.stopPropagation?.();
+                onFindPrices();
+              }}
+              disabled={findingPrices}
+              hitSlop={8}
+              accessibilityLabel="No prices — find prices"
               accessibilityRole="button"
-              style={{ alignSelf: "flex-start", marginTop: 6 }}
+              style={{ alignSelf: "flex-start", marginTop: 6, opacity: findingPrices ? 0.5 : 1 }}
             >
               <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>
-                No prices — Find
+                {findingPrices ? "Finding prices…" : "No prices — Find"}
               </Text>
             </TouchableOpacity>
           )}

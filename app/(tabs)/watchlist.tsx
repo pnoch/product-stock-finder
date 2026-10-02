@@ -129,6 +129,7 @@ export default function WatchlistScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkTagVisible, setBulkTagVisible] = useState(false);
+  const [findingIds, setFindingIds] = useState<Set<string>>(new Set());
   const [undoProduct, setUndoProduct] = useState<Product | null>(null);
   // Everything the removal cascade deletes for a product, so Undo can restore
   // it (removeFromWatchlist also drops alerts, back-order reminders, and
@@ -667,6 +668,8 @@ export default function WatchlistScreen() {
   const handleFindPrices = useCallback(
     async (product: Product) => {
       if (!product.modelNumber) return;
+      if (findingIds.has(product.id)) return;
+      setFindingIds((prev) => new Set(prev).add(product.id));
       try {
         const { discovered, timedOut } = await rediscoverProduct({
           storage: { updateProductListings },
@@ -684,11 +687,17 @@ export default function WatchlistScreen() {
           discovered > 0 ? "success" : "error",
         );
       } catch (e) {
-        console.warn("[Watchlist] price discovery failed", e);
+        LOG_ERROR("[Watchlist] price discovery failed", e);
         showToast("Couldn't find prices", "error");
+      } finally {
+        setFindingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(product.id);
+          return next;
+        });
       }
     },
-    [reload, showToast],
+    [findingIds, reload, showToast],
   );
 
   const sortModeRef = useRef(sortMode);
@@ -994,6 +1003,7 @@ export default function WatchlistScreen() {
               onDelete={() => handleDelete(item as Product)}
               onTagPress={() => setPickerProduct(item)}
               onFindPrices={() => handleFindPrices(item as Product)}
+              findingPrices={findingIds.has(item.id)}
               tagDefinitions={tagDefinitions}
             />
           </SwipeableCard>
