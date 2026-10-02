@@ -7619,3 +7619,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Bumped root + desktop `vitest` `^2.1.9 → ^3.2.6` and `@vitest/coverage-v8 → 3.2.7` (installed 3.2.7). The critical `vitest <3.2.6` advisory is cleared: `pnpm audit` went from 24 (2 critical) to **22 with 0 critical**.
 - [x] Migration was drop-in: no `vitest.config.ts` changes needed. Verified root `3085 passed` / `84 skipped` (404 files), desktop `304` (65 files), DB suite `18 files / 87 tests`, coverage-v8 functional, `tsc 0`, lint 0 errors.
 - [x] Remaining `vitest` advisory is a **moderate** one patched only in vitest **4** (deferred — a further major); high-severity `image-size`/`node-forge` are Expo/Metro build-time transitives with no safe drop-in fix.
+
+## Phase 1025: Vitest 3 → 4 migration (clears the remaining vitest advisory)
+
+- [x] Bumped root + desktop `vitest` `^3.2.6 → ^4.1.11` and `@vitest/coverage-v8 → 4.1.11`. Both vitest advisories are now gone (`pnpm audit` has no `vitest`/`@vitest/mocker` entries).
+- [x] Migration was drop-in again: no `vitest.config.ts` changes. Verified root `3085 passed` / `84 skipped` (404 files), desktop `304` (65 files), DB `18 files / 87 tests`, coverage-v8 functional (4.1.11), `tsc 0`, lint 0 errors.
+- [x] `pnpm audit` overall: 24 (2 critical) → **18 (0 critical, 3 high, 11 moderate, 4 low)**. Remaining are Expo/Metro + tooling transitives in `image-size` (major), `node-forge` (no fix), `esbuild`/`qs`/`yaml`/`uuid`/`ajv`/`postcss`/`@babel/core`/`body-parser`/`decode-uri-component`/`@humanfs/node`/`fast-uri`/`postcss-selector-parser` — a build-verified `pnpm.overrides` pass remains the recommended follow-up.
