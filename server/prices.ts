@@ -5,18 +5,22 @@ import {
   fetchAndParse,
 } from "../lib/scrapers/resilient";
 import type { PriceSnapshot, ServerPriceResult } from "../lib/types";
-import { getCachedPrice, setCachedPrice, listNearExpiry, purgeStalePriceCache } from "./price-cache";
+import {
+  getCachedPrice,
+  setCachedPrice,
+  listNearExpiry,
+  purgeStalePriceCache,
+  getAllFetchedAt,
+} from "./price-cache";
 import {
   getHistory,
   recordHistoryPoint,
   purgeOldHistory,
 } from "./price-history";
 import { buildCatalogPairs, pickPairsToWarm } from "./catalog-warmer";
-import { getAllFetchedAt } from "./price-cache";
 import { getProductImage, listProductsMissingImage, purgeOrphanedImages } from "./product-images";
 import { purgeOrphanedInsights } from "./price-insights";
-import { evaluateNotifications } from "./notifications";
-import { purgeOldNotificationEvents } from "./notifications";
+import { evaluateNotifications, purgeOldNotificationEvents } from "./notifications";
 import { purgeOldEmailLog } from "./notifications/email-alerts";
 import { purgeExpiredAuthTokens } from "./db";
 import { purgeOldRevokedDevices } from "./devices";

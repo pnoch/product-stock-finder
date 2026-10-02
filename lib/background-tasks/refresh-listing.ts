@@ -3,9 +3,11 @@ import { isFreshPriceSnapshot } from "../price-freshness";
 import { getParserByDistributorId } from "../scrapers/registry";
 import { fetchAndParse } from "../scrapers/resilient";
 import { appendPricePoint, mergePriceHistory } from "../price-history";
-import { MAX_UPLOAD_HISTORY_POINTS } from "@/shared/const";
-import { PRICE_HISTORY_DAYS } from "@/shared/const";
-import { isPlausiblePrice } from "@/shared/const";
+import {
+  MAX_UPLOAD_HISTORY_POINTS,
+  PRICE_HISTORY_DAYS,
+  isPlausiblePrice,
+} from "@/shared/const";
 import type { DistributorListing, PricePoint, Product } from "../types";
 import { breakerStore } from "./instances";
 import type { HealthCollector } from "./health-collector";

@@ -19,6 +19,7 @@ import { getDb, getUserByEmail, getUserById } from "./db";
 import {
   listChangedItems,
   purgeOldTombstones,
+  SYNC_COLLECTION_ORDER,
   TOMBSTONE_PURGE_WINDOW_MS,
   upsertSyncItem,
 } from "./sync-db";
@@ -71,7 +72,6 @@ const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 const SHARED_WATCHLIST_MAX_ITEMS = 500;
 import { getPrice } from "./prices";
 import { mapWithConcurrency } from "./concurrency";
-import { SYNC_COLLECTION_ORDER } from "./sync-db";
 import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { getAllParserIds } from "../lib/scrapers/registry";
 import { checkAllDistributors } from "./health";
