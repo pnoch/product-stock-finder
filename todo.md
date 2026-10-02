@@ -7666,3 +7666,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Added `countOpenAlerts(alerts)` (untriggered) to `lib/alert-state.ts` and used it for the Alerts-tab counters: mobile `useAlertsData.tabCount.alerts` and desktop `Alerts.tsx` segment header. The Home "Active Alerts" stat and the bell/sidebar attention badge keep the armed `countActiveAlerts` metric (a separate indicator), and the doc comment now spells out both.
 - [x] Tests: `tests/alert-state.test.ts` (`countOpenAlerts` includes armed/snoozed/paused, excludes triggered); desktop `ux-alignment` updated to expect `Alerts (3)` for the 3 untriggered cards.
 - [x] Verified: root `3089 passed` / `84 skipped`, desktop `304`, DB `87`, `tsc 0` (root + desktop), lint 0 errors.
+
+## Phase 1032: Cover the seed-date shifter (lib/sample-data → 100%)
+
+- [x] `lib/sample-data.ts` was at **37.5%**: `freshenSampleListings` — which re-bases the seeded price history's dates onto "now" so the first-launch sample data isn't stale — had no test.
+- [x] Extended `tests/sample-data.test.ts` (+2): lastChecked moves to now and every history point shifts by the same delta (relative spacing preserved); the input listings are not mutated.
+- [x] Coverage **37.5% → 100%**; root `3091 passed` / `84 skipped`, `tsc 0`, lint 0 errors.
