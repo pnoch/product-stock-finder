@@ -157,4 +157,18 @@ describe("hasExportablePriceData", () => {
   it("is false with only a non-finite price and no history", () => {
     expect(hasExportablePriceData(product("p1", [listing({ price: Number.NaN, priceHistory: [] })]))).toBe(false);
   });
+
+  it("matches whether productHistoryToCsv emits any data row", () => {
+    const cases = [
+      product("history", [listing({ priceHistory: [{ date: "2026-09-01", price: 100, currency: "USD", stockStatus: "in_stock" }] })]),
+      product("price", [listing({ price: 42, priceHistory: [] })]),
+      product("zero", [listing({ price: 0, priceHistory: [] })]),
+      product("none", [listing({ price: Number.NaN, priceHistory: [] })]),
+      product("empty", []),
+    ];
+    for (const p of cases) {
+      const emitsRows = productHistoryToCsv(p).split("\n").length > 1;
+      expect(hasExportablePriceData(p)).toBe(emitsRows);
+    }
+  });
 });

@@ -1,4 +1,4 @@
-import { isTauri } from "../lib/tauri";
+import { saveCsv } from "../lib/save-csv";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { storage } from "../storage";
@@ -49,25 +49,13 @@ export function DistributorAnalysis() {
       }
       const csv = watchlistToDetailedCsv(watchlist);
       const fileName = `distributor-analysis-${new Date().toISOString().slice(0, 10)}.csv`;
-      if (isTauri()) {
-        const { save } = await import("@tauri-apps/plugin-dialog");
-        const { writeFile } = await import("@tauri-apps/plugin-fs");
-        const filePath = await save({ defaultPath: fileName, filters: [{ name: "CSV", extensions: ["csv"] }] });
-        if (!filePath) return;
-        await writeFile(filePath, new TextEncoder().encode(csv));
-        showToast(`Exported to ${filePath}`);
-      } else {
-        const blob = new Blob([csv], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast("Analysis exported as CSV");
+      const result = await saveCsv(fileName, csv);
+      if (result.status === "cancelled") return;
+      if (result.status === "failed") {
+        showToast("CSV export failed");
+        return;
       }
+      showToast(result.path ? `Exported to ${result.path}` : "Analysis exported as CSV");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "CSV export failed");
     }
