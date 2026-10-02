@@ -143,4 +143,30 @@ describe("runDiscoveryLoop", () => {
     expect(await runDiscoveryLoop({ items: [], storage: h.storage, discover: h.discover })).toEqual({ nextIndex: 0, discovered: 0 });
     expect(h.discover).not.toHaveBeenCalled();
   });
+
+  it("terminates without progress when shouldCancel is immediately true", async () => {
+    const h = harness();
+    const confirm = vi.fn(() => true);
+    const result = await runDiscoveryLoop({
+      items: items(10),
+      storage: h.storage,
+      discover: h.discover,
+      shouldCancel: () => true,
+      confirmContinue: confirm,
+    });
+    expect(result).toEqual({ nextIndex: 0, discovered: 0 });
+    expect(confirm).not.toHaveBeenCalled();
+    expect(h.discover).not.toHaveBeenCalled();
+  });
+
+  it("absorbs a storage failure and still drains the list", async () => {
+    const h = harness();
+    // rediscoverProduct propagates a storage throw; the batch runner must
+    // absorb it per item so one bad write cannot abort the whole import.
+    h.storage.updateProductListings.mockRejectedValue(new Error("disk full"));
+    const result = await runDiscoveryLoop({ items: items(3), storage: h.storage, discover: h.discover });
+    // The write failure is swallowed per item, so the loop still advances.
+    expect(result).toEqual({ nextIndex: 3, discovered: 0 });
+    expect(h.discover).toHaveBeenCalledTimes(3);
+  });
 });

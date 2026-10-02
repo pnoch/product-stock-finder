@@ -7598,3 +7598,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `rediscoverProduct` recorded nothing on a miss, so a product the user just searched via "Find prices" (and found nothing) was immediately re-scraped by the background `rediscoverMissingListings` rotation. Added `recordListingAttempt(productId, now?)` to `lib/manual-add.ts`; `rediscoverProduct` now records a miss/timeout, and `rediscoverMissingListings` reuses the helper.
 - [x] `tests/manual-add.test.ts` (+1): a `rediscoverProduct` miss makes the next background sweep skip that product.
 - [x] `tsc 0`, lint 0 errors / 158 warnings; offline `3083 passed` / `84 skipped`; DB `87`; desktop `304`.
+
+## Phase 1022: Behavioral tests for the discovery loop (catches a spin bug)
+
+- [x] Converted part of the weak coverage around bulk discovery into behavioral tests. Two new `runDiscoveryLoop` cases: immediate `shouldCancel` returns `{0,0}` without discovering or prompting; and a throwing `updateProductListings` is absorbed per item (the loop still drains, `discovered` stays 0).
+- [x] The cancel case exposed a real bug: `runDiscoveryLoop` could spin forever when `shouldCancel` made a batch return its start index but `confirmContinue` kept returning true. Fixed with a while-top `shouldCancel` check and a no-progress guard (`if (nextIndex === before) break`).
+- [x] `tsc 0`, lint 0 errors / 158 warnings; offline `3085 passed` / `84 skipped`; DB `87`; desktop `304`.
