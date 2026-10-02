@@ -94,6 +94,28 @@ describe("rediscoverProduct", () => {
     expect(storage.updateProductListings).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
+
+  it("records a miss so the background rotation skips it", async () => {
+    clearListingAttemptsForTests();
+    const discover = vi.fn(async () => []);
+    await rediscoverProduct({
+      storage: { updateProductListings: vi.fn(async () => {}) },
+      discover,
+      productId: "miss",
+      modelNumber: "M1",
+    });
+    // The same product must not be re-scraped by the background rotation within
+    // the retry window after a user-driven miss.
+    const result = await rediscoverMissingListings({
+      storage: {
+        getWatchlist: async () => [{ id: "miss", modelNumber: "M1", listings: [] }],
+        updateProductListings: vi.fn(async () => {}),
+      } as never,
+      discover,
+      now: Date.now() + 60_000,
+    });
+    expect(result.scanned).toBe(0);
+  });
 });
 
 describe("rediscoverMissingListings", () => {

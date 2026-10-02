@@ -7592,3 +7592,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] The desktop bulk-import discovery loop was duplicated verbatim in `Search.tsx` and `SearchModal.tsx` (final-review follow-up). Added `runDiscoveryLoop(deps)` to `lib/bulk-discovery.ts` that drains `runDiscoveryBatch` across the list and calls `confirmContinue(remaining)` before each follow-up batch; both desktop callers now use it.
 - [x] `tests/bulk-discovery.test.ts` gains 4 loop cases (no-confirm drains all; confirm-false stops after the first batch; confirm-true continues with the right remaining counts; empty list no-op). Updated the desktop source guard to assert `runDiscoveryLoop`.
 - [x] `tsc 0`, lint 0 errors / 158 warnings; offline `3082 passed` / `84 skipped`; DB `87`; desktop `304`.
+
+## Phase 1021: Record user-driven discovery misses in the retry cooldown
+
+- [x] `rediscoverProduct` recorded nothing on a miss, so a product the user just searched via "Find prices" (and found nothing) was immediately re-scraped by the background `rediscoverMissingListings` rotation. Added `recordListingAttempt(productId, now?)` to `lib/manual-add.ts`; `rediscoverProduct` now records a miss/timeout, and `rediscoverMissingListings` reuses the helper.
+- [x] `tests/manual-add.test.ts` (+1): a `rediscoverProduct` miss makes the next background sweep skip that product.
+- [x] `tsc 0`, lint 0 errors / 158 warnings; offline `3083 passed` / `84 skipped`; DB `87`; desktop `304`.
