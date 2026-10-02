@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { watchlistToCsv, watchlistToDetailedCsv, productHistoryToCsv, priceHistoryToCsv } from "../lib/csv";
+import { watchlistToCsv, watchlistToDetailedCsv, productHistoryToCsv, priceHistoryToCsv, hasExportablePriceData } from "../lib/csv";
 import type { Product, DistributorListing } from "../lib/types";
 
 function listing(overrides: Partial<DistributorListing>): DistributorListing {
@@ -131,5 +131,30 @@ describe("watchlistToDetailedCsv zero price", () => {
     const cols = csv.split("\n")[1].split(",");
     // product,model,brand,category,distributor,price,currency,stockStatus,url
     expect(cols[5]).toBe("0");
+  });
+});
+
+describe("hasExportablePriceData", () => {
+  it("is true when a listing has price history", () => {
+    const p = product("p1", [
+      listing({ priceHistory: [{ date: "2026-09-01", price: 100, currency: "USD", stockStatus: "in_stock" }] }),
+    ]);
+    expect(hasExportablePriceData(p)).toBe(true);
+  });
+
+  it("is true with a finite current price and no history", () => {
+    expect(hasExportablePriceData(product("p1", [listing({ price: 42, priceHistory: [] })]))).toBe(true);
+  });
+
+  it("treats a 0 price as data", () => {
+    expect(hasExportablePriceData(product("p1", [listing({ price: 0, priceHistory: [] })]))).toBe(true);
+  });
+
+  it("is false with no listings", () => {
+    expect(hasExportablePriceData(product("p1", []))).toBe(false);
+  });
+
+  it("is false with only a non-finite price and no history", () => {
+    expect(hasExportablePriceData(product("p1", [listing({ price: Number.NaN, priceHistory: [] })]))).toBe(false);
   });
 });

@@ -7,6 +7,7 @@ import { useToast } from "../hooks/use-toast";
 import { useAuth } from "../hooks/use-auth";
 import { normalizeSharedWatchlistProduct } from "../../../lib/shared-watchlist";
 import { productHistoryToCsv, watchlistToDetailedCsv } from "../../../lib/csv";
+import { saveCsv } from "../lib/save-csv";
 import type { Product } from "../../../lib/types";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "@/lib/currency";
@@ -110,17 +111,10 @@ export function SharedWatchlist() {
   }, [data, adding, addOne, showToast]);
 
   const handleExportHistory = useCallback((product: Product) => {
-    const csv = productHistoryToCsv(product);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${product.id}-history.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast("History exported");
+    void saveCsv(`${product.id}-history.csv`, productHistoryToCsv(product)).then((result) => {
+      if (result.status === "cancelled") return;
+      showToast(result.status === "saved" ? "History exported" : "Couldn't export history");
+    });
   }, [showToast]);
 
   const handleExportCsv = useCallback(() => {
@@ -128,16 +122,10 @@ export function SharedWatchlist() {
     // Stamp the source link so re-imports keep provenance (the CSV parser
     // skips /w/ deep-link lines on import).
     const csv = watchlistToDetailedCsv(products as never[], { shareUrl: window.location.href });
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `shared-${token ?? "watchlist"}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast("Share exported as CSV");
+    void saveCsv(`shared-${token ?? "watchlist"}.csv`, csv).then((result) => {
+      if (result.status === "cancelled") return;
+      showToast(result.status === "saved" ? "Share exported as CSV" : "Couldn't export share");
+    });
   }, [data, token, showToast]);
 
   if (loading) {

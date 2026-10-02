@@ -162,6 +162,19 @@ export function productHistoryToCsv(product: Product): string {
   return priceHistoryToCsv(fallback, { name: product.name, modelNumber: product.modelNumber });
 }
 
+// ─── Export eligibility ─────────────────────────────────────────────────────
+/**
+ * True when a product has price history or at least one finite listing price
+ * (0 counts). Decides whether a Product Detail CSV export is useful.
+ */
+export function hasExportablePriceData(product: Product): boolean {
+  return (product.listings ?? []).some(
+    (l) =>
+      (l.priceHistory?.length ?? 0) > 0 ||
+      (typeof l.price === "number" && Number.isFinite(l.price)),
+  );
+}
+
 // ─── CSV parsing (RFC 4180 subset: commas, quotes, escaped quotes) ─────────
 function stripBom(s: string): string {
   return s.charCodeAt(0) === 0xfeff ? s.slice(1) : s;

@@ -15,6 +15,7 @@ import {
   Share2,
   Calendar,
   Copy,
+  Download,
 } from "lucide-react";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
@@ -38,6 +39,8 @@ import { fetchListingsWithTimeout } from "../lib/server-prices";
 import { checkNotificationPermission } from "../lib/notification-permission";
 import { saveNodeAsPng } from "../lib/share";
 import { buildShareText } from "../../../lib/price-share";
+import { productHistoryToCsv, hasExportablePriceData } from "../../../lib/csv";
+import { saveCsv } from "../lib/save-csv";
 import { getProductNote, saveProductNote } from "../../../lib/product-notes";
 import { withTimeout } from "../../../lib/with-timeout";
 import { rediscoverProduct } from "../../../lib/manual-add";
@@ -698,6 +701,22 @@ export function ProductDetail() {
     }
   };
 
+  const handleExportCsv = async () => {
+    if (!product) return;
+    if (!hasExportablePriceData(product)) {
+      showToast("Nothing to export");
+      return;
+    }
+    const fileName = `${product.modelNumber ?? product.id}-history.csv`;
+    const result = await saveCsv(fileName, productHistoryToCsv(product));
+    if (result.status === "cancelled") return;
+    if (result.status === "failed") {
+      showToast("Couldn't export the price history");
+      return;
+    }
+    showToast(result.path ? `Exported to ${result.path}` : "Price history exported");
+  };
+
   const handleCopyLink = async () => {
     if (!product) return;
     const deepLink = `${window.location.origin}/#/product/${product.id}`;
@@ -1269,6 +1288,13 @@ export function ProductDetail() {
           aria-label="Share product"
         >
           <Share2 className="w-4 h-4" /> Share
+        </button>
+        <button
+          onClick={handleExportCsv}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+          aria-label="Export product price history as CSV"
+        >
+          <Download className="w-4 h-4" /> Export CSV
         </button>
         <button
           onClick={handleCopyLink}

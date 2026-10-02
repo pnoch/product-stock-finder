@@ -229,7 +229,7 @@ describe("saveCsv", () => {
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => {});
-    expect(await saveCsv("x.csv", "a,b\n1,2")).toBe(true);
+    expect(await saveCsv("x.csv", "a,b\n1,2")).toEqual({ status: "saved" });
     expect(createObjectURL).toHaveBeenCalledOnce();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock");
     expect(click).toHaveBeenCalledOnce();
@@ -239,7 +239,7 @@ describe("saveCsv", () => {
     tauriState.isTauri = true;
     saveMock.mockResolvedValue("/tmp/x.csv");
     writeFileMock.mockResolvedValue(undefined);
-    expect(await saveCsv("x.csv", "a,b")).toBe(true);
+    expect(await saveCsv("x.csv", "a,b")).toEqual({ status: "saved", path: "/tmp/x.csv" });
     expect(saveMock).toHaveBeenCalledWith({
       defaultPath: "x.csv",
       filters: [{ name: "CSV", extensions: ["csv"] }],
@@ -247,17 +247,24 @@ describe("saveCsv", () => {
     expect(writeFileMock).toHaveBeenCalledOnce();
   });
 
-  it("returns false when the Tauri save dialog is cancelled", async () => {
+  it("reports a cancelled Tauri save dialog as cancelled", async () => {
     tauriState.isTauri = true;
     saveMock.mockResolvedValue(null);
-    expect(await saveCsv("x.csv", "a,b")).toBe(false);
+    expect(await saveCsv("x.csv", "a,b")).toEqual({ status: "cancelled" });
     expect(writeFileMock).not.toHaveBeenCalled();
   });
 
-  it("returns false when saving throws", async () => {
+  it("reports a thrown save as failed", async () => {
     tauriState.isTauri = true;
     saveMock.mockRejectedValue(new Error("boom"));
-    expect(await saveCsv("x.csv", "a,b")).toBe(false);
+    expect(await saveCsv("x.csv", "a,b")).toEqual({ status: "failed" });
+  });
+
+  it("reports a writeFile failure as failed", async () => {
+    tauriState.isTauri = true;
+    saveMock.mockResolvedValue("/tmp/x.csv");
+    writeFileMock.mockRejectedValue(new Error("write boom"));
+    expect(await saveCsv("x.csv", "a,b")).toEqual({ status: "failed" });
   });
 });
 ```
@@ -274,12 +281,17 @@ Create `desktop/src/lib/save-csv.ts`:
 ```ts
 import { isTauri } from "./tauri";
 
+export type SaveCsvResult =
+  | { status: "saved"; path?: string }
+  | { status: "cancelled" }
+  | { status: "failed" };
+
 /**
  * Saves CSV text. In the Tauri app this opens a native save dialog and writes
- * the file; in the browser it triggers a download. Returns false when the user
- * cancels or the save fails. Never throws.
+ * the file; in the browser it triggers a download. Distinguishes a user cancel
+ * (silent) from a real failure (surface an error). Never throws.
  */
-export async function saveCsv(fileName: string, csv: string): Promise<boolean> {
+export async function saveCsv(fileName: string, csv: string): Promise<SaveCsvResult> {
   try {
     if (isTauri()) {
       const { save } = await import("@tauri-apps/plugin-dialog");
@@ -288,22 +300,25 @@ export async function saveCsv(fileName: string, csv: string): Promise<boolean> {
         defaultPath: fileName,
         filters: [{ name: "CSV", extensions: ["csv"] }],
       });
-      if (!filePath) return false;
+      if (!filePath) return { status: "cancelled" };
       await writeFile(filePath, new TextEncoder().encode(csv));
-      return true;
+      return { status: "saved", path: filePath };
     }
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    return true;
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+    return { status: "saved" };
   } catch {
-    return false;
+    return { status: "failed" };
   }
 }
 ```
@@ -311,7 +326,7 @@ export async function saveCsv(fileName: string, csv: string): Promise<boolean> {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pnpm --filter desktop test -- save-csv`
-Expected: PASS (4 tests)
+Expected: PASS (5 tests)
 
 - [ ] **Step 5: Refactor `Compare.tsx` to use the helper**
 
@@ -320,9 +335,13 @@ In `desktop/src/pages/Compare.tsx`:
 - Replace the save block (lines 548-567, the `if (isTauri()) { ... } else { ... }`) with:
 
 ```ts
-      const ok = await saveCsv(fileName, csv);
-      if (!ok) return;
-      showToast("Price history exported");
+      const result = await saveCsv(fileName, csv);
+      if (result.status === "cancelled") return;
+      if (result.status === "failed") {
+        showToast("Couldn't export the price history");
+        return;
+      }
+      showToast(result.path ? `Exported to ${result.path}` : "Price history exported");
 ```
 
 The surrounding `try { ... } catch { showToast("Couldn't export the price history"); }` stays.
@@ -333,9 +352,10 @@ In `desktop/src/pages/SharedWatchlist.tsx`, add `import { saveCsv } from "../lib
 
 ```tsx
   const handleExportHistory = useCallback((product: Product) => {
-    void saveCsv(`${product.id}-history.csv`, productHistoryToCsv(product)).then((ok) =>
-      showToast(ok ? "History exported" : "Couldn't export history"),
-    );
+    void saveCsv(`${product.id}-history.csv`, productHistoryToCsv(product)).then((result) => {
+      if (result.status === "cancelled") return;
+      showToast(result.status === "saved" ? "History exported" : "Couldn't export history");
+    });
   }, [showToast]);
 
   const handleExportCsv = useCallback(() => {
@@ -343,9 +363,10 @@ In `desktop/src/pages/SharedWatchlist.tsx`, add `import { saveCsv } from "../lib
     // Stamp the source link so re-imports keep provenance (the CSV parser
     // skips /w/ deep-link lines on import).
     const csv = watchlistToDetailedCsv(products as never[], { shareUrl: window.location.href });
-    void saveCsv(`shared-${token ?? "watchlist"}.csv`, csv).then((ok) =>
-      showToast(ok ? "Share exported as CSV" : "Couldn't export share"),
-    );
+    void saveCsv(`shared-${token ?? "watchlist"}.csv`, csv).then((result) => {
+      if (result.status === "cancelled") return;
+      showToast(result.status === "saved" ? "Share exported as CSV" : "Couldn't export share");
+    });
   }, [data, token, showToast]);
 ```
 
@@ -369,6 +390,14 @@ git commit -m "feat: shared desktop CSV save helper (Tauri/browser)"
 - [ ] **Step 1: Write the failing test**
 
 Append to `tests/product-detail-csv.test.ts`:
+
+Also strengthen the existing mobile assertion (added in Task 2) to catch the button being unwired — add this line inside the mobile `it` block:
+
+```ts
+    expect(mobile).toContain("onPress={handleExportCsv}");
+```
+
+Add the new desktop describe:
 
 ```ts
 describe("product detail CSV export (desktop)", () => {
@@ -408,8 +437,13 @@ import { saveCsv } from "../lib/save-csv";
       return;
     }
     const fileName = `${product.modelNumber ?? product.id}-history.csv`;
-    const ok = await saveCsv(fileName, productHistoryToCsv(product));
-    showToast(ok ? "Price history exported" : "Couldn't export the price history");
+    const result = await saveCsv(fileName, productHistoryToCsv(product));
+    if (result.status === "cancelled") return;
+    if (result.status === "failed") {
+      showToast("Couldn't export the price history");
+      return;
+    }
+    showToast(result.path ? `Exported to ${result.path}` : "Price history exported");
   };
 ```
 
