@@ -439,7 +439,11 @@ import { saveCsv } from "../lib/save-csv";
     const fileName = `${product.modelNumber ?? product.id}-history.csv`;
     const result = await saveCsv(fileName, productHistoryToCsv(product));
     if (result.status === "cancelled") return;
-    showToast(result.status === "saved" ? "Price history exported" : "Couldn't export the price history");
+    if (result.status === "failed") {
+      showToast("Couldn't export the price history");
+      return;
+    }
+    showToast(result.path ? `Exported to ${result.path}` : "Price history exported");
   };
 ```
 

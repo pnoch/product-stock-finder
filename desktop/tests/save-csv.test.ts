@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { saveCsv } from "../src/lib/save-csv";
 
 const tauriState = vi.hoisted(() => ({ isTauri: false }));
 vi.mock("../src/lib/tauri", () => ({ isTauri: () => tauriState.isTauri }));
@@ -7,8 +8,6 @@ const saveMock = vi.hoisted(() => vi.fn());
 const writeFileMock = vi.hoisted(() => vi.fn());
 vi.mock("@tauri-apps/plugin-dialog", () => ({ save: saveMock }));
 vi.mock("@tauri-apps/plugin-fs", () => ({ writeFile: writeFileMock }));
-
-import { saveCsv } from "../src/lib/save-csv";
 
 describe("saveCsv", () => {
   afterEach(() => {

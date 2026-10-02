@@ -8,7 +8,7 @@
 - **Content:** the existing per-product history CSV via `productHistoryToCsv(product)` — every listing's price history (date, price, currency, status, distributor name), falling back to the current listing price/status when a product has no history. No new format.
 - **Platforms:** all three (mobile, web, desktop), matching the project's cross-platform parity.
 - **Placement:** mobile/web a third header icon beside Edit/Share; desktop a button in the existing Product Detail action row.
-- **DRY:** extract a desktop `saveCsv` helper and reuse it in the two pages that currently inline the save logic.
+- **DRY:** extract a desktop `saveCsv` helper and reuse it in the pages touched here that inline the same save logic (`Compare.tsx`, `SharedWatchlist.tsx`). `Settings.tsx` / `DistributorAnalysis.tsx` carry the same inline pattern but are out of scope for this change.
 
 ## Building blocks that already exist (reused, not rebuilt)
 
@@ -64,7 +64,7 @@ Then refactor `desktop/src/pages/Compare.tsx` and `desktop/src/pages/SharedWatch
 ## 4. Desktop Product Detail — `desktop/src/pages/ProductDetail.tsx`
 
 - Imports: `productHistoryToCsv`, `hasExportablePriceData` from `../../../lib/csv`; `saveCsv` from `../lib/save-csv`.
-- New `handleExportCsv`: same guard (toast "Nothing to export" when `!hasExportablePriceData`), `await saveCsv(fileName, productHistoryToCsv(product))`, toast `"Price history exported"` on success or `"Couldn't export the price history"` on failure.
+- New `handleExportCsv`: same guard (toast "Nothing to export" when `!hasExportablePriceData`), `await saveCsv(fileName, productHistoryToCsv(product))`; silent on `cancelled`; `"Couldn't export the price history"` on `failed`; on `saved` toast `Exported to <path>` when the Tauri path is known, else `"Price history exported"`.
 - Add an **"Export CSV"** button in the action row (beside Share/Copy Link/Save image), using lucide `Download`, matching the row's existing button styling and `aria-label="Export product price history as CSV"`.
 
 ## 5. Error handling
@@ -75,7 +75,7 @@ Both handlers never throw. No exportable data → "Nothing to export". A user ca
 
 - `tests/csv.test.ts`: `hasExportablePriceData` — true with history; true with a finite current price; true for a `0` price; false with no listings; false with a non-finite/NaN price.
 - `tests/product-detail-csv.test.ts` (source guards): mobile file references `productHistoryToCsv`, `exportCsvFile`, `hasExportablePriceData`, and "Export CSV"; desktop ProductDetail references `productHistoryToCsv`, `saveCsv`, and "Export CSV".
-- `desktop/tests/save-csv.test.ts`: browser path creates a downloadable Blob (mock `isTauri` false, stub `URL.createObjectURL`/anchor click) and returns true; Tauri path calls the dialog `save` then `writeFile` and returns true; dialog cancel returns false; rejection returns false.
+- `desktop/tests/save-csv.test.ts`: browser path creates a downloadable Blob (mock `isTauri` false, stub `URL.createObjectURL`/anchor click) and returns `{ status: "saved" }`; Tauri path calls the dialog `save` then `writeFile` and returns `{ status: "saved", path }`; dialog cancel → `{ status: "cancelled" }`; a thrown `save` or a rejected `writeFile` → `{ status: "failed" }`.
 - Existing suites stay green (`tests/csv.test.ts`, `tests/csv-export.test.ts`, `tests/desktop-compare-shared2.test.ts`, desktop suite).
 
 ## 7. Out of scope
