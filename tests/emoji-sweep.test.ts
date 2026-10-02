@@ -1,6 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { DISTRIBUTORS } from "@shared/distributors";
 
 // Notification titles must be plain text: without a system emoji font a title
 // emoji renders as an empty "tofu" box in the OS notification surface.
@@ -24,7 +25,9 @@ async function walk(dir: string): Promise<string[]> {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const p = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (!/node_modules|\.expo|dist/.test(p)) out.push(...(await walk(p)));
+      if (!["node_modules", ".expo", "dist"].includes(entry.name)) {
+        out.push(...(await walk(p)));
+      }
     } else if (/\.(ts|tsx)$/.test(entry.name)) {
       out.push(p);
     }
@@ -48,11 +51,15 @@ describe("emoji sweep", () => {
       for (const file of await walk(root)) {
         const src = await readFile(file, "utf8");
         expect(src.includes("countryFlag"), `${file} still uses countryFlag`).toBe(false);
+        expect(/[\u{1F1E6}-\u{1F1FF}]{2}/u.test(src), `${file} has a flag emoji`).toBe(false);
       }
     }
-    for (const file of await walk("shared")) {
-      const src = await readFile(file, "utf8");
-      expect(/[\u{1F1E6}-\u{1F1FF}]{2}/u.test(src), `${file} has a flag emoji`).toBe(false);
+  });
+
+  it("every distributor countryCode is a 2-letter ISO code", () => {
+    expect(DISTRIBUTORS.length).toBeGreaterThan(0);
+    for (const d of DISTRIBUTORS) {
+      expect(d.countryCode, `${d.id} countryCode`).toMatch(/^[A-Z]{2}$/);
     }
   });
 });
