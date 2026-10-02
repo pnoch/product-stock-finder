@@ -263,6 +263,21 @@ export type NotificationEventDeliveryRow =
 export type InsertNotificationEventDeliveryRow =
   typeof notificationEventDeliveries.$inferInsert;
 
+export const notificationEmailLog = mysqlTable(
+  "notification_email_log",
+  {
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    dedupKey: varchar("dedupKey", { length: 191 }).notNull(),
+    sentAt: bigint("sentAt", { mode: "number" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.dedupKey] }),
+    index("idx_notif_email_sent").on(table.sentAt),
+  ],
+);
+
 export const devicePushTokens = mysqlTable(
   "device_push_tokens",
   {
