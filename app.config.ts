@@ -126,6 +126,17 @@ const config: ExpoConfig = {
     // native module's hasBackgroundModeEnabled check fails and
     // registerTaskAsync silently no-ops on release builds.
     "expo-background-task",
+    // Android 8+ renders a notification's small icon from this monochrome
+    // asset; without it a full-colour app icon is shown as a white square.
+    // `color` tints the notification accent. Requires a prebuild/EAS build to
+    // take effect (not verifiable in a headless environment).
+    [
+      "expo-notifications",
+      {
+        icon: "./assets/images/android-icon-monochrome.png",
+        color: "#0F52BA",
+      },
+    ],
     [
       "expo-splash-screen",
       {
