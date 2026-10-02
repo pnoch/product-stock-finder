@@ -7678,3 +7678,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] The source-level lint warnings were almost entirely duplicate imports of the same module (`import/no-duplicates`, 11 sites). Merged them: `lib/background-tasks/refresh-listing.ts` (3× `@/shared/const`), `server/devices.ts` (2× `./db`), `server/prices.ts` (2× `./price-cache`, 2× `./notifications`), `server/routers.ts` (2× `./sync-db`).
 - [x] The one remaining source warning is `import/no-named-as-default-member` in `lib/_core/theme.ts` (hands-off framework code). The rest are stylistic (`import/first` in hoisted-mock tests, `array-type`) or deliberate `react-hooks/exhaustive-deps`.
 - [x] Verified: `tsc 0`, lint 0 errors / **146 warnings** (from 158), root `3091 passed` / `84 skipped`, desktop unaffected.
+
+## Phase 1034: Production server integration smoke (live)
+
+- [x] Built `pnpm build` and ran the real `dist/index.js` against the local test DB (`PORT=3999`), then curled the endpoints: `/api/healthz` → `200 {"ok":true,"db":"ok"}` (DB connected); `/` → 200 SPA HTML; deep link `/product/foo` → 200 (SPA fallback for client routes); and `/api/*` carries `Cache-Control: no-store` (verifying the Phase 1013 fix live). Server log confirms `[spa] serving web export` + `[api] server listening`.
+- [x] Docs only; no source change. Confirms the full production chain (esbuild server bundle → Express + tRPC + SPA + health) works after all of this session's changes.
