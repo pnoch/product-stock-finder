@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAlertActive, countActiveAlerts } from "../lib/alert-state";
+import { isAlertActive, countActiveAlerts, countOpenAlerts } from "../lib/alert-state";
 import type { PriceAlert } from "../lib/types";
 
 const NOW = Date.parse("2026-09-23T12:00:00.000Z");
@@ -52,5 +52,17 @@ describe("isAlertActive", () => {
       alert({ id: "snoozed", snoozedUntil: "2026-09-30T00:00:00.000Z" }),
     ];
     expect(countActiveAlerts(alerts, NOW)).toBe(1);
+  });
+
+  it("countOpenAlerts counts every card the Alerts tab renders", () => {
+    const alerts = [
+      alert({ id: "active" }),
+      alert({ id: "disabled", isActive: false }),
+      alert({ id: "snoozed", snoozedUntil: "2026-09-30T00:00:00.000Z" }),
+      alert({ id: "triggered", triggeredAt: "2026-09-02T00:00:00.000Z" }),
+    ];
+    // Armed, disabled and snoozed all render as cards; only triggered does not.
+    expect(countOpenAlerts(alerts)).toBe(3);
+    expect(countOpenAlerts([])).toBe(0);
   });
 });
