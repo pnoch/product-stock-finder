@@ -124,6 +124,120 @@ git commit -m "feat: add webhookAlerts settings (default off)"
 
 ---
 
+## Task 1b: Keep the webhook URL out of shareable backups
+
+**Why:** the URL is a bearer credential. `lib/settings-privacy.ts` already keeps the BYO-LLM key out of backups; the same rule applies here. The settings **sync** path (`stripDeviceLocalSettings` in `lib/sync.ts`) must keep uploading the URL — the server needs it for delivery — so the backup path gets its own strip function.
+
+**Files:**
+- Modify: `lib/settings-privacy.ts` (add `stripBackupSecrets`)
+- Modify: `lib/backup.ts` (use it in `buildBackup` + `parseBackup`; skip the URL in `mergeSettings`)
+- Test: `tests/webhook-alerts-backup.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+import { describe, expect, it } from "vitest";
+import { buildBackup, parseBackup, applyBackup } from "../lib/backup";
+import { stripDeviceLocalSettings } from "../lib/settings-privacy";
+import type { AppSettings } from "../lib/types";
+
+const base: AppSettings = {
+  theme: "auto",
+  displayCurrency: "USD",
+  checkInterval: "manual",
+  notificationsEnabled: true,
+  webhookAlerts: true,
+  alertWebhookUrl: "https://discord.com/api/webhooks/1/secret",
+};
+
+describe("webhook URL is a backup secret", () => {
+  it("omits the URL from an exported backup", () => {
+    const json = buildBackup({
+      watchlist: [],
+      alerts: [],
+      reminders: [],
+      stockWatches: [],
+      settings: base,
+    });
+    expect(json).not.toContain("secret");
+    expect(parseBackup(json)!.settings?.alertWebhookUrl).toBeUndefined();
+  });
+
+  it("never adopts a URL from an imported backup", () => {
+    const crafted = JSON.stringify({
+      format: "product-stock-finder-backup",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      watchlist: [],
+      alerts: [],
+      reminders: [],
+      stockWatches: [],
+      settings: { ...base, alertWebhookUrl: "https://hooks.slack.com/services/from-file" },
+    });
+    const parsed = parseBackup(crafted)!;
+    const result = applyBackup(parsed, {
+      watchlist: [],
+      alerts: [],
+      reminders: [],
+      stockWatches: [],
+      settings: base,
+    });
+    expect(result.settings.alertWebhookUrl).toBe(base.alertWebhookUrl);
+  });
+
+  it("does not strip the URL from settings sync (server needs it)", () => {
+    expect(stripDeviceLocalSettings(base).alertWebhookUrl).toBe(base.alertWebhookUrl);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pnpm vitest run tests/webhook-alerts-backup.test.ts`
+Expected: FAIL (exported backup contains `secret`)
+
+- [ ] **Step 3: Implement**
+
+In `lib/settings-privacy.ts`, add:
+
+```ts
+/**
+ * Secrets that must not travel in a user-shareable backup file. The webhook URL
+ * is a bearer credential, but unlike the LLM key the server needs it for
+ * delivery, so it is stripped only from backups — settings sync keeps it.
+ */
+export function stripBackupSecrets(settings: AppSettings): AppSettings {
+  const copy = stripDeviceLocalSettings(settings);
+  delete copy.alertWebhookUrl;
+  return copy;
+}
+```
+
+In `lib/backup.ts`:
+- Change the import to `import { stripBackupSecrets } from "./settings-privacy";`
+- In `buildBackup`, change `settings: stripDeviceLocalSettings(input.settings),` to `settings: stripBackupSecrets(input.settings),`
+- In `parseBackup`, change `stripDeviceLocalSettings(obj.settings as AppSettings)` to `stripBackupSecrets(obj.settings as AppSettings)`
+- In `mergeSettings`, next to the `llmApiKey` skip, add:
+
+```ts
+    // Bearer credential: never adopt a URL from a (possibly shared) backup file.
+    if (key === "alertWebhookUrl") continue;
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm vitest run tests/webhook-alerts-backup.test.ts tests/backup.test.ts tests/settings-privacy.test.ts`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add lib/settings-privacy.ts lib/backup.ts tests/webhook-alerts-backup.test.ts
+git commit -m "fix: keep webhook URL out of shareable backups"
+```
+
+---
+
 ## Task 2: `notification_webhook_log` table
 
 **Files:**
