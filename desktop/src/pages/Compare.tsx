@@ -1,4 +1,3 @@
-import { isTauri } from "../lib/tauri";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useSearchParams, Link } from "react-router";
 import { storage } from "../storage";
@@ -10,6 +9,7 @@ import type { Product, PriceAlert } from "../../../lib/types";
 import { buildShareText } from "../../../lib/price-share";
 import { priceHistoryToCsv } from "../../../lib/csv";
 import { copyTextWithFallback, saveNodeAsPng } from "../lib/share";
+import { saveCsv } from "../lib/save-csv";
 import { checkNotificationPermission } from "../lib/notification-permission";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -545,25 +545,9 @@ export function Compare() {
         modelNumber: product.modelNumber ?? product.id,
       });
       const fileName = `${product.id}-price-history-${new Date().toISOString().slice(0, 10)}.csv`;
-      if (isTauri()) {
-        const { save } = await import("@tauri-apps/plugin-dialog");
-        const { writeFile } = await import("@tauri-apps/plugin-fs");
-        const filePath = await save({ defaultPath: fileName, filters: [{ name: "CSV", extensions: ["csv"] }] });
-        if (!filePath) return;
-        await writeFile(filePath, new TextEncoder().encode(csv));
-        showToast(`Exported to ${filePath}`);
-      } else {
-        const blob = new Blob([csv], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast("Price history exported");
-      }
+      const ok = await saveCsv(fileName, csv);
+      if (!ok) return;
+      showToast("Price history exported");
     } catch {
       showToast("Couldn't export the price history");
     }
