@@ -105,17 +105,20 @@ export function parsePriceFromText(text: string): number | null {
   // the first digit run is the model number ("804"). Prefer a run adjacent to a
   // currency marker; fall back to the first run when nothing is anchored, which
   // preserves the old behavior for unmarked numbers.
-  // Prefix markers ("$480", "USD 480") attach to the following number, so they
-  // are tried first: in "RB4011 $ 219.99" the "$" belongs to 219.99, not 4011.
-  // Suffix markers ("219.99 EUR") are only considered when no prefix applies.
-  const prefixAnchored = matches.find((m) =>
-    PRICE_ANCHOR_BEFORE.test(text.slice(0, m.index ?? 0)),
-  );
-  const suffixAnchored = matches.find((m) =>
-    PRICE_ANCHOR_AFTER.test(text.slice((m.index ?? 0) + m[0].length)),
-  );
-  const anchored = prefixAnchored ?? suffixAnchored;
-  const raw = (anchored ?? matches[0]!)[0].replace(/[\s\u00a0\u202f]/g, "");
+  const isAnchored = (m: RegExpMatchArray) =>
+    PRICE_ANCHOR_BEFORE.test(text.slice(0, m.index ?? 0)) ||
+    PRICE_ANCHOR_AFTER.test(text.slice((m.index ?? 0) + m[0].length));
+  const anchored = matches.filter(isAnchored);
+  // A marker between two numbers belongs to the following one, so prefer a
+  // prefix-anchored run ("RB4011 $ 219.99" → 219.99, not 4011). A run with a
+  // decimal fraction is the strongest signal — it disambiguates a trailing
+  // integer quantity ("480.00 EUR 2" → 480.00, not 2) while a bare model number
+  // has none.
+  const chosen =
+    anchored.find((m) => /[.,]/.test(m[0])) ??
+    matches.find((m) => PRICE_ANCHOR_BEFORE.test(text.slice(0, m.index ?? 0))) ??
+    anchored[0];
+  const raw = (chosen ?? matches[0]!)[0].replace(/[\s\u00a0\u202f]/g, "");
   const lastDot = raw.lastIndexOf(".");
   const lastComma = raw.lastIndexOf(",");
   let normalized: string;

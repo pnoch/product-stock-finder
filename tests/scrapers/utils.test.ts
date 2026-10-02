@@ -397,4 +397,9 @@ describe("parsePriceFromText currency anchoring", () => {
     expect(parsePriceFromText("1 234,56 Kč")).toBe(1234.56);
     expect(parsePriceFromText("12,345")).toBe(12345);
   });
+
+  it("prefers a decimal-bearing price over a trailing integer quantity", () => {
+    expect(parsePriceFromText("480.00 EUR 2")).toBe(480);
+    expect(parsePriceFromText("480.00 USD 2 pack")).toBe(480);
+  });
 });
