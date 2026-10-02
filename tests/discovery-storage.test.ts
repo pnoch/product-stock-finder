@@ -48,7 +48,7 @@ const mockDistributor: Distributor = {
   country: "US",
   currency: "USD",
   region: "North America",
-  countryFlag: "🇺🇸",
+  countryCode: "US",
   paymentMethods: ["Credit Card"],
   shippingCosts: { "North America": 5 },
 };

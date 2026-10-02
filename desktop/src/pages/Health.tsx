@@ -278,7 +278,7 @@ export function Health() {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm">
                   {distributor
-                    ? `${distributor.countryFlag} ${distributor.name}`
+                    ? `${distributor.countryCode} ${distributor.name}`
                     : h.distributorId}
                 </p>
                 <p className="text-xs text-gray-500">

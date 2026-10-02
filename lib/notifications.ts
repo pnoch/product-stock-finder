@@ -118,7 +118,7 @@ export async function scheduleStockAlert(
   try {
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "🟢 Back In Stock!",
+        title: "Back In Stock!",
         body: `${productName} is now available at ${distributorName} for ${currency} ${price.toFixed(2)}`,
         data: { type: "stock_alert", productName, distributorName, productId },
         sound: "default",
@@ -170,7 +170,7 @@ export async function scheduleHealthAlert(
   }
   const displayName = getDistributorById(distributorId)?.name ?? distributorId;
   const title =
-    status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down";
+    status === "blocked" ? "Distributor Blocked" : "Distributor Down";
   const body = `${displayName} has been ${status} for ${HEALTH_ALERT_THRESHOLD} consecutive probes${reason ? ` — ${reason}` : ""}`;
   let id: string | null = null;
   if (Platform.OS === "web") {
@@ -227,7 +227,7 @@ export async function scheduleHealthRecovery(
     LOG_ERROR("[Notifications] settings read failed, sending anyway", e);
   }
   const displayName = getDistributorById(distributorId)?.name ?? distributorId;
-  const title = "🟢 Distributor Recovered";
+  const title = "Distributor Recovered";
   const body = `${displayName} is back online after being ${status}`;
   let id: string | null = null;
   if (Platform.OS === "web") {
@@ -279,7 +279,7 @@ export async function schedulePriceAlert(
   try {
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "💰 Price Alert Set",
+        title: "Price Alert Set",
         body: `You'll be notified when ${productName} drops below ${currency} ${targetPrice.toFixed(2)}`,
         data: { type: "price_alert", productName, targetPrice, currency, productId },
         sound: "default",
@@ -302,7 +302,7 @@ export async function sendTestNotification(): Promise<boolean> {
     if (!granted) return false;
     const { displayWebNotification } = await import("./web-notifications");
     return displayWebNotification(
-      "✅ Notifications Working!",
+      "Notifications Working!",
       "Product Stock Finder will alert you when prices drop or items come back in stock.",
     );
   }
@@ -311,7 +311,7 @@ export async function sendTestNotification(): Promise<boolean> {
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "✅ Notifications Working!",
+        title: "Notifications Working!",
         body: "Product Stock Finder will alert you when prices drop or items come back in stock.",
         data: { type: "test" },
         sound: "default",
@@ -337,7 +337,7 @@ export async function scheduleBackOrderReminder(
     if (!granted) return null;
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "📦 Back-Order Reminder",
+        title: "Back-Order Reminder",
         body: `Check ${distributorName} for ${productName} — your reminder date is here!`,
         data: { type: "back_order_reminder", productName, distributorName, productId },
         sound: "default",

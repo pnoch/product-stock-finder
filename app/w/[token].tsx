@@ -239,7 +239,7 @@ export default function SharedWatchlistScreen() {
                       const dist = getDistributorById(l.distributorId);
                       return (
                         <View key={l.distributorId} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                          <Text style={{ color: colors.foreground, fontSize: 12, flex: 1 }} numberOfLines={1}>{dist ? `${dist.countryFlag} ${dist.name}` : l.distributorId}</Text>
+                          <Text style={{ color: colors.foreground, fontSize: 12, flex: 1 }} numberOfLines={1}>{dist ? `${dist.countryCode} ${dist.name}` : l.distributorId}</Text>
                           <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>{formatPrice(l.price, l.currency)}</Text>
                           <StockBadge status={l.stockStatus} />
                         </View>

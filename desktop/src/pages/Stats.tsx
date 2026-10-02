@@ -420,7 +420,7 @@ export function Stats() {
             <div className="mt-2 space-y-2">
               {movers.drops.map((m) => (
                 <div key={`${m.productId}-${m.distributorId}`} className="flex items-center gap-2">
-                  <span>{m.countryFlag}</span>
+                  <span>{m.countryCode}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{m.productName}</p>
                     <p className="text-xs text-gray-400 truncate">{m.distributorName} · {formatPrice(m.oldPrice, m.currency)} → {formatPrice(m.newPrice, m.currency)}</p>
@@ -444,7 +444,7 @@ export function Stats() {
             <div className="mt-2 space-y-2">
               {movers.gainers.map((m) => (
                 <div key={`${m.productId}-${m.distributorId}`} className="flex items-center gap-2">
-                  <span>{m.countryFlag}</span>
+                  <span>{m.countryCode}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{m.productName}</p>
                     <p className="text-xs text-gray-400 truncate">{m.distributorName} · {formatPrice(m.oldPrice, m.currency)} → {formatPrice(m.newPrice, m.currency)}</p>

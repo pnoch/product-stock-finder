@@ -52,7 +52,7 @@ describe("evaluateBasketAlert", () => {
     const notify = vi.fn().mockResolvedValue(true);
     await expect(evaluateBasketAlert(storage, notify)).resolves.toBe(true);
     expect(notify).toHaveBeenCalledWith(
-      "🧺 Basket Alert",
+      "Basket Alert",
       expect.stringContaining("dropped below your"),
       "/stats",
     );

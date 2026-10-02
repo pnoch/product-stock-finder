@@ -9,7 +9,7 @@ export interface PriceMove {
   productName: string;
   distributorId: string;
   distributorName: string;
-  countryFlag: string;
+  countryCode: string;
   oldPrice: number;
   newPrice: number;
   currency: string;
@@ -104,7 +104,7 @@ export function computeMovers(
         productName: product.name,
         distributorId: listing.distributorId,
         distributorName: dist?.name ?? listing.distributorId,
-        countryFlag: dist?.countryFlag ?? "",
+        countryCode: dist?.countryCode ?? "",
         oldPrice: oldConverted,
         newPrice: newConverted,
         currency: displayCurrency,

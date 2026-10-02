@@ -288,14 +288,14 @@ export default function ProductDetailScreen() {
   );
 
   const alertDistributors = useMemo(() => {
-    const seen = new Map<string, { id: string; name: string; countryFlag: string }>();
+    const seen = new Map<string, { id: string; name: string; countryCode: string }>();
     for (const listing of visibleListings) {
       if (seen.has(listing.distributorId)) continue;
       const dist = getDistributorById(listing.distributorId);
       seen.set(listing.distributorId, {
         id: listing.distributorId,
         name: dist?.name ?? listing.distributorId,
-        countryFlag: dist?.countryFlag ?? "",
+        countryCode: dist?.countryCode ?? "",
       });
     }
     return [...seen.values()];

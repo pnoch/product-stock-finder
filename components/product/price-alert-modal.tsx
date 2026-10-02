@@ -23,7 +23,7 @@ interface PriceAlertModalProps {
   setAlertCurrency: (currency: string) => void;
   productName: string;
   suggestions?: AlertSuggestion[];
-  distributors?: { id: string; name: string; countryFlag: string }[];
+  distributors?: { id: string; name: string; countryCode: string }[];
   selectedDistributorId?: string | null;
   onSelectDistributor?: (id: string | null) => void;
   direction?: "drop" | "rise";
@@ -292,7 +292,7 @@ export function PriceAlertModal({
                         fontWeight: "600",
                       }}
                     >
-                      {d.countryFlag} {d.name}
+                      {d.countryCode} {d.name}
                     </Text>
                   </TouchableOpacity>
                 );

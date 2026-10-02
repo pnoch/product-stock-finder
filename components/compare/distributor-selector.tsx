@@ -154,7 +154,7 @@ export const DistributorSelector = memo(function DistributorSelector({
                   fontSize: 14,
                 }}
               >
-                {distributor?.countryFlag}{" "}
+                {distributor?.countryCode}{" "}
                 {distributor?.name ?? l.distributorId}
               </Text>
               <Text style={{ color: colors.muted, fontSize: 12 }}>

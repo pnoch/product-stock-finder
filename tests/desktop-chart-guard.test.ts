@@ -956,9 +956,9 @@ describe("desktop chart guard", () => {
   });
 
   // Phase 540 (emoji sweep B): decorative emoji in the UI render as empty
-  // "tofu" boxes without a system emoji font. Notification titles (category C)
-  // deliberately keep theirs — the OS renders those. `✓` (U+2713) is a
-  // font-safe dingbat, not an emoji, so it is allowed.
+  // "tofu" boxes without a system emoji font. Notification titles are now
+  // emoji-free too and are guarded by tests/emoji-sweep.test.ts. `✓` (U+2713)
+  // is a font-safe dingbat, not an emoji, so it is allowed.
   it("has no decorative emoji left in the swept UI surfaces", async () => {
     const swept = ["🔥", "🏅", "🎯", "🧺", "🔔", "➕", "➖", "🎉", "💳", "🕐", "👀", "😴", "📅", "✏️", "📋", "✨"];
     for (const file of [

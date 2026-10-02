@@ -7746,3 +7746,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Flipped the fully-resolved bundled line (4378) to `[x]`.
 - [x] **Genuinely still open** (product/design/ops, not autonomous fixes): emoji sweep per category (4005/4013/4022/4023); shared-watchlist membership/invite UX (3854/3981); whether the periodic digest is recorded in Notification Center history (4086); dead diagnostic writes wire-or-delete (4053); registration email-enumeration disclosure is a product call (4649/4661/4670/4678); Alerts-tab count vs cards semantics and region filter/group asymmetry (4579); desktop renderer↔Rust-poller whole-array read-modify-write race needs per-item upserts (4535/4545/4552); Tauri `withGlobalTauri`/CSP hardening needs a desktop build (4637); recharts→hand-rolled SVG (4859); transitive advisories need upstream releases (4867); collation/`decimal(12,4)` cosmetic (4418/4429/4438); macOS/Windows signing hosts + only-you values (2034/2066).
 - [x] Docs only; no source change. `tests/agents-doc-drift.test.ts` green.
+
+## Phase 1042: Emoji sweep — notification titles + flags
+
+- [x] Removed the leading emoji from every notification title on mobile, desktop, and server (24 strings across 9 files); bodies were already emoji-free. Updated the pinned title assertions in 8 root test files + 3 desktop test files.
+- [x] Renamed `Distributor.countryFlag` → `countryCode` (ISO 3166-1 alpha-2) across the type, `shared/src/distributors.ts` data, and all references (mobile/desktop/server + share helpers); flags are now `MY`/`GB`/`EU`/… text. Residual local `flag` fields renamed to `countryCode`.
+- [x] New `tests/emoji-sweep.test.ts`: no title emoji in the 10 title sources, no `countryFlag` identifier or regional-indicator emoji across `lib/app/components/desktop/src/shared/server`, and every distributor `countryCode` matches `/^[A-Z]{2}$/`.
+- [x] `tsc 0` (root + desktop), lint 0 errors, root `3142 passed` / `93 skipped`, desktop `311 passed`.

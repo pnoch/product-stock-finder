@@ -105,7 +105,7 @@ export function buildDigestDraft(
     // The readable key fits varchar(255); the id must fit its own varchar(128)
     // column, and a device id can be up to 128 chars, so hash the scope there.
     dedupKey: `digest:${scopeKey}:${day}`,
-    title: "📊 Price Digest",
+    title: "Price Digest",
     body: lines.join("\n"),
     payload: { productId: "", digestCount: held.length },
     createdAt: nowMs,

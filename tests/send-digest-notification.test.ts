@@ -43,13 +43,13 @@ describe("sendPriceDigestNotification history", () => {
 
   it("records the digest in the in-app history when delivered", async () => {
     await expect(
-      sendPriceDigestNotification("📊 Price Digest", "• CRS804 dropped"),
+      sendPriceDigestNotification("Price Digest", "• CRS804 dropped"),
     ).resolves.toBe(true);
     expect(state.scheduled).toHaveLength(1);
     expect(state.recorded).toHaveLength(1);
     expect(state.recorded[0]).toMatchObject({
       type: "digest",
-      title: "📊 Price Digest",
+      title: "Price Digest",
     });
     expect(String(state.recorded[0]!.id)).toMatch(/^local-digest-\d{4}-\d{2}-\d{2}$/);
   });

@@ -202,7 +202,7 @@ function BestDistributorCard({
               fontSize: 15,
             }}
           >
-            {distributor?.countryFlag}{" "}
+            {distributor?.countryCode}{" "}
             {distributor?.name ?? listing.distributorId}
           </Text>
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>

@@ -61,7 +61,7 @@ export function TargetTableCard({
               borderBottomColor: colors.border,
             }}
           >
-            <Text style={{ fontSize: 13 }}>{dist?.countryFlag ?? ""}</Text>
+            <Text style={{ fontSize: 13 }}>{dist?.countryCode ?? ""}</Text>
             <View style={{ flex: 1 }}>
               <Text
                 style={{

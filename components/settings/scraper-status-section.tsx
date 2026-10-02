@@ -131,7 +131,7 @@ export function ScraperStatusSection({
                       marginRight: 6,
                     }}
                   >
-                    {distributor.countryFlag} {distributor.name}
+                    {distributor.countryCode} {distributor.name}
                   </Text>
                   <View
                     style={{

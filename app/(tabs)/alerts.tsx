@@ -111,7 +111,7 @@ export default function AlertsScreen() {
           return {
             id: l.distributorId,
             name: d?.name ?? l.distributorId,
-            countryFlag: d?.countryFlag ?? "",
+            countryCode: d?.countryCode ?? "",
           };
         }) ?? []
     );

@@ -72,7 +72,7 @@ import { sendWebPush } from "../server/web-push";
 
 const event = {
   id: "evt-1",
-  title: "💸 Price Drop Alert!",
+  title: "Price Drop Alert!",
   body: "CRS804 is now $480.00!",
 };
 
@@ -94,7 +94,7 @@ describe("push-notifications", () => {
     expect(sent[0]).toEqual([
       {
         to: "ExponentPushToken[abc123]",
-        title: "💸 Price Drop Alert!",
+        title: "Price Drop Alert!",
         body: "CRS804 is now $480.00!",
         data: { eventId: "evt-1" },
       },
@@ -193,7 +193,7 @@ describe("push-notifications", () => {
     expect(sent[0]).toEqual([
       {
         to: "ExponentPushToken[dbpath]",
-        title: "💸 Price Drop Alert!",
+        title: "Price Drop Alert!",
         body: "CRS804 is now $480.00!",
         data: { eventId: "evt-1" },
       },

@@ -142,7 +142,7 @@ async function runPriceCheckCoreInner(opts?: {
       const granted = await ensureNotificationPermission();
       if (granted) {
         try {
-          const title = "🧺 Basket Alert";
+          const title = "Basket Alert";
           const body = `Watchlist value ${formatPrice(total, basketCurrency)} dropped below your ${formatPrice(threshold, basketCurrency)} threshold.`;
           if (Platform.OS === "web") {
             // expo-notifications is a no-op on web; use the Notification API.
@@ -248,7 +248,7 @@ async function runPriceCheckCoreInner(opts?: {
       // deactivateAlert return false, in which case we must not notify.
       if (!(await deactivateAlert(alert.id, bestPrice))) continue;
       try {
-        const title = isRise ? "📈 Price Increase Alert!" : "💸 Price Drop Alert!";
+        const title = isRise ? "Price Increase Alert!" : "Price Drop Alert!";
         const body = `${product.name} is now ${formatPrice(bestPrice, alert.currency)} — ${
           isRise ? "above" : "below"
         } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`;

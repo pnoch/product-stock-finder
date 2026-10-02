@@ -85,12 +85,12 @@ async function runCheckRestocks(
           const body = `${watch.productName} is now available at ${distrib?.name ?? watch.distributorName}.`;
           if (notify) {
             // Caller-provided channel (desktop → Tauri notification).
-            notified = await notify("🟢 Back In Stock!", body);
+            notified = await notify("Back In Stock!", body);
           } else if (Platform.OS === "web") {
             // No local scheduling on web; show a foreground web notification
             // so the watch isn't consumed without any user-visible alert.
             const { displayWebNotification } = await import("./web-notifications");
-            notified = displayWebNotification("🟢 Back In Stock!", body);
+            notified = displayWebNotification("Back In Stock!", body);
           } else {
             // `scheduleNotificationAsync` resolves even when the OS permission
             // has since been revoked (the alert is scheduled but never shown),
@@ -128,7 +128,7 @@ async function runCheckRestocks(
         await storage.recordNotificationEvent({
           id: `local-restock-${watch.id}-${Date.now()}`,
           type: "restock",
-          title: "🟢 Back In Stock!",
+          title: "Back In Stock!",
           body: `${watch.productName} is now available at ${watch.distributorName}.`,
           productId: watch.productId,
           distributorId: watch.distributorId,

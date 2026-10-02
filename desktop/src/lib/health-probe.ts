@@ -120,7 +120,7 @@ async function evaluateHealthAlerts(
     if (detectHealthAlert(samples)) {
       const latest = latestOf(samples);
       const title =
-        latest.status === "blocked" ? "🟠 Distributor Blocked" : "🔴 Distributor Down";
+        latest.status === "blocked" ? "Distributor Blocked" : "Distributor Down";
       const body = `${name} has been ${latest.status} for 3 consecutive probes${latest.reason ? ` — ${latest.reason}` : ""}`;
       await emitHealthEvent(
         "alert",
@@ -135,7 +135,7 @@ async function evaluateHealthAlerts(
     }
     if (detectHealthRecovery(samples)) {
       const prev = samples[samples.length - 2] as HealthSample;
-      const title = "🟢 Distributor Recovered";
+      const title = "Distributor Recovered";
       const body = `${name} is back online after being ${prev.status}`;
       await emitHealthEvent(
         "recovery",

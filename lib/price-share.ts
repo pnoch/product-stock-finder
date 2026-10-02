@@ -31,7 +31,7 @@ function convert(
 }
 
 export interface ShareRow {
-  flag: string;
+  countryCode: string;
   name: string;
   price: number;
 }
@@ -62,7 +62,7 @@ export function buildShareRows(
       rows: inStock.map(({ listing, converted }) => {
         const dist = getDistributorById(listing.distributorId);
         return {
-          flag: dist?.countryFlag ?? "",
+          countryCode: dist?.countryCode ?? "",
           name: dist?.name ?? listing.distributorId,
           price: converted!,
         };
@@ -122,7 +122,7 @@ export function buildShareText(input: PriceShareInput): string {
   }
   for (const row of rows) {
     lines.push(
-      `${row.flag} ${row.name} — ${formatPrice(row.price, displayCurrency)}`.trimStart(),
+      `${row.countryCode} ${row.name} — ${formatPrice(row.price, displayCurrency)}`.trimStart(),
     );
   }
 

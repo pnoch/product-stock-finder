@@ -309,7 +309,7 @@ export function Home() {
         <div className="space-y-2">
           {recentActivity.map(({ product, listing }, idx) => {
             const distributor = listing ? getDistributorById(listing.distributorId) : undefined;
-            const distributorLabel = distributor ? `${distributor.countryFlag} ${distributor.name}` : (listing?.distributorId ?? "unknown");
+            const distributorLabel = distributor ? `${distributor.countryCode} ${distributor.name}` : (listing?.distributorId ?? "unknown");
             const timeAgo = formatLastRefreshed(listing?.lastChecked ?? product.addedAt);
             return (
               <Link

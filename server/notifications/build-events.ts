@@ -141,7 +141,7 @@ export async function buildEvents(
       dedupKey: clampDedupKey(
         `${isRise ? "price_rise" : "price_drop"}:${alert.id}`,
       ),
-      title: isRise ? "📈 Price Increase Alert!" : "💸 Price Drop Alert!",
+      title: isRise ? "Price Increase Alert!" : "Price Drop Alert!",
       body: `${product?.name ?? alert.productId} is now ${formatPrice(bestPrice, alert.currency)} — ${
         isRise ? "above" : "below"
       } your target of ${formatPrice(alert.targetPrice, alert.currency)}!`,
@@ -172,7 +172,7 @@ export async function buildEvents(
       dedupKey: clampDedupKey(
         `restock:${watch.productId}:${watch.distributorId}`,
       ),
-      title: "🟢 Back In Stock!",
+      title: "Back In Stock!",
       body: `${product?.name ?? watch.productId} is now available at ${distributorName}.`,
       payload: {
         watchId: watch.id,
@@ -195,7 +195,7 @@ export async function buildEvents(
       id: newEventId(),
       type: "reminder",
       dedupKey: clampDedupKey(`reminder:${reminder.id}`),
-      title: "📦 Back-Order Reminder",
+      title: "Back-Order Reminder",
       body: `Check ${distributorName} for ${product?.name ?? reminder.productId} — your reminder date is here!`,
       payload: {
         reminderId: reminder.id,

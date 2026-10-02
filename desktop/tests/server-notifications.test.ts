@@ -93,7 +93,7 @@ describe("syncDesktopNotifications", () => {
       {
         id: "e1",
         type: "price_drop",
-        title: "💸 Price Drop Alert!",
+        title: "Price Drop Alert!",
         body: "CRS804 is now $480.00!",
         alertId: "a1",
         productId: "mikrotik-crs804-4ddq-hrm",
@@ -108,7 +108,7 @@ describe("syncDesktopNotifications", () => {
     expect(alerts.map((a) => a.id)).toContain("a1");
     expect(state.notifications).toEqual([
       {
-        title: "💸 Price Drop Alert!",
+        title: "Price Drop Alert!",
         body: "CRS804 is now $480.00!",
         route: "/product/mikrotik-crs804-4ddq-hrm",
       },
@@ -199,7 +199,7 @@ describe("syncDesktopNotifications", () => {
       {
         id: "e1",
         type: "price_drop",
-        title: "💸 Price Drop Alert!",
+        title: "Price Drop Alert!",
         body: "CRS804 is now $480.00!",
         alertId: "a1",
         productId: "mikrotik-crs804-4ddq-hrm",
@@ -226,7 +226,7 @@ describe("syncDesktopNotifications", () => {
       {
         id: "e1",
         type: "price_drop",
-        title: "💸 Price Drop Alert!",
+        title: "Price Drop Alert!",
         body: "CRS804 is now $480.00!",
         alertId: "a1",
         productId: "mikrotik-crs804-4ddq-hrm",
@@ -262,7 +262,7 @@ describe("syncDesktopNotifications", () => {
       {
         id: "e1",
         type: "price_drop",
-        title: "💸 Price Drop Alert!",
+        title: "Price Drop Alert!",
         body: "CRS804 is now $480.00!",
         alertId: "a1",
         productId: "mikrotik-crs804-4ddq-hrm",
@@ -272,7 +272,7 @@ describe("syncDesktopNotifications", () => {
       {
         id: "e2",
         type: "price_drop",
-        title: "💸 Price Drop Alert!",
+        title: "Price Drop Alert!",
         body: "CRS804 is now $450.00!",
         alertId: "a2",
         productId: "mikrotik-crs804-4ddq-hrm",
@@ -283,7 +283,7 @@ describe("syncDesktopNotifications", () => {
     await syncDesktopNotifications();
     expect(state.notifications).toEqual([
       {
-        title: "💸 Price Drop Alert!",
+        title: "Price Drop Alert!",
         body: "CRS804 is now $450.00!",
         route: "/product/mikrotik-crs804-4ddq-hrm",
       },

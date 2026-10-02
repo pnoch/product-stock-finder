@@ -4,7 +4,7 @@ import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@shared/currency";
 
 export interface StatsShareDrop {
-  flag: string;
+  countryCode: string;
   name: string;
   pct: number;
 }
@@ -87,7 +87,7 @@ export const StatsShareCard = forwardRef<
                   gap: 8,
                 }}
               >
-                <Text style={{ fontSize: 13 }}>{drop.flag}</Text>
+                <Text style={{ fontSize: 13 }}>{drop.countryCode}</Text>
                 <Text
                   style={{
                     color: colors.foreground,

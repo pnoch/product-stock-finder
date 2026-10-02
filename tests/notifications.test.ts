@@ -839,7 +839,7 @@ describe("upsertDeviceConfig with healthEvents", () => {
             distributorId: "winncom",
             distributorName: "Winncom",
             status: "blocked",
-            title: "🟠 Distributor Blocked",
+            title: "Distributor Blocked",
             body: "Winncom has been blocked for 3 consecutive probes",
             createdAt: 1234,
           },
@@ -867,7 +867,7 @@ describe("upsertDeviceConfig with healthEvents", () => {
       distributorId: "winncom",
       distributorName: "Winncom",
       status: "blocked" as const,
-      title: "🟠 Distributor Blocked",
+      title: "Distributor Blocked",
       body: "Winncom has been blocked for 3 consecutive probes",
       createdAt: 1234,
     };
@@ -899,7 +899,7 @@ describe("upsertDeviceConfig with healthEvents", () => {
                     {
                       id: "evt-1",
                       type: "price_drop",
-                      title: "💸 Price Drop Alert!",
+                      title: "Price Drop Alert!",
                       body: "CRS804 is now $480.00!",
                       payload: {
                         alertId: "a1",
