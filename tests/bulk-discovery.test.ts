@@ -75,6 +75,25 @@ describe("runDiscoveryBatch", () => {
     expect(progress).toEqual([[1, 3, "M0"], [2, 3, "M1"], [3, 3, "M2"]]);
   });
 
+  it("reports overall progress across continuation batches", async () => {
+    const h = harness();
+    const progress: Array<[number, number, string]> = [];
+    await runDiscoveryBatch({
+      items: items(7),
+      startIndex: 3,
+      storage: h.storage,
+      discover: h.discover,
+      onProgress: (done, total, model) => progress.push([done, total, model]),
+    });
+    expect(progress).toEqual([[4, 7, "M3"], [5, 7, "M4"], [6, 7, "M5"]]);
+  });
+
+  it("clamps a startIndex past the end and ignores a non-positive batch", async () => {
+    const h = harness();
+    expect(await runDiscoveryBatch({ items: items(3), startIndex: 99, storage: h.storage, discover: h.discover })).toEqual({ nextIndex: 3, discovered: 0 });
+    expect(await runDiscoveryBatch({ items: items(3), startIndex: 0, batchSize: 0, storage: h.storage, discover: h.discover })).toEqual({ nextIndex: 0, discovered: 0 });
+  });
+
   it("handles an empty item list", async () => {
     const h = harness();
     expect(await runDiscoveryBatch({ items: [], startIndex: 0, storage: h.storage, discover: h.discover })).toEqual({ nextIndex: 0, discovered: 0 });

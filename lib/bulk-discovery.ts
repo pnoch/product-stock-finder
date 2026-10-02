@@ -30,9 +30,10 @@ export async function runDiscoveryBatch(deps: {
     shouldCancel,
   } = deps;
   const total = items.length;
-  let nextIndex = Math.max(0, Math.min(startIndex, total));
+  const start = Math.max(0, Math.min(startIndex, total));
+  let nextIndex = start;
   let discovered = 0;
-  const end = Math.min(nextIndex + Math.max(0, batchSize), total);
+  const end = Math.min(start + Math.max(0, batchSize), total);
   while (nextIndex < end) {
     if (shouldCancel?.()) break;
     const item = items[nextIndex]!;
@@ -48,7 +49,7 @@ export async function runDiscoveryBatch(deps: {
       // Best-effort: a failed model is skipped; the repair CTA retries later.
     }
     nextIndex += 1;
-    onProgress?.(nextIndex - startIndex, end - startIndex, item.modelNumber);
+    onProgress?.(nextIndex, total, item.modelNumber);
   }
   return { nextIndex, discovered };
 }
