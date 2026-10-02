@@ -51,20 +51,25 @@ export default function ProductDetailScreen() {
     if (!product?.modelNumber) return;
     setFindingPrices(true);
     try {
-      const { discovered } = await rediscoverProduct({
+      const { discovered, timedOut } = await rediscoverProduct({
         storage: { updateProductListings },
         discover: discoverListings,
         productId: product.id,
         modelNumber: product.modelNumber,
       });
       await refresh();
-      showAlert(
-        discovered > 0 ? "Prices found" : "No prices found",
-        discovered > 0
-          ? `Found prices at ${discovered} distributor${discovered === 1 ? "" : "s"}.`
-          : "No distributor had this model in stock. Try again later.",
-      );
-    } catch {
+      if (discovered > 0) {
+        showAlert(
+          "Prices found",
+          `Found prices at ${discovered} distributor${discovered === 1 ? "" : "s"}.`,
+        );
+      } else if (timedOut) {
+        showAlert("Search timed out", "The distributor search took too long. Try again.");
+      } else {
+        showAlert("No prices found", "No distributor had this model in stock. Try again later.");
+      }
+    } catch (e) {
+      LOG_ERROR("[Product] price discovery failed", e);
       showAlert("Couldn't find prices", "Please try again later.");
     } finally {
       setFindingPrices(false);
