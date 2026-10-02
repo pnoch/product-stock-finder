@@ -427,7 +427,10 @@ export function Settings() {
         showToast("Signed in");
       } else {
         await signUpWithEmail(authEmail.trim(), authPassword, authName.trim() || undefined);
-        showToast("Account created");
+        // Registration no longer signs in (that would leak whether the email
+        // already existed); send the user to sign in with the new password.
+        showToast("Account created — sign in to continue");
+        setAuthMode("login");
       }
       setAuthEmail("");
       setAuthPassword("");
