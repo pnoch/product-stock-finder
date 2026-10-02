@@ -50,6 +50,32 @@ describe("webhook URL is a backup secret", () => {
     expect(result.settings.alertWebhookUrl).toBe(base.alertWebhookUrl);
   });
 
+  it("does not adopt a URL from a hand-built backup (merge defense)", () => {
+    const result = applyBackup(
+      {
+        format: "product-stock-finder-backup",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        watchlist: [],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+        settings: {
+          ...base,
+          alertWebhookUrl: "https://hooks.slack.com/services/from-file",
+        },
+      },
+      {
+        watchlist: [],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+        settings: base,
+      },
+    );
+    expect(result.settings.alertWebhookUrl).toBe(base.alertWebhookUrl);
+  });
+
   it("does not strip the URL from settings sync (server needs it)", () => {
     expect(stripDeviceLocalSettings(base).alertWebhookUrl).toBe(base.alertWebhookUrl);
   });
