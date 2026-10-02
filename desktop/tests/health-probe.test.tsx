@@ -151,12 +151,12 @@ describe("runHealthProbeIfDue", () => {
       100,
     );
     expect(sendDesktopNotification).toHaveBeenCalledWith(
-      "🟠 Distributor Blocked",
+      "Distributor Blocked",
       expect.stringContaining("has been blocked for 3 consecutive probes"),
       "/health",
     );
     expect(mockStorage.recordNotificationEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "health", title: "🟠 Distributor Blocked" }),
+      expect.objectContaining({ type: "health", title: "Distributor Blocked" }),
     );
     expect(mockStorage.savePendingHealthEvents).toHaveBeenCalled();
     expect(localStorage.getItem(LAST_PROBE_KEY)).toBe(String(now));
@@ -191,12 +191,12 @@ describe("runHealthProbeIfDue", () => {
     });
     await runHealthProbeIfDue(10_000_000);
     expect(sendDesktopNotification).toHaveBeenCalledWith(
-      "🟢 Distributor Recovered",
+      "Distributor Recovered",
       expect.stringContaining("is back online after being blocked"),
       "/health",
     );
     expect(mockStorage.recordNotificationEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "health", title: "🟢 Distributor Recovered" }),
+      expect.objectContaining({ type: "health", title: "Distributor Recovered" }),
     );
   });
 

@@ -11,6 +11,7 @@ const TITLE_SOURCES = [
   "lib/background-tasks/price-check.ts",
   "lib/price-digest.ts",
   "lib/restock.ts",
+  "desktop/src/App.tsx",
   "desktop/src/lib/basket-alert.ts",
   "desktop/src/lib/health-probe.ts",
   "server/notifications/build-events.ts",
