@@ -9,9 +9,12 @@ vi.mock("../server/notifications/email-alerts", () => ({
 }));
 
 import { registerUnsubscribeRoute } from "../server/email-unsubscribe-route";
+import { clearRateLimitsForTests } from "../server/rate-limit";
 
 beforeEach(() => {
-  unsubscribeUser.mockClear();
+  clearRateLimitsForTests();
+  unsubscribeUser.mockReset();
+  unsubscribeUser.mockResolvedValue(true);
 });
 
 function serve() {
@@ -44,6 +47,31 @@ describe("GET /api/email/unsubscribe", () => {
       const res = await s.fetch(`/api/email/unsubscribe?u=7&t=bad`);
       expect(res.status).toBe(400);
       expect(unsubscribeUser).not.toHaveBeenCalled();
+    } finally {
+      s.close();
+    }
+  });
+
+  it("rate-limits excessive requests with 429", async () => {
+    const s = serve();
+    try {
+      // 30 allowed per minute per IP; the 31st must be 429 (not a hung request).
+      for (let i = 0; i < 30; i++) {
+        await s.fetch(`/api/email/unsubscribe?u=7&t=tok-7`);
+      }
+      const limited = await s.fetch(`/api/email/unsubscribe?u=7&t=tok-7`);
+      expect(limited.status).toBe(429);
+    } finally {
+      s.close();
+    }
+  });
+
+  it("returns 500 when the unsubscribe write fails", async () => {
+    unsubscribeUser.mockResolvedValueOnce(false);
+    const s = serve();
+    try {
+      const res = await s.fetch(`/api/email/unsubscribe?u=7&t=tok-7`);
+      expect(res.status).toBe(500);
     } finally {
       s.close();
     }
