@@ -88,12 +88,34 @@ export async function fetchWithRateLimit(
   return response.text();
 }
 
+// Currency markers as they appear in scraped price text. Single-char symbols
+// (and the "$"-suffixed variants like "A$"/"HK$") anchor on the symbol; letter
+// markers need a boundary so a stray fragment cannot anchor a model number.
+const PRICE_ANCHOR_BEFORE =
+  /(?:[$€£฿]|\bRM\b|\b(?:USD|EUR|GBP|MYR|AUD|NZD|CAD|ZAR|THB|SGD|HKD|AED)\b)\s*$/i;
+const PRICE_ANCHOR_AFTER =
+  /^\s*(?:[$€£฿]|\bRM\b|\b(?:USD|EUR|GBP|MYR|AUD|NZD|CAD|ZAR|THB|SGD|HKD|AED)\b)/i;
+
 export function parsePriceFromText(text: string): number | null {
   // Capture digit runs including space/NBSP grouping and both separator
   // styles so "€ 1.234,56" / "R 12 345.67" survive intact.
-  const match = text.match(/\d(?:[\d,. \u00a0\u202f]*\d)?/);
-  if (!match) return null;
-  const raw = match[0].replace(/[\s\u00a0\u202f]/g, "");
+  const matches = [...text.matchAll(/\d(?:[\d,. \u00a0\u202f]*\d)?/g)];
+  if (matches.length === 0) return null;
+  // A price cell can embed the model before the price ("CRS804 … $480.00"), where
+  // the first digit run is the model number ("804"). Prefer a run adjacent to a
+  // currency marker; fall back to the first run when nothing is anchored, which
+  // preserves the old behavior for unmarked numbers.
+  // Prefix markers ("$480", "USD 480") attach to the following number, so they
+  // are tried first: in "RB4011 $ 219.99" the "$" belongs to 219.99, not 4011.
+  // Suffix markers ("219.99 EUR") are only considered when no prefix applies.
+  const prefixAnchored = matches.find((m) =>
+    PRICE_ANCHOR_BEFORE.test(text.slice(0, m.index ?? 0)),
+  );
+  const suffixAnchored = matches.find((m) =>
+    PRICE_ANCHOR_AFTER.test(text.slice((m.index ?? 0) + m[0].length)),
+  );
+  const anchored = prefixAnchored ?? suffixAnchored;
+  const raw = (anchored ?? matches[0]!)[0].replace(/[\s\u00a0\u202f]/g, "");
   const lastDot = raw.lastIndexOf(".");
   const lastComma = raw.lastIndexOf(",");
   let normalized: string;
