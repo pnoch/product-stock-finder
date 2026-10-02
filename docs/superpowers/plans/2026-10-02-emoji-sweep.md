@@ -184,9 +184,12 @@ grep -rn "countryFlag" lib app components desktop/src shared server tests
 
 (Only `tests/emoji-sweep.test.ts`'s guard string and `tests/discovery-storage.test.ts`'s fixture may remain — fix the fixture in Step 5.)
 
-- [ ] **Step 5: Update the fixture**
+- [ ] **Step 5: Update the test fixtures / assertions**
 
-In `tests/discovery-storage.test.ts`, `countryFlag: "🇺🇸"` → `countryCode: "US"` (and any code reading `.countryFlag` in that test).
+Run `grep -rn "countryFlag\|🇺🇸\|🇬🇧\|🇲🇾\|countryCode" tests/ desktop/tests/` and update:
+- `tests/discovery-storage.test.ts`, `countryFlag: "🇺🇸"` → `countryCode: "US"` (and any `.countryFlag` read in that test).
+- `desktop/tests/ux-alignment.test.tsx:107`, the assertion `🇺🇸 Baltic Networks` → `US Baltic Networks` (it renders the distributor's `countryCode`).
+- any other test hit the grep finds.
 
 - [ ] **Step 6: Run the guard + typecheck**
 
