@@ -52,5 +52,8 @@ describe("bulk discovery UI", () => {
     const src = readFileSync("desktop/src/pages/Watchlist.tsx", "utf8");
     expect(src).toContain("Find prices");
     expect(src).toContain("rediscoverProduct");
+    expect(src).toContain("findingIds");
+    expect(src).toContain("stopPropagation");
+    expect(src).toContain("(product.listings ?? []).length === 0");
   });
 });
