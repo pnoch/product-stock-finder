@@ -183,7 +183,8 @@ export async function deliverWebhookForEvent(
           eq(notificationWebhookLog.userId, userId),
           gte(notificationWebhookLog.sentAt, now - DAY_MS),
         ),
-      );
+      )
+      .limit(DAILY_CAP);
     if (recent.length >= DAILY_CAP) return false;
 
     // INSERT IGNORE: affectedRows 1 for a fresh insert, 0 for a duplicate.

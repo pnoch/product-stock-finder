@@ -1,16 +1,17 @@
 import { sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { appSettings, users } from "../drizzle/schema";
+import { appSettings, notificationWebhookLog, users } from "../drizzle/schema";
 import { getDb, upsertUser } from "../server/db";
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
 const runDbTests = Boolean(process.env.RUN_DB_TESTS) && Boolean(TEST_URL);
 if (TEST_URL) process.env.DATABASE_URL = TEST_URL;
+process.env.EXPO_PUBLIC_WEB_URL = "https://app.example.com";
 
 const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
 vi.stubGlobal("fetch", fetchMock);
 
-import { deliverWebhookForEvent } from "../server/notifications/webhook-alerts";
+import { deliverWebhookForEvent, purgeOldWebhookLog } from "../server/notifications/webhook-alerts";
 
 async function setWebhookConfig(userId: number, enabled: boolean, url: string) {
   const db = await getDb();
@@ -69,6 +70,12 @@ describe.skipIf(!runDbTests)("webhook alerts delivery (DB)", () => {
     await setWebhookConfig(userId, true, "https://evil.com/x");
     await deliverWebhookForEvent(userId, { dedupKey: "k3", title: "T", body: "b", productId: null });
     expect(fetchMock).not.toHaveBeenCalled();
+    // No claim was written: once the URL is fixed, the same condition can send.
+    await setWebhookConfig(userId, true, VALID_URL);
+    expect(
+      await deliverWebhookForEvent(userId, { dedupKey: "k3", title: "T", body: "b", productId: null }),
+    ).toBe(true);
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it("enforces a per-user daily cap", async () => {
@@ -76,6 +83,34 @@ describe.skipIf(!runDbTests)("webhook alerts delivery (DB)", () => {
       await deliverWebhookForEvent(userId, { dedupKey: `cap-${i}`, title: "T", body: "b", productId: null });
     }
     expect(fetchMock).toHaveBeenCalledTimes(20);
+  });
+
+  it("includes the product link in the message", async () => {
+    await deliverWebhookForEvent(userId, {
+      dedupKey: "link",
+      title: "T",
+      body: "b",
+      productId: "p1",
+    });
+    const request = (
+      fetchMock.mock.calls[0] as unknown as [unknown, { body: string }]
+    )[1];
+    const payload = JSON.parse(request.body) as { content: string };
+    expect(payload.content).toContain("https://app.example.com/product/p1");
+  });
+
+  it("purges webhook-log rows older than 30 days", async () => {
+    const db = await getDb();
+    const now = Date.now();
+    await db!.insert(notificationWebhookLog).values([
+      { userId, dedupKey: "old", sentAt: now - 40 * 24 * 60 * 60 * 1000 },
+      { userId, dedupKey: "fresh", sentAt: now },
+    ]);
+    await purgeOldWebhookLog(now);
+    const rows = await db!
+      .select({ dedupKey: notificationWebhookLog.dedupKey })
+      .from(notificationWebhookLog);
+    expect(rows.map((r) => r.dedupKey)).toEqual(["fresh"]);
   });
 
   it("keeps the claim on a non-2xx so the same condition is not retried", async () => {
