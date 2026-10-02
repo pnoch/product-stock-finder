@@ -7604,3 +7604,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Converted part of the weak coverage around bulk discovery into behavioral tests. Two new `runDiscoveryLoop` cases: immediate `shouldCancel` returns `{0,0}` without discovering or prompting; and a throwing `updateProductListings` is absorbed per item (the loop still drains, `discovered` stays 0).
 - [x] The cancel case exposed a real bug: `runDiscoveryLoop` could spin forever when `shouldCancel` made a batch return its start index but `confirmContinue` kept returning true. Fixed with a while-top `shouldCancel` check and a no-progress guard (`if (nextIndex === before) break`).
 - [x] `tsc 0`, lint 0 errors / 158 warnings; offline `3085 passed` / `84 skipped`; DB `87`; desktop `304`.
+
+## Phase 1023: Dependency security audit (documented, no safe bounded fix)
+
+- [x] Ran `pnpm audit`: 24 advisories (2 critical, 3 high, 15 moderate, 4 low). Secret scan and code-security checks clean. All findings are transitive dev/build dependencies, not shipped runtime code.
+- [x] **Critical — `vitest <3.2.6`** (the test runner). Patched only in `>=3.2.6`, i.e. a **major** 2→3 upgrade; the repo is on `^2.1.9`. A test-runner major migration is its own cycle (config/API changes across ~400 test files) — not a drop-in fix.
+- [x] **High — `image-size 1.2.1`** under `@expo/cli → @expo/metro → metro` (Expo build tooling). Patched `>=2.0.3` is a major bump that Metro may not tolerate; needs a bundler-verified override pass.
+- [x] **High — `node-forge <=1.4.0`** via `@expo/cli → @expo/code-signing-certificates`; advisory lists **no patched version** (no fix available).
+- [x] Moderate/low: `esbuild` (top-level is 0.25.12/safe; older transitive copies), `ajv`, `yaml`, `uuid`, `qs`, `postcss`, `decode-uri-component`, `@humanfs/node`, `fast-uri`, `postcss-selector-parser`, `@babel/core`, `body-parser`. Recommended next step: a dedicated, build-verified `pnpm.overrides` pass — do NOT blanket-override Expo/Metro transitives without a mobile + desktop build check.
+- [x] Docs only; no dependency changes (avoids breaking Expo/Metro without a device/build verification).
