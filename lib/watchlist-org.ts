@@ -7,11 +7,11 @@ import type {
 } from "./types";
 import { convertPrice, getBestPrice } from "./currency";
 import { computeDealScore } from "./deal-score";
-import { getDistributorById } from "@shared/distributors";
-import { productHasRegion } from "./region-filter";
+import { productHasRegion, productRegion } from "./region-filter";
 import { matchesTagFilterMode } from "./tags";
 
 export type { WatchlistGroup, WatchlistSort };
+export { productRegion };
 
 export type StatusFilter = "all" | StockStatus;
 
@@ -70,14 +70,6 @@ export function productStatus(product: Product): StockStatus {
   if (listings.some((l) => l.stockStatus === "out_of_stock"))
     return "out_of_stock";
   return "unknown";
-}
-
-export function productRegion(product: Product): string {
-  for (const listing of product.listings ?? []) {
-    const region = getDistributorById(listing.distributorId)?.region;
-    if (region) return region;
-  }
-  return "Unknown";
 }
 
 export function priceDropPercent(product: Product, displayCurrency: string = "USD"): number | null {

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   getAllRegions,
   productHasRegion,
+  productRegion,
   filterListingsByRegion,
 } from "@/lib/region-filter";
 import type { Product, DistributorListing } from "@/lib/types";
@@ -58,6 +59,26 @@ describe("productHasRegion", () => {
   it("returns false for unknown distributor", () => {
     const product = makeProduct([makeListing("unknown-dist")]);
     expect(productHasRegion(product, "Europe")).toBe(false);
+  });
+
+  it("keys on the cheapest in-stock listing, and the filter follows", () => {
+    const product = makeProduct([
+      makeListing("linitx-uk"), // Europe, price 100
+      { ...makeListing("server2u-my"), price: 50 }, // Asia-Pacific, cheaper
+    ]);
+    expect(productRegion(product)).toBe("Asia-Pacific");
+    expect(productHasRegion(product, "Asia-Pacific")).toBe(true);
+    // The product's primary region is Asia-Pacific, so it is not listed under
+    // Europe even though it has a Europe listing — keeping the filter aligned
+    // with region grouping/sorting.
+    expect(productHasRegion(product, "Europe")).toBe(false);
+  });
+
+  it("falls back to the first known-region listing when nothing is in stock", () => {
+    const product = makeProduct([
+      { ...makeListing("linitx-uk"), stockStatus: "out_of_stock" },
+    ]);
+    expect(productRegion(product)).toBe("Europe");
   });
 });
 
