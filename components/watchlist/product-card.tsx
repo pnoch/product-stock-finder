@@ -38,6 +38,8 @@ export const ProductCard = memo(function ProductCard({
   insight,
   dealScore,
   displayCurrency,
+  onFindPrices,
+  findingPrices = false,
 }: {
   product: Product;
   onPress: () => void;
@@ -50,6 +52,8 @@ export const ProductCard = memo(function ProductCard({
   insight?: { atAllTimeLow: boolean; dropStreak: number };
   dealScore?: DealScore | null;
   displayCurrency?: string;
+  onFindPrices?: () => void;
+  findingPrices?: boolean;
 }) {
   const colors = useColors();
   const currency = displayCurrency ?? "USD";
@@ -324,6 +328,24 @@ export const ProductCard = memo(function ProductCard({
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }} numberOfLines={1} ellipsizeMode="tail">
             {product.brand} · {product.category}
           </Text>
+          {(product.listings ?? []).length === 0 && onFindPrices && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={(e) => {
+                if (Platform.OS === "web") e?.stopPropagation?.();
+                onFindPrices();
+              }}
+              disabled={findingPrices}
+              hitSlop={8}
+              accessibilityLabel="No prices — find prices"
+              accessibilityRole="button"
+              style={{ alignSelf: "flex-start", marginTop: 6, opacity: findingPrices ? 0.5 : 1 }}
+            >
+              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>
+                {findingPrices ? "Finding prices…" : "No prices — Find"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
         <View style={{ alignItems: "flex-end", gap: 6 }}>
           <StockBadge status={bestStatus} />

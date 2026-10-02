@@ -7578,3 +7578,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Hook after the user-event insert in `server/notifications/evaluate.ts` (best-effort, off the tick); public `GET /api/email/unsubscribe` (isolated module, 429/500-safe).
 - [x] Tests: preference default, schema, token, content, DB delivery/cap/failure/unsubscribe/purge, pipeline integration, unsubscribe route (200/400/429/500), and UI source guards (mobile + desktop).
 - [x] Verified: `tsc 0`, lint 0 errors; offline `3063 passed` / `83 skipped`; DB suite `18 files / 86 tests`; desktop `304`; `cargo test` 72, clippy 0, fmt clean. AGENTS.md schema count 20 → 21.
+
+## Phase 1019: Bulk-import discovery + repair CTA
+
+- [x] `lib/bulk-discovery.ts` pure batch runner (batch of 3, continuation index, cancel, absorbed failures, overall progress).
+- [x] Bulk import (mobile + desktop) discovers the first 3 models, then prompts to fetch the remainder in batches; desktop settles the import UI before discovering; single completion alert on mobile.
+- [x] Product Detail + Watchlist cards carry a "Find prices" / "No prices — Find" repair CTA on mobile and desktop, each distinguishing found / timed-out / none and guarded against concurrent runs.
+- [x] Tests: 9-case batch-runner unit suite + 6 UI source guards across both platforms.
+- [x] Verified: `tsc 0`, lint 0 errors; offline `3078 passed` / `84 skipped`; DB `18 files / 87 tests`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.

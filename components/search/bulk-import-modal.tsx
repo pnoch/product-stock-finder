@@ -14,7 +14,9 @@ import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { showAlert } from "@/lib/alert";
-import { addToWatchlist } from "@/lib/storage";
+import { runDiscoveryBatch } from "@/lib/bulk-discovery";
+import { discoverListings } from "@/lib/listing-discovery";
+import { addToWatchlist, updateProductListings } from "@/lib/storage";
 import { matchModels, parseModelInputDetailed } from "@/lib/bulk-import";
 
 const PREVIEW_LIMIT = 5;
@@ -33,6 +35,7 @@ export function BulkImportModal({
   const colors = useColors();
   const [text, setText] = useState("");
   const [importing, setImporting] = useState(false);
+  const [discoveryNote, setDiscoveryNote] = useState<string | null>(null);
 
   const parsedInput = useMemo(() => parseModelInputDetailed(text), [text]);
   const preview = useMemo(
@@ -86,12 +89,77 @@ export function BulkImportModal({
       const truncatedNote = parsedInput.truncated
         ? `\nOnly the first ${parsedInput.models.length} models were imported.`
         : "";
-      showAlert(
-        "Import Complete",
-        `${addedCount} added · ${alreadyTracked} already tracked${
-          failedCount > 0 ? ` · ${failedCount} failed` : ""
-        }.${unmatchedNote}${truncatedNote}`,
-      );
+      const summary =
+        `${addedCount} added · ${alreadyTracked} already tracked` +
+        `${failedCount > 0 ? ` · ${failedCount} failed` : ""}.` +
+        `${unmatchedNote}${truncatedNote}`;
+
+      const addedProducts = newProducts.filter((_, i) => {
+        const settled = results[i];
+        return settled?.status === "fulfilled" && settled.value === true;
+      });
+
+      let next = 0;
+      let discovered = 0;
+      let prompt: string | null = null;
+
+      if (addedProducts.length > 0) {
+        const items = addedProducts.map((p) => ({
+          productId: p.id,
+          modelNumber: p.modelNumber,
+        }));
+        const storage = { updateProductListings };
+        const runBatch = async (showProgress: boolean) => {
+          try {
+            const res = await runDiscoveryBatch({
+              items,
+              startIndex: next,
+              storage,
+              discover: discoverListings,
+              onProgress: showProgress
+                ? (done, total, model) =>
+                    setDiscoveryNote(`Finding prices ${done}/${total} — ${model}…`)
+                : undefined,
+            });
+            next = res.nextIndex;
+            discovered += res.discovered;
+          } finally {
+            setDiscoveryNote(null);
+          }
+        };
+        await runBatch(true);
+        if (next < items.length) {
+          const remaining = items.length - next;
+          prompt =
+            `${summary}\n\nFetched prices for the first ${next} product${next === 1 ? "" : "s"}` +
+            `${discovered > 0 ? ` (${discovered} listing${discovered === 1 ? "" : "s"})` : ""}. ` +
+            `Fetch prices for the remaining ${remaining}?`;
+          showAlert("Import Complete", prompt, [
+            { text: "Later", style: "cancel" },
+            {
+              text: "Fetch",
+              onPress: () => {
+                void (async () => {
+                  try {
+                    while (next < items.length) await runBatch(false);
+                  } catch {
+                    // best-effort; the repair CTA covers anything left
+                  }
+                })();
+              },
+            },
+          ]);
+        }
+      }
+
+      if (prompt === null) {
+        showAlert(
+          "Import Complete",
+          discovered > 0
+            ? `${summary}\nFound ${discovered} listing${discovered === 1 ? "" : "s"}.`
+            : summary,
+        );
+      }
       setText("");
       onImported?.();
       onClose();
@@ -248,6 +316,11 @@ export function BulkImportModal({
               </>
             )}
           </TouchableOpacity>
+          {discoveryNote && (
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
+              {discoveryNote}
+            </Text>
+          )}
         </View>
       </View>
       </KeyboardAvoidingView>

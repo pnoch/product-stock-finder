@@ -39,6 +39,8 @@ import { saveNodeAsPng } from "../lib/share";
 import { buildShareText } from "../../../lib/price-share";
 import { getProductNote, saveProductNote } from "../../../lib/product-notes";
 import { withTimeout } from "../../../lib/with-timeout";
+import { rediscoverProduct } from "../../../lib/manual-add";
+import { discoverListings } from "../../../lib/listing-discovery";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
@@ -410,6 +412,36 @@ export function ProductDetail() {
 
   const [alertError, setAlertError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
+  const [findingPrices, setFindingPrices] = useState(false);
+
+  const handleFindPrices = useCallback(async () => {
+    if (!product?.modelNumber || findingPrices) return;
+    setFindingPrices(true);
+    try {
+      const { discovered, timedOut } = await rediscoverProduct({
+        storage: {
+          updateProductListings: (pid: string, listings: DistributorListing[]) =>
+            storage.updateProductListings(pid, listings),
+        },
+        discover: discoverListings,
+        productId: product.id,
+        modelNumber: product.modelNumber,
+      });
+      await loadProduct();
+      if (discovered > 0) {
+        showToast(`Found prices at ${discovered} distributor${discovered === 1 ? "" : "s"}`);
+      } else if (timedOut) {
+        showToast("Search timed out — try again");
+      } else {
+        showToast("No prices found");
+      }
+    } catch (e) {
+      console.error("[Product] price discovery failed", e);
+      showToast("Couldn't find prices");
+    } finally {
+      setFindingPrices(false);
+    }
+  }, [product?.id, product?.modelNumber, findingPrices, loadProduct, showToast]);
 
   useEffect(() => {
     if (!product?.id) return;
@@ -1560,6 +1592,18 @@ export function ProductDetail() {
                     aria-label="Show all regions"
                   >
                     Show All
+                  </button>
+                </>
+              ) : (product?.listings ?? []).length === 0 ? (
+                <>
+                  <p>No distributor listings available.</p>
+                  <button
+                    onClick={() => void handleFindPrices()}
+                    disabled={findingPrices}
+                    className="mt-3 inline-flex items-center px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-60"
+                    aria-label="Find prices"
+                  >
+                    {findingPrices ? "Finding prices…" : "Find prices"}
                   </button>
                 </>
               ) : (

@@ -42,7 +42,11 @@ import {
   getStockWatches,
   removeFromWatchlist,
   getSyncMeta,
+  updateProductListings,
 } from "@/lib/storage";
+import { rediscoverProduct } from "@/lib/manual-add";
+import { discoverListings } from "@/lib/listing-discovery";
+import { useToast } from "@/components/ui/toast";
 import { scheduleBackOrderReminder } from "@/lib/notifications";
 import { countQueuedEdits } from "@/lib/sync";
 import { computeWatchlistSummary } from "@/lib/watchlist-summary";
@@ -88,6 +92,7 @@ import { LOG_ERROR } from "@shared/log";
 export default function WatchlistScreen() {
   const router = useRouter();
   const colors = useColors();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const {
     products: watchlist,
@@ -124,6 +129,7 @@ export default function WatchlistScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkTagVisible, setBulkTagVisible] = useState(false);
+  const [findingIds, setFindingIds] = useState<Set<string>>(new Set());
   const [undoProduct, setUndoProduct] = useState<Product | null>(null);
   // Everything the removal cascade deletes for a product, so Undo can restore
   // it (removeFromWatchlist also drops alerts, back-order reminders, and
@@ -659,6 +665,41 @@ export default function WatchlistScreen() {
     }
   }, [reload, loadData]);
 
+  const handleFindPrices = useCallback(
+    async (product: Product) => {
+      if (!product.modelNumber) return;
+      if (findingIds.has(product.id)) return;
+      setFindingIds((prev) => new Set(prev).add(product.id));
+      try {
+        const { discovered, timedOut } = await rediscoverProduct({
+          storage: { updateProductListings },
+          discover: discoverListings,
+          productId: product.id,
+          modelNumber: product.modelNumber,
+        });
+        await reload();
+        showToast(
+          discovered > 0
+            ? `Found prices at ${discovered} distributor${discovered === 1 ? "" : "s"}`
+            : timedOut
+              ? "Search timed out — try again"
+              : "No prices found",
+          discovered > 0 ? "success" : "error",
+        );
+      } catch (e) {
+        LOG_ERROR("[Watchlist] price discovery failed", e);
+        showToast("Couldn't find prices", "error");
+      } finally {
+        setFindingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(product.id);
+          return next;
+        });
+      }
+    },
+    [findingIds, reload, showToast],
+  );
+
   const sortModeRef = useRef(sortMode);
   const groupModeRef = useRef(groupMode);
   sortModeRef.current = sortMode;
@@ -961,6 +1002,8 @@ export default function WatchlistScreen() {
               onLongPress={() => handleProductLongPress(item)}
               onDelete={() => handleDelete(item as Product)}
               onTagPress={() => setPickerProduct(item)}
+              onFindPrices={() => handleFindPrices(item as Product)}
+              findingPrices={findingIds.has(item.id)}
               tagDefinitions={tagDefinitions}
             />
           </SwipeableCard>
