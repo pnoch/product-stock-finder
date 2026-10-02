@@ -5,7 +5,7 @@ import type {
   PriceAlert,
   Product,
 } from "./types";
-import { stripDeviceLocalSettings } from "./settings-privacy";
+import { stripBackupSecrets } from "./settings-privacy";
 
 export const BACKUP_FORMAT = "product-stock-finder-backup";
 export const BACKUP_VERSION = 1;
@@ -62,9 +62,9 @@ export function buildBackup(input: BackupInput): string {
       alerts: input.alerts,
       reminders: input.reminders,
       stockWatches: input.stockWatches,
-      // The BYO-LLM API key is device-local: a backup file is user-shareable and
-      // stored in plaintext, so the secret must not be written into it.
-      settings: stripDeviceLocalSettings(input.settings),
+      // The BYO-LLM API key and webhook URL are secrets: a backup file is
+      // user-shareable and stored in plaintext, so they must not be written into it.
+      settings: stripBackupSecrets(input.settings),
     },
     null,
     2,
@@ -114,7 +114,7 @@ export function parseBackup(json: string): BackupData | null {
     stockWatches: asIdArray<BackOrderReminder>(obj.stockWatches),
     settings:
       obj.settings && typeof obj.settings === "object"
-        ? stripDeviceLocalSettings(obj.settings as AppSettings)
+        ? stripBackupSecrets(obj.settings as AppSettings)
         : undefined,
   };
 }
@@ -227,6 +227,8 @@ function mergeSettings(current: AppSettings, incoming: AppSettings): AppSettings
     if (key === "tagDefinitions") continue;
     // Device-local: never adopt a key from a (possibly shared) backup file.
     if (key === "llmApiKey") continue;
+    // Bearer credential: never adopt a URL from a (possibly shared) backup file.
+    if (key === "alertWebhookUrl") continue;
     if (
       key in SETTING_DEFAULTS &&
       SETTING_DEFAULTS[key] === incomingRecord[key]

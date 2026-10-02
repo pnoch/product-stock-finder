@@ -13,6 +13,17 @@ export function stripDeviceLocalSettings(settings: AppSettings): AppSettings {
   return copy;
 }
 
+/**
+ * Secrets that must not travel in a user-shareable backup file. The webhook URL
+ * is a bearer credential, but unlike the LLM key the server needs it for
+ * delivery, so it is stripped only from backups — settings sync keeps it.
+ */
+export function stripBackupSecrets(settings: AppSettings): AppSettings {
+  const copy = stripDeviceLocalSettings(settings);
+  delete copy.alertWebhookUrl;
+  return copy;
+}
+
 /** Keeps this device's own API key on an inbound merge (never adopt a remote one). */
 export function applyLocalLlmKey(
   next: AppSettings,
