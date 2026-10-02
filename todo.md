@@ -7547,3 +7547,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Closed the open item "`expo-notifications` is absent from `plugins`": added `["expo-notifications", { icon: "./assets/images/android-icon-monochrome.png", color: "#0F52BA" }]` to `app.config.ts`. Without it Android 8+ renders the small notification icon as a white square.
 - [x] Verified `npx expo config --type public` resolves and the plugin carries the expected options; `tsc`/lint clean and the full suite unaffected. Visual verification requires a prebuild/EAS device build (documented in the item).
 - [x] `tsc 0`, lint 0 errors / 158 warnings, `3045 passed` / `76 skipped`; DB suite **16 files / 79 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1015: Session-epoch revocation — verify (already implemented)
+
+- [x] The selected direction ("credential-change revocation misses sessions whose device id was never registered") is **already implemented**: `server/_core/sdk.ts` mints a `cca` (credentialsChangedAt) claim in `signSession`/`createSessionToken` and `authenticateRequest` rejects any session whose `cca < user.credentialsChangedAt` (the catch-all that reaches sessions that never registered a device config/token, which enumeration cannot find).
+- [x] Every credential-change path stamps the epoch: `linkUserOpenIdByEmail` (password cleared + bumped), `updateUserPasswordHash`, `updateUserPasswordHashById`, and the password-reset consume — all set `credentialsChangedAt` (`server/db.ts:178,189,237-244,416`).
+- [x] Covered by `tests/credential-epoch.test.ts` (4 tests: stale token rejected, current epoch accepted, legacy no-`cca` token rejected, never-changed accepted) and DB-gated `tests/auth-pre-hijack-db.test.ts` (OAuth link clears the password and bumps the epoch). Verified green. No source change needed; the bundled open line's other sub-item (quiet-hours digest drafts held only in memory) remains.
