@@ -7718,3 +7718,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Fix: thread a per-`findPriceElement`-call `Map<string, boolean>` memo into `matchDepth`, caching `matchesModel` verdicts by input string (semantics unchanged; `false` cached correctly). Measured 4199ms → 282ms.
 - [x] Test: `tests/scrapers/flytec.test.ts` regression guard asserts the no-such-model parse stays under 1500ms. Differential check: 300/300 parser×fixture×model outputs identical before/after.
 - [x] `tsc 0`, lint 0 errors, full suite green with no intermittent timeout.
+
+## Phase 1039: parsePriceFromText currency anchoring
+
+- [x] Root cause: `parsePriceFromText` returned the first digit run, so a price cell embedding the model parsed the model number (`"CRS804-4DDQ+RM $480.00"` → 804).
+- [x] Fix: select a digit run adjacent to a currency marker — prefer a decimal-bearing anchored run, then a prefix-anchored run (a marker between two numbers owns the following one), then the first anchored, else fall back to the first run. ZAR `R` intentionally not a bare marker.
+- [x] Tests: unit anchoring cases (model-prefix, suffix code, trailing integer quantity, unanchored fallback) + a parser-level Flytec test for a model+price-shared cell.
+- [x] Differential vs pre-fix: 0 parser-fleet output changes; only unreachable whole-document texts moved toward the decimal price. `tsc 0`, lint 0 errors, full suite green.
