@@ -263,6 +263,28 @@ export type NotificationEventDeliveryRow =
 export type InsertNotificationEventDeliveryRow =
   typeof notificationEventDeliveries.$inferInsert;
 
+export const notificationEmailLog = mysqlTable(
+  "notification_email_log",
+  {
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    dedupKey: varchar("dedupKey", { length: 255 }).notNull(),
+    sentAt: bigint("sentAt", { mode: "number" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.dedupKey] }),
+    index("idx_notif_email_user_sent").on(table.userId, table.sentAt),
+    // purgeOldEmailLog filters on sentAt alone; the composite index's leading
+    // column is userId, so it cannot serve a sentAt-only scan.
+    index("idx_notif_email_sent").on(table.sentAt),
+  ],
+);
+
+export type NotificationEmailLogRow = typeof notificationEmailLog.$inferSelect;
+export type InsertNotificationEmailLogRow =
+  typeof notificationEmailLog.$inferInsert;
+
 export const devicePushTokens = mysqlTable(
   "device_push_tokens",
   {

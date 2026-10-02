@@ -7,6 +7,7 @@ import {
 } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { sendPushForDevice, sendPushForUser } from "../push-notifications";
+import { deliverEmailForEvent } from "./email-alerts";
 import type { NotificationConfig, NotificationEvent } from "./types";
 import {
   deliveryCount,
@@ -499,5 +500,21 @@ async function evaluateUserDb(
       userId,
       toInsert.map((d) => ({ ...draftToEvent(d), userId, deviceId: null })),
     );
+    void (async () => {
+      for (const event of toInsert) {
+        const payload =
+          event.payload && typeof event.payload === "object"
+            ? (event.payload as { productId?: unknown })
+            : null;
+        const productId =
+          typeof payload?.productId === "string" ? payload.productId : null;
+        await deliverEmailForEvent(userId, {
+          dedupKey: event.dedupKey,
+          title: event.title,
+          body: event.body,
+          productId,
+        });
+      }
+    })().catch(() => {});
   }
 }

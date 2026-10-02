@@ -7569,3 +7569,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - **Ops / you-only**: macOS/Windows signing hosts (2034), `APPLE_TEAM_ID` / `ANDROID_SHA256_CERT_FINGERPRINTS` (2066), device-build visual check of the new notification icon (4629).
   - **Cosmetic**: DB case-insensitive collation vs exact-match memory keys; `decimal(12,4)` rounding vs float (4418/4429/4438).
 - [x] Docs only; no source change. This closes the coverage/audit programme: client `lib/` and `server/` non-`_core` code is at its practical offline+DB coverage ceiling, and no technical backlog item remains that does not require a product/design decision or a device build.
+
+## Phase 1018: Email alerts (opt-in, server-evaluated)
+
+- [x] `AppSettings.emailAlerts` (default off) with mobile + desktop toggles; also added to `SETTING_DEFAULTS` so a backup can't silently overwrite the local choice.
+- [x] `notification_email_log` (userId, dedupKey, sentAt; composite PK + `(userId, sentAt)` index) for once-per-condition idempotency; `INSERT IGNORE` distinguishes a fresh claim from a duplicate (mysql2 sets `CLIENT_FOUND_ROWS`).
+- [x] `server/notifications/email-alerts.ts`: signed unsubscribe token, content builder, opt-in + 24h daily-cap (20) gated delivery, keep-claim-on-failure, and a 30-day retention purge.
+- [x] Hook after the user-event insert in `server/notifications/evaluate.ts` (best-effort, off the tick); public `GET /api/email/unsubscribe` (isolated module, 429/500-safe).
+- [x] Tests: preference default, schema, token, content, DB delivery/cap/failure/unsubscribe/purge, pipeline integration, unsubscribe route (200/400/429/500), and UI source guards (mobile + desktop).
+- [x] Verified: `tsc 0`, lint 0 errors; offline `3063 passed` / `83 skipped`; DB suite `18 files / 86 tests`; desktop `304`; `cargo test` 72, clippy 0, fmt clean. AGENTS.md schema count 20 → 21.

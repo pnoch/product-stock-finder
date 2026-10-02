@@ -179,6 +179,24 @@ export function NotificationsSection({
             />
           }
         />
+        <SettingRow
+          icon="envelope.fill"
+          label="Email Alerts"
+          description="Email me when an alert fires"
+          right={
+            <Switch
+              value={!!settings.emailAlerts}
+              onValueChange={(v) => updateSetting("emailAlerts", v)}
+              trackColor={{
+                false: colors.border,
+                true: colors.primary + "88",
+              }}
+              thumbColor={settings.emailAlerts ? colors.primary : colors.muted}
+              accessibilityLabel="Enable email alerts"
+              accessibilityRole="switch"
+            />
+          }
+        />
         <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
           <PillPicker
             icon="newspaper.fill"

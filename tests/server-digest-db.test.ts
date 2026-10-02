@@ -14,6 +14,11 @@ vi.mock("../server/push-notifications", () => ({
   clearPushTokensForTests: vi.fn(),
 }));
 
+vi.mock("../server/email", () => ({
+  isEmailConfigured: () => false,
+  sendEmail: vi.fn(async () => false),
+}));
+
 import {
   clearNotificationsForTests,
   evaluateNotifications,

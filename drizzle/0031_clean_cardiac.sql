@@ -1,0 +1,1 @@
+CREATE INDEX `idx_notif_email_sent` ON `notification_email_log` (`sentAt`);

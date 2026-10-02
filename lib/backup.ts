@@ -24,6 +24,7 @@ const SETTING_DEFAULTS: Record<string, unknown> = {
   stockAlerts: true,
   priceAlerts: true,
   healthAlerts: true,
+  emailAlerts: false,
   shippingRegion: "Asia-Pacific",
   webNotificationsEnabled: false,
   watchlistSort: "recent",
