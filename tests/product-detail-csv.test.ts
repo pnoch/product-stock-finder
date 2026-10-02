@@ -19,5 +19,6 @@ describe("product detail CSV export (desktop)", () => {
     expect(desktop).toContain("productHistoryToCsv");
     expect(desktop).toContain("saveCsv");
     expect(desktop).toContain("Export CSV");
+    expect(desktop).toContain("onClick={handleExportCsv}");
   });
 });
