@@ -139,6 +139,23 @@ describe("appendFxHistory", () => {
     expect(result.rates.EUR).toEqual([0.9, 0.91]);
     expect(result.rates.GBP).toEqual([0.8, null]);
   });
+
+  it("pads a currency carried forward when its stored series is short", async () => {
+    const { appendFxHistory } = await import("@/lib/fx-history");
+    const history = {
+      rates: { EUR: [0.9], GBP: [0.8] },
+      timestamps: [1000, 2000],
+    };
+    const result = appendFxHistory(history, { EUR: 0.91 }, 3000);
+    expect(result.rates.GBP).toEqual([0.8, null, null]);
+  });
+
+  it("pads a known currency whose fetch value is invalid over a short series", async () => {
+    const { appendFxHistory } = await import("@/lib/fx-history");
+    const history = { rates: { EUR: [0.9] }, timestamps: [1000, 2000] };
+    const result = appendFxHistory(history, { EUR: Number.NaN }, 3000);
+    expect(result.rates.EUR).toEqual([0.9, null, null]);
+  });
 });
 
 describe("getFxChange null handling", () => {

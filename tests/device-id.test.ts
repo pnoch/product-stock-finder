@@ -47,4 +47,14 @@ describe("getDeviceId", () => {
       getItemSpy.mockRestore();
     }
   });
+
+  it("falls back to a generated id when crypto.randomUUID is unavailable", async () => {
+    vi.stubGlobal("crypto", undefined);
+    try {
+      const id = await getDeviceId();
+      expect(id.startsWith("dev-")).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

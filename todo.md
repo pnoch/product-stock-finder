@@ -7517,3 +7517,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/routers.ts` was at **95.1%** (with DB): `sync.push`'s stale-write rejection and future-`deletedAt` clamp, `auth.deleteAccount`, and the circular-data schema refine were uncovered.
 - [x] `tests/sync-e2e.test.ts` (+2): a stale push lands in `rejected` with reason `stale_write`; a far-future `deletedAt` is clamped (the batch is accepted). `tests/routers-guards.test.ts` (+2): `deleteAccount` requires `confirm: "DELETE"`; a circular sync payload is rejected at validation.
 - [x] Coverage **95.1% → 98.7%** (with DB). Offline `tsc 0`, lint 0 errors / 158 warnings, `3034 passed` / `76 skipped`; DB suite **16 files / 79 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1010: Cover device-id crypto fallback + fx-history padding (91% → 97% / 95%)
+
+- [x] `lib/device-id.ts` (90.9%): the no-`crypto.randomUUID` fallback id. `tests/device-id.test.ts` (+1): with `crypto` stubbed out, the generated id uses the `dev-…` form. Coverage **90.9% → 97.0%**.
+- [x] `lib/fx-history.ts` (91.0%): the short-series padding branches in `appendFxHistory` (known-currency carried forward; known-but-invalid incoming value). `tests/fx-history.test.ts` (+2) exercises both over a two-timestamp/one-value series. Coverage **91.0% → 94.8%**.
+- [x] Offline `tsc 0`, lint 0 errors / 158 warnings, `3037 passed` / `76 skipped`; DB suite **16 files / 79 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
