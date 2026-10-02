@@ -279,12 +279,14 @@ fn show_notification(
 
 // ─── Import/Export ───────────────────────────────────────────────────────────
 
-/// Removes the device-local BYO-LLM API key from a settings object. Mirrors
-/// lib/settings-privacy.ts: the key must never leave the device, and a
-/// shareable export file (or an inbound import) must not carry it.
+/// Removes device-local / credential settings from a settings object. Mirrors
+/// the shareable-backup rule in lib/settings-privacy.ts: the BYO-LLM API key and
+/// the Discord/Slack webhook URL must never travel in a shareable export file
+/// (or be adopted from an inbound import).
 fn strip_device_local_settings(mut settings: serde_json::Value) -> serde_json::Value {
     if let Some(obj) = settings.as_object_mut() {
         obj.remove("llmApiKey");
+        obj.remove("alertWebhookUrl");
     }
     settings
 }
@@ -2503,10 +2505,12 @@ mod tests {
     fn strip_device_local_settings_removes_the_llm_key() {
         let settings = serde_json::json!({
             "llmApiKey": "sk-secret",
+            "alertWebhookUrl": "https://discord.com/api/webhooks/1/secret",
             "displayCurrency": "EUR"
         });
         let stripped = strip_device_local_settings(settings);
         assert!(stripped.get("llmApiKey").is_none());
+        assert!(stripped.get("alertWebhookUrl").is_none());
         assert_eq!(stripped.get("displayCurrency").unwrap(), "EUR");
         // Non-object input is passed through unchanged.
         assert_eq!(

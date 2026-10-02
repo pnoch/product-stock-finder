@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { Collection } from "../types";
+import type { AppSettings, Collection } from "../types";
 import { StorageAdapter, DISTRIBUTOR_BREAKER_KEY } from "./adapter";
 import { createContext, QUARANTINE_INDEX_KEY, STORAGE_KEYS } from "./context";
 import { createIDBAdapter, isIndexedDBAvailable } from "./idb-adapter";
@@ -93,21 +93,27 @@ export function createStorage(
       QUARANTINE_INDEX_KEY,
     ]);
     ctx.setClearing(false);
-    // Settings are preserved as device preferences, but the BYO-LLM key is a
-    // credential, not a preference: left in place, the next account on this
-    // device could reveal it in Settings and every request they made would carry
-    // it (billing the previous user's provider account). Reset the whole
-    // device-scoped LLM config so the next user starts clean rather than with a
-    // provider that has no key.
+    // Settings are preserved as device preferences, but account credentials are
+    // not preferences: left in place, the next account on this shared device
+    // could reveal the BYO-LLM key (billing the previous user's provider) or
+    // post to the previous user's Discord/Slack webhook. Reset the device-scoped
+    // LLM config and the webhook URL so the next user starts clean. Both are
+    // restored from the server on the next sign-in.
     const settingsStorage = createSettingsStorage(ctx, watchlist);
     const preserved = await settingsStorage.getSettings();
+    let cleaned: AppSettings | null = null;
     if (preserved?.llmApiKey || preserved?.llmProvider !== "forge") {
-      const cleaned = stripDeviceLocalSettings(preserved);
+      cleaned = stripDeviceLocalSettings(preserved);
       cleaned.llmProvider = "forge";
       delete cleaned.llmModel;
       delete cleaned.llmOllamaUrl;
-      await settingsStorage.saveSettings(cleaned);
     }
+    if (preserved?.alertWebhookUrl || preserved?.webhookAlerts) {
+      cleaned = cleaned ?? { ...preserved };
+      delete cleaned.alertWebhookUrl;
+      cleaned.webhookAlerts = false;
+    }
+    if (cleaned) await settingsStorage.saveSettings(cleaned);
   }
 
   async function clearAllData(): Promise<void> {

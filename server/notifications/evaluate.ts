@@ -8,6 +8,7 @@ import {
 import { getDb } from "../db";
 import { sendPushForDevice, sendPushForUser } from "../push-notifications";
 import { deliverEmailForEvent } from "./email-alerts";
+import { deliverWebhookForEvent } from "./webhook-alerts";
 import type { NotificationConfig, NotificationEvent } from "./types";
 import {
   deliveryCount,
@@ -509,6 +510,25 @@ async function evaluateUserDb(
         const productId =
           typeof payload?.productId === "string" ? payload.productId : null;
         await deliverEmailForEvent(userId, {
+          dedupKey: event.dedupKey,
+          title: event.title,
+          body: event.body,
+          productId,
+        });
+      }
+    })().catch(() => {});
+    // Webhooks get their own pass so a slow or dead endpoint cannot delay the
+    // email channel for later events. Serial within the pass keeps the
+    // non-atomic daily-cap read accurate.
+    void (async () => {
+      for (const event of toInsert) {
+        const payload =
+          event.payload && typeof event.payload === "object"
+            ? (event.payload as { productId?: unknown })
+            : null;
+        const productId =
+          typeof payload?.productId === "string" ? payload.productId : null;
+        await deliverWebhookForEvent(userId, {
           dedupKey: event.dedupKey,
           title: event.title,
           body: event.body,

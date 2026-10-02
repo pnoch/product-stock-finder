@@ -9,6 +9,7 @@
 - UX: **one "Webhook URL" field** plus an **enable toggle** and a **"Send test" button**.
 - Delivery: **immediate, server-evaluated**, mirroring the email channel.
 - Opt-in: **`webhookAlerts` toggle, default OFF**. The URL alone does not enable delivery.
+- Backups: the URL is a **bearer credential** (anyone holding it can post to the channel), so it is excluded from user-shareable backup files. Settings **sync still uploads it** to the server (delivery is server-side); only the plaintext backup path strips it.
 
 ## Preference
 

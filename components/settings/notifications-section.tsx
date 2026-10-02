@@ -1,11 +1,14 @@
+import { useEffect, useState } from "react";
 import {
   Text,
   View,
   TouchableOpacity,
+  TextInput,
   Switch,
   Platform,
 } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SettingRow } from "@/components/settings/setting-row";
 import { PillPicker } from "@/components/settings/pill-picker";
@@ -29,6 +32,44 @@ export function NotificationsSection({
   setWebNotificationHint: (hint: string | null) => void;
 }) {
   const colors = useColors();
+  const { isAuthenticated } = useAuth();
+  const [webhookUrl, setWebhookUrl] = useState(settings.alertWebhookUrl ?? "");
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [webhookHint, setWebhookHint] = useState<string | null>(null);
+  const [webhookHintOk, setWebhookHintOk] = useState(false);
+
+  useEffect(() => {
+    setWebhookUrl(settings.alertWebhookUrl ?? "");
+  }, [settings.alertWebhookUrl]);
+
+  const commitWebhookUrl = () => {
+    const next = webhookUrl.trim();
+    if (next !== (settings.alertWebhookUrl ?? "")) {
+      updateSetting("alertWebhookUrl", next);
+    }
+  };
+
+  const handleTestWebhook = async () => {
+    const url = webhookUrl.trim();
+    if (!url) {
+      setWebhookHintOk(false);
+      setWebhookHint("Enter a webhook URL first.");
+      return;
+    }
+    setTestingWebhook(true);
+    setWebhookHint(null);
+    try {
+      const { testWebhook } = await import("@/lib/server-notifications");
+      const result = await testWebhook(url);
+      setWebhookHintOk(result.ok);
+      setWebhookHint(result.ok ? "Test message sent." : (result.error ?? "Test failed."));
+    } catch {
+      setWebhookHintOk(false);
+      setWebhookHint("Test failed.");
+    } finally {
+      setTestingWebhook(false);
+    }
+  };
 
   return (
     <>
@@ -197,6 +238,93 @@ export function NotificationsSection({
             />
           }
         />
+        <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontSize: 14,
+              fontWeight: "600",
+              marginBottom: 8,
+            }}
+          >
+            Webhook Alerts
+          </Text>
+          <TextInput
+            value={webhookUrl}
+            onChangeText={setWebhookUrl}
+            onBlur={commitWebhookUrl}
+            placeholder="https://discord.com/api/webhooks/…"
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            editable={isAuthenticated}
+            accessibilityLabel="Webhook URL"
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              color: colors.foreground,
+              backgroundColor: colors.background,
+            }}
+          />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 12,
+            }}
+          >
+            <Switch
+              value={!!settings.webhookAlerts}
+              disabled={!isAuthenticated}
+              onValueChange={(v) => updateSetting("webhookAlerts", v)}
+              trackColor={{
+                false: colors.border,
+                true: colors.primary + "88",
+              }}
+              thumbColor={settings.webhookAlerts ? colors.primary : colors.muted}
+              accessibilityLabel="Enable webhook alerts"
+              accessibilityRole="switch"
+            />
+            <TouchableOpacity
+              activeOpacity={0.7}
+              disabled={!isAuthenticated || testingWebhook}
+              onPress={handleTestWebhook}
+              accessibilityLabel="Send test webhook"
+              accessibilityRole="button"
+            >
+              <Text
+                style={{
+                  color: isAuthenticated ? colors.primary : colors.muted,
+                  fontSize: 14,
+                  fontWeight: "600",
+                }}
+              >
+                {testingWebhook ? "Sending…" : "Send test"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {webhookHint && (
+            <Text
+              style={{
+                color: webhookHintOk ? colors.success : colors.error,
+                fontSize: 13,
+                marginTop: 8,
+              }}
+            >
+              {webhookHint}
+            </Text>
+          )}
+          {!isAuthenticated && (
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8 }}>
+              Sign in to use webhook alerts.
+            </Text>
+          )}
+        </View>
         <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
           <PillPicker
             icon="newspaper.fill"

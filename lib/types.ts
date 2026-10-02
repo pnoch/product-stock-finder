@@ -167,6 +167,10 @@ export interface AppSettings {
   retentionDays?: number;
   /** Email delivery for alerts (opt-in; default off). Recipient = account email. */
   emailAlerts?: boolean;
+  /** Webhook delivery for alerts (opt-in; default off). */
+  webhookAlerts?: boolean;
+  /** Discord/Slack incoming webhook URL. */
+  alertWebhookUrl?: string;
 }
 
 export type Collection = "watchlist" | "alerts" | "reminders" | "settings";

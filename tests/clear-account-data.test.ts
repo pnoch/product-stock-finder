@@ -85,6 +85,31 @@ describe("clearAccountData vs clearAllData", () => {
     expect(settings.llmProvider).toBe("forge");
   });
 
+  it("drops the webhook credential while keeping the other preferences", async () => {
+    const { storage } = makeStorage();
+    await storage.saveSettings({
+      theme: "dark",
+      displayCurrency: "EUR",
+      checkInterval: "manual",
+      notificationsEnabled: true,
+      stockAlerts: true,
+      priceAlerts: true,
+      healthAlerts: true,
+      webhookAlerts: true,
+      alertWebhookUrl: "https://discord.com/api/webhooks/1/secret",
+    });
+
+    await storage.clearAccountData();
+
+    const settings = await storage.getSettings();
+    expect(settings.theme).toBe("dark");
+    expect(settings.notificationsEnabled).toBe(true);
+    // getSettings() merges DEFAULT_SETTINGS, which defines alertWebhookUrl as
+    // "" — so a cleared credential reads back as "" (not undefined).
+    expect(settings.alertWebhookUrl).toBe("");
+    expect(settings.webhookAlerts).toBe(false);
+  });
+
   // QA round 286: `recent_searches` had its own key outside STORAGE_KEYS, so
   // neither wipe removed it — "Clear all data" (and the next user on the
   // device) still saw the previous user's search terms.

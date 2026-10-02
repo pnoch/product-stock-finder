@@ -25,6 +25,8 @@ export function createSettingsStorage(
     priceAlerts: true,
     healthAlerts: true,
     emailAlerts: false,
+    webhookAlerts: false,
+    alertWebhookUrl: "",
     shippingRegion: "Asia-Pacific",
     webNotificationsEnabled: false,
     watchlistSort: "recent",
