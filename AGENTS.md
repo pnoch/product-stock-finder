@@ -118,13 +118,13 @@ server/                Express + tRPC backend (see server/README.md)
   devices.ts           Device binding, labels, sign-out, stale cleanup (deviceId from session JWT claim → x-device-id header; per-user ownership via assertDeviceAccess; unrevoke on login; 30-day idle cleanup; revokedDevices with user-scoped composite keys)
   catalog-warmer.ts    Full-catalog background warmer
   storage.ts           S3 helpers
-drizzle/              MySQL schema — 20 tables: users, watchlistItems, priceAlerts,
+drizzle/              MySQL schema — 21 tables: users, watchlistItems, priceAlerts,
                       backOrderReminders, appSettings, priceCache, priceHistory,
                       priceInsights, productImages, deviceNotificationConfigs,
                       notificationEvents, notificationEventDeliveries, devicePushTokens,
                       deviceLabels, revokedDevices, passwordResetTokens,
                       emailVerificationTokens, trendingProducts, sharedWatchlists,
-                      sharedWatchlistMembers
+                      sharedWatchlistMembers, notificationEmailLog
 desktop/              Tauri desktop app (Vite + React 19 + Tailwind 4) — versioned in
                       lockstep with root package.json; `desktop/src/` mirrors mobile
                       surfaces (Watchlist, Settings, Rates), `desktop/tests/` vitest suite
