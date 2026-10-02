@@ -287,12 +287,24 @@ function priceComesFromModel(text: string, model: string): boolean {
 function matchDepth(
   $el: Cheerio<Element>,
   model: string,
+  memo: Map<string, boolean>,
 ): number {
+  // A page has few distinct card contexts but many price elements, and every
+  // candidate re-checks its context at each walk-up depth. `matchesModel` is
+  // regex-heavy, so cache its verdict per input string for the whole call
+  // (e.g. Flytec's mismatch path drops from ~4.2s to ~0.2s).
+  const cachedMatch = (input: string): boolean => {
+    const cached = memo.get(input);
+    if (cached !== undefined) return cached;
+    const value = matchesModel(input, model);
+    memo.set(input, value);
+    return value;
+  };
   let node: Cheerio<Element> | null = $el;
   for (let depth = 0; depth < 4 && node && node.length > 0; depth++) {
     const { text, href } = productRowContext(node);
     if (text.trim() || href) {
-      if (matchesModel(text, model) || matchesModel(href, model)) return depth;
+      if (cachedMatch(text) || cachedMatch(href)) return depth;
     }
     const parent: Cheerio<Element> = node.parent();
     node = parent.length > 0 ? parent : null;
@@ -322,6 +334,7 @@ export function findPriceElement(
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const matchMemo = new Map<string, boolean>();
   for (const single of selectors) {
     const $prices = $(single);
     if ($prices.length === 0) continue;
@@ -332,7 +345,7 @@ export function findPriceElement(
     let cleanDepth = Infinity;
     $prices.each((index, _el) => {
       const el = $prices.eq(index);
-      const depth = matchDepth(el, model);
+      const depth = matchDepth(el, model, matchMemo);
       if (depth < bestDepth) {
         bestDepth = depth;
         best = el;
