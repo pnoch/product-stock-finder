@@ -59,7 +59,10 @@ describe("spa http behavior", () => {
 
   beforeAll(async () => {
     const dir = mkdtempSync(join(tmpdir(), "spa-dist-"));
-    writeFileSync(join(dir, "index.html"), "<html>app</html>");
+    writeFileSync(
+      join(dir, "index.html"),
+      "<!DOCTYPE html><html><head><title>app</title></head><body>app</body></html>",
+    );
     writeFileSync(join(dir, "sw.js"), "self.addEventListener('push',()=>{})");
     mkdirSync(join(dir, "_expo", "static", "js"), { recursive: true });
     writeFileSync(join(dir, "_expo", "static", "js", "entry.js"), "bundle");
@@ -97,6 +100,19 @@ describe("spa http behavior", () => {
     for (const path of ["/", "/product/abc"]) {
       const res = await fetch(`${base}${path}`);
       expect(res.headers.get("cache-control")).toBe("no-store");
+    }
+  });
+
+  it("injects the PWA manifest/meta tags into the shell at / and deep links", async () => {
+    // Expo's `output: "single"` export does not honour app/+html.tsx, so the
+    // served shell carries the install tags. Without the manifest link the
+    // browser never offers install even though public/manifest.json exists.
+    for (const path of ["/", "/index.html", "/product/abc"]) {
+      const html = await (await fetch(`${base}${path}`)).text();
+      expect(html).toContain('<link rel="manifest" href="/manifest.json" />');
+      expect(html).toContain('name="theme-color"');
+      expect(html).toContain('rel="apple-touch-icon"');
+      expect(html.match(/rel="manifest"/g)).toHaveLength(1);
     }
   });
 

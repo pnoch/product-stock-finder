@@ -41,7 +41,7 @@ import { setupWebNotifications } from "@/lib/web-notifications";
 import { hasSeenOnboarding, isPublicRoute } from "@/lib/onboarding";
 import { setBackgroundAppState } from "@/lib/background-safe-timers";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
-import { registerWebPushServiceWorker } from "@/lib/web-push";
+import { registerServiceWorker } from "@/lib/web-push";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
   SAMPLE_LISTINGS,
@@ -224,7 +224,7 @@ export default function RootLayout() {
   // Web notifications: poll server events while the tab is open
   useEffect(() => {
     if (Platform.OS !== "web") return;
-    void registerWebPushServiceWorker();
+    void registerServiceWorker();
     const stopWebNotifications = setupWebNotifications();
     return () => {
       stopWebNotifications();
