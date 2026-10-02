@@ -101,13 +101,40 @@ describe("productStatus", () => {
 });
 
 describe("productRegion", () => {
-  it("returns the first listing's distributor region", () => {
+  it("returns the region of the cheapest in-stock listing", () => {
     const p = makeProduct({}, [makeListing("server2u-my")]);
     expect(productRegion(p)).toBe("Asia-Pacific");
   });
 
   it("returns Unknown when there are no listings", () => {
     expect(productRegion(makeProduct({}))).toBe("Unknown");
+  });
+
+  it("uses the cheapest in-stock listing, not the first listing", () => {
+    const p = makeProduct({}, [
+      makeListing("linitx-uk", { price: 500 }), // Europe
+      makeListing("server2u-my", { price: 100 }), // Asia-Pacific, cheaper
+    ]);
+    expect(productRegion(p)).toBe("Asia-Pacific");
+    // The filter uses the same primary region, so it agrees with grouping.
+    expect(
+      filterWatchlist([p], {
+        region: "Asia-Pacific",
+        tagIds: [],
+        tagMatchMode: "any",
+        status: "all",
+        query: "",
+      }),
+    ).toHaveLength(1);
+    expect(
+      filterWatchlist([p], {
+        region: "Europe",
+        tagIds: [],
+        tagMatchMode: "any",
+        status: "all",
+        query: "",
+      }),
+    ).toHaveLength(0);
   });
 });
 

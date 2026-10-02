@@ -7663,7 +7663,7 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 ## Phase 1031: Alerts-tab count matches the cards it renders
 
 - [x] The Alerts tab badge/segment counted only *armed* alerts (`countActiveAlerts`), while the tab lists every **untriggered** alert as a card (armed + snoozed + paused) — so a snoozed/paused alert was a visible card but not counted. (Resolves the long-standing "semantics call".)
-- [x] Added `countOpenAlerts(alerts)` (untriggered) to `lib/alert-state.ts` and used it for the Alerts-tab counters: mobile `useAlertsData.tabCount.alerts` and desktop `Alerts.tsx` segment header. The Home "Active Alerts" stat and the bell/sidebar attention badge keep the armed `countActiveAlerts` metric (a separate indicator), and the doc comment now spells out both.
+- [x] Added `countOpenAlerts(alerts)` (untriggered) to `lib/alert-state.ts` and used it for the Alerts-tab counters: mobile `useAlertsData.tabCount.alerts` and desktop `Alerts.tsx` segment header. The Home "Active Alerts" stat keeps the armed `countActiveAlerts` metric. (Phase 1043 superseded the badge half: the Alerts-tab badge — mobile bottom tab, desktop sidebar, and native tray — now also matches the cards shown via `countOpenAlerts`.)
 - [x] Tests: `tests/alert-state.test.ts` (`countOpenAlerts` includes armed/snoozed/paused, excludes triggered); desktop `ux-alignment` updated to expect `Alerts (3)` for the 3 untriggered cards.
 - [x] Verified: root `3089 passed` / `84 skipped`, desktop `304`, DB `87`, `tsc 0` (root + desktop), lint 0 errors.
 
@@ -7753,3 +7753,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Renamed `Distributor.countryFlag` → `countryCode` (ISO 3166-1 alpha-2) across the type, `shared/src/distributors.ts` data, and all references (mobile/desktop/server + share helpers); flags are now `MY`/`GB`/`EU`/… text. Residual local `flag` fields renamed to `countryCode`.
 - [x] New `tests/emoji-sweep.test.ts`: no title emoji in the 10 title sources, no `countryFlag` identifier or regional-indicator emoji across `lib/app/components/desktop/src/shared/server`, and every distributor `countryCode` matches `/^[A-Z]{2}$/`.
 - [x] `tsc 0` (root + desktop), lint 0 errors, root `3142 passed` / `93 skipped`, desktop `311 passed`.
+
+## Phase 1043: Alerts-tab badge matches the cards; region filter/group unified
+
+- [x] Badge: the Alerts-tab badge (mobile bottom tab, desktop sidebar, and the native tray) counted only *armed* alerts while the Alerts screen lists every untriggered alert as a card, so snoozed/paused cards were missing from the badge. All three now use `countOpenAlerts` (armed + snoozed + paused); the Home "Active Alerts" stat keeps the armed metric. Supersedes the badge half of Phase 1031.
+- [x] Native tray (`desktop/src-tauri/src/lib.rs` `update_tray_badge`) now counts untriggered alerts, matching the in-app badge (previously armed-only with a now-false "matching the in-app badge count" comment).
+- [x] Region: `productRegion` is the region of the cheapest in-stock listing (USD base for cross-currency comparison; first known-region listing as fallback), and `productHasRegion` is `productRegion(p) === region`, so the region filter and region grouping/sorting now agree. `productRegion` moved to `lib/region-filter.ts` (re-exported from `lib/watchlist-org.ts`) to avoid a circular import. A product is now listed only under its primary region (agreed semantics).
+- [x] Tests: `tests/alerts-badge-count.test.ts` (badge uses open count + all three terms; guard), region edge cases (cheapest-wins, out-of-stock fallback, unconvertible currency, non-finite/zero price, tie determinism, filter agreement). Rust `cargo test` 72, clippy/fmt clean.
+- [x] `tsc 0` (root + desktop), lint 0 errors, root `3147 passed` / `93 skipped`, desktop `311`.
