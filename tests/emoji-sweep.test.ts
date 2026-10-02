@@ -5,8 +5,6 @@ import { DISTRIBUTORS } from "@shared/distributors";
 
 // Notification titles must be plain text: without a system emoji font a title
 // emoji renders as an empty "tofu" box in the OS notification surface.
-const TITLE_EMOJI = ["🟢", "🔴", "🟠", "📈", "💸", "📦", "📊", "💰", "✅", "🧺"];
-
 const TITLE_SOURCES = [
   "lib/notifications.ts",
   "lib/background-tasks/health-alerts.ts",
@@ -36,12 +34,11 @@ async function walk(dir: string): Promise<string[]> {
 }
 
 describe("emoji sweep", () => {
-  it("notification title sources contain no title emoji", async () => {
+  it("notification title sources contain no emoji", async () => {
     for (const file of TITLE_SOURCES) {
       const src = await readFile(file, "utf8");
-      for (const ch of TITLE_EMOJI) {
-        expect(src.includes(ch), `${file} still contains ${ch}`).toBe(false);
-      }
+      const found = src.match(/\p{Extended_Pictographic}/gu) ?? [];
+      expect(found, `${file} contains emoji`).toEqual([]);
     }
   });
 
