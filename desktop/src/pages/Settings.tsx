@@ -36,7 +36,7 @@ import { ConnectionBadge } from "../components/ConnectionBadge";
 import { DialogOverlay } from "../components/DialogOverlay";
 import { useAuth, buildLoginUrl, signInWithEmail, signUpWithEmail, changePassword, deleteAccount, resendVerification, refreshCurrentUser, validateEmailAuth, validateForgotEmail, validatePasswordChange } from "../hooks/use-auth";
 import { getApiBaseUrl } from "../lib/api-base";
-import { trpc } from "../lib/trpc";
+import { trpc, createTRPCClient } from "../lib/trpc";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { formatLastSeen } from "../../../lib/relative-time";
@@ -595,6 +595,36 @@ export function Settings() {
   const [pushState, setPushState] = useState<"unknown" | "on" | "off">("unknown");
   const [pushBusy, setPushBusy] = useState(false);
   const [webNotifHint, setWebNotifHint] = useState<string | null>(null);
+  const [webhookUrl, setWebhookUrl] = useState(settings?.alertWebhookUrl ?? "");
+  const [webhookHint, setWebhookHint] = useState<string | null>(null);
+  const [webhookHintOk, setWebhookHintOk] = useState(false);
+  const [webhookTesting, setWebhookTesting] = useState(false);
+
+  useEffect(() => {
+    setWebhookUrl(settings?.alertWebhookUrl ?? "");
+  }, [settings?.alertWebhookUrl]);
+
+  const handleTestWebhook = useCallback(async () => {
+    const url = webhookUrl.trim();
+    if (!url) {
+      setWebhookHintOk(false);
+      setWebhookHint("Enter a webhook URL first.");
+      return;
+    }
+    setWebhookHint(null);
+    setWebhookTesting(true);
+    try {
+      const client = createTRPCClient();
+      const result = await client.notifications.testWebhook.mutate({ url });
+      setWebhookHintOk(result.ok);
+      setWebhookHint(result.ok ? "Test message sent." : (result.error ?? "Test failed."));
+    } catch {
+      setWebhookHintOk(false);
+      setWebhookHint("Test failed.");
+    } finally {
+      setWebhookTesting(false);
+    }
+  }, [webhookUrl]);
 
   useEffect(() => {
     if (!isAuthenticated || !isPushSupported()) {
@@ -1754,6 +1784,47 @@ export function Settings() {
               <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
             </span>
           </label>
+          <div className="px-3 py-2.5">
+            <div className="text-sm font-medium mb-2">Webhook Alerts</div>
+            <input
+              type="url"
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+              onBlur={() => {
+                const next = webhookUrl.trim();
+                if (next !== (settings.alertWebhookUrl ?? "")) void update({ alertWebhookUrl: next });
+              }}
+              placeholder="https://discord.com/api/webhooks/…"
+              aria-label="Webhook URL"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+            />
+            <div className="flex items-center justify-between mt-3">
+              <label className={`flex items-center ${settings.notificationsEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
+                <input
+                  type="checkbox"
+                  checked={!!settings.webhookAlerts}
+                  onChange={(e) => void update({ webhookAlerts: e.target.checked })}
+                  disabled={!settings.notificationsEnabled}
+                  className="mr-2"
+                  aria-label="Enable webhook alerts"
+                />
+                <span className="text-sm">Enable webhooks</span>
+              </label>
+              <button
+                type="button"
+                disabled={webhookTesting}
+                onClick={handleTestWebhook}
+                className="text-sm font-medium text-brand-600 dark:text-brand-400 disabled:opacity-50"
+              >
+                {webhookTesting ? "Sending…" : "Send test"}
+              </button>
+            </div>
+            {webhookHint && (
+              <p className={`mt-2 text-xs ${webhookHintOk ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                {webhookHint}
+              </p>
+            )}
+          </div>
         </div>
         <div className="mt-4">
           <p className="text-sm font-medium mb-2">Quiet Hours</p>
