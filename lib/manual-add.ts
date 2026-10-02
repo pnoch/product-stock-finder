@@ -88,6 +88,15 @@ export function clearListingAttemptsForTests(): void {
   lastListingAttemptAt.clear();
 }
 
+/**
+ * Marks a discovery attempt so the background rotation skips the product for
+ * the retry window. Recorded for user-driven misses too, so a "Find prices"
+ * that found nothing is not immediately re-scraped by the next sweep.
+ */
+export function recordListingAttempt(productId: string, now = Date.now()): void {
+  lastListingAttemptAt.set(productId, now);
+}
+
 export interface MissingListingsStorage extends RediscoverStorage {
   getWatchlist(): Promise<
     { id: string; modelNumber: string; listings?: DistributorListing[] }[]
@@ -125,7 +134,7 @@ export async function rediscoverMissingListings(deps: {
         MISSING_LISTINGS_RETRY_MS,
   );
   const batch = missing.slice(0, Math.max(0, limit));
-  for (const product of batch) lastListingAttemptAt.set(product.id, now);
+  for (const product of batch) recordListingAttempt(product.id, now);
   let discovered = 0;
   for (const product of batch) {
     try {
@@ -167,6 +176,10 @@ export async function rediscoverProduct(deps: {
       throw e;
     }
   }
-  if (listings.length > 0) await storage.updateProductListings(productId, listings);
+  if (listings.length > 0) {
+    await storage.updateProductListings(productId, listings);
+  } else {
+    recordListingAttempt(productId);
+  }
   return { discovered: listings.length, timedOut };
 }
