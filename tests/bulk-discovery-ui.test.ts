@@ -41,4 +41,10 @@ describe("bulk discovery UI", () => {
     expect(modal).toContain("window.confirm");
     expect(modal).toContain("Fetch prices for the remaining");
   });
+
+  it("product detail offers a Find prices CTA (desktop)", () => {
+    const src = readFileSync("desktop/src/pages/ProductDetail.tsx", "utf8");
+    expect(src).toContain("Find prices");
+    expect(src).toContain("rediscoverProduct");
+  });
 });
