@@ -37,7 +37,10 @@
 **Files:**
 - Modify: `lib/types.ts` (inside `AppSettings`, after `emailAlerts?: boolean;`)
 - Modify: `lib/storage/settings.ts` (inside `DEFAULT_SETTINGS`, after `emailAlerts: false,`)
+- Modify: `lib/backup.ts` (inside `SETTING_DEFAULTS`, after `emailAlerts: false,`)
 - Test: `tests/webhook-alerts-preference.test.ts`
+
+**Why `lib/backup.ts`:** a field in `DEFAULT_SETTINGS` but not `SETTING_DEFAULTS` is always taken from a backup, silently overwriting the local value with the exporter's default. `tests/backup.test.ts` ("SETTING_DEFAULTS coverage") pins this. The email-alerts phase fixed the analogous miss in a follow-up commit.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -100,15 +103,22 @@ In `lib/storage/settings.ts`, inside `DEFAULT_SETTINGS` after `emailAlerts: fals
     alertWebhookUrl: "",
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+In `lib/backup.ts`, inside `SETTING_DEFAULTS` after `emailAlerts: false,`, add the same two entries:
 
-Run: `pnpm vitest run tests/webhook-alerts-preference.test.ts`
+```ts
+  webhookAlerts: false,
+  alertWebhookUrl: "",
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pnpm vitest run tests/webhook-alerts-preference.test.ts tests/backup.test.ts`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/types.ts lib/storage/settings.ts tests/webhook-alerts-preference.test.ts
+git add lib/types.ts lib/storage/settings.ts lib/backup.ts tests/webhook-alerts-preference.test.ts
 git commit -m "feat: add webhookAlerts settings (default off)"
 ```
 
