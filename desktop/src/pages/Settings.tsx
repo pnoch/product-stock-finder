@@ -604,6 +604,8 @@ export function Settings() {
     setWebhookUrl(settings?.alertWebhookUrl ?? "");
   }, [settings?.alertWebhookUrl]);
 
+  // Imperative client (not a mutation hook): desktop tests mock ../lib/trpc
+  // without a `notifications` member, so a render-time hook would crash them.
   const handleTestWebhook = useCallback(async () => {
     const url = webhookUrl.trim();
     if (!url) {
@@ -1799,12 +1801,12 @@ export function Settings() {
               className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
             />
             <div className="flex items-center justify-between mt-3">
-              <label className={`flex items-center ${settings.notificationsEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
+              <label className={`flex items-center ${settings.notificationsEnabled && isAuthenticated ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
                 <input
                   type="checkbox"
                   checked={!!settings.webhookAlerts}
                   onChange={(e) => void update({ webhookAlerts: e.target.checked })}
-                  disabled={!settings.notificationsEnabled}
+                  disabled={!settings.notificationsEnabled || !isAuthenticated}
                   className="mr-2"
                   aria-label="Enable webhook alerts"
                 />
@@ -1812,7 +1814,7 @@ export function Settings() {
               </label>
               <button
                 type="button"
-                disabled={webhookTesting}
+                disabled={webhookTesting || !isAuthenticated}
                 onClick={handleTestWebhook}
                 className="text-sm font-medium text-brand-600 dark:text-brand-400 disabled:opacity-50"
               >
@@ -1822,6 +1824,11 @@ export function Settings() {
             {webhookHint && (
               <p className={`mt-2 text-xs ${webhookHintOk ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
                 {webhookHint}
+              </p>
+            )}
+            {!isAuthenticated && (
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Sign in to use webhook alerts.
               </p>
             )}
           </div>
