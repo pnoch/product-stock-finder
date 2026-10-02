@@ -7702,3 +7702,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Security: webhook URL stripped from user-shareable backups (`lib/settings-privacy.ts`, `lib/backup.ts`, desktop Rust `strip_device_local_settings`) but kept for server sync; cleared on sign-out alongside the BYO-LLM key.
 - [x] Tests: unit (classify/payload/text/post/test-send), DB delivery/cap/invalid-url/no-retry/purge/product-link, pipeline integration, router, mobile source guard, desktop behavioral (RTL).
 - [x] `tsc 0` (root + desktop), lint 0 errors (146 pre-existing warnings), offline + DB + desktop suites green.
+
+## Phase 1037: CSV export from Product Detail (mobile/web + desktop)
+
+- [x] `hasExportablePriceData(product)` predicate in `lib/csv.ts` (history or a finite listing price; 0 counts) guarding the export.
+- [x] Mobile/web: header "Export CSV" icon on `app/product/[id].tsx` reusing `productHistoryToCsv` + `exportCsvFile`, with "Nothing to export" / "Export unavailable" alerts and a success toast.
+- [x] Desktop: new `desktop/src/lib/save-csv.ts` returning `saved`/`cancelled`/`failed` (Tauri save dialog else browser download; never throws) + "Export CSV" button on desktop Product Detail.
+- [x] Refactored desktop Compare + SharedWatchlist off three inline Blob/Tauri save blocks onto `saveCsv` (cancels are silent; genuine failures surface).
+- [x] Tests: predicate unit cases, mobile+desktop source guards (incl. wiring), `desktop/tests/save-csv.test.ts` (browser, Tauri, cancel, throw, write failure).
+- [x] `tsc 0` (root + desktop), lint 0 errors, root + desktop suites green.
