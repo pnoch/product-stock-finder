@@ -538,12 +538,13 @@ export async function deliverEmailForEvent(
       );
     if (recent.length >= DAILY_CAP) return false;
 
-    // Insert-or-ignore on (userId, dedupKey): MySQL returns 1 for a fresh
-    // insert and 2 for a no-op update, so affectedRows===1 means "new".
+    // Insert-or-ignore on (userId, dedupKey). mysql2 enables CLIENT_FOUND_ROWS,
+    // so `onDuplicateKeyUpdate` reports affectedRows 1 for a no-op duplicate too;
+    // `insert().ignore()` is 1 for a fresh insert and 0 for a duplicate.
     const insertResult = await db
       .insert(notificationEmailLog)
-      .values({ userId, dedupKey: event.dedupKey, sentAt: now })
-      .onDuplicateKeyUpdate({ set: { sentAt: notificationEmailLog.sentAt } });
+      .ignore()
+      .values({ userId, dedupKey: event.dedupKey, sentAt: now });
     if (affectedRowsOf(insertResult) !== 1) return false;
 
     const message = buildAlertEmail({
@@ -554,15 +555,8 @@ export async function deliverEmailForEvent(
     });
     const ok = await sendEmail({ ...message, to: email });
     if (!ok) {
-      // Allow a retry on a later tick; the daily cap bounds hammering.
-      await db
-        .delete(notificationEmailLog)
-        .where(
-          and(
-            eq(notificationEmailLog.userId, userId),
-            eq(notificationEmailLog.dedupKey, event.dedupKey),
-          ),
-        );
+      // Keep the claim row so a failed send counts toward DAILY_CAP and is not
+      // retried for this condition (the in-app/push channels still cover it).
       return false;
     }
     return true;
