@@ -1,11 +1,16 @@
 import { isTauri } from "./tauri";
 
+export type SaveCsvResult =
+  | { status: "saved"; path?: string }
+  | { status: "cancelled" }
+  | { status: "failed" };
+
 /**
  * Saves CSV text. In the Tauri app this opens a native save dialog and writes
- * the file; in the browser it triggers a download. Returns false when the user
- * cancels or the save fails. Never throws.
+ * the file; in the browser it triggers a download. Distinguishes a user cancel
+ * (silent) from a real failure (surface an error). Never throws.
  */
-export async function saveCsv(fileName: string, csv: string): Promise<boolean> {
+export async function saveCsv(fileName: string, csv: string): Promise<SaveCsvResult> {
   try {
     if (isTauri()) {
       const { save } = await import("@tauri-apps/plugin-dialog");
@@ -14,21 +19,24 @@ export async function saveCsv(fileName: string, csv: string): Promise<boolean> {
         defaultPath: fileName,
         filters: [{ name: "CSV", extensions: ["csv"] }],
       });
-      if (!filePath) return false;
+      if (!filePath) return { status: "cancelled" };
       await writeFile(filePath, new TextEncoder().encode(csv));
-      return true;
+      return { status: "saved", path: filePath };
     }
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    return true;
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+    return { status: "saved" };
   } catch {
-    return false;
+    return { status: "failed" };
   }
 }

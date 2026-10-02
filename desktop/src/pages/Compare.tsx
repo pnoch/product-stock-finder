@@ -545,9 +545,13 @@ export function Compare() {
         modelNumber: product.modelNumber ?? product.id,
       });
       const fileName = `${product.id}-price-history-${new Date().toISOString().slice(0, 10)}.csv`;
-      const ok = await saveCsv(fileName, csv);
-      if (!ok) return;
-      showToast("Price history exported");
+      const result = await saveCsv(fileName, csv);
+      if (result.status === "cancelled") return;
+      if (result.status === "failed") {
+        showToast("Couldn't export the price history");
+        return;
+      }
+      showToast(result.path ? `Exported to ${result.path}` : "Price history exported");
     } catch {
       showToast("Couldn't export the price history");
     }

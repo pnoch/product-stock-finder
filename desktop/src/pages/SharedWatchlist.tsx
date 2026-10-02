@@ -111,9 +111,10 @@ export function SharedWatchlist() {
   }, [data, adding, addOne, showToast]);
 
   const handleExportHistory = useCallback((product: Product) => {
-    void saveCsv(`${product.id}-history.csv`, productHistoryToCsv(product)).then((ok) =>
-      showToast(ok ? "History exported" : "Couldn't export history"),
-    );
+    void saveCsv(`${product.id}-history.csv`, productHistoryToCsv(product)).then((result) => {
+      if (result.status === "cancelled") return;
+      showToast(result.status === "saved" ? "History exported" : "Couldn't export history");
+    });
   }, [showToast]);
 
   const handleExportCsv = useCallback(() => {
@@ -121,9 +122,10 @@ export function SharedWatchlist() {
     // Stamp the source link so re-imports keep provenance (the CSV parser
     // skips /w/ deep-link lines on import).
     const csv = watchlistToDetailedCsv(products as never[], { shareUrl: window.location.href });
-    void saveCsv(`shared-${token ?? "watchlist"}.csv`, csv).then((ok) =>
-      showToast(ok ? "Share exported as CSV" : "Couldn't export share"),
-    );
+    void saveCsv(`shared-${token ?? "watchlist"}.csv`, csv).then((result) => {
+      if (result.status === "cancelled") return;
+      showToast(result.status === "saved" ? "Share exported as CSV" : "Couldn't export share");
+    });
   }, [data, token, showToast]);
 
   if (loading) {

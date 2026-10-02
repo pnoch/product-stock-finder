@@ -25,7 +25,7 @@ describe("saveCsv", () => {
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => {});
-    expect(await saveCsv("x.csv", "a,b\n1,2")).toBe(true);
+    expect(await saveCsv("x.csv", "a,b\n1,2")).toEqual({ status: "saved" });
     expect(createObjectURL).toHaveBeenCalledOnce();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock");
     expect(click).toHaveBeenCalledOnce();
@@ -35,7 +35,7 @@ describe("saveCsv", () => {
     tauriState.isTauri = true;
     saveMock.mockResolvedValue("/tmp/x.csv");
     writeFileMock.mockResolvedValue(undefined);
-    expect(await saveCsv("x.csv", "a,b")).toBe(true);
+    expect(await saveCsv("x.csv", "a,b")).toEqual({ status: "saved", path: "/tmp/x.csv" });
     expect(saveMock).toHaveBeenCalledWith({
       defaultPath: "x.csv",
       filters: [{ name: "CSV", extensions: ["csv"] }],
@@ -43,16 +43,23 @@ describe("saveCsv", () => {
     expect(writeFileMock).toHaveBeenCalledOnce();
   });
 
-  it("returns false when the Tauri save dialog is cancelled", async () => {
+  it("reports a cancelled Tauri save dialog as cancelled", async () => {
     tauriState.isTauri = true;
     saveMock.mockResolvedValue(null);
-    expect(await saveCsv("x.csv", "a,b")).toBe(false);
+    expect(await saveCsv("x.csv", "a,b")).toEqual({ status: "cancelled" });
     expect(writeFileMock).not.toHaveBeenCalled();
   });
 
-  it("returns false when saving throws", async () => {
+  it("reports a thrown save as failed", async () => {
     tauriState.isTauri = true;
     saveMock.mockRejectedValue(new Error("boom"));
-    expect(await saveCsv("x.csv", "a,b")).toBe(false);
+    expect(await saveCsv("x.csv", "a,b")).toEqual({ status: "failed" });
+  });
+
+  it("reports a writeFile failure as failed", async () => {
+    tauriState.isTauri = true;
+    saveMock.mockResolvedValue("/tmp/x.csv");
+    writeFileMock.mockRejectedValue(new Error("write boom"));
+    expect(await saveCsv("x.csv", "a,b")).toEqual({ status: "failed" });
   });
 });
