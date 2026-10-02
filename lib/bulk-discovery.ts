@@ -53,3 +53,38 @@ export async function runDiscoveryBatch(deps: {
   }
   return { nextIndex, discovered };
 }
+
+/**
+ * Drains `runDiscoveryBatch` across the whole list, asking before each
+ * follow-up batch. `confirmContinue(remaining)` is called only when a batch
+ * leaves models behind; return false to stop and leave them for the repair CTA.
+ */
+export async function runDiscoveryLoop(deps: {
+  items: BulkDiscoveryItem[];
+  batchSize?: number;
+  storage: RediscoverStorage;
+  discover: DiscoverFn;
+  onProgress?: (done: number, total: number, modelNumber: string) => void;
+  shouldCancel?: () => boolean;
+  confirmContinue?: (remaining: number) => boolean;
+}): Promise<{ nextIndex: number; discovered: number }> {
+  const { items, batchSize, storage, discover, onProgress, shouldCancel, confirmContinue } = deps;
+  let nextIndex = 0;
+  let discovered = 0;
+  while (nextIndex < items.length) {
+    const res = await runDiscoveryBatch({
+      items,
+      startIndex: nextIndex,
+      batchSize,
+      storage,
+      discover,
+      onProgress,
+      shouldCancel,
+    });
+    nextIndex = res.nextIndex;
+    discovered += res.discovered;
+    const remaining = items.length - nextIndex;
+    if (remaining > 0 && confirmContinue && !confirmContinue(remaining)) break;
+  }
+  return { nextIndex, discovered };
+}
