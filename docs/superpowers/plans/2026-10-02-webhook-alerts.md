@@ -310,7 +310,7 @@ Expected: migration generated and applied; `notification_webhook_log` exists.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add drizzle/schema.ts drizzle/
+git add drizzle/schema.ts drizzle/ tests/webhook-alerts-schema.test.ts
 git commit -m "feat: add notification_webhook_log table"
 ```
 
