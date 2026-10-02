@@ -211,6 +211,13 @@
       "when": 1790906564634,
       "tag": "0029_green_chameleon",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "5",
+      "when": 1790906760740,
+      "tag": "0030_remarkable_spitfire",
+      "breakpoints": true
     }
   ]
 }

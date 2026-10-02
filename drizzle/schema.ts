@@ -269,14 +269,18 @@ export const notificationEmailLog = mysqlTable(
     userId: int("userId")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    dedupKey: varchar("dedupKey", { length: 191 }).notNull(),
+    dedupKey: varchar("dedupKey", { length: 255 }).notNull(),
     sentAt: bigint("sentAt", { mode: "number" }).notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.dedupKey] }),
-    index("idx_notif_email_sent").on(table.sentAt),
+    index("idx_notif_email_user_sent").on(table.userId, table.sentAt),
   ],
 );
+
+export type NotificationEmailLogRow = typeof notificationEmailLog.$inferSelect;
+export type InsertNotificationEmailLogRow =
+  typeof notificationEmailLog.$inferInsert;
 
 export const devicePushTokens = mysqlTable(
   "device_push_tokens",
