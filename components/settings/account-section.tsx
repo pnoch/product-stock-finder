@@ -196,7 +196,7 @@ export function AccountSection({
                     }}
                     accessibilityLabel={emailVerified ? "Verified" : "Check your email"}
                   >
-                    {emailVerified ? "Verified ✓" : "Check your email"}
+                    {emailVerified ? "Verified" : "Check your email"}
                   </Text>
                 )}
               </View>

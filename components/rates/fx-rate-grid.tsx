@@ -1,20 +1,10 @@
 import { View } from "react-native";
 import { FxSparklineCard } from "./fx-sparkline-card";
 
-const CURRENCY_INFO: Record<string, { flag: string }> = {
-  USD: { flag: "🇺🇸" },
-  EUR: { flag: "🇪🇺" },
-  GBP: { flag: "🇬🇧" },
-  MYR: { flag: "🇲🇾" },
-  AUD: { flag: "🇦🇺" },
-  NZD: { flag: "🇳🇿" },
-  CAD: { flag: "🇨🇦" },
-  ZAR: { flag: "🇿🇦" },
-  THB: { flag: "🇹🇭" },
-  SGD: { flag: "🇸🇬" },
-  HKD: { flag: "🇭🇰" },
-  AED: { flag: "🇦🇪" },
-};
+const CURRENCIES = [
+  "USD", "EUR", "GBP", "MYR", "AUD", "NZD",
+  "CAD", "ZAR", "THB", "SGD", "HKD", "AED",
+];
 
 interface FxRateGridProps {
   currentRates: Record<string, number>;
@@ -23,7 +13,7 @@ interface FxRateGridProps {
 }
 
 export function FxRateGrid({ currentRates, history, change }: FxRateGridProps) {
-  const currencies = Object.keys(CURRENCY_INFO);
+  const currencies = CURRENCIES;
 
   const rows: string[][] = [];
   for (let i = 0; i < currencies.length; i += 2) {
@@ -38,7 +28,6 @@ export function FxRateGrid({ currentRates, history, change }: FxRateGridProps) {
             <FxSparklineCard
               key={code}
               currency={code}
-              flag={CURRENCY_INFO[code]?.flag ?? ""}
               rate={currentRates[code] ?? 1}
               change={change[code] ?? 0}
               history={history[code] ?? []}
