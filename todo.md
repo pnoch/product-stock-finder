@@ -7692,3 +7692,13 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Service-worker registration is no longer gated on `PushManager`: new `registerServiceWorker()` registers `/sw.js` on any SW-capable browser (offline shell works where web push is unavailable, e.g. older iOS Safari); `_layout.tsx` now calls it at startup (push still uses `registerWebPushServiceWorker`).
 - [x] Tests: `tests/pwa.test.ts` (manifest fields, icon existence + PNG dimensions, SW handlers), `tests/spa.test.ts` +1 (served shell carries the tags exactly once at `/`, `/index.html` and deep links), `tests/web-push.test.ts` +2 (registers without `PushManager`; null on native).
 - [x] Verified: root `3099 passed` / `84 skipped`, `tsc 0`, lint 0 errors (146 pre-existing warnings).
+
+## Phase 1036: Webhook alerts (Discord/Slack, opt-in, server-evaluated)
+
+- [x] `AppSettings.webhookAlerts` + `alertWebhookUrl` (default off) with mobile + desktop config UI (URL field, enable toggle, Send test, signed-out gating).
+- [x] `notification_webhook_log` (userId, dedupKey, sentAt) for once-per-condition idempotency; 30-day warmer purge after `purgeOldEmailLog`.
+- [x] `server/notifications/webhook-alerts.ts`: strict Discord/Slack host allowlist (SSRF guard), provider-specific payloads with mention neutralization, `redirect: "error"` + 5s-timeout POST, opt-in + 20/day-cap gated delivery, test send.
+- [x] Hooked into the user-event pipeline in `evaluate.ts` (separate best-effort pass so a slow webhook can't delay email); authenticated `notifications.testWebhook` (5/min) + mobile/desktop wrappers.
+- [x] Security: webhook URL stripped from user-shareable backups (`lib/settings-privacy.ts`, `lib/backup.ts`, desktop Rust `strip_device_local_settings`) but kept for server sync; cleared on sign-out alongside the BYO-LLM key.
+- [x] Tests: unit (classify/payload/text/post/test-send), DB delivery/cap/invalid-url/no-retry/purge/product-link, pipeline integration, router, mobile source guard, desktop behavioral (RTL).
+- [x] `tsc 0` (root + desktop), lint 0 errors (146 pre-existing warnings), offline + DB + desktop suites green.
