@@ -72,6 +72,8 @@ export async function runDiscoveryLoop(deps: {
   let nextIndex = 0;
   let discovered = 0;
   while (nextIndex < items.length) {
+    if (shouldCancel?.()) break;
+    const before = nextIndex;
     const res = await runDiscoveryBatch({
       items,
       startIndex: nextIndex,
@@ -83,6 +85,9 @@ export async function runDiscoveryLoop(deps: {
     });
     nextIndex = res.nextIndex;
     discovered += res.discovered;
+    // A cancelled batch returns its start index; without this guard the loop
+    // would spin forever when confirmContinue keeps returning true.
+    if (nextIndex === before) break;
     const remaining = items.length - nextIndex;
     if (remaining > 0 && confirmContinue && !confirmContinue(remaining)) break;
   }
