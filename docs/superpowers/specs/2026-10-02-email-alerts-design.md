@@ -51,7 +51,7 @@ Delivery does an insert-or-ignore on `(userId, dedupKey)`; **send only when the 
 
 - Resend not configured (`isEmailConfigured()` false) → log + skip (existing behavior).
 - Per-user **daily cap** (20/day) enforced against `notification_email_log`; over cap → skip (the event is still recorded for in-app/push).
-- Send failure → logged, **not** recorded in the log, so it retries on a later tick (bounded by the daily cap).
+- Send failure → logged, and the claim row is **kept** so the failure counts toward the daily cap and the condition is not retried (the in-app/push channels already cover the alert). Bounded by the daily cap.
 - Recipient lookup: `users.email`; skip when absent.
 
 ## Testing

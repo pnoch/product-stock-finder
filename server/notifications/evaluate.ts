@@ -500,19 +500,21 @@ async function evaluateUserDb(
       userId,
       toInsert.map((d) => ({ ...draftToEvent(d), userId, deviceId: null })),
     );
-    for (const event of toInsert) {
-      const payload =
-        event.payload && typeof event.payload === "object"
-          ? (event.payload as { productId?: unknown })
-          : null;
-      const productId =
-        typeof payload?.productId === "string" ? payload.productId : null;
-      void deliverEmailForEvent(userId, {
-        dedupKey: event.dedupKey,
-        title: event.title,
-        body: event.body,
-        productId,
-      });
-    }
+    void (async () => {
+      for (const event of toInsert) {
+        const payload =
+          event.payload && typeof event.payload === "object"
+            ? (event.payload as { productId?: unknown })
+            : null;
+        const productId =
+          typeof payload?.productId === "string" ? payload.productId : null;
+        await deliverEmailForEvent(userId, {
+          dedupKey: event.dedupKey,
+          title: event.title,
+          body: event.body,
+          productId,
+        });
+      }
+    })().catch(() => {});
   }
 }

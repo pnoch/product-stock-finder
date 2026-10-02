@@ -275,6 +275,9 @@ export const notificationEmailLog = mysqlTable(
   (table) => [
     primaryKey({ columns: [table.userId, table.dedupKey] }),
     index("idx_notif_email_user_sent").on(table.userId, table.sentAt),
+    // purgeOldEmailLog filters on sentAt alone; the composite index's leading
+    // column is userId, so it cannot serve a sentAt-only scan.
+    index("idx_notif_email_sent").on(table.sentAt),
   ],
 );
 

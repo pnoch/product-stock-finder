@@ -78,4 +78,33 @@ describe.skipIf(!runDbTests)("email alert pipeline (DB)", () => {
       .from(notificationEmailLog);
     expect(rows).toHaveLength(1);
   });
+
+  it("holds the daily cap under a burst of simultaneous alerts", async () => {
+    const now = Date.now();
+    await setCachedPrice("server2u-my", "CRS804-4DDQ-hRM", {
+      price: 400, currency: "USD", stockStatus: "in_stock",
+      url: "https://example.com", fetchedAt: now,
+    });
+    // 25 distinct alert ids → 25 distinct dedupKeys, all satisfied by the same
+    // cached price. Without serialization every delivery reads `count < 20`
+    // before any claim commits and all 25 send.
+    const config: NotificationConfig = {
+      alerts: Array.from({ length: 25 }, (_, i) => ({
+        id: `burst-${i}`,
+        productId: "mikrotik-crs804-4ddq-hrm",
+        targetPrice: 500,
+        currency: "USD",
+      })),
+      stockWatches: [],
+      dateReminders: [],
+    };
+    await upsertDeviceConfig("dev-burst", config, userId);
+    await evaluateNotifications(now);
+    await vi.waitFor(() => expect(sent.n).toBeGreaterThan(0), {
+      timeout: 10_000,
+    });
+    // Allow the serialized chain to drain, then assert the cap held.
+    await new Promise((r) => setTimeout(r, 200));
+    expect(sent.n).toBe(20);
+  });
 });
