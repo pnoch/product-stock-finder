@@ -21,7 +21,16 @@ const memoryInsights = new Map<
 
 // Single-flight: concurrent getInsight calls for the same product share one
 // LLM invocation so a burst of requests doesn't amplify cost.
+// Single-flight: concurrent getInsight calls for the same product **and the
+// same LLM config** share one invocation so a burst of requests doesn't
+// amplify cost. Keying on productId alone would let a server-funded caller
+// reuse a BYO-LLM caller's in-flight result (or vice versa).
 const inFlightInsights = new Map<string, Promise<PriceInsight | null>>();
+
+function llmIdentity(userLlm: UserLlmConfig | null): string {
+  if (!userLlm) return "server";
+  return `${userLlm.provider}:${userLlm.model ?? ""}:${userLlm.ollamaUrl ?? ""}`;
+}
 
 export interface PriceInsight {
   insight: string;
@@ -36,12 +45,13 @@ export async function getInsight(
   if (cached && Date.now() - cached.generatedAt < INSIGHT_TTL_MS) {
     return cached;
   }
-  const existing = inFlightInsights.get(productId);
+  const key = `${productId}::${llmIdentity(userLlm)}`;
+  const existing = inFlightInsights.get(key);
   if (existing) return existing;
   const run = generateFreshInsight(productId, cached, userLlm).finally(() => {
-    inFlightInsights.delete(productId);
+    inFlightInsights.delete(key);
   });
-  inFlightInsights.set(productId, run);
+  inFlightInsights.set(key, run);
   return run;
 }
 
