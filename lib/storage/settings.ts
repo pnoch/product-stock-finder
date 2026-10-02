@@ -24,6 +24,7 @@ export function createSettingsStorage(
     stockAlerts: true,
     priceAlerts: true,
     healthAlerts: true,
+    emailAlerts: false,
     shippingRegion: "Asia-Pacific",
     webNotificationsEnabled: false,
     watchlistSort: "recent",

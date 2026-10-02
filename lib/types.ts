@@ -165,6 +165,8 @@ export interface AppSettings {
   watchlistPriceRange?: [number, number] | null;
   watchlistInStockOnly?: boolean;
   retentionDays?: number;
+  /** Email delivery for alerts (opt-in; default off). Recipient = account email. */
+  emailAlerts?: boolean;
 }
 
 export type Collection = "watchlist" | "alerts" | "reminders" | "settings";
