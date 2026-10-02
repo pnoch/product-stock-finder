@@ -10,4 +10,10 @@ describe("email alerts settings UI", () => {
     expect(mobile).toContain("Email Alerts");
     expect(mobile).toContain('updateSetting("emailAlerts"');
   });
+
+  it("exposes an Email Alerts toggle bound to emailAlerts (desktop)", () => {
+    const desktop = readFileSync("desktop/src/pages/Settings.tsx", "utf8");
+    expect(desktop).toContain("Email Alerts");
+    expect(desktop).toContain("emailAlerts");
+  });
 });
