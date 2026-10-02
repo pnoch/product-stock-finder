@@ -37,6 +37,8 @@ import { SkeletonCard, SkeletonChart, SkeletonDetailHeader } from "@/components/
 import { useToast } from "@/components/ui/toast";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
+import { productHistoryToCsv, hasExportablePriceData } from "@/lib/csv";
+import { exportCsvFile } from "@/lib/csv-export";
 import { LOG_ERROR } from "@shared/log";
 
 export default function ProductDetailScreen() {
@@ -431,6 +433,23 @@ export default function ProductDetailScreen() {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, [product, id, sortedListings, effectiveCurrency, shareScale, showToast]);
 
+  const handleExportCsv = useCallback(async () => {
+    if (!product) return;
+    if (!hasExportablePriceData(product)) {
+      showAlert("Nothing to export", "No price history is available for this product yet.");
+      return;
+    }
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const fileName = `${product.modelNumber ?? product.id}-history.csv`;
+    const ok = await exportCsvFile(productHistoryToCsv(product), fileName);
+    if (!ok) {
+      showAlert("Export unavailable", "We couldn't export the price history on this device.");
+      return;
+    }
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showToast("Price history exported", "success");
+  }, [product, showToast]);
+
   if (!loaded || !isSettingsLoaded) {
     return (
       <ScreenContainer>
@@ -512,6 +531,16 @@ export default function ProductDetailScreen() {
             hitSlop={10}
           >
             <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleExportCsv}
+            style={{ padding: 4, marginLeft: 8 }}
+            accessibilityLabel="Export CSV"
+            accessibilityRole="button"
+            hitSlop={10}
+          >
+            <IconSymbol name="square.and.arrow.down" size={18} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </Animated.View>
