@@ -7648,3 +7648,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Clients no longer auto-logon sign-up: desktop Settings shows "Account created — sign in to continue" and switches to sign-in; the mobile `LoginModal` does the same. Both already tolerated a missing session.
 - [x] Tests updated: `oauth-handlers` (generic 200 + no cookie; identical for existing email), `auth-error-leak` (existing email → generic success), `auth-hardening` (deviceId passed to `registerAccount`, no cookie). Raw driver errors still collapse to a generic 400.
 - [x] Verified: root `3088 passed` / `84 skipped`, desktop `304`, DB `87`, `tsc 0` (root + desktop), lint 0 errors.
+
+## Phase 1029: "Digest in notification history" — already implemented
+
+- [x] The selected item was already resolved in Phase 551: the periodic digest is recorded to the in-app history on both platforms after a successful delivery — mobile `lib/notifications.ts:416` and desktop `desktop/src/App.tsx:408`, both with a day-keyed `local-digest-<YYYY-MM-DD>` id (same-day retry dedups) and best-effort semantics. Server-batched digests are recorded when pulled (`lib/server-notifications.ts:259`). No code change needed.
+- [x] Remaining genuinely-open items are product/taste calls only: the **emoji sweep** (decorative JSX prefixes) and **Alerts-tab count semantics** (make the tab count match the cards it renders — which would diverge from the Home "active alerts" count, so it needs a decision, not a mechanical fix).
