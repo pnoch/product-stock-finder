@@ -45,12 +45,19 @@ Filename for all platforms: `` `${product.modelNumber ?? product.id}-history.csv
 ## 3. Desktop save helper — `desktop/src/lib/save-csv.ts` (new)
 
 ```ts
-export async function saveCsv(fileName: string, csv: string): Promise<boolean>
+export type SaveCsvResult =
+  | { status: "saved"; path?: string }
+  | { status: "cancelled" }
+  | { status: "failed" };
+
+export async function saveCsv(fileName: string, csv: string): Promise<SaveCsvResult>
 ```
 
-- `isTauri()`: dynamic-import `@tauri-apps/plugin-dialog` `save({ defaultPath: fileName, filters: [{ name: "CSV", extensions: ["csv"] }] })`; if the user cancels (falsy path) return `false`; else dynamic-import `@tauri-apps/plugin-fs` `writeFile(path, new TextEncoder().encode(csv))` and return `true`.
-- Otherwise (browser): Blob + `URL.createObjectURL` + anchor `download`, revoke the URL, return `true`.
-- Wrap everything in try/catch and return `false` on any failure (never throws).
+- `isTauri()`: dynamic-import `@tauri-apps/plugin-dialog` `save({ defaultPath: fileName, filters: [{ name: "CSV", extensions: ["csv"] }] })`; a falsy path → `{ status: "cancelled" }`; else dynamic-import `@tauri-apps/plugin-fs` `writeFile(path, new TextEncoder().encode(csv))` and return `{ status: "saved", path }`.
+- Otherwise (browser): Blob + `URL.createObjectURL` + anchor `download`, revoke the URL in a `finally`, return `{ status: "saved" }`.
+- Wrap everything in try/catch and return `{ status: "failed" }` on any failure (never throws).
+
+A discriminated result is required because a boolean conflates a user cancel (no message) with a real write failure (should surface an error): Compare must report a genuine failure instead of returning silently, and SharedWatchlist must not toast an error when the user cancels the save dialog.
 
 Then refactor `desktop/src/pages/Compare.tsx` and `desktop/src/pages/SharedWatchlist.tsx` to call `saveCsv`, removing the three inline Blob/Tauri blocks and their duplicated imports.
 
@@ -62,7 +69,7 @@ Then refactor `desktop/src/pages/Compare.tsx` and `desktop/src/pages/SharedWatch
 
 ## 5. Error handling
 
-Both handlers never throw. No exportable data → "Nothing to export". Save unsupported/failed/cancelled → "Export unavailable" / "Couldn't export the price history". Success → confirmation toast (and native success haptic on mobile).
+Both handlers never throw. No exportable data → "Nothing to export". A user cancel is silent (no toast). A genuine failure → "Export unavailable" / "Couldn't export the price history". Success → confirmation toast (and native success haptic on mobile). Determinable from `saveCsv`'s `status` on desktop and from `exportCsvFile`'s boolean on mobile/web (web/native export has no cancel signal, so `false` is treated as failure).
 
 ## 6. Testing
 
