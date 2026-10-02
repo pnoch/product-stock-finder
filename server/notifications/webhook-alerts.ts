@@ -48,8 +48,8 @@ function neutralizeMentions(text: string): string {
   return text
     .replace(/@everyone/gi, "@\u200beveryone")
     .replace(/@here/gi, "@\u200bhere")
-    .replace(/<@[!&]?\d+>/g, "[mention]")
-    .replace(/<!(\w+)>/g, "[$1]");
+    .replace(/<@[^>]*>/g, "[mention]")
+    .replace(/<!([^>]+)>/g, "[$1]");
 }
 
 export function buildWebhookPayload(
@@ -86,6 +86,9 @@ export async function postWebhook(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(buildWebhookPayload(provider, text)),
       signal: controller.signal,
+      // A 3xx from an allowlisted host must not be followed: the Location target
+      // was never validated against the allowlist (SSRF escape).
+      redirect: "error",
     });
     return res.ok;
   } catch (error) {
