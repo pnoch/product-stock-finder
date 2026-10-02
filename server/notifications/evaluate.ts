@@ -8,6 +8,7 @@ import {
 import { getDb } from "../db";
 import { sendPushForDevice, sendPushForUser } from "../push-notifications";
 import { deliverEmailForEvent } from "./email-alerts";
+import { deliverWebhookForEvent } from "./webhook-alerts";
 import type { NotificationConfig, NotificationEvent } from "./types";
 import {
   deliveryCount,
@@ -509,6 +510,12 @@ async function evaluateUserDb(
         const productId =
           typeof payload?.productId === "string" ? payload.productId : null;
         await deliverEmailForEvent(userId, {
+          dedupKey: event.dedupKey,
+          title: event.title,
+          body: event.body,
+          productId,
+        });
+        await deliverWebhookForEvent(userId, {
           dedupKey: event.dedupKey,
           title: event.title,
           body: event.body,
