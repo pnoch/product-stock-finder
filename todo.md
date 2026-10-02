@@ -7586,3 +7586,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Product Detail + Watchlist cards carry a "Find prices" / "No prices — Find" repair CTA on mobile and desktop, each distinguishing found / timed-out / none and guarded against concurrent runs.
 - [x] Tests: 9-case batch-runner unit suite + 6 UI source guards across both platforms.
 - [x] Verified: `tsc 0`, lint 0 errors; offline `3078 passed` / `84 skipped`; DB `18 files / 87 tests`; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1020: Extract the shared bulk-discovery loop
+
+- [x] The desktop bulk-import discovery loop was duplicated verbatim in `Search.tsx` and `SearchModal.tsx` (final-review follow-up). Added `runDiscoveryLoop(deps)` to `lib/bulk-discovery.ts` that drains `runDiscoveryBatch` across the list and calls `confirmContinue(remaining)` before each follow-up batch; both desktop callers now use it.
+- [x] `tests/bulk-discovery.test.ts` gains 4 loop cases (no-confirm drains all; confirm-false stops after the first batch; confirm-true continues with the right remaining counts; empty list no-op). Updated the desktop source guard to assert `runDiscoveryLoop`.
+- [x] `tsc 0`, lint 0 errors / 158 warnings; offline `3082 passed` / `84 skipped`; DB `87`; desktop `304`.

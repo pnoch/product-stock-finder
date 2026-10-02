@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { runDiscoveryBatch } from "../lib/bulk-discovery";
+import { runDiscoveryBatch, runDiscoveryLoop } from "../lib/bulk-discovery";
 
 function items(n: number) {
   return Array.from({ length: n }, (_, i) => ({
@@ -97,5 +97,50 @@ describe("runDiscoveryBatch", () => {
   it("handles an empty item list", async () => {
     const h = harness();
     expect(await runDiscoveryBatch({ items: [], startIndex: 0, storage: h.storage, discover: h.discover })).toEqual({ nextIndex: 0, discovered: 0 });
+  });
+});
+
+describe("runDiscoveryLoop", () => {
+  it("drains every model when there is no confirm callback", async () => {
+    const h = harness();
+    const result = await runDiscoveryLoop({ items: items(7), storage: h.storage, discover: h.discover });
+    expect(result).toEqual({ nextIndex: 7, discovered: 7 });
+    expect(h.discover).toHaveBeenCalledTimes(7);
+  });
+
+  it("stops early when confirmContinue returns false after the first batch", async () => {
+    const h = harness();
+    const confirm = vi.fn(() => false);
+    const result = await runDiscoveryLoop({
+      items: items(10),
+      storage: h.storage,
+      discover: h.discover,
+      confirmContinue: confirm,
+    });
+    expect(result.nextIndex).toBe(3);
+    expect(confirm).toHaveBeenCalledWith(7);
+    expect(h.discover).toHaveBeenCalledTimes(3);
+  });
+
+  it("continues through batches while confirmContinue returns true", async () => {
+    const h = harness();
+    const confirm = vi.fn(() => true);
+    const result = await runDiscoveryLoop({
+      items: items(7),
+      storage: h.storage,
+      discover: h.discover,
+      confirmContinue: confirm,
+    });
+    expect(result).toEqual({ nextIndex: 7, discovered: 7 });
+    // Confirmed once after each batch that leaves a remainder (4, then 1).
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(confirm).toHaveBeenNthCalledWith(1, 4);
+    expect(confirm).toHaveBeenNthCalledWith(2, 1);
+  });
+
+  it("does nothing for an empty list", async () => {
+    const h = harness();
+    expect(await runDiscoveryLoop({ items: [], storage: h.storage, discover: h.discover })).toEqual({ nextIndex: 0, discovered: 0 });
+    expect(h.discover).not.toHaveBeenCalled();
   });
 });

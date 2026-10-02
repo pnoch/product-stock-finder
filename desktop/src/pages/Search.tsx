@@ -9,7 +9,7 @@ import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discover
 import { discoverListings, customProductSlug } from "../../../lib/listing-discovery";
 import { manualAddProduct, rediscoverProduct } from "../../../lib/manual-add";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
-import { runDiscoveryBatch } from "../../../lib/bulk-discovery";
+import { runDiscoveryLoop } from "../../../lib/bulk-discovery";
 import { nextTagColor } from "../../../lib/tags";
 import type { TagDefinition, DistributorListing } from "../../../lib/types";
 import { TagFilterRow } from "../components/TagFilterRow";
@@ -220,22 +220,14 @@ export function Search() {
           updateProductListings: (pid: string, listings: DistributorListing[]) =>
             storage.updateProductListings(pid, listings),
         };
-        let next = 0;
-        while (next < items.length) {
-          const res = await runDiscoveryBatch({
-            items,
-            startIndex: next,
-            storage: rediscoverStorage,
-            discover: discoverListings,
-          });
-          next = res.nextIndex;
-          discovered += res.discovered;
-          if (next < items.length) {
-            const remaining = items.length - next;
-            const go = window.confirm(`Fetch prices for the remaining ${remaining} product${remaining === 1 ? "" : "s"}?`);
-            if (!go) break;
-          }
-        }
+        const loop = await runDiscoveryLoop({
+          items,
+          storage: rediscoverStorage,
+          discover: discoverListings,
+          confirmContinue: (remaining) =>
+            window.confirm(`Fetch prices for the remaining ${remaining} product${remaining === 1 ? "" : "s"}?`),
+        });
+        discovered = loop.discovered;
       }
       const discoveryNote = discovered > 0 ? ` · ${discovered} listing${discovered === 1 ? "" : "s"} found` : "";
       showToast(
