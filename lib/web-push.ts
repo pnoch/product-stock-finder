@@ -35,14 +35,24 @@ export function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   }
 }
 
-export async function registerWebPushServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (!isPushSupported()) return null;
+// The offline shell / PWA install only needs a service worker, not PushManager.
+// Registering on any SW-capable browser keeps offline working even where web
+// push is unavailable (e.g. older iOS Safari), so this is not gated on push.
+export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (!isWeb()) return null;
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator))
+    return null;
   try {
     return await navigator.serviceWorker.register(SW_PATH);
   } catch (error) {
-    console.warn("[web-push] service worker registration failed", error);
+    console.warn("[pwa] service worker registration failed", error);
     return null;
   }
+}
+
+export async function registerWebPushServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (!isPushSupported()) return null;
+  return registerServiceWorker();
 }
 
 export async function subscribeWebPush(): Promise<boolean> {

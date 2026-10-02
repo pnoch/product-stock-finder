@@ -45,6 +45,7 @@ vi.mock("../lib/device-id", () => ({
 import {
   isPushSupported,
   urlBase64ToUint8Array,
+  registerServiceWorker,
   registerWebPushServiceWorker,
   subscribeWebPush,
   unsubscribeWebPush,
@@ -130,6 +131,22 @@ describe("web push client", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(await registerWebPushServiceWorker()).toBeNull();
     warn.mockRestore();
+  });
+
+  it("registerServiceWorker registers even without PushManager (offline shell)", async () => {
+    // @ts-expect-error remove PushManager
+    delete window.PushManager;
+    // @ts-expect-error remove Notification
+    delete window.Notification;
+    expect(isPushSupported()).toBe(false);
+    const reg = await registerServiceWorker();
+    expect(reg).not.toBeNull();
+    expect(state.registered).toBe(true);
+  });
+
+  it("registerServiceWorker returns null on native", async () => {
+    state.platform = "ios";
+    expect(await registerServiceWorker()).toBeNull();
   });
 
   it("subscribeWebPush registers the subscription with the server", async () => {

@@ -7683,3 +7683,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Built `pnpm build` and ran the real `dist/index.js` against the local test DB (`PORT=3999`), then curled the endpoints: `/api/healthz` → `200 {"ok":true,"db":"ok"}` (DB connected); `/` → 200 SPA HTML; deep link `/product/foo` → 200 (SPA fallback for client routes); and `/api/*` carries `Cache-Control: no-store` (verifying the Phase 1013 fix live). Server log confirms `[spa] serving web export` + `[api] server listening`.
 - [x] Docs only; no source change. Confirms the full production chain (esbuild server bundle → Express + tRPC + SPA + health) works after all of this session's changes.
+
+## Phase 1035: PWA install + offline shell (manifest link injection)
+
+- [x] The web export is `output: "single"` (SPA), which does not honour `app/+html.tsx`, so `dist-web/index.html` had no `<link rel="manifest">` — the browser never discovered `public/manifest.json` and never offered install, even though the manifest and `sw.js` already existed.
+- [x] `server/spa.ts` now injects the PWA head tags (manifest link, `theme-color`, `apple-touch-icon`, apple/mobile `web-app-capable`, status-bar + title) into the served shell at `/`, `/index.html` and SPA deep links via `withPwaHead` (idempotent — skips when a manifest link is already present).
+- [x] `public/manifest.json` gained `id`, `scope`, `description`, a 192×192 icon and a maskable 512×512 icon (`public/icon-192.png`, `public/icon-maskable-512.png`, `public/apple-touch-icon.png`) so the install passes the 192+maskable criteria.
+- [x] Service-worker registration is no longer gated on `PushManager`: new `registerServiceWorker()` registers `/sw.js` on any SW-capable browser (offline shell works where web push is unavailable, e.g. older iOS Safari); `_layout.tsx` now calls it at startup (push still uses `registerWebPushServiceWorker`).
+- [x] Tests: `tests/pwa.test.ts` (manifest fields, icon existence + PNG dimensions, SW handlers), `tests/spa.test.ts` +1 (served shell carries the tags exactly once at `/`, `/index.html` and deep links), `tests/web-push.test.ts` +2 (registers without `PushManager`; null on native).
+- [x] Verified: root `3099 passed` / `84 skipped`, `tsc 0`, lint 0 errors (146 pre-existing warnings).

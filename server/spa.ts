@@ -28,6 +28,30 @@ export function cacheControlFor(urlPath: string): string {
   return "no-cache";
 }
 
+// Expo's SPA export (`output: "single"`, not static-rendered) does not honour
+// `app/+html.tsx`, so the PWA tags are injected into the served shell here.
+// Without the `<link rel="manifest">` the browser never discovers the manifest
+// and never offers install / activates the offline shell, even though
+// `public/manifest.json` and `public/sw.js` exist.
+const PWA_HEAD_TAGS = [
+  '<link rel="manifest" href="/manifest.json" />',
+  '<meta name="theme-color" content="#0F52BA" />',
+  '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />',
+  '<meta name="apple-mobile-web-app-capable" content="yes" />',
+  '<meta name="mobile-web-app-capable" content="yes" />',
+  '<meta name="apple-mobile-web-app-status-bar-style" content="default" />',
+  '<meta name="apple-mobile-web-app-title" content="Stock Finder" />',
+].join("");
+
+export function withPwaHead(html: string): string {
+  if (html.includes('rel="manifest"')) return html;
+  return html.replace("</head>", `${PWA_HEAD_TAGS}</head>`);
+}
+
+function readWebIndex(webDist: string): string {
+  return fs.readFileSync(path.join(webDist, "index.html"), "utf8");
+}
+
 // ─── Universal links / App Links ─────────────────────────────────────────────
 // app.config.ts sets `associatedDomains: ["applinks:<host>"]` and an Android
 // https intent filter with autoVerify, but the app only works if the server
@@ -131,6 +155,10 @@ export function registerSpa(app: Express, webDist = resolveWebDist()): boolean {
     console.log(`[spa] no web export at ${webDist} — serving API only`);
     return false;
   }
+  app.get(["/", "/index.html"], (_req, res) => {
+    res.setHeader("Cache-Control", cacheControlFor("/index.html"));
+    res.type("html").send(withPwaHead(readWebIndex(webDist)));
+  });
   app.use(
     express.static(webDist, {
       index: false,
@@ -166,7 +194,7 @@ export function registerSpa(app: Express, webDist = resolveWebDist()): boolean {
     // `public, max-age=0` and a browser could retain a stale shell referencing
     // old hashed bundles after a deploy.
     res.setHeader("Cache-Control", cacheControlFor("/index.html"));
-    res.sendFile(path.join(webDist, "index.html"));
+    res.type("html").send(withPwaHead(readWebIndex(webDist)));
   });
   console.log(`[spa] serving web export from ${webDist}`);
   return true;
