@@ -1,3 +1,7 @@
+import { and, eq, gte, lt } from "drizzle-orm";
+import { appSettings, notificationWebhookLog } from "../../drizzle/schema";
+import { affectedRowsOf, getDb } from "../db";
+
 const FETCH_TIMEOUT_MS = 5_000;
 
 export type WebhookProvider = "discord" | "slack";
@@ -115,4 +119,98 @@ export async function sendTestWebhook(
   return ok
     ? { ok: true }
     : { ok: false, error: "The webhook did not accept the test message." };
+}
+
+const DAILY_CAP = 20;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const WEBHOOK_LOG_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+export interface AlertWebhookEvent {
+  dedupKey: string;
+  title: string;
+  body: string;
+  productId: string | null;
+}
+
+function serverOrigin(): string {
+  const raw = (
+    process.env.EXPO_PUBLIC_WEB_URL ??
+    process.env.EXPO_PUBLIC_API_BASE_URL ??
+    ""
+  ).trim();
+  return raw.replace(/\/+$/, "");
+}
+
+function readWebhookConfig(data: unknown): { enabled: boolean; url: string } {
+  if (!data || typeof data !== "object") return { enabled: false, url: "" };
+  const d = data as { webhookAlerts?: unknown; alertWebhookUrl?: unknown };
+  return {
+    enabled: d.webhookAlerts === true,
+    url: typeof d.alertWebhookUrl === "string" ? d.alertWebhookUrl : "",
+  };
+}
+
+/**
+ * Best-effort webhook for a fired alert. Returns true only when the provider
+ * accepted the POST. Never throws. The claim row is written before the send so
+ * a failure (non-2xx/timeout) still counts toward DAILY_CAP and the condition
+ * is not retried.
+ */
+export async function deliverWebhookForEvent(
+  userId: number,
+  event: AlertWebhookEvent,
+): Promise<boolean> {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+
+    const settingsRows = await db
+      .select({ data: appSettings.data })
+      .from(appSettings)
+      .where(eq(appSettings.userId, userId))
+      .limit(1);
+    const config = readWebhookConfig(settingsRows[0]?.data);
+    if (!config.enabled) return false;
+    const target = classifyWebhookUrl(config.url);
+    if (!target) return false;
+
+    const now = Date.now();
+    const recent = await db
+      .select({ dedupKey: notificationWebhookLog.dedupKey })
+      .from(notificationWebhookLog)
+      .where(
+        and(
+          eq(notificationWebhookLog.userId, userId),
+          gte(notificationWebhookLog.sentAt, now - DAY_MS),
+        ),
+      );
+    if (recent.length >= DAILY_CAP) return false;
+
+    // INSERT IGNORE: affectedRows 1 for a fresh insert, 0 for a duplicate.
+    const insertResult = await db
+      .insert(notificationWebhookLog)
+      .ignore()
+      .values({ userId, dedupKey: event.dedupKey, sentAt: now });
+    if (affectedRowsOf(insertResult) !== 1) return false;
+
+    const origin = serverOrigin();
+    const text = buildWebhookText({
+      title: event.title,
+      body: event.body,
+      productUrl:
+        event.productId && origin ? `${origin}/product/${event.productId}` : null,
+    });
+    return await postWebhook(target.provider, target.url, text);
+  } catch (error) {
+    console.warn("[WebhookAlerts] delivery failed", error);
+    return false;
+  }
+}
+
+export async function purgeOldWebhookLog(now: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .delete(notificationWebhookLog)
+    .where(lt(notificationWebhookLog.sentAt, now - WEBHOOK_LOG_RETENTION_MS));
 }
