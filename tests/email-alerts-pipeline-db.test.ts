@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { appSettings, users } from "../drizzle/schema";
+import { appSettings, notificationEmailLog, users } from "../drizzle/schema";
 import { getDb, upsertUser } from "../server/db";
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
@@ -72,8 +72,10 @@ describe.skipIf(!runDbTests)("email alert pipeline (DB)", () => {
     await evaluateNotifications(now);
     await evaluateNotifications(now + 60_000);
     // Delivery is fire-and-forget off the event insert; wait for it.
-    await vi.waitFor(() => expect(sent.n).toBe(1), { timeout: 3000 });
-    await new Promise((r) => setTimeout(r, 50));
-    expect(sent.n).toBe(1);
+    await vi.waitFor(() => expect(sent.n).toBe(1), { timeout: 10_000 });
+    const rows = await (await getDb())!
+      .select({ dedupKey: notificationEmailLog.dedupKey })
+      .from(notificationEmailLog);
+    expect(rows).toHaveLength(1);
   });
 });

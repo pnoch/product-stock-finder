@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   deviceNotificationConfigs,
   notificationEvents,
@@ -13,6 +13,11 @@ const runDbTests = Boolean(process.env.RUN_DB_TESTS) && Boolean(TEST_URL);
 if (TEST_URL) process.env.DATABASE_URL = TEST_URL;
 
 import { evaluateNotifications } from "../server/notifications";
+
+vi.mock("../server/email", () => ({
+  isEmailConfigured: () => false,
+  sendEmail: vi.fn(async () => false),
+}));
 
 const HOUR = 60 * 60_000;
 const DAY = 24 * HOUR;

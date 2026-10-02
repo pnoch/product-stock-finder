@@ -512,7 +512,7 @@ async function evaluateUserDb(
         title: event.title,
         body: event.body,
         productId,
-      }).catch(() => {});
+      });
     }
   }
 }
