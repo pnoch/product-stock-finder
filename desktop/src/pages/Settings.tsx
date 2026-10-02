@@ -1,4 +1,5 @@
 import { isTauri } from "../lib/tauri";
+import { saveCsv } from "../lib/save-csv";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import {
@@ -960,28 +961,16 @@ export function Settings() {
       ]);
       const csv = watchlistToCsv(watchlist, appSettings.displayCurrency ?? "USD");
       const fileName = `product-stock-finder-watchlist-${new Date().toISOString().slice(0, 10)}.csv`;
-      if (isTauri()) {
-        const { save } = await import("@tauri-apps/plugin-dialog");
-        const { writeFile } = await import("@tauri-apps/plugin-fs");
-        const filePath = await save({ defaultPath: fileName, filters: [{ name: "CSV", extensions: ["csv"] }] });
-        if (!filePath) {
-          setImportExportMessage("Export cancelled");
-          return;
-        }
-        await writeFile(filePath, new TextEncoder().encode(csv));
-        setImportExportMessage(`Exported to ${filePath}`);
-      } else {
-        const blob = new Blob([csv], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        setImportExportMessage("Watchlist exported as CSV");
+      const result = await saveCsv(fileName, csv);
+      if (result.status === "cancelled") {
+        setImportExportMessage("Export cancelled");
+        return;
       }
+      if (result.status === "failed") {
+        setImportExportMessage("CSV export failed");
+        return;
+      }
+      setImportExportMessage(result.path ? `Exported to ${result.path}` : "Watchlist exported as CSV");
     } catch (e) {
       setImportExportMessage(e instanceof Error ? e.message : "CSV export failed");
     }
