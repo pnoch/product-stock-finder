@@ -7711,3 +7711,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Refactored desktop Compare + SharedWatchlist off three inline Blob/Tauri save blocks onto `saveCsv` (cancels are silent; genuine failures surface).
 - [x] Tests: predicate unit cases, mobile+desktop source guards (incl. wiring), `desktop/tests/save-csv.test.ts` (browser, Tauri, cancel, throw, write failure).
 - [x] `tsc 0` (root + desktop), lint 0 errors, root + desktop suites green.
+
+## Phase 1038: Flytec model-match performance (findPriceElement memo)
+
+- [x] Root cause: on an unmatched model, `findPriceElement` evaluates every selector and calls `matchDepth` for 36 candidates × 4 depths × 2 (text+href) = 288 `matchesModel` calls against only 8 unique card contexts; the regex-heavy `matchesModel` made `flytecParser.parsePrice(html, "__NO_SUCH_MODEL__")` take ~4.2s on the 570 KB fixture (vs 19ms without a model), intermittently timing out the conformance sweep.
+- [x] Fix: thread a per-`findPriceElement`-call `Map<string, boolean>` memo into `matchDepth`, caching `matchesModel` verdicts by input string (semantics unchanged; `false` cached correctly). Measured 4199ms → 282ms.
+- [x] Test: `tests/scrapers/flytec.test.ts` regression guard asserts the no-such-model parse stays under 1500ms. Differential check: 300/300 parser×fixture×model outputs identical before/after.
+- [x] `tsc 0`, lint 0 errors, full suite green with no intermittent timeout.
