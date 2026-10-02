@@ -47,4 +47,10 @@ describe("bulk discovery UI", () => {
     expect(src).toContain("Find prices");
     expect(src).toContain("rediscoverProduct");
   });
+
+  it("watchlist offers a no-prices repair CTA (desktop)", () => {
+    const src = readFileSync("desktop/src/pages/Watchlist.tsx", "utf8");
+    expect(src).toContain("Find prices");
+    expect(src).toContain("rediscoverProduct");
+  });
 });

@@ -48,7 +48,9 @@ import { copyTextWithFallback } from "../lib/share";
 import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
 import { parseBulkImportCsv } from "../../../lib/csv";
 import { PRODUCT_CATALOG } from "@shared/catalog";
-import type { BackOrderReminder, PriceAlert, Product, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
+import { rediscoverProduct } from "../../../lib/manual-add";
+import { discoverListings } from "../../../lib/listing-discovery";
+import type { BackOrderReminder, DistributorListing, PriceAlert, Product, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
 
 type SortKey = "name" | "price" | "deal" | "trend" | "lastUpdated";
 type FilterKey = "all" | "in_stock" | "back_order" | "out_of_stock";
@@ -463,6 +465,32 @@ export function Watchlist() {
     } finally {
       setRefreshing(false);
       setRefreshProgress(null);
+    }
+  };
+
+  const handleFindPrices = async (product: Product) => {
+    if (!product.modelNumber) return;
+    try {
+      const { discovered, timedOut } = await rediscoverProduct({
+        storage: {
+          updateProductListings: (pid: string, listings: DistributorListing[]) =>
+            storage.updateProductListings(pid, listings),
+        },
+        discover: discoverListings,
+        productId: product.id,
+        modelNumber: product.modelNumber,
+      });
+      await refresh();
+      if (discovered > 0) {
+        showToast(`Found prices at ${discovered} distributor${discovered === 1 ? "" : "s"}`);
+      } else if (timedOut) {
+        showToast("Search timed out — try again");
+      } else {
+        showToast("No prices found");
+      }
+    } catch (e) {
+      console.error("[Watchlist] price discovery failed", e);
+      showToast("Couldn't find prices");
     }
   };
 
@@ -929,6 +957,18 @@ export function Watchlist() {
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {product.brand} · {product.modelNumber}
               </p>
+              {(product.listings ?? []).length === 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleFindPrices(product);
+                  }}
+                  className="mt-1 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+                  aria-label="Find prices"
+                >
+                  Find prices
+                </button>
+              )}
             </div>
           </div>
         </td>
