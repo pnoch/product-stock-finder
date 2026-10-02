@@ -1,3 +1,4 @@
+import { isTauri } from "../lib/tauri";
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
@@ -275,7 +276,7 @@ export function ProductDetail() {
       }
     }
 
-    if (!("__TAURI__" in window)) {
+    if (!isTauri()) {
       const base = getApiBaseUrl();
       if (base) {
         if (loadIdRef.current === myId) setInsightLoading(true);

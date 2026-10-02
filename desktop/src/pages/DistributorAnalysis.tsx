@@ -1,3 +1,4 @@
+import { isTauri } from "../lib/tauri";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { storage } from "../storage";
@@ -48,7 +49,7 @@ export function DistributorAnalysis() {
       }
       const csv = watchlistToDetailedCsv(watchlist);
       const fileName = `distributor-analysis-${new Date().toISOString().slice(0, 10)}.csv`;
-      if (typeof window !== "undefined" && (window as unknown as { __TAURI__?: unknown }).__TAURI__) {
+      if (isTauri()) {
         const { save } = await import("@tauri-apps/plugin-dialog");
         const { writeFile } = await import("@tauri-apps/plugin-fs");
         const filePath = await save({ defaultPath: fileName, filters: [{ name: "CSV", extensions: ["csv"] }] });

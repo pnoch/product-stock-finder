@@ -17,6 +17,7 @@ vi.mock("@tauri-apps/plugin-fs", () => ({
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
+  isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri,
   invoke: vi.fn(async (cmd: string, args?: Record<string, unknown>) => {
     if (cmd === "import_watchlist") return "Imported";
     if (cmd === "export_watchlist") return "{}";

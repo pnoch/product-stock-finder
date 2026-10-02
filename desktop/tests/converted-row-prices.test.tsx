@@ -30,6 +30,7 @@ vi.mock("../src/lib/trpc", () => ({
 
 const mockTauriInvoke = vi.hoisted(() => vi.fn());
 vi.mock("@tauri-apps/api/core", () => ({
+  isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri,
   invoke: mockTauriInvoke,
 }));
 
@@ -99,7 +100,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
-  delete (window as unknown as { __TAURI__?: boolean }).__TAURI__;
+  delete (window as unknown as { isTauri?: boolean }).isTauri;
 });
 
 describe("converted row prices", () => {

@@ -6,6 +6,7 @@ import { Health } from "../src/pages/Health";
 const mockInvoke = vi.hoisted(() => vi.fn());
 
 vi.mock("@tauri-apps/api/core", () => ({
+  isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri,
   invoke: (...args: unknown[]) => mockInvoke(...args),
 }));
 

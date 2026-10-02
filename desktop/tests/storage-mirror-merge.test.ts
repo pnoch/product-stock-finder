@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const invokeMock = vi.hoisted(() => vi.fn(async () => "[]"));
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
+vi.mock("@tauri-apps/api/core", () => ({
+  isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri, invoke: invokeMock }));
 
 const product = {
   id: "p1",
@@ -18,7 +19,7 @@ const product = {
 
 async function loadStorage() {
   vi.resetModules();
-  (window as unknown as { __TAURI__?: unknown }).__TAURI__ = {};
+  (window as unknown as { isTauri?: boolean }).isTauri = true;
   return import("../src/storage");
 }
 
@@ -29,7 +30,7 @@ describe("desktop watchlist mirror", () => {
   });
 
   afterEach(() => {
-    delete (window as unknown as { __TAURI__?: unknown }).__TAURI__;
+    delete (window as unknown as { isTauri?: boolean }).isTauri;
   });
 
   it("merges the watchlist into the file store instead of overwriting it", async () => {
