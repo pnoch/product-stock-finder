@@ -7640,3 +7640,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Updated the desktop test mocks of `@tauri-apps/api/core` to expose a global-reading `isTauri`; tests now toggle `globalThis.isTauri` instead of `window.__TAURI__` (15 files).
 - [x] New `tests/desktop-tauri-security.test.ts` (3 guards): `withGlobalTauri` is false, no `__TAURI__` remains anywhere under `desktop/src/`, and detection goes through the shared `isTauri()` helper.
 - [x] Verified: desktop `304` tests, root `3088 passed` / `84 skipped`, DB `87`, `cargo test` 72 / clippy 0 / fmt clean, `tsc 0` (root + desktop), lint 0 errors, and the desktop renderer bundling (`tsc && vite build`) succeeds. The actual webview effect still warrants a packaged build on a real machine.
+
+## Phase 1028: Registration email-enumeration fix (generic response, no auto-login)
+
+- [x] `POST /api/auth/register` returned `400 "Email already registered"` and auto-logged-in new accounts — both an explicit string and a success-vs-failure oracle for account existence.
+- [x] Replaced `sdk.register` with `sdk.registerAccount` returning `{ created }` and **no session**: it always bcrypt-hashes (so timing does not differ) and never reveals whether the email existed. The handler now responds `{ ok: true }` (200, no cookie/session) for **both** outcomes, and sends a best-effort "someone tried to sign up with your email" notice to an existing account (fire-and-forget, no timing change).
+- [x] Clients no longer auto-logon sign-up: desktop Settings shows "Account created — sign in to continue" and switches to sign-in; the mobile `LoginModal` does the same. Both already tolerated a missing session.
+- [x] Tests updated: `oauth-handlers` (generic 200 + no cookie; identical for existing email), `auth-error-leak` (existing email → generic success), `auth-hardening` (deviceId passed to `registerAccount`, no cookie). Raw driver errors still collapse to a generic 400.
+- [x] Verified: root `3088 passed` / `84 skipped`, desktop `304`, DB `87`, `tsc 0` (root + desktop), lint 0 errors.

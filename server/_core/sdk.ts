@@ -43,16 +43,22 @@ class SDKServer {
     return new TextEncoder().encode(ENV.cookieSecret);
   }
 
-  async register(req: RegisterRequest): Promise<AuthResponse> {
+  /**
+   * Creates an account without signing the caller in. Returning a session here
+   * would make register a trivial account-existence oracle (a fresh email gets
+   * a session, an existing one does not), so both outcomes are identical
+   * `{ created }` results and the caller must sign in afterwards.
+   */
+  async registerAccount(
+    req: RegisterRequest,
+  ): Promise<{ created: boolean; email: string }> {
     const normalizedEmail = req.email.trim().toLowerCase();
     const existing = await db.getUserByEmail(normalizedEmail);
-    if (existing) {
-      throw ForbiddenError("Email already registered");
-    }
-
+    // Hash even when the email exists so the two paths do not differ by timing.
     const passwordHash = await bcrypt.hash(req.password, SALT_ROUNDS);
-    const openId = `email_${Date.now()}_${randomUUID()}`;
+    if (existing) return { created: false, email: normalizedEmail };
 
+    const openId = `email_${Date.now()}_${randomUUID()}`;
     // Single transaction: a crash between the insert and the hash update would
     // otherwise leave an account that can never log in and cannot re-register.
     await db.createUserWithPassword(
@@ -66,22 +72,7 @@ class SDKServer {
       passwordHash,
     );
 
-    const user = await db.getUserByOpenId(openId);
-    if (!user) throw ForbiddenError("Registration failed");
-
-    const sessionToken = await this.createSessionToken(openId, {
-      name: user.name || normalizedEmail,
-      expiresInMs: SESSION_MS,
-      deviceId: req.deviceId,
-      credentialsChangedAt: Number(
-        (user as { credentialsChangedAt?: number }).credentialsChangedAt ?? 0,
-      ),
-    });
-
-    return {
-      user: { id: user.id, email: normalizedEmail, name: user.name, openId, emailVerified: (user as any).emailVerified ? true : false } as any,
-      sessionToken,
-    };
+    return { created: true, email: normalizedEmail };
   }
 
   async login(req: LoginRequest): Promise<AuthResponse> {

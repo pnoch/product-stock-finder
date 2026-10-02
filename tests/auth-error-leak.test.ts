@@ -9,7 +9,7 @@ vi.mock("../server/db", () => ({
 
 vi.mock("../server/_core/sdk", () => ({
   sdk: {
-    register: vi.fn(),
+    registerAccount: vi.fn(),
     login: vi.fn(),
     authenticateRequest: vi.fn(),
     createSessionToken: vi.fn(),
@@ -66,7 +66,7 @@ describe("auth error responses never leak internals", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("register: replaces a raw driver error with a generic message", async () => {
-    vi.mocked(sdk.register).mockRejectedValue(
+    vi.mocked(sdk.registerAccount).mockRejectedValue(
       new Error("ER_DUP_ENTRY: Duplicate entry 'x' for key 'users.email'"),
     );
     const handler = makeApp();
@@ -79,20 +79,20 @@ describe("auth error responses never leak internals", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "Registration failed" });
   });
 
-  it("register: still surfaces a deliberate HttpError message", async () => {
-    const { ForbiddenError } = await import("../shared/_core/errors");
-    vi.mocked(sdk.register).mockRejectedValue(
-      ForbiddenError("Email already registered"),
-    );
+  it("register: does not reveal an existing email (generic success, no session)", async () => {
+    vi.mocked(sdk.registerAccount).mockResolvedValue({
+      created: false,
+      email: "a@b.com",
+    });
     const handler = makeApp();
     const res = makeRes();
     await handler("POST", "/api/auth/register")(
       makeReq({ email: "a@b.com", password: "secret123" }),
       res,
     );
-    expect(res.json).toHaveBeenCalledWith({
-      error: "Email already registered",
-    });
+    expect(res.status).not.toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ ok: true });
+    expect(res.cookie).not.toHaveBeenCalled();
   });
 
   it("login: replaces a raw driver error with a generic message", async () => {

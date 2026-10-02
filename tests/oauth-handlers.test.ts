@@ -3,7 +3,7 @@ import { COOKIE_NAME } from "../shared/const";
 
 vi.mock("../server/_core/sdk", () => ({
   sdk: {
-    register: vi.fn(),
+    registerAccount: vi.fn(),
     login: vi.fn(),
     createSessionToken: vi.fn(),
   },
@@ -33,7 +33,7 @@ import { registerOAuthRoutes, signOAuthState } from "../server/_core/oauth";
 import { sdk } from "../server/_core/sdk";
 import { getUserByOpenId, upsertUser } from "../server/db";
 
-const mockedRegister = vi.mocked(sdk.register);
+const mockedRegister = vi.mocked(sdk.registerAccount);
 const mockedLogin = vi.mocked(sdk.login);
 const mockedCreateToken = vi.mocked(sdk.createSessionToken);
 const mockedGetUser = vi.mocked(getUserByOpenId);
@@ -99,12 +99,9 @@ describe("POST /api/auth/register", () => {
     vi.restoreAllMocks();
   });
 
-  it("registers a new user and returns session token", async () => {
+  it("creates an account and responds generically without a session", async () => {
     const postHandler = setupRoutes();
-    mockedRegister.mockResolvedValue({
-      user: { id: 1, email: "test@example.com", name: "Test", openId: "open-1" },
-      sessionToken: "sess-token",
-    });
+    mockedRegister.mockResolvedValue({ created: true, email: "test@example.com" });
 
     const res = makeRes();
     await postHandler("POST", "/api/auth/register")(
@@ -112,14 +109,9 @@ describe("POST /api/auth/register", () => {
       res,
     );
 
-    expect(mockedRegister).toHaveBeenCalledWith({ email: "test@example.com", password: "password123", name: undefined });
-    expect(res.cookie).toHaveBeenCalledWith(COOKIE_NAME, "sess-token", expect.objectContaining({ maxAge: expect.any(Number) }));
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        user: expect.objectContaining({ openId: "open-1" }),
-        sessionToken: "sess-token",
-      }),
-    );
+    expect(mockedRegister).toHaveBeenCalledWith({ email: "test@example.com", password: "password123", name: undefined, deviceId: undefined });
+    expect(res.cookie).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({ ok: true });
     expect(res.status).not.toHaveBeenCalledWith(400);
   });
 
@@ -149,10 +141,9 @@ describe("POST /api/auth/register", () => {
     expect(mockedRegister).not.toHaveBeenCalled();
   });
 
-  it("returns 400 when registration fails (duplicate email)", async () => {
+  it("responds identically for an already-registered email (no enumeration)", async () => {
     const postHandler = setupRoutes();
-    const { ForbiddenError } = await import("../shared/_core/errors");
-    mockedRegister.mockRejectedValue(ForbiddenError("Email already registered"));
+    mockedRegister.mockResolvedValue({ created: false, email: "test@example.com" });
 
     const res = makeRes();
     await postHandler("POST", "/api/auth/register")(
@@ -160,8 +151,10 @@ describe("POST /api/auth/register", () => {
       res,
     );
 
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "Email already registered" });
+    // Same 200 + { ok: true } as a fresh registration, and no session cookie.
+    expect(res.status).not.toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ ok: true });
+    expect(res.cookie).not.toHaveBeenCalled();
   });
 
   it("hides a raw driver error behind a generic message", async () => {

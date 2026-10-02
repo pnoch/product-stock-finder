@@ -21,7 +21,7 @@ vi.mock("../server/devices", () => ({
 
 vi.mock("../server/_core/sdk", () => ({
   sdk: {
-    register: vi.fn(),
+    registerAccount: vi.fn(),
     login: vi.fn(async () => ({
       user: { id: 42, email: "a@b.com", name: "A" },
       sessionToken: "sess-1",
@@ -108,13 +108,13 @@ describe("auth hardening", () => {
     );
   });
 
-  it("embeds the presenting deviceId in the session JWT at register", async () => {
+  it("passes the presenting deviceId to registration (no session minted)", async () => {
     const handler = makeApp();
     const { sdk: mockedSdk } = await import("../server/_core/sdk");
-    vi.mocked(mockedSdk.register).mockResolvedValue({
-      user: { id: 43, email: "n@b.com", name: null },
-      sessionToken: "sess-2",
-    } as never);
+    vi.mocked(mockedSdk.registerAccount).mockResolvedValue({
+      created: true,
+      email: "n@b.com",
+    });
     const res = makeRes();
     await handler("POST", "/api/auth/register")(
       makeReq(
@@ -123,9 +123,10 @@ describe("auth hardening", () => {
       ),
       res,
     );
-    expect(vi.mocked(mockedSdk.register)).toHaveBeenCalledWith(
+    expect(vi.mocked(mockedSdk.registerAccount)).toHaveBeenCalledWith(
       expect.objectContaining({ deviceId: "dev-10" }),
     );
+    expect(res.cookie).not.toHaveBeenCalled();
   });
 
   it("consumes a reset token atomically — see token-consume-atomic.test.ts", async () => {

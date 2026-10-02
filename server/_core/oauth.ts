@@ -320,23 +320,25 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      const result = await sdk.register({
+      const result = await sdk.registerAccount({
         email,
         password,
         name,
         deviceId: deviceIdFromReq(req) ?? undefined,
       });
-      // A fresh login from a previously signed-out device re-authorizes it.
-      const registerDeviceId = deviceIdFromReq(req);
-      if (registerDeviceId) {
-        await unrevokeDevice(result.user.id, registerDeviceId);
+      if (!result.created) {
+        // Best-effort notice so the real owner can react to a takeover attempt.
+        // Fire-and-forget: it must not change the response or its timing.
+        void sendEmail({
+          to: result.email,
+          subject: "Someone tried to create an account with your email",
+          text: "If this was you, try signing in or resetting your password. Otherwise you can ignore this message.",
+          html: "<p>If this was you, try signing in or resetting your password. Otherwise you can ignore this message.</p>",
+        }).catch(() => {});
       }
-      const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, result.sessionToken, {
-        ...cookieOptions,
-        maxAge: SESSION_MS,
-      });
-      res.json({ user: buildUserResponse(result.user), sessionToken: result.sessionToken });
+      // No session on purpose (see sdk.registerAccount): a fresh vs existing
+      // email must be indistinguishable, so the client signs in afterwards.
+      res.json({ ok: true });
     } catch (error: any) {
       console.error("[Auth] Register failed:", error);
       res
