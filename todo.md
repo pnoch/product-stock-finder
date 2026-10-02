@@ -3864,7 +3864,7 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] **Removing a product cascades (`lib/storage/index.ts removeFromWatchlist`) to its alerts, back-order reminders, and restock watches. Desktop's undo restored only the product + alerts, so a reminder/watch was silently lost on undo; mobile's swipe-undo has the same gap.**
 - [x] Desktop `handleRemove` now captures reminders + watches and `handleUndo` restores them (desktop reminders/watches carry no OS `notificationId`, so restoring the row is sufficient — the server sync re-schedules)
 - [x] Updated the existing undo guard's slice window and added a guard asserting the reminder/watch restore — verified non-vacuous by reverting; E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2266 passed`; desktop `tsc 0`, `49 passed` / `243 passed`
-- [ ] Fixed mobile follow-up: `app/(tabs)/watchlist.tsx` `handleSwipeDelete`/`handleUndo` capture only alerts, so reminders/watches are still lost on undo (and their expo notifications were cancelled — restoring needs re-scheduling). Left for a dedicated mobile round.
+- [x] Fixed mobile follow-up: `app/(tabs)/watchlist.tsx` `handleSwipeDelete`/`handleUndo` capture only alerts, so reminders/watches are still lost on undo (and their expo notifications were cancelled — restoring needs re-scheduling). Left for a dedicated mobile round. **(Resolved: `handleUndo` now restores alerts + back-order reminders (with re-scheduling) + restock watches via `undoAlertsRef`/`undoRemindersRef`/`undoWatchesRef`; verified Phase 1013.)**
 - [x] Note: this round began from a false positive — I read a truncated `grep | head` and thought the desktop had no CSV import; it already has a complete one (`handleImportFile`). Reverted the duplicate before committing.
 
 ## Phase 518: Device QA round 263 (mobile undo also dropped reminders and watches)
@@ -4605,7 +4605,7 @@ Same method as Phase 610: semantic mutation per module, then its tests.
 - [x] **Verified the desktop SW has no fetch handler** (push/click only), so the caching concern is mobile-web only.
 - [x] **Startup has no serial waterfall:** every launch effect in `app/_layout.tsx` is fire-and-forget (`void …`), so fx, price check, history backfill, push token, notification pull, device cleanup and listing discovery run concurrently.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2459 passed` (24 skipped).
-- [ ] Reported, not changed: `/api/*` responses carry **no** `Cache-Control` (the SPA's `cacheControlFor` only covers the static shell), so a browser may heuristically cache a tRPC GET; the correct fix is a `no-store` middleware for `/api`, which means touching `server/_core/index.ts`. Observation only: the entry bundle is ~4.1 MB (minified, mostly react-native-web + charts), and launch fires ~7 concurrent requests.
+- [x] Reported, not changed: `/api/*` responses carry **no** `Cache-Control` (the SPA's `cacheControlFor` only covers the static shell), so a browser may heuristically cache a tRPC GET; the correct fix is a `no-store` middleware for `/api`, which means touching `server/_core/index.ts`. **(Resolved: `server/api-cache.ts` `registerApiNoStore`/`apiNoStore` sets `Cache-Control: no-store` on `/api`, wired at `server/_core/index.ts:64`; verified Phase 1013.)** Observation only: the entry bundle is ~4.1 MB (minified, mostly react-native-web + charts), and launch fires ~7 concurrent requests.
 
 ## Phase 613: /api responses are never cached
 
@@ -4713,7 +4713,7 @@ Three parallel reviews of the paths that pull product data in (backup/bulk impor
 - [x] **Paste import was uncapped and O(N²).** `parseModelInput` now caps at `BULK_MAX_ROWS` (new `parseModelInputDetailed` reports truncation, surfaced in the modal), and the modal writes in 50-row chunks with yields like the CSV path.
 - [x] **`resolvePrice` preferred a stale server snapshot over a device scrape.** A stale snapshot was returned as-is, so discovery rejected it and the distributor was silently missed even though a scrape would succeed (the server only *triggers* a background refresh). It now falls through to the device scrape when the snapshot is stale, keeping the server's history, and only falls back to the stale snapshot if the scrape fails. Test (non-vacuous).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2521 passed` (27 skipped without a DB) / **`2548 passed`** with the DB; desktop `280 passed`.
-- [ ] Still open (needs a deliberate change): the URL fetch re-resolves DNS between the private-range gate and the connection (rebinding window; fix = an undici dispatcher with a pinned `lookup`).
+- [x] Still open (needs a deliberate change): the URL fetch re-resolves DNS between the private-range gate and the connection (rebinding window; fix = an undici dispatcher with a pinned `lookup`). **(Resolved: `fetchPinned` + `pinnedLookup` in `server/product-parse.ts` connect to the pre-vetted addresses via an undici Agent; TOCTOU window closed and pinned by `tests/product-parse.test.ts`.)**
 
 ## Phase 624: URL fetch pins the vetted address (DNS-rebinding window closed)
 
@@ -4738,7 +4738,7 @@ Three parallel reviews of `lib/storage/*` — the local source of truth.
 - [x] **A throwing change listener broke the others and rejected the write** (notify runs inside the queued fn). Each listener/handler is now isolated. Test (non-vacuous).
 - [x] **A write enqueued during a wipe could land after it.** Both clear paths now set a `clearing` flag (writes enqueued while clearing are dropped — their data is being wiped anyway) around the drain + remove. 
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2531 passed` (27 skipped without a DB) / **`2558 passed`** with the DB; desktop `280 passed`.
-- [ ] Reported, not changed: the discovery store dedups on the server's time-based `discovered-<ms>` id, so re-discovering the same product appends a duplicate (and the 200 cap can evict distinct entries) — a stable identity (brand+model) would fix it; `saveDiscoveredProducts` bypasses the cap but has no production caller.
+- [x] Reported, not changed: the discovery store dedups on the server's time-based `discovered-<ms>` id, so re-discovering the same product appends a duplicate (and the 200 cap can evict distinct entries) — a stable identity (brand+model) would fix it; `saveDiscoveredProducts` bypasses the cap but has no production caller. **(Resolved: dedup is by `brand|model` identity and pinned by `tests/discovery-storage.test.ts`; verified Phase 1013.)**
 
 ## Phase 626: Desktop command surface + discovery dedup
 
@@ -4837,7 +4837,7 @@ Built a dependency-free coverage map (source modules vs. test imports/exports �
 - [x] **`lib/sync-gate.ts` had no test** despite being what stops an in-flight sync from resurrecting the previous account's rows after a logout wipe. Added 2 tests (monotonic, stable between bumps). Non-vacuous.
 - [x] **Audited and found correct (no test needed):** `lib/background-fetch.ts` (the native-timeout XHR — settled-guard on all four terminal paths, `send()` throw handled); `lib/background-tasks/tasks.ts` (the `checkInterval` → minutes mapping is exhaustive over the union, and the per-task interval marker is correct); `hooks/use-server-config.ts`; `lib/sync-gate.ts`'s consumers.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2544 passed` (27 skipped without a DB).
-- [ ] Note: the coverage map is a heuristic (a module can be covered indirectly via a component test), so it ranks candidates rather than proving absence of coverage. `@vitest/coverage-v8` could not be installed offline; adding it would give exact line/branch numbers.
+- [x] Note: the coverage map is a heuristic (a module can be covered indirectly via a component test), so it ranks candidates rather than proving absence of coverage. `@vitest/coverage-v8` could not be installed offline; adding it would give exact line/branch numbers. **(Resolved: `@vitest/coverage-v8` installed; exact line/branch reports used throughout Phases 958-1012.)**
 
 ## Phase 637: Shared-watchlist flow audit (clean)
 
@@ -4888,7 +4888,7 @@ Scanned every `app/` and `components/` interactive element, image, and text inpu
 - [x] **Wrote tests for `lib/devices.ts`** (0% → covered): the client device API's five calls, asserting each returns its value on success and the documented fallback (`null`/`false`/`0`) on failure — the fallbacks are what the UI relies on, so a regression to throwing or to `[]` would surface. Non-vacuous (a `null`→`[]` mutation fails it).
 - [x] **Found a real break from Phase 641:** my trending response-cap change made `trending.refresh` read the body via `text()`, but `tests/server-db-branches.test.ts`'s OpenAI mock only provided `json()` — so a **DB-gated** test failed. The no-DB run was green, which is exactly the "a green no-DB run is not evidence for a DB-gated guard" lesson from Phase 628. Fixed the mock (and its return-type annotation).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2549 passed` (27 skipped without a DB) / **`2576 passed`** with the DB; desktop `281 passed`.
-- [ ] Remaining low-coverage app modules worth a future pass: `lib/trpc.ts` (0%, header building), `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, the XHR path needs a DOM/XHR harness), `lib/shared-watchlist.ts` (40%), `lib/push-token.ts` (44%).
+- [x] Remaining low-coverage app modules worth a future pass: `lib/trpc.ts` (0%, header building), `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, the XHR path needs a DOM/XHR harness), `lib/shared-watchlist.ts` (40%), `lib/push-token.ts` (44%). **(Resolved: all five modules now ≥95% — see Phases 958-990.)**
 
 ## Phase 643: tRPC header building tests (the 0%-covered transport layer)
 
@@ -4898,7 +4898,7 @@ Scanned every `app/` and `components/` interactive element, image, and text inpu
 - [x] **Non-vacuous:** removing the provider clamp and removing the `getDeviceId().catch()` each fail their test.
 - [x] **Audited the rest of the module and found it correct:** `getSessionToken` already catches internally (so the un-guarded call is safe), the background path swaps in the native-timeout XHR fetch, the foreground path has an `AbortController` deadline, and the `revokedDeviceLink` clears the session on the device-revoked error.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2557 passed` (27 skipped without a DB); desktop `281 passed`.
-- [ ] Remaining low-coverage app modules: `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, needs an XHR harness), `lib/shared-watchlist.ts` (40%), `lib/push-token.ts` (44%).
+- [x] Remaining low-coverage app modules: `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, needs an XHR harness), `lib/shared-watchlist.ts` (40%), `lib/push-token.ts` (44%). **(Resolved: `server/storage.ts` 98%, `lib/background-fetch.ts` 98%, both covered.)**
 
 ## Phase 644: Shared-watchlist normalization tests (untrusted-input branches)
 
@@ -4907,7 +4907,7 @@ Scanned every `app/` and `components/` interactive element, image, and text inpu
 - [x] **One cosmetic inconsistency noted, not changed:** `tags: []` yields `[]` rather than `undefined` (the code checks `Array.isArray`). Harmless — the tag rendering ignores an empty array and `addToWatchlist` treats it as absent — so the test documents the actual behaviour instead.
 - [x] **Audited `lib/push-token.ts` (44%) and found it correct:** every path is best-effort with the right guards (web early-return, `Device.isDevice`, missing project id, timeouts), and `unregisterPushToken` handles the web subscription + server prune separately.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2563 passed` (27 skipped without a DB); desktop `281 passed`.
-- [ ] Remaining low-coverage app modules: `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, needs an XHR harness).
+- [x] Remaining low-coverage app modules: `server/storage.ts` (2%, S3 helpers), `lib/background-fetch.ts` (7%, needs an XHR harness). **(Resolved.)**
 
 ## Phase 645: background-fetch tests; coverage sweep closed
 
@@ -7535,3 +7535,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `server/db.ts` was at **88.2%**: the per-operation catch fallbacks that run when the database is reachable but a query fails were untested.
 - [x] New `tests/db-unreachable.test.ts` (4 offline tests; `DATABASE_URL` pointed at a closed port so `getDb` returns a client whose queries reject): reset/verification tokens fall back to memory (single-use preserved); the user helpers and `purgeExpiredAuthTokens` propagate the error (no fallback) so callers can back off.
 - [x] Coverage **88.2% → 93.2%** (with DB). Offline `tsc 0`, lint 0 errors / 158 warnings, `3045 passed` / `76 skipped`; DB suite **16 files / 79 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1013: Backlog hygiene — close the verified-resolved items
+
+- [x] The offline + DB coverage loop reached its practical ceiling (remaining uncovered lines are import-line artifacts, unreachable defensive catches, and deliberately-dead branches across `lib/` and `server/`; total ~89% lines includes those). This phase instead closes the repeatedly "reported, not changed" backlog items that are **already implemented in the tree**, so future rounds stop re-auditing them.
+- [x] Verified resolved in source (not just claimed): mobile swipe-undo restores alerts + reminders (re-scheduled) + restock watches (`app/(tabs)/watchlist.tsx` `handleUndo`); `.item` removed from `CARD_SELECTORS` with a rationale comment (`lib/scrapers/utils.ts:208`); tag-LWW via `tagsUpdatedAt` (`lib/sync.ts:699-725`); `resilientFetch` single-flight key includes a breaker-store identity (`lib/scrapers/resilient.ts:413`); `scrapeMikrotikStore` resolves relative hrefs (`lib/scrapers/mikrotikstore.ts:136`); `parsePriceFromText` gated by `priceComesFromModel` (`lib/scrapers/utils.ts:343`); `/api` `Cache-Control: no-store` (`server/api-cache.ts`, wired `server/_core/index.ts:64`); DNS pinning via `fetchPinned`/`pinnedLookup` (`server/product-parse.ts`); discovery dedups by `brand|model` (`lib/storage/discovery.ts`).
+- [x] Flipped the corresponding `todo.md` items to `[x]` with resolution notes. Remaining open items are product/design calls (member-invite UX, emoji sweep, bulk-discovery policy, credential-change session epoch) or require a device build to verify. Docs only; no source change.
