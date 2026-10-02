@@ -154,7 +154,7 @@ describe("syncServerNotifications includes health events", () => {
         distributorId: "winncom",
         distributorName: "Winncom",
         status: "blocked",
-        title: "🟠 Distributor Blocked",
+        title: "Distributor Blocked",
         body: "Winncom has been blocked",
         createdAt: 1234,
       },
@@ -194,7 +194,7 @@ describe("uploadNotificationConfig with healthEvents", () => {
           status: "blocked",
           // Carried through so the server separates an alert from its recovery.
           kind: "alert",
-          title: "🟠 Distributor Blocked",
+          title: "Distributor Blocked",
           body: "Winncom has been blocked for 3 consecutive probes",
           createdAt: 1234,
         },
@@ -213,7 +213,7 @@ describe("uploadNotificationConfig with healthEvents", () => {
           status: "blocked",
           // Carried through so the server separates an alert from its recovery.
           kind: "alert",
-          title: "🟠 Distributor Blocked",
+          title: "Distributor Blocked",
           body: "Winncom has been blocked for 3 consecutive probes",
           createdAt: 1234,
         },
@@ -291,7 +291,7 @@ describe("syncServerNotifications respects notification settings", () => {
       distributorId: "winncom",
       distributorName: "Winncom",
       status: "blocked" as const,
-      title: "🟠 Distributor Blocked",
+      title: "Distributor Blocked",
       body: "Winncom has been blocked",
       createdAt: 1234,
     };

@@ -32,7 +32,7 @@ const subscription = {
 };
 const event = {
   id: "evt-1",
-  title: "💸 Price Drop Alert!",
+  title: "Price Drop Alert!",
   body: "CRS804 is now $480.00!",
 };
 

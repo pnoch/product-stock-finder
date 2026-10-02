@@ -276,7 +276,7 @@ export function formatDigestNotification(result: DigestResult): {
   }
 
   return {
-    title: "📊 Price Digest",
+    title: "Price Digest",
     body: lines.slice(0, 9).join("\n"),
   };
 }

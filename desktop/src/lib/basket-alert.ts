@@ -50,7 +50,7 @@ export async function evaluateBasketAlert(
   );
   if (total <= 0 || total > threshold) return false;
   const ok = await notify(
-    "🧺 Basket Alert",
+    "Basket Alert",
     `Watchlist value ${formatPrice(total, currency)} dropped below your ${formatPrice(threshold, currency)} threshold.`,
     "/stats",
   );
@@ -66,7 +66,7 @@ export async function evaluateBasketAlert(
       await storage.recordNotificationEvent({
         id: `local-basket-${new Date().toISOString().slice(0, 10)}`,
         type: "digest",
-        title: "🧺 Basket Alert",
+        title: "Basket Alert",
         body: `Watchlist value ${formatPrice(total, currency)} dropped below your ${formatPrice(threshold, currency)} threshold.`,
         createdAt: Date.now(),
       });

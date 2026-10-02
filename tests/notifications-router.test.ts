@@ -117,7 +117,7 @@ describe("notifications router", () => {
           distributorId: "winncom",
           distributorName: "Winncom",
           status: "blocked",
-          title: "🟠 Distributor Blocked",
+          title: "Distributor Blocked",
           body: "Winncom has been blocked for 3 consecutive probes",
           createdAt: 1234,
         },
@@ -140,7 +140,7 @@ describe("notifications router", () => {
       {
         id: "e1",
         type: "price_drop",
-        title: "💸 Price Drop Alert!",
+        title: "Price Drop Alert!",
         body: "MikroTik CRS804-4DDQ-hRM is now $480.00 — below your target of $500.00!",
         alertId: "a1",
         productId: "mikrotik-crs804-4ddq-hrm",

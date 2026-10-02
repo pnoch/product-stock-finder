@@ -376,7 +376,7 @@ describe("checkPriceDropsNow", () => {
     // Recorded in the in-app history like the price-drop path (the core records
     // other event types too, so filter for the basket one).
     const basketEvents = state.recordedNotifications.filter(
-      (e) => e.title === "🧺 Basket Alert",
+      (e) => e.title === "Basket Alert",
     );
     expect(basketEvents).toHaveLength(1);
     expect(basketEvents[0]).toMatchObject({ type: "digest" });

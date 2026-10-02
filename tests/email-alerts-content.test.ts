@@ -4,12 +4,12 @@ import { buildAlertEmail } from "../server/notifications/email-alerts";
 describe("buildAlertEmail", () => {
   it("includes title, body, product link and unsubscribe link", () => {
     const msg = buildAlertEmail({
-      title: "💸 Price Drop Alert!",
+      title: "Price Drop Alert!",
       body: "CRS804 is now $420",
       productUrl: "https://app.example.com/product/p1",
       unsubscribeUrl: "https://api.example.com/api/email/unsubscribe?u=1&t=abc",
     });
-    expect(msg.subject).toBe("💸 Price Drop Alert!");
+    expect(msg.subject).toBe("Price Drop Alert!");
     expect(msg.text).toContain("CRS804 is now $420");
     expect(msg.text).toContain("https://app.example.com/product/p1");
     expect(msg.text).toContain("unsubscribe?u=1&t=abc");
