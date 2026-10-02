@@ -7529,3 +7529,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/background-tasks/price-check.ts` was at **91.0%**: the price-rise trigger, the web price/basket notification paths, and the web-failure re-arm/retry branches were uncovered.
 - [x] Extended `tests/price-check.test.ts` (33 → 37 tests; `web-notifications` mocked, mutable `Platform.OS`): a rise alert fires and deactivates; a failed web price notification re-arms the alert; a web basket alert fires and clears the threshold; a failed web basket notification leaves the threshold for retry.
 - [x] Coverage **91.0% → 96.4%** lines. Offline `tsc 0`, lint 0 errors / 158 warnings, `3041 passed` / `76 skipped`; DB suite **16 files / 79 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1012: Cover the server/db.ts DB-error fallbacks (88% → 93%)
+
+- [x] `server/db.ts` was at **88.2%**: the per-operation catch fallbacks that run when the database is reachable but a query fails were untested.
+- [x] New `tests/db-unreachable.test.ts` (4 offline tests; `DATABASE_URL` pointed at a closed port so `getDb` returns a client whose queries reject): reset/verification tokens fall back to memory (single-use preserved); the user helpers and `purgeExpiredAuthTokens` propagate the error (no fallback) so callers can back off.
+- [x] Coverage **88.2% → 93.2%** (with DB). Offline `tsc 0`, lint 0 errors / 158 warnings, `3045 passed` / `76 skipped`; DB suite **16 files / 79 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
