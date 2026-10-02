@@ -53,6 +53,7 @@ const TITLE_SOURCES = [
   "desktop/src/lib/health-probe.ts",
   "server/notifications/build-events.ts",
   "server/notifications/digest.ts",
+  "desktop/src/App.tsx",
 ];
 
 describe("emoji sweep", () => {
@@ -91,7 +92,7 @@ Do not touch notification **bodies** (they have no emoji) or the `↔` character
 - [ ] **Step 4: Update the assertions that pin the old titles**
 
 In each file, replace the old emoji title string with the stripped one in the assertions:
-`tests/email-alerts-content.test.ts`, `tests/notifications.test.ts`, `tests/notifications-router.test.ts`, `tests/price-check.test.ts`, `tests/push-notifications.test.ts`, `tests/send-digest-notification.test.ts`, `tests/server-notifications.test.ts`, `tests/web-push-server.test.ts`. (Run `grep -rn "🟢\|🔴\|🟠\|📈\|💸\|📦\|📊\|💰\|✅\|🧺" tests/` to find them all; zero title-emoji assertions must remain in those files.)
+`tests/email-alerts-content.test.ts`, `tests/notifications.test.ts`, `tests/notifications-router.test.ts`, `tests/price-check.test.ts`, `tests/push-notifications.test.ts`, `tests/send-digest-notification.test.ts`, `tests/server-notifications.test.ts`, `tests/web-push-server.test.ts`, and the **desktop** pinned tests `desktop/tests/basket-alert.test.ts` (`"🧺 Basket Alert"`), `desktop/tests/health-probe.test.tsx` (`"🟠 Distributor Blocked"`, `"🟢 Distributor Recovered"`), `desktop/tests/server-notifications.test.ts` (stale `"💸 Price Drop Alert!"` fixtures). (Run `grep -rn "🟢\|🔴\|🟠\|📈\|💸\|📦\|📊\|💰\|✅\|🧺" tests/ desktop/tests/` to find them all; zero title-emoji assertions must remain in those files.)
 
 - [ ] **Step 5: Update the stale guard comment**
 
@@ -105,7 +106,7 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add lib/notifications.ts lib/background-tasks/health-alerts.ts lib/background-tasks/price-check.ts lib/price-digest.ts lib/restock.ts desktop/src/lib/basket-alert.ts desktop/src/lib/health-probe.ts server/notifications/build-events.ts server/notifications/digest.ts tests/emoji-sweep.test.ts tests/desktop-chart-guard.test.ts tests/email-alerts-content.test.ts tests/notifications.test.ts tests/notifications-router.test.ts tests/price-check.test.ts tests/push-notifications.test.ts tests/send-digest-notification.test.ts tests/server-notifications.test.ts tests/web-push-server.test.ts
+git add lib/notifications.ts lib/background-tasks/health-alerts.ts lib/background-tasks/price-check.ts lib/price-digest.ts lib/restock.ts desktop/src/lib/basket-alert.ts desktop/src/lib/health-probe.ts server/notifications/build-events.ts server/notifications/digest.ts tests/emoji-sweep.test.ts tests/desktop-chart-guard.test.ts tests/email-alerts-content.test.ts tests/notifications.test.ts tests/notifications-router.test.ts tests/price-check.test.ts tests/push-notifications.test.ts tests/send-digest-notification.test.ts tests/server-notifications.test.ts tests/web-push-server.test.ts desktop/tests/basket-alert.test.ts desktop/tests/health-probe.test.tsx desktop/tests/server-notifications.test.ts
 git commit -m "refactor: remove emoji from notification titles"
 ```
 
