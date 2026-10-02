@@ -104,6 +104,11 @@ vi.mock("expo-background-task", () => ({
 }));
 vi.mock("react-native", () => ({ Platform: { OS: "ios" } }));
 
+const webPush = vi.hoisted(() => ({ display: true }));
+vi.mock("../lib/web-notifications", () => ({
+  displayWebNotification: vi.fn(() => webPush.display),
+}));
+
 vi.mock("../lib/scrapers/registry", () => ({
   getParserByDistributorId: vi.fn(() => undefined),
 }));
@@ -164,11 +169,14 @@ function mockHealthService(history: Record<string, HealthSample[]>) {
   } as unknown as ReturnType<typeof createHealthService>;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   state.alertsStore.length = 0;
   state.watchlistStore = [];
   state.scheduledNotifications.length = 0;
   state.permissionGranted = true;
+  webPush.display = true;
+  const { Platform } = await import("react-native");
+  Platform.OS = "ios";
 });
 
 describe("checkPriceDropsNow", () => {
@@ -241,6 +249,35 @@ describe("checkPriceDropsNow", () => {
     expect(state.alertsStore[0]!.isActive).toBe(false);
     expect(state.alertsStore[0]!.triggeredPrice).toBe(90);
     expect(state.alertsStore[0]!.triggeredAt).toBeTruthy();
+  });
+
+  it("fires a price-rise alert when the price rises above target", async () => {
+    state.alertsStore.push(makeAlert({ direction: "rise", targetPrice: 50 }));
+    state.watchlistStore = [
+      {
+        id: "p1",
+        listings: [makeListing(100, "USD", "in_stock")],
+      } as unknown as Product,
+    ];
+    await checkPriceDropsNow();
+    expect(state.scheduledNotifications).toHaveLength(1);
+    expect(state.alertsStore[0]!.isActive).toBe(false);
+  });
+
+  it("re-arms the alert when the web notification cannot be shown", async () => {
+    const { Platform } = await import("react-native");
+    Platform.OS = "web";
+    webPush.display = false;
+    state.alertsStore.push(makeAlert({ targetPrice: 100 }));
+    state.watchlistStore = [
+      {
+        id: "p1",
+        listings: [makeListing(90, "USD", "in_stock")],
+      } as unknown as Product,
+    ];
+    const { rearmAlert } = await import("../lib/storage");
+    await checkPriceDropsNow();
+    expect(vi.mocked(rearmAlert)).toHaveBeenCalledWith("a1");
   });
 
   it("converts listing price to the alert currency before comparing", async () => {
@@ -343,6 +380,37 @@ describe("checkPriceDropsNow", () => {
     );
     expect(basketEvents).toHaveLength(1);
     expect(basketEvents[0]).toMatchObject({ type: "digest" });
+  });
+
+  it("sends a web basket alert and clears the threshold", async () => {
+    const { Platform } = await import("react-native");
+    Platform.OS = "web";
+    webPush.display = true;
+    state.settingsStore = {
+      ...state.settingsStore,
+      basketAlertThreshold: 1000,
+    };
+    state.watchlistStore = [
+      { id: "p1", listings: [makeListing(50, "USD", "in_stock")] } as unknown as Product,
+    ];
+    await checkPriceDropsNow();
+    expect(state.settingsStore.basketAlertThreshold).toBeNull();
+  });
+
+  it("leaves the basket threshold set when the web notification fails", async () => {
+    const { Platform } = await import("react-native");
+    Platform.OS = "web";
+    webPush.display = false;
+    state.settingsStore = {
+      ...state.settingsStore,
+      basketAlertThreshold: 1000,
+    };
+    state.watchlistStore = [
+      { id: "p1", listings: [makeListing(50, "USD", "in_stock")] } as unknown as Product,
+    ];
+    await checkPriceDropsNow();
+    // The alert must retry next run rather than being lost.
+    expect(state.settingsStore.basketAlertThreshold).toBe(1000);
   });
 });
 

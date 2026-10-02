@@ -7523,3 +7523,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/device-id.ts` (90.9%): the no-`crypto.randomUUID` fallback id. `tests/device-id.test.ts` (+1): with `crypto` stubbed out, the generated id uses the `dev-…` form. Coverage **90.9% → 97.0%**.
 - [x] `lib/fx-history.ts` (91.0%): the short-series padding branches in `appendFxHistory` (known-currency carried forward; known-but-invalid incoming value). `tests/fx-history.test.ts` (+2) exercises both over a two-timestamp/one-value series. Coverage **91.0% → 94.8%**.
 - [x] Offline `tsc 0`, lint 0 errors / 158 warnings, `3037 passed` / `76 skipped`; DB suite **16 files / 79 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
+
+## Phase 1011: Cover the web-notification + rise-alert branches (91% → 96%)
+
+- [x] `lib/background-tasks/price-check.ts` was at **91.0%**: the price-rise trigger, the web price/basket notification paths, and the web-failure re-arm/retry branches were uncovered.
+- [x] Extended `tests/price-check.test.ts` (33 → 37 tests; `web-notifications` mocked, mutable `Platform.OS`): a rise alert fires and deactivates; a failed web price notification re-arms the alert; a web basket alert fires and clears the threshold; a failed web basket notification leaves the threshold for retry.
+- [x] Coverage **91.0% → 96.4%** lines. Offline `tsc 0`, lint 0 errors / 158 warnings, `3041 passed` / `76 skipped`; DB suite **16 files / 79 tests green**; desktop `304`; `cargo test` 72, clippy 0, fmt clean.
