@@ -9,6 +9,7 @@ import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discover
 import { discoverListings, customProductSlug } from "../../../lib/listing-discovery";
 import { manualAddProduct, rediscoverProduct } from "../../../lib/manual-add";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
+import { runDiscoveryBatch } from "../../../lib/bulk-discovery";
 import { nextTagColor } from "../../../lib/tags";
 import type { TagDefinition } from "../../../lib/types";
 import { TagFilterRow } from "../components/TagFilterRow";
@@ -206,10 +207,30 @@ export function Search() {
           results[i]!.status === "fulfilled" &&
           (results[i] as PromiseFulfilledResult<boolean>).value === true,
       );
+      let discovered = 0;
+      if (added.length > 0) {
+        const items = added.map((p) => ({ productId: p.id, modelNumber: p.modelNumber }));
+        let next = 0;
+        while (next < items.length) {
+          const res = await runDiscoveryBatch({
+            items,
+            startIndex: next,
+            storage,
+            discover: discoverListings,
+          });
+          next = res.nextIndex;
+          discovered += res.discovered;
+          if (next < items.length) {
+            const go = window.confirm(`Fetch prices for the remaining ${items.length - next} product(s)?`);
+            if (!go) break;
+          }
+        }
+      }
       setTrackedIds((prev) => new Set([...prev, ...added.map((p) => p.id)]));
       setBulkText(""); setBulkOpen(false);
       const failed = bulkNew.length - added.length;
-      showToast(failed > 0 ? `Imported ${added.length} · ${failed} failed` : `Imported ${added.length}`);
+      const found = discovered > 0 ? ` · ${discovered} listings found` : "";
+      showToast((failed > 0 ? `Imported ${added.length} · ${failed} failed` : `Imported ${added.length}`) + found);
     } finally { setBulkImporting(false); }
   };
   const handleManualParse = async () => {

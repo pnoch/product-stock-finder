@@ -30,4 +30,11 @@ describe("bulk discovery UI", () => {
     expect(screen).toContain("onFindPrices={");
     expect(screen).toContain("findingIds");
   });
+
+  it("bulk import runs the batch runner (desktop)", () => {
+    const search = readFileSync("desktop/src/pages/Search.tsx", "utf8");
+    expect(search).toContain("runDiscoveryBatch");
+    const modal = readFileSync("desktop/src/components/SearchModal.tsx", "utf8");
+    expect(modal).toContain("runDiscoveryBatch");
+  });
 });
