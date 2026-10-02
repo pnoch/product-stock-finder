@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNull, lt, or } from "drizzle-orm";
-import { affectedRowsOf } from "./db";
+import { affectedRowsOf, getDb } from "./db";
 import {
   deviceLabels,
   deviceNotificationConfigs,
@@ -9,7 +9,6 @@ import {
   notificationEvents,
   revokedDevices,
 } from "../drizzle/schema";
-import { getDb } from "./db";
 import {
   listMemoryConfigDevices,
   removeMemoryDevice,

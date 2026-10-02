@@ -7672,3 +7672,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/sample-data.ts` was at **37.5%**: `freshenSampleListings` — which re-bases the seeded price history's dates onto "now" so the first-launch sample data isn't stale — had no test.
 - [x] Extended `tests/sample-data.test.ts` (+2): lastChecked moves to now and every history point shifts by the same delta (relative spacing preserved); the input listings are not mutated.
 - [x] Coverage **37.5% → 100%**; root `3091 passed` / `84 skipped`, `tsc 0`, lint 0 errors.
+
+## Phase 1033: Merge duplicate imports (lint warnings 158 → 146)
+
+- [x] The source-level lint warnings were almost entirely duplicate imports of the same module (`import/no-duplicates`, 11 sites). Merged them: `lib/background-tasks/refresh-listing.ts` (3× `@/shared/const`), `server/devices.ts` (2× `./db`), `server/prices.ts` (2× `./price-cache`, 2× `./notifications`), `server/routers.ts` (2× `./sync-db`).
+- [x] The one remaining source warning is `import/no-named-as-default-member` in `lib/_core/theme.ts` (hands-off framework code). The rest are stylistic (`import/first` in hoisted-mock tests, `array-type`) or deliberate `react-hooks/exhaustive-deps`.
+- [x] Verified: `tsc 0`, lint 0 errors / **146 warnings** (from 158), root `3091 passed` / `84 skipped`, desktop unaffected.
