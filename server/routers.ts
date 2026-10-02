@@ -642,6 +642,13 @@ export const appRouter = router({
       await pruneDeviceToken(ctx.deviceId);
       return { accepted: true } as const;
     }),
+    testWebhook: protectedProcedure
+      .input(z.object({ url: z.string().min(1).max(2048) }))
+      .mutation(async ({ input, ctx }) => {
+        checkRateLimit(ctx, "notifications.testWebhook", 5, 60_000);
+        const { sendTestWebhook } = await import("./notifications/webhook-alerts");
+        return sendTestWebhook(input.url);
+      }),
   }),
 
   discovery: discoveryRouter,

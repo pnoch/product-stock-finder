@@ -307,3 +307,21 @@ async function reconcileEvent(event: {
     await removeBackOrderReminder(event.reminderId);
   }
 }
+
+export async function testWebhook(
+  url: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const client = createTRPCClient();
+    // withTimeout resolves null on timeout, so coalesce it into a failure result
+    // (null would otherwise be an invalid return for this function).
+    return (
+      (await withTimeout(
+        client.notifications.testWebhook.mutate({ url }),
+        TIMEOUT_MS,
+      )) ?? { ok: false, error: "Could not reach the server. Try again." }
+    );
+  } catch {
+    return { ok: false, error: "Could not reach the server. Try again." };
+  }
+}
