@@ -48,7 +48,7 @@ export default function ProductDetailScreen() {
   const { product, listings, loaded, lastUpdatedAt, refresh } = useLiveProduct(id ?? "");
   const [findingPrices, setFindingPrices] = useState(false);
   const handleFindPrices = useCallback(async () => {
-    if (!product?.modelNumber) return;
+    if (!product?.modelNumber || findingPrices) return;
     setFindingPrices(true);
     try {
       const { discovered, timedOut } = await rediscoverProduct({
@@ -74,7 +74,7 @@ export default function ProductDetailScreen() {
     } finally {
       setFindingPrices(false);
     }
-  }, [product?.id, product?.modelNumber, refresh]);
+  }, [product?.id, product?.modelNumber, findingPrices, refresh]);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
   const [productImage, setProductImage] = useState<string | null>(null);

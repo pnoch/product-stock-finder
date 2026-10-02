@@ -210,7 +210,6 @@ export function Search() {
       setTrackedIds((prev) => new Set([...prev, ...added.map((p) => p.id)]));
       setBulkText(""); setBulkOpen(false);
       const failed = bulkNew.length - added.length;
-      showToast(failed > 0 ? `Imported ${added.length} · ${failed} failed` : `Imported ${added.length}`);
       // Settle the import UI before the (slow) discovery loop so the dialog is
       // not frozen on "Importing…" with no feedback while batches run.
       setBulkImporting(false);
@@ -238,7 +237,12 @@ export function Search() {
           }
         }
       }
-      if (discovered > 0) showToast(`Found ${discovered} listing${discovered === 1 ? "" : "s"}`);
+      const discoveryNote = discovered > 0 ? ` · ${discovered} listing${discovered === 1 ? "" : "s"} found` : "";
+      showToast(
+        failed > 0
+          ? `Imported ${added.length} · ${failed} failed${discoveryNote}`
+          : `Imported ${added.length}${discoveryNote}`,
+      );
     } finally { setBulkImporting(false); }
   };
   const handleManualParse = async () => {

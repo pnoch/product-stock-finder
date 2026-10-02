@@ -153,7 +153,12 @@ export function BulkImportModal({
       }
 
       if (prompt === null) {
-        showAlert("Import Complete", summary);
+        showAlert(
+          "Import Complete",
+          discovered > 0
+            ? `${summary}\nFound ${discovered} listing${discovered === 1 ? "" : "s"}.`
+            : summary,
+        );
       }
       setText("");
       onImported?.();
