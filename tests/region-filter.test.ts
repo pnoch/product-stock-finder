@@ -80,6 +80,31 @@ describe("productHasRegion", () => {
     ]);
     expect(productRegion(product)).toBe("Europe");
   });
+
+  it("skips an in-stock listing whose currency cannot be converted", () => {
+    const product = makeProduct([
+      { ...makeListing("linitx-uk"), price: 1, currency: "ZZZ" }, // unconvertible
+      makeListing("server2u-my"), // Asia-Pacific, price 100
+    ]);
+    expect(productRegion(product)).toBe("Asia-Pacific");
+  });
+
+  it("ignores non-positive and non-finite in-stock prices", () => {
+    const product = makeProduct([
+      { ...makeListing("linitx-uk"), price: 0 },
+      { ...makeListing("server2u-my"), price: Number.NaN },
+      { ...makeListing("linitx-uk"), price: 50 }, // the only valid in-stock price
+    ]);
+    expect(productRegion(product)).toBe("Europe");
+  });
+
+  it("keeps the first listing on a converted-price tie", () => {
+    const product = makeProduct([
+      { ...makeListing("linitx-uk"), price: 100 }, // Europe
+      { ...makeListing("server2u-my"), price: 100 }, // Asia-Pacific
+    ]);
+    expect(productRegion(product)).toBe("Europe");
+  });
 });
 
 describe("filterListingsByRegion", () => {

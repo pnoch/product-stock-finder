@@ -14,6 +14,10 @@ describe("Alerts badge matches the cards shown", () => {
     it(`${file} counts open alerts`, async () => {
       const src = await readFile(file, "utf8");
       expect(src).toContain("countOpenAlerts");
+      // The badge sums alerts + reminders + watches; assert all three terms so
+      // dropping one is caught.
+      expect(src).toContain("reminders.length");
+      expect(src).toContain("watches.length");
       // Match the call, not the word: the explanatory comment names the
       // stricter predicate on purpose.
       expect(src).not.toContain("countActiveAlerts(");

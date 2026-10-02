@@ -2010,24 +2010,13 @@ fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
     let alerts_val = read_json_file(&data_dir, "price_alerts")?;
     let reminders_val = read_json_file(&data_dir, "back_order_reminders")?;
 
-    let active_alerts = alerts_val
+    // Count every untriggered alert (armed + snoozed + paused): the Alerts page
+    // renders each as a card, so the tray badge matches the in-app badge count.
+    let open_alerts = alerts_val
         .as_array()
         .map(|a| {
             a.iter()
-                .filter(|a| {
-                    let active = a.get("isActive").and_then(|v| v.as_bool()).unwrap_or(false)
-                        && a.get("triggeredAt").and_then(|v| v.as_str()).is_none();
-                    if !active {
-                        return false;
-                    }
-                    // Exclude snoozed alerts, matching the in-app badge count.
-                    match a.get("snoozedUntil").and_then(|v| v.as_str()) {
-                        Some(s) => parse_iso_to_epoch_ms(s)
-                            .map(|t| t <= now_epoch_ms())
-                            .unwrap_or(true),
-                        None => true,
-                    }
-                })
+                .filter(|a| a.get("triggeredAt").and_then(|v| v.as_str()).is_none())
                 .count()
         })
         .unwrap_or(0);
@@ -2046,7 +2035,7 @@ fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
     let watches_val = read_json_file(&data_dir, "back_in_stock_watches")?;
     let active_watches = watches_val.as_array().map(|w| w.len()).unwrap_or(0);
 
-    let total = active_alerts + active_reminders + active_watches;
+    let total = open_alerts + active_reminders + active_watches;
 
     if let Some(tray) = app.tray_by_id("main") {
         let badge_text = if total > 0 {
@@ -2056,14 +2045,14 @@ fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
         };
         let _ = tray.set_title(Some(&badge_text));
         let tooltip = format!(
-            "Product Stock Finder — {} active alert{}",
+            "Product Stock Finder — {} alert{}",
             total,
             if total == 1 { "" } else { "s" }
         );
         let _ = tray.set_tooltip(Some(&tooltip));
     }
 
-    Ok(format!("Tray badge updated: {} active", total))
+    Ok(format!("Tray badge updated: {} total", total))
 }
 
 // ─── Entry Point ─────────────────────────────────────────────────────────────
