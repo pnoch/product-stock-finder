@@ -335,7 +335,7 @@ export function buildAlertEmail(opts: {
       ? `<p><a href="${escapeHtml(productUrl)}">View product</a></p>`
       : "") +
     `<p style="font-size:12px;color:#888">` +
-    `<a href="${escapeHtml(unsubscribeUrl)}">Unsubscribe from email alerts</a></p>`;
+    `<a href="${unsubscribeUrl}">Unsubscribe from email alerts</a></p>`;
   return { to: "", subject: title, html, text: textLines.join("\n") };
 }
 ```
