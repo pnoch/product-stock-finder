@@ -35,7 +35,7 @@ export interface Distributor {
   id: string;
   name: string;
   country: string;
-  countryFlag: string;
+  countryCode: string;
   region: string;
   website: string;
   paymentMethods: string[];

@@ -252,7 +252,7 @@ export function Alerts() {
       (watchlistProducts.find((p) => p.id === productId)?.listings ?? []).map(
         (l) => {
           const d = getDistributorById(l.distributorId);
-          return { id: l.distributorId, name: d?.name ?? l.distributorId, countryFlag: d?.countryFlag ?? "" };
+          return { id: l.distributorId, name: d?.name ?? l.distributorId, countryCode: d?.countryCode ?? "" };
         },
       )
     );
@@ -621,7 +621,7 @@ export function Alerts() {
               <div className="flex flex-wrap gap-2 mb-4">
                 <button onClick={() => setEditDistributorId(null)} aria-pressed={editDistributorId == null} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId == null ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>All distributors</button>
                 {editDistributors.map((d) => (
-                  <button key={d.id} onClick={() => setEditDistributorId(d.id)} aria-pressed={editDistributorId === d.id} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId === d.id ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>{d.countryFlag} {d.name}</button>
+                  <button key={d.id} onClick={() => setEditDistributorId(d.id)} aria-pressed={editDistributorId === d.id} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId === d.id ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>{d.countryCode} {d.name}</button>
                 ))}
               </div>
             )}
@@ -804,7 +804,7 @@ function AlertRow({
           )}
           {alert.distributorId ? (
             <span className="ml-1.5 text-xs text-gray-400 font-normal">
-              at {(() => { const d = getDistributorById(alert.distributorId!); return d ? `${d.countryFlag} ${d.name}` : alert.distributorId; })()}
+              at {(() => { const d = getDistributorById(alert.distributorId!); return d ? `${d.countryCode} ${d.name}` : alert.distributorId; })()}
             </span>
           ) : null}
           {isSnoozed && <span className="ml-2 text-xs font-semibold text-amber-600 dark:text-amber-400">Snoozed until {new Date(alert.snoozedUntil!).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>}

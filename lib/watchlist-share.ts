@@ -57,7 +57,7 @@ export function buildWatchlistShareText(input: WatchlistShareInput): string {
     lines.push("", `Biggest drops (${windowLabel(days)}):`);
     for (const drop of movers.drops.slice(0, 3)) {
       lines.push(
-        `${drop.countryFlag} ${drop.productName} — ${drop.changePct}%`.trimStart(),
+        `${drop.countryCode} ${drop.productName} — ${drop.changePct}%`.trimStart(),
       );
     }
   }

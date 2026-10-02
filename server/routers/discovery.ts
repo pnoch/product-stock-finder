@@ -119,7 +119,7 @@ export const discoveryRouter = router({
               country: cleanStr(row.country, 100),
               currency: cleanStr(row.currency, 8),
               region: "Global",
-              countryFlag: "",
+              countryCode: "",
               paymentMethods: [],
               shippingCosts: {},
             };

@@ -62,7 +62,7 @@ export function buildShareRows(
       rows: inStock.map(({ listing, converted }) => {
         const dist = getDistributorById(listing.distributorId);
         return {
-          flag: dist?.countryFlag ?? "",
+          flag: dist?.countryCode ?? "",
           name: dist?.name ?? listing.distributorId,
           price: converted!,
         };

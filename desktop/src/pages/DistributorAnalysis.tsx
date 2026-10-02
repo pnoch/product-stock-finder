@@ -134,7 +134,7 @@ export function DistributorAnalysis() {
               >
                 <div className="flex-1">
                   <p className="font-medium text-sm">
-                    {distrib?.countryFlag} {distrib?.name ?? a.distributorId}
+                    {distrib?.countryCode} {distrib?.name ?? a.distributorId}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {a.coverage} product{a.coverage !== 1 ? "s" : ""} · avg{" "}

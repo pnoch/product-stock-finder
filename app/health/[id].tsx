@@ -107,7 +107,7 @@ export default function HealthDetailScreen() {
         <Text
           style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}
         >
-          {distributor.countryFlag} {distributor.name}
+          {distributor.countryCode} {distributor.name}
         </Text>
       </View>
 

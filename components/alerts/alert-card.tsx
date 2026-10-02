@@ -32,7 +32,7 @@ export const AlertCard = memo(function AlertCard({
   const distributorLabel = useMemo(() => {
     if (!alert.distributorId) return null;
     const dist = getDistributorById(alert.distributorId);
-    return dist ? `${dist.countryFlag} ${dist.name}` : alert.distributorId;
+    return dist ? `${dist.countryCode} ${dist.name}` : alert.distributorId;
   }, [alert.distributorId]);
   const handleToggle = useCallback(() => onToggle(alert.id), [onToggle, alert.id]);
   const handleDelete = useCallback(() => onDelete(alert.id), [onDelete, alert.id]);

@@ -692,7 +692,7 @@ export function Compare() {
                       </span>
                     )}
                     <span className="text-sm font-medium">{item.region}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{dist?.countryFlag}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{dist?.countryCode}</span>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       {dist?.name ?? item.listing.distributorId}
                     </span>
@@ -753,7 +753,7 @@ export function Compare() {
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} aria-hidden />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {distributor?.countryFlag} {distributor?.name ?? l.distributorId}
+                        {distributor?.countryCode} {distributor?.name ?? l.distributorId}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{distributor?.country}</p>
                     </div>
@@ -816,7 +816,7 @@ export function Compare() {
                 >
                   {isSelected && <Check className="w-3 h-3" style={{ color: chipColor }} />}
                 </span>
-                <span>{distributor?.countryFlag}</span>
+                <span>{distributor?.countryCode}</span>
                 <span>{distributor?.name ?? listing.distributorId}</span>
                 <span className={`ml-1 ${isSelected ? "text-white/90" : "text-gray-500 dark:text-gray-400"}`}>
                   {formatPrice(listing.price, listing.currency)}
@@ -951,7 +951,7 @@ export function Compare() {
                 >
                   <div className="flex items-center gap-3">
                     {listing.dist && (
-                      <span className="text-lg">{listing.dist.countryFlag}</span>
+                      <span className="text-lg">{listing.dist.countryCode}</span>
                     )}
                     <div>
                       <p className="font-medium text-sm">{listing.distName}</p>

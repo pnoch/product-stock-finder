@@ -338,7 +338,7 @@ export default function StatsScreen() {
           productCount={basket.productCount}
           displayCurrency={displayCurrency}
           drops={movers.drops.slice(0, 3).map((d) => ({
-            flag: d.countryFlag,
+            flag: d.countryCode,
             name: d.productName,
             pct: d.changePct,
           }))}

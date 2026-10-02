@@ -307,7 +307,7 @@ export default function HealthScreen() {
                     fontSize: 14,
                   }}
                 >
-                  {distributor ? `${distributor.countryFlag} ${distributor.name}` : h.distributorId}
+                  {distributor ? `${distributor.countryCode} ${distributor.name}` : h.distributorId}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
                   {h.reason || h.status}

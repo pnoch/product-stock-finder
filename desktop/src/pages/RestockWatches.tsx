@@ -112,7 +112,7 @@ export function RestockWatches() {
                     {watch.productName}
                   </Link>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {distrib?.countryFlag}{" "}
+                    {distrib?.countryCode}{" "}
                     {distrib?.name ?? watch.distributorName}
                   </p>
                   <div className="mt-1">

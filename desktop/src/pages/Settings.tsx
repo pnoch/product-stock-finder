@@ -1418,7 +1418,7 @@ export function Settings() {
                         aria-hidden="true"
                         className={`inline-block w-2 h-2 rounded-full mr-1.5 align-middle ${health.dot}`}
                       />
-                      {distributor.countryFlag} {distributor.name}
+                      {distributor.countryCode} {distributor.name}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {status.lastSuccess

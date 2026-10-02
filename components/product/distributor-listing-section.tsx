@@ -378,7 +378,7 @@ export function DistributorListingSection({
                         flex: 1,
                       }}
                     >
-                      {distrib?.countryFlag}{" "}
+                      {distrib?.countryCode}{" "}
                       {distrib?.name ?? bestDeal.distributorId}
                     </Text>
                     <Text

@@ -104,7 +104,7 @@ describe("alert distributor names", () => {
     const qc = renderAlerts();
     try {
       await waitFor(() => expect(screen.getByText(/Baltic Networks/)).toBeTruthy());
-      expect(screen.getByText(/🇺🇸 Baltic Networks/)).toBeTruthy();
+      expect(screen.getByText(/US Baltic Networks/)).toBeTruthy();
       expect(screen.getByText(/at xxq/)).toBeTruthy();
     } finally {
       qc.clear();

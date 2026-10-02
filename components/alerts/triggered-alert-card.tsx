@@ -24,7 +24,7 @@ export const TriggeredAlertCard = memo(function TriggeredAlertCard({
   const distributorLabel = useMemo(() => {
     if (!alert.distributorId) return null;
     const dist = getDistributorById(alert.distributorId);
-    return dist ? `${dist.countryFlag} ${dist.name}` : alert.distributorId;
+    return dist ? `${dist.countryCode} ${dist.name}` : alert.distributorId;
   }, [alert.distributorId]);
   const handleRearm = useCallback(() => onRearm(alert.id), [onRearm, alert.id]);
   const handleDelete = useCallback(() => onDelete(alert.id), [onDelete, alert.id]);

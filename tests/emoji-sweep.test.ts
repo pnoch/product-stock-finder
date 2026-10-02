@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 // Notification titles must be plain text: without a system emoji font a title
@@ -18,6 +19,19 @@ const TITLE_SOURCES = [
   "server/notifications/digest.ts",
 ];
 
+async function walk(dir: string): Promise<string[]> {
+  const out: string[] = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (!/node_modules|\.expo|dist/.test(p)) out.push(...(await walk(p)));
+    } else if (/\.(ts|tsx)$/.test(entry.name)) {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
 describe("emoji sweep", () => {
   it("notification title sources contain no title emoji", async () => {
     for (const file of TITLE_SOURCES) {
@@ -25,6 +39,20 @@ describe("emoji sweep", () => {
       for (const ch of TITLE_EMOJI) {
         expect(src.includes(ch), `${file} still contains ${ch}`).toBe(false);
       }
+    }
+  });
+
+  it("has no countryFlag identifier or regional-indicator emoji", async () => {
+    const roots = ["lib", "app", "components", "desktop/src", "shared", "server"];
+    for (const root of roots) {
+      for (const file of await walk(root)) {
+        const src = await readFile(file, "utf8");
+        expect(src.includes("countryFlag"), `${file} still uses countryFlag`).toBe(false);
+      }
+    }
+    for (const file of await walk("shared")) {
+      const src = await readFile(file, "utf8");
+      expect(/[\u{1F1E6}-\u{1F1FF}]{2}/u.test(src), `${file} has a flag emoji`).toBe(false);
     }
   });
 });

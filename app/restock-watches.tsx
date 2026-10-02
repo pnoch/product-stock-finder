@@ -146,7 +146,7 @@ export default function RestockWatchesScreen() {
                       {watch.productName}
                     </Text>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      {distrib?.countryFlag}{" "}
+                      {distrib?.countryCode}{" "}
                       {distrib?.name ?? watch.distributorName}
                     </Text>
                     <Text

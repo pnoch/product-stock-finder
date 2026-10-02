@@ -101,7 +101,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {[distributor?.countryFlag, distributor?.name ?? listing.distributorId].filter(Boolean).join(" ")}
+            {[distributor?.countryCode, distributor?.name ?? listing.distributorId].filter(Boolean).join(" ")}
           </Text>
           <Text
             style={{

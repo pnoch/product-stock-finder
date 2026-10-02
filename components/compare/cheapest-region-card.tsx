@@ -122,7 +122,7 @@ export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { list
                   fontSize: 13,
                 }}
               >
-                {distributor?.countryFlag} {item.region}
+                {distributor?.countryCode} {item.region}
               </Text>
               <Text style={{ color: colors.muted, fontSize: 11, marginTop: 1 }}>
                 {distributor?.name ?? item.listing.distributorId}

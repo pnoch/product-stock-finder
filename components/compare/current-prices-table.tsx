@@ -102,7 +102,7 @@ export function CurrentPricesTable({ listings, selected, displayCurrency = "USD"
                   fontSize: 14,
                 }}
               >
-                {distributor?.countryFlag}{" "}
+                {distributor?.countryCode}{" "}
                 {distributor?.name ?? l.distributorId}
               </Text>
               <Text style={{ color: colors.muted, fontSize: 12 }}>

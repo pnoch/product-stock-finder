@@ -1102,7 +1102,7 @@ export function ProductDetail() {
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                 {bestDistributor.name} · {bestDistributor.country}{" "}
-                {bestDistributor.countryFlag}
+                {bestDistributor.countryCode}
               </p>
               {/* Mobile's BestDistributorCard explains why this is best. */}
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -1392,7 +1392,7 @@ export function ProductDetail() {
               return (
                 <div className="flex items-center justify-between mt-2">
                   <p className="text-base font-bold">
-                    {distrib?.countryFlag}{" "}
+                    {distrib?.countryCode}{" "}
                     {distrib?.name ?? bestDeal.distributorId}
                   </p>
                   <p className="text-lg font-bold text-brand-600 dark:text-brand-400">
@@ -1468,7 +1468,7 @@ export function ProductDetail() {
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {dist?.country}
-                          {dist?.region ? ` · ${dist.region}` : ""} {dist?.countryFlag}
+                          {dist?.region ? ` · ${dist.region}` : ""} {dist?.countryCode}
                         </p>
                         {dist?.paymentMethods && dist.paymentMethods.length > 0 && (
                           <p className="text-xs text-gray-400 mt-0.5 truncate" title={dist.paymentMethods.join(" · ")}>
@@ -1659,7 +1659,7 @@ export function ProductDetail() {
                 <li key={`${listing.distributorId}-${listing.currency}`} className="flex items-center justify-between gap-3 py-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {dist?.countryFlag ? `${dist.countryFlag} ` : ""}
+                      {dist?.countryCode ? `${dist.countryCode} ` : ""}
                       {name}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -1877,7 +1877,7 @@ export function ProductDetail() {
                   const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
                   return (
                     <option key={l.distributorId} value={l.distributorId}>
-                      {d?.countryFlag} {d?.name ?? l.distributorId} · {formatPrice(l.price, l.currency)}
+                      {d?.countryCode} {d?.name ?? l.distributorId} · {formatPrice(l.price, l.currency)}
                     </option>
                   );
                 })}
@@ -2078,7 +2078,7 @@ export function ProductDetail() {
                 const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
                 return (
                   <option key={l.distributorId} value={l.distributorId}>
-                    {d?.countryFlag} {d?.name ?? l.distributorId}
+                    {d?.countryCode} {d?.name ?? l.distributorId}
                   </option>
                 );
               })}
@@ -2175,7 +2175,7 @@ export function ProductDetail() {
                 const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
                 return (
                   <option key={l.distributorId} value={l.distributorId}>
-                    {d?.countryFlag} {d?.name ?? l.distributorId}
+                    {d?.countryCode} {d?.name ?? l.distributorId}
                   </option>
                 );
               })}
@@ -2227,7 +2227,7 @@ export function ProductDetail() {
                 const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
                 return (
                   <option key={l.distributorId} value={l.distributorId}>
-                    {d?.countryFlag} {d?.name ?? l.distributorId}
+                    {d?.countryCode} {d?.name ?? l.distributorId}
                   </option>
                 );
               })}

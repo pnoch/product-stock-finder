@@ -98,7 +98,7 @@ export function HealthDetail() {
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center mb-4">
         <button onClick={() => navigate(-1)} className="text-blue-600 mr-3" aria-label="Go back">‹ Back</button>
-        <h1 className="text-xl font-bold">{distributor.countryFlag} {distributor.name}</h1>
+        <h1 className="text-xl font-bold">{distributor.countryCode} {distributor.name}</h1>
       </div>
 
       {loadError && (
