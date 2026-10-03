@@ -7773,3 +7773,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Rust `apply_alert_mutations(upserts, removes)`: applies only the patched fields (`null` removes; absent fields untouched; `id` is never patchable), so poller-owned `triggeredAt`/`triggeredPrice` survive an unrelated save and a re-arm patch reliably clears them. Serialized by `ALERTS_FILE_LOCK`, now taken by every `price_alerts` writer (command, poller, `set_value_for_key`, import).
 - [x] The adapter tracks the renderer's array (not Rust's merged copy) so a later diff can't null-out poller fields; a dropped mirror write is logged.
 - [x] Tests: Rust `apply_alert_mutations_*` (trigger preserved, re-arm clears, add/remove, missing id, id-ignored, empty remove); renderer `computeAlertMutations` diff; adapter no-op/removes/write-back/routing. `tsc 0` (root + desktop), lint 0 errors, root `3150` / desktop `319` / cargo `78`, clippy + fmt clean.
+
+## Phase 1046: Poller re-arm guard + Rust title emoji
+
+- [x] The Rust price poller decided deactivations from a snapshot taken when the (minutes-long) check began, so a re-arm that landed mid-sweep was overwritten. It now records each triggered alert's snapshot `createdAt` and `deactivate_alerts_by_id` skips an alert whose on-disk `createdAt` parses newer than the snapshot's (parsed, not lexical; fails open to deactivation). Matches the client's `eventAt < target.createdAt` guard (`lib/storage/alerts.ts`).
+- [x] Fixed a Phase 1042 gap: the emoji sweep missed `desktop/src-tauri`, leaving `"📈 Price Increase Alert!"`/`"💸 Price Drop Alert!"` in the Rust poller. Titles are now plain, and `tests/emoji-sweep.test.ts` scans `desktop/src-tauri/src/**/*.rs` for emoji.
+- [x] Tests: `deactivate_alerts_by_id_skips_a_rearmed_alert` + boundary (`equal createdAt` deactivates); `cargo test` 81, clippy/fmt clean; root `3151` / desktop `321`, `tsc 0`, lint 0 errors.
