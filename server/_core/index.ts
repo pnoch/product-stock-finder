@@ -18,6 +18,7 @@ import {
 import { registerSpa, registerWellKnown } from "../spa";
 import { startWarmer } from "../prices";
 import { closeDb } from "../db";
+import { assertServerEnv } from "../env-validation";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -39,6 +40,7 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  assertServerEnv();
   const app = express();
   const server = createServer(app);
 
