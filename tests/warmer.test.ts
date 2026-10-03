@@ -3,8 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 // Hoisted holder so the mocked fetchAndParse can call the test's resilientFetch
 // mock (module-local bindings cannot be intercepted by vi.mock).
 const __resilientHolder = vi.hoisted(() => ({ fn: async (_o: unknown): Promise<any> => ({ status: "ok", html: "", method: "plain" }) }));
-import type { DistributorParser } from "../lib/scrapers/types";
-import type { PriceSnapshot } from "../lib/types";
+import type { DistributorParser , ScrapeResult } from "../lib/scrapers/types";
 
 vi.mock("../lib/scrapers/registry", () => ({
   getParserByDistributorId: vi.fn(),
@@ -76,7 +75,6 @@ import {
 import { purgeOldHistory } from "../server/price-history";
 import { refreshNearExpiry, startWarmer, runWarmerTick } from "../server/prices";
 import { evaluateNotifications } from "../server/notifications";
-import type { ScrapeResult } from "../lib/scrapers/types";
 
 const mockedGetParser = vi.mocked(getParserByDistributorId);
 const mockedFetch = vi.mocked(resilientFetch);

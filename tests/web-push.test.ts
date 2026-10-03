@@ -5,11 +5,11 @@ const state = vi.hoisted(() => ({
   platform: "web",
   registered: false,
   subscription: null as unknown,
-  mutateCalls: [] as Array<{
+  mutateCalls: [] as {
     deviceId: string;
     token: string;
     platform: string;
-  }>,
+  }[],
 }));
 
 vi.mock("react-native", () => ({

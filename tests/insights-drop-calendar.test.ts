@@ -5,7 +5,7 @@ import type { Product } from "../lib/types";
 
 function listing(
   distributorId: string,
-  prices: Array<[string, number]>,
+  prices: [string, number][],
   stockStatus = "in_stock",
 ) {
   return {

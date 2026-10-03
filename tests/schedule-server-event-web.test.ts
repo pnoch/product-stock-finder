@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const state = vi.hoisted(() => ({
   platform: "web",
-  displayed: [] as Array<{ title: string; body: string }>,
+  displayed: [] as { title: string; body: string }[],
 }));
 
 vi.mock("react-native", () => ({

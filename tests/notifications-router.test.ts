@@ -3,12 +3,12 @@ import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
 
 const state = vi.hoisted(() => ({
-  memoryConfigs: [] as Array<{ deviceId: string; userId: number | null }>,
-  memoryTokens: [] as Array<{
+  memoryConfigs: [] as { deviceId: string; userId: number | null }[],
+  memoryTokens: [] as {
     deviceId: string;
     userId: number | null;
     platform: string;
-  }>,
+  }[],
 }));
 
 vi.mock("../server/db", () => ({

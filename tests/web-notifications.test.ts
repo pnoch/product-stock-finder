@@ -5,8 +5,8 @@ const state = vi.hoisted(() => ({
   platform: "web",
   permission: "default" as NotificationPermission,
   requestResult: "granted" as NotificationPermission,
-  displayed: [] as Array<{ title: string; body: string }>,
-  instances: [] as Array<{ onclick: (() => void) | null; close: () => void }>,
+  displayed: [] as { title: string; body: string }[],
+  instances: [] as { onclick: (() => void) | null; close: () => void }[],
   syncCalls: 0,
   webNotificationsEnabled: false,
   recordedEventIds: [] as string[],
@@ -113,7 +113,7 @@ describe("web notifications", () => {
     state.authThrows = false;
     const serviceWorkerListeners: Record<
       string,
-      Array<(event: MessageEvent) => void>
+      ((event: MessageEvent) => void)[]
     > = {};
     Object.defineProperty(navigator, "serviceWorker", {
       configurable: true,
@@ -247,7 +247,7 @@ describe("web notifications", () => {
     MockNotification.permission = "granted";
     const cleanup = setupWebNotifications();
     const listeners = (globalThis as Record<string, unknown>)
-      .__swListeners as Record<string, Array<(event: MessageEvent) => void>>;
+      .__swListeners as Record<string, ((event: MessageEvent) => void)[]>;
     for (const cb of listeners.message ?? []) {
       cb(
         new MessageEvent("message", {

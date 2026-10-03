@@ -12,7 +12,7 @@ const listings = [
   { distributorId: "a", price: 100 },
   { distributorId: "b", price: 90 },
   { distributorId: "a", price: 80 },
-] as Array<{ distributorId: string; price: number }>;
+] as { distributorId: string; price: number }[];
 
 describe("listingsForAlert", () => {
   it("returns all listings when unscoped", () => {

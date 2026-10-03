@@ -22,8 +22,8 @@ const state = vi.hoisted(() => ({
       | { start: string; end: string; utcOffsetMinutes?: number }
       | undefined,
   },
-  recordedNotifications: [] as Array<Record<string, unknown>>,
-  uploadedHealthEvents: [] as Array<Record<string, unknown>>,
+  recordedNotifications: [] as Record<string, unknown>[],
+  uploadedHealthEvents: [] as Record<string, unknown>[],
 }));
 
 // Mock storage + notifications so we can drive checkPriceDropsNow deterministically

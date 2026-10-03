@@ -31,15 +31,12 @@ vi.mock("../server/db", () => ({
 
 import { registerOAuthRoutes, signOAuthState } from "../server/_core/oauth";
 import { sdk } from "../server/_core/sdk";
-import { getUserByOpenId, upsertUser } from "../server/db";
+import { getUserByOpenId } from "../server/db";
 
 const mockedRegister = vi.mocked(sdk.registerAccount);
 const mockedLogin = vi.mocked(sdk.login);
 const mockedCreateToken = vi.mocked(sdk.createSessionToken);
 const mockedGetUser = vi.mocked(getUserByOpenId);
-const mockedUpsert = vi.mocked(upsertUser);
-
-let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
 type Handler = (req: any, res: any) => Promise<void>;
 
@@ -92,7 +89,7 @@ function makeRes() {
 describe("POST /api/auth/register", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -177,7 +174,7 @@ describe("POST /api/auth/register", () => {
 describe("POST /api/auth/login", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -256,7 +253,7 @@ describe("POST /api/auth/login", () => {
 describe("GET /api/oauth/callback (legacy redirect)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -277,7 +274,7 @@ describe("GET /api/oauth/callback (legacy redirect)", () => {
 describe("GET /api/oauth/callback (web ticket redirect)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {

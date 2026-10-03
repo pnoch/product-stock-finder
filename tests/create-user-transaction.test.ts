@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import { users } from "../drizzle/schema";
-import { getDb } from "../server/db";
-import {
+import { getDb ,
   createUserWithPassword,
   getUserByOpenId,
 } from "../server/db";

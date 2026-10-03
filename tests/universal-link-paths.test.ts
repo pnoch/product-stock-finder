@@ -52,7 +52,7 @@ describe("universal-link paths match the router", () => {
     expect(doc).not.toBeNull();
     const details = (
       doc as {
-        applinks: { details: Array<{ components: Array<{ "/": string }> }> };
+        applinks: { details: { components: { "/": string }[] }[] };
       }
     ).applinks.details;
     const linked = details.flatMap((d) => d.components.map((c) => c["/"]));

@@ -35,10 +35,10 @@ type PushMessage = {
 const sent = vi.hoisted(() => [] as PushMessage[][]);
 
 const pushState = vi.hoisted(() => ({
-  tickets: [{ status: "ok" }] as Array<{
+  tickets: [{ status: "ok" }] as {
     status: string;
     details?: { error?: string };
-  }>,
+  }[],
   fail: false,
 }));
 
@@ -161,7 +161,7 @@ describe("push-notifications", () => {
   });
 
   it("omits userId from the duplicate-key update set on anonymous upsert", async () => {
-    const onUpdateSets: Array<Record<string, unknown>> = [];
+    const onUpdateSets: Record<string, unknown>[] = [];
     const dbStub = {
       insert: vi.fn(() => ({
         values: vi.fn(() => ({

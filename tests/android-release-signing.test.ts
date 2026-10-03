@@ -5,7 +5,11 @@ import { readFile } from "node:fs/promises";
 // so a hand-edit to app/build.gradle is lost on the next `expo prebuild`; the
 // plugin must re-apply the release signingConfig every time or release builds
 // silently fall back to the debug key, which Play Store rejects.
-const plugin = require("../plugins/with-android-release-signing.js");
+import releaseSigningPlugin from "../plugins/with-android-release-signing.js";
+
+// The plugin is untyped CommonJS; the config-plugin wrapper's `mods` field is
+// not visible in the inferred JS type, so treat the import as opaque.
+const plugin = releaseSigningPlugin as any;
 
 // The default block Expo's prebuild emits (no release signingConfig).
 const DEFAULT_GRADLE = `android {

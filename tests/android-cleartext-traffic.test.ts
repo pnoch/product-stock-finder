@@ -6,7 +6,11 @@ import { readFile } from "node:fs/promises";
 // so without this attribute every fetch silently fails in release builds.
 // `android/` is gitignored, so the manifest edit must be re-applied by the
 // plugin on every `expo prebuild`.
-const plugin = require("../plugins/with-android-cleartext-traffic.js");
+import cleartextTrafficPlugin from "../plugins/with-android-cleartext-traffic.js";
+
+// The plugin is untyped CommonJS; the config-plugin wrapper's `mods` field is
+// not visible in the inferred JS type, so treat the import as opaque.
+const plugin = cleartextTrafficPlugin as any;
 
 type ManifestApplication = { $: Record<string, string> };
 

@@ -60,7 +60,7 @@ describe("backfillLocalHistory", () => {
 
   it("drops a malformed point instead of losing the whole listing's history", async () => {
     const p = product(3);
-    (p.listings[0]!.priceHistory as Array<Record<string, unknown>>).push({
+    (p.listings[0]!.priceHistory as Record<string, unknown>[]).push({
       // Date-only: the server's strict ISO-UTC regex rejects the whole payload.
       date: "2026-01-05",
       price: 5,

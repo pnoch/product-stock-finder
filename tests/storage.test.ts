@@ -38,7 +38,6 @@ import {
   removeAlert,
   toggleAlert,
   rearmAlert,
-  deactivateAlert,
   getSettings,
   saveSettings,
   getBackOrderReminders,
@@ -623,7 +622,7 @@ describe("sync meta", () => {
 
 describe("onChange callback", () => {
   it("fires after addToWatchlist and removeFromWatchlist", async () => {
-    const calls: Array<[string, string]> = [];
+    const calls: [string, string][] = [];
     const localStore = new Map<string, string>();
     const storage = createStorage(
       {
@@ -649,7 +648,7 @@ describe("onChange callback", () => {
   });
 
   it("does not fire onChange for raw saveWatchlist", async () => {
-    const calls: Array<[string, string]> = [];
+    const calls: [string, string][] = [];
     const localStore = new Map<string, string>();
     const storage = createStorage(
       {
@@ -671,7 +670,7 @@ describe("onChange callback", () => {
   });
 
   it("fires onChange for tag mutations so settings sync", async () => {
-    const calls: Array<[string, string]> = [];
+    const calls: [string, string][] = [];
     const localStore = new Map<string, string>();
     const storage = createStorage(
       {

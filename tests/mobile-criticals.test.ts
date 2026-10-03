@@ -559,7 +559,7 @@ describe("distributor selector has no dead computation", () => {
 // module or tests): parseWatchlistDetailedCsv, getQueuedEditCount, and
 // computeWatchlistStats (plus its WatchlistStats type).
 describe("dead lib exports stay removed", () => {
-  const cases: Array<[string, string]> = [
+  const cases: [string, string][] = [
     ["lib/csv.ts", "parseWatchlistDetailedCsv"],
     ["lib/sync.ts", "getQueuedEditCount"],
     ["lib/watchlist-stats.ts", "computeWatchlistStats"],
@@ -729,7 +729,7 @@ describe("orphaned components stay deleted", () => {
 // (Stock Health "N listings", health drill-down "N samples", sparkline a11y
 // "N points", bulk-import a11y "N products"). Each can render with a count of 1.
 describe("count labels pluralize", () => {
-  const cases: Array<[string, RegExp]> = [
+  const cases: [string, RegExp][] = [
     ["components/stats/stock-health-card.tsx", /listing\{health\.totalListings === 1 \? "" : "s"\}/],
     ["app/health/[id].tsx", /sample\{summary\.count === 1 \? "" : "s"\}/],
     ["app/health/[id].tsx", /sample\{g\.samples\.length === 1 \? "" : "s"\}/],

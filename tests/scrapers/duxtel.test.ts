@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { duxtelParser, scrapeDuxtel } from "../../lib/scrapers/duxtel";
+import { duxtelParser } from "../../lib/scrapers/duxtel";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 

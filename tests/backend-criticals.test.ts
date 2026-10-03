@@ -29,7 +29,7 @@ describe("backend release blockers", () => {
     expect(files).not.toContain("0019_trending_products.sql");
     const journal = JSON.parse(
       readFileSync(path.join(drizzleDir, "meta", "_journal.json"), "utf8"),
-    ) as { entries: Array<{ tag: string }> };
+    ) as { entries: { tag: string }[] };
     const tags = journal.entries.map((entry) => entry.tag);
     const migration = tags.find((tag) => tag.startsWith("0020_"));
     expect(migration).toBeDefined();

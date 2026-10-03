@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { convertPrice } from "../lib/currency";
 import { getCurrencySymbol, formatPrice } from "../shared/src/currency";
 
 describe("CURRENCY_SYMBOLS regression — GB→GBP typo", () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { megaParser, scrapeMega } from "../../lib/scrapers/mega";
+import { megaParser } from "../../lib/scrapers/mega";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 

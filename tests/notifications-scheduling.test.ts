@@ -4,11 +4,11 @@ const state = vi.hoisted(() => ({
   platform: "ios" as string,
   quiet: false,
   settings: {} as Record<string, unknown>,
-  scheduled: [] as Array<{
+  scheduled: [] as {
     content: { title: string; body: string; data?: unknown };
     trigger: unknown;
-  }>,
-  channels: [] as Array<{ id: string; opts: Record<string, unknown> }>,
+  }[],
+  channels: [] as { id: string; opts: Record<string, unknown> }[],
   cancelled: [] as string[],
   allCancelled: 0,
   failSchedule: false,
@@ -17,10 +17,10 @@ const state = vi.hoisted(() => ({
   existingPerm: "granted" as string,
   displayWeb: true,
   webPermission: "granted" as string,
-  recorded: [] as Array<Record<string, unknown>>,
+  recorded: [] as Record<string, unknown>[],
   displayedIds: [] as string[],
-  receivedListeners: [] as Array<(n: unknown) => void>,
-  responseListeners: [] as Array<(r: unknown) => void>,
+  receivedListeners: [] as ((n: unknown) => void)[],
+  responseListeners: [] as ((r: unknown) => void)[],
   lastResponse: null as unknown,
 }));
 

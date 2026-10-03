@@ -28,8 +28,7 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
 }));
 
 import { discoverProduct, toDiscoverErrorState, DiscoveryAuthError, DiscoveryError, setDiscoveryHeadersProvider } from "../lib/llm-discovery";
-import { MAX_DISCOVERY_QUERY } from "../shared/const";
-import { BYO_LLM_AUTH_ERR_MSG } from "../shared/const";
+import { MAX_DISCOVERY_QUERY , BYO_LLM_AUTH_ERR_MSG } from "../shared/const";
 
 describe("discoverProduct", () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { aerialParser, scrapeAerial } from "../../lib/scrapers/aerial";
+import { aerialParser } from "../../lib/scrapers/aerial";
 
 describe("Aerial Parser", () => {
   it("should have correct parser config", () => {
