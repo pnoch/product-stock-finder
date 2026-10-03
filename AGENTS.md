@@ -35,6 +35,8 @@ pnpm check        # tsc --noEmit  (typecheck — run before claiming done)
 pnpm lint         # expo lint (ESLint flat config, eslint-config-expo)
 pnpm format       # prettier --write .
 pnpm test         # vitest run
+pnpm verify       # full local gate: check + lint + test + check:desktop + desktop test + cargo test
+pnpm test:rust    # cargo test for desktop/src-tauri
 pnpm db:push      # drizzle-kit generate && migrate (requires DATABASE_URL)
 pnpm build        # esbuild bundle server to dist/
 pnpm start        # production node server
