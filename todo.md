@@ -7850,3 +7850,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Phase 1051 raised RTL's `asyncUtilTimeout` to 5000 but the flake fired at **vitest's default 5s test-level timeout** (not RTL's), so it couldn't help. `desktop/vite.config.ts` now sets `testTimeout: 20000` (+ `hookTimeout`), and `desktop/tests/setup.ts` sets `asyncUtilTimeout: 10000` so RTL queries have room inside that budget.
 - [x] Confirmed under load: `pnpm test && pnpm --dir desktop test` ×2 and full `pnpm verify` all exit 0.
+
+## Phase 1060: Document the three merge semantics (no unsafe consolidation)
+
+- [x] Investigated the proposed "de-dup merge logic": the three implementations are intentionally different algorithms, not duplicates — `lib/sync.ts applyLocalItem` (incoming fields win, history merged, tags LWW), `lib/backup.ts mergeProductListings` (wholesale LWW, **local wins ties**), and Rust `merge_listings` (wholesale LWW, **incoming wins ties**). Consolidating any two would change sync/backup/file-mirror behavior, so no code was merged.
+- [x] Locked the divergence instead: added a backup tie regression test (`tests/backup.test.ts`) and an AGENTS.md "Merge semantics" convention note so future agents don't try to unify them. Docs/test only; `tsc 0`, lint 0, suites green.
