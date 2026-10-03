@@ -512,6 +512,12 @@ async fn set_value_for_key(
     if !is_allowed_storage_key(&key) {
         return Err(format!("Refusing to write disallowed key: {key}"));
     }
+    // Alerts have their own serialized writer (apply_alert_mutations); the
+    // plain setter must take the same lock or it can interleave with the poller.
+    if key == "price_alerts" {
+        let _guard = ALERTS_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        return write_json_file(&data_dir, &key, &value);
+    }
     write_json_file(&data_dir, &key, &value)
 }
 
@@ -634,6 +640,79 @@ async fn merge_watchlist(
     serde_json::to_string(&merged).map_err(|e| e.to_string())
 }
 
+/// Process-wide lock serializing the alert file's read-modify-write so the
+/// renderer's mutation command and the poller's write cannot interleave.
+static ALERTS_FILE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[derive(serde::Deserialize)]
+struct AlertUpsert {
+    id: String,
+    patch: serde_json::Value,
+}
+
+/// Applies a field patch to one alert. A `null` patch value removes the field;
+/// absent fields are left untouched, so poller-owned fields the renderer did not
+/// change survive.
+fn apply_alert_patch(mut item: serde_json::Value, patch: &serde_json::Value) -> serde_json::Value {
+    if let (Some(obj), Some(patch_obj)) = (item.as_object_mut(), patch.as_object()) {
+        for (k, v) in patch_obj {
+            if k == "id" {
+                continue;
+            }
+            if v.is_null() {
+                obj.remove(k);
+            } else {
+                obj.insert(k.clone(), v.clone());
+            }
+        }
+    }
+    item
+}
+
+fn apply_alert_mutations_to(
+    disk: serde_json::Value,
+    upserts: &[AlertUpsert],
+    removes: &[String],
+) -> serde_json::Value {
+    let mut list = match disk {
+        serde_json::Value::Array(items) => items,
+        _ => Vec::new(),
+    };
+    if removes.iter().any(|r| !r.is_empty()) {
+        list.retain(|a| {
+            let id = a.get("id").and_then(|v| v.as_str()).unwrap_or("");
+            !removes.iter().any(|r| !r.is_empty() && r.as_str() == id)
+        });
+    }
+    for up in upserts {
+        match list
+            .iter()
+            .position(|a| a.get("id").and_then(|v| v.as_str()) == Some(up.id.as_str()))
+        {
+            Some(idx) => list[idx] = apply_alert_patch(list[idx].clone(), &up.patch),
+            None => list.push(apply_alert_patch(
+                serde_json::json!({ "id": up.id }),
+                &up.patch,
+            )),
+        }
+    }
+    serde_json::Value::Array(list)
+}
+
+#[tauri::command]
+async fn apply_alert_mutations(
+    app: tauri::AppHandle,
+    upserts: Vec<AlertUpsert>,
+    removes: Vec<String>,
+) -> Result<String, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let _guard = ALERTS_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let disk = read_json_file(&data_dir, "price_alerts")?;
+    let merged = apply_alert_mutations_to(disk, &upserts, &removes);
+    write_json_file(&data_dir, "price_alerts", &merged)?;
+    serde_json::to_string(&merged).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 async fn read_value_for_key(
     app: tauri::AppHandle,
@@ -733,6 +812,9 @@ async fn import_watchlist(
             if !import.stock_watches.is_null() {
                 entries.push(("back_in_stock_watches", &import.stock_watches));
             }
+            // Serialize with the poller/command: the import writes price_alerts
+            // too, and an interleaved poller write would be lost.
+            let _guard = ALERTS_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
             write_json_files_atomically(&data_dir, &entries)?;
 
             Ok("Import successful".to_string())
@@ -1130,6 +1212,7 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
         }
         let to_deactivate = deactivate_after_notify(&results, &triggered);
         if !to_deactivate.is_empty() {
+            let _guard = ALERTS_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
             // Re-read immediately before writing: the file may have changed
             // while this (minutes-long) check ran, and writing the snapshot read
             // at the start silently reverted a concurrent add/snooze/delete.
@@ -2139,6 +2222,7 @@ pub fn run() {
             read_watchlist,
             set_value_for_key,
             merge_watchlist,
+            apply_alert_mutations,
             export_watchlist,
             import_watchlist,
             start_price_poller,
@@ -2719,6 +2803,115 @@ mod tests {
             parse_iso_to_epoch_ms(js),
             parse_iso_to_epoch_ms(rust),
             "parsed instants must be equal"
+        );
+    }
+
+    #[test]
+    fn apply_alert_mutations_preserves_a_poller_trigger() {
+        let disk = serde_json::json!([
+            { "id": "a1", "isActive": false, "targetPrice": 500,
+              "triggeredAt": "2026-06-02T00:00:00.000Z", "triggeredPrice": 480 }
+        ]);
+        let upserts = vec![AlertUpsert {
+            id: "a1".into(),
+            patch: serde_json::json!({ "targetPrice": 450 }),
+        }];
+        let merged = apply_alert_mutations_to(disk, &upserts, &[]);
+        let a = &merged.as_array().unwrap()[0];
+        assert_eq!(a["targetPrice"], serde_json::json!(450));
+        assert_eq!(
+            a["triggeredAt"],
+            serde_json::json!("2026-06-02T00:00:00.000Z")
+        );
+        assert_eq!(a["triggeredPrice"], serde_json::json!(480));
+        assert_eq!(a["isActive"], serde_json::json!(false));
+    }
+
+    #[test]
+    fn apply_alert_mutations_rearm_clears_the_trigger() {
+        let disk = serde_json::json!([
+            { "id": "a1", "isActive": false,
+              "triggeredAt": "2026-06-02T00:00:00.000Z", "triggeredPrice": 480 }
+        ]);
+        let upserts = vec![AlertUpsert {
+            id: "a1".into(),
+            patch: serde_json::json!({
+                "isActive": true,
+                "triggeredAt": serde_json::Value::Null,
+                "triggeredPrice": serde_json::Value::Null,
+            }),
+        }];
+        let merged = apply_alert_mutations_to(disk, &upserts, &[]);
+        let a = &merged.as_array().unwrap()[0];
+        assert_eq!(a["isActive"], serde_json::json!(true));
+        assert!(a.get("triggeredAt").is_none());
+        assert!(a.get("triggeredPrice").is_none());
+    }
+
+    #[test]
+    fn apply_alert_mutations_adds_and_removes() {
+        let disk = serde_json::json!([{ "id": "a1" }, { "id": "a2" }]);
+        let upserts = vec![AlertUpsert {
+            id: "a3".into(),
+            patch: serde_json::json!({ "targetPrice": 10 }),
+        }];
+        let merged = apply_alert_mutations_to(disk, &upserts, &["a1".to_string()]);
+        let ids: Vec<&str> = merged
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|a| a["id"].as_str().unwrap())
+            .collect();
+        assert_eq!(ids, vec!["a2", "a3"]);
+    }
+
+    #[test]
+    fn apply_alert_mutations_ignores_a_missing_id() {
+        let disk = serde_json::json!([{ "id": "a1" }]);
+        let merged = apply_alert_mutations_to(disk, &[], &["nope".to_string()]);
+        assert_eq!(merged.as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn apply_alert_patch_ignores_id() {
+        let disk = serde_json::json!([{ "id": "a1", "targetPrice": 1 }]);
+        let upserts = vec![AlertUpsert {
+            id: "a1".into(),
+            patch: serde_json::json!({ "id": "evil", "targetPrice": 2 }),
+        }];
+        let merged = apply_alert_mutations_to(disk, &upserts, &[]);
+        let a = &merged.as_array().unwrap()[0];
+        assert_eq!(a["id"], serde_json::json!("a1"));
+        assert_eq!(a["targetPrice"], serde_json::json!(2));
+    }
+
+    #[test]
+    fn apply_alert_mutations_ignores_empty_remove_id() {
+        let disk = serde_json::json!([{ "id": "a1" }, { "targetPrice": 1 }]);
+        let merged = apply_alert_mutations_to(disk, &[], &["".to_string()]);
+        assert_eq!(merged.as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn apply_alert_mutations_applies_a_snooze_patch_only() {
+        let disk = serde_json::json!([{
+            "id": "a1", "targetPrice": 500, "isActive": true,
+            "triggeredAt": "2026-06-02T00:00:00.000Z"
+        }]);
+        let upserts = vec![AlertUpsert {
+            id: "a1".into(),
+            patch: serde_json::json!({ "snoozedUntil": "2026-07-01T00:00:00.000Z" }),
+        }];
+        let merged = apply_alert_mutations_to(disk, &upserts, &[]);
+        let a = &merged.as_array().unwrap()[0];
+        assert_eq!(
+            a["snoozedUntil"],
+            serde_json::json!("2026-07-01T00:00:00.000Z")
+        );
+        assert_eq!(a["targetPrice"], serde_json::json!(500));
+        assert_eq!(
+            a["triggeredAt"],
+            serde_json::json!("2026-06-02T00:00:00.000Z")
         );
     }
 }
