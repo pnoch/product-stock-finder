@@ -308,7 +308,7 @@ export async function getPasswordResetToken(token: string) {
   if (!db) return memTokens.get(token) ?? null;
   try {
     const rows = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token)).limit(1);
-    if (rows[0]) return rows[0] as unknown as { userId: number; token: string; expiresAt: number; usedAt: number | null };
+    if (rows[0]) return rows[0];
     return memTokens.get(token) ?? null;
   } catch {
     return memTokens.get(token) ?? null;
@@ -340,7 +340,7 @@ export async function consumePasswordResetToken(token: string) {
         .where(eq(passwordResetTokens.token, token))
         .limit(1)
         .for("update");
-      const row = rows[0] as unknown as Row | undefined;
+      const row = rows[0];
       if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
       await tx
         .update(passwordResetTokens)
@@ -386,7 +386,6 @@ export async function resetPasswordWithToken(
   token: string,
   passwordHash: string,
 ): Promise<number | null> {
-  type Row = { userId: number; token: string; expiresAt: number; usedAt: number | null };
   const now = Date.now();
   const db = await getDb();
   if (!db) {
@@ -405,7 +404,7 @@ export async function resetPasswordWithToken(
         .where(eq(passwordResetTokens.token, token))
         .limit(1)
         .for("update");
-      const row = rows[0] as unknown as Row | undefined;
+      const row = rows[0];
       if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
       await tx
         .update(passwordResetTokens)
@@ -462,7 +461,7 @@ export async function getEmailVerificationToken(token: string) {
   if (!db) return memVerifyTokens.get(token) ?? null;
   try {
     const rows = await db.select().from(emailVerificationTokens).where(eq(emailVerificationTokens.token, token)).limit(1);
-    if (rows[0]) return rows[0] as unknown as { userId: number; token: string; expiresAt: number; usedAt: number | null };
+    if (rows[0]) return rows[0];
     return memVerifyTokens.get(token) ?? null;
   } catch {
     return memVerifyTokens.get(token) ?? null;
@@ -491,7 +490,7 @@ export async function consumeEmailVerificationToken(token: string) {
         .where(eq(emailVerificationTokens.token, token))
         .limit(1)
         .for("update");
-      const row = rows[0] as unknown as Row | undefined;
+      const row = rows[0];
       if (!row || row.usedAt !== null || row.expiresAt <= now) return null;
       await tx
         .update(emailVerificationTokens)

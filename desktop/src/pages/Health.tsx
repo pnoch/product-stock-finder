@@ -3,19 +3,12 @@ import { useNavigate } from "react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { createTRPCClient } from "../lib/trpc";
 import { getDistributorById } from "@shared/distributors";
-import { computeHealthStats, createHealthService, sanitizeResponseTimeMs, type HealthStats } from "../../../lib/scrapers/health";
+import { computeHealthStats, createHealthService, sanitizeResponseTimeMs, type DistributorHealth, type HealthStats } from "../../../lib/scrapers/health";
 import { classifyFetchStatus } from "../../../lib/scrapers/resilient";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
+import type { StorageAdapter } from "../../../lib/storage/adapter";
 
 type HealthStatus = "working" | "blocked" | "error";
-
-interface DistributorHealth {
-  distributorId: string;
-  status: HealthStatus;
-  reason?: string;
-  responseTimeMs?: number;
-  lastChecked: string;
-}
 
 type Filter = "all" | "working" | "blocked" | "error";
 
@@ -70,7 +63,7 @@ function HealthSparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
-const localAdapter = {
+const localAdapter: StorageAdapter = {
   getItem: async (k: string) => localStorage.getItem(k),
   setItem: async (k: string, v: string) => localStorage.setItem(k, v),
   removeItem: async (k: string) => localStorage.removeItem(k),
@@ -117,13 +110,13 @@ export function Health() {
         // Web/PWA: Tauri unavailable — run checks server-side instead.
         console.error("[Health] Tauri check unavailable, falling back to server");
         const client = createTRPCClient();
-        results = (await client.health.check.query()) as unknown as DistributorHealth[];
+        results = await client.health.check.query();
       }
       setHealth(results);
       setProgress(100);
       try {
-        const svc = createHealthService(localAdapter as unknown as import("../../../lib/storage/adapter").StorageAdapter);
-        await svc.saveDistributorHealth(results as unknown as import("../../../lib/scrapers/health").DistributorHealth[]);
+        const svc = createHealthService(localAdapter);
+        await svc.saveDistributorHealth(results);
         for (const r of results) {
           await svc.recordSample(r.distributorId, r.status, r.reason, r.responseTimeMs);
         }
@@ -145,11 +138,11 @@ export function Health() {
   useEffect(() => {
     (async () => {
       try {
-        const svc = createHealthService(localAdapter as unknown as import("../../../lib/storage/adapter").StorageAdapter);
+        const svc = createHealthService(localAdapter);
         const history = await svc.getHealthHistory();
         setStats(computeHealthStats(history));
         const existing = await svc.getDistributorHealth();
-        if (existing.length > 0) setHealth(existing as DistributorHealth[]);
+        if (existing.length > 0) setHealth(existing);
       } catch {
         // ignore
       }

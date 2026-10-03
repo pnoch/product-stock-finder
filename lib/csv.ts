@@ -325,7 +325,7 @@ export function detailedCsvToProducts(rows: DetailedCsvRow[]): Product[] {
       url: r.url || "",
       lastChecked: new Date().toISOString(),
       priceHistory: [],
-    } as unknown as DistributorListing;
+    };
     if (listingSeen.has(dedupKey)) {
       const idx = listingSeen.get(dedupKey)!;
       (product.listings as DistributorListing[])[idx] = listing;
