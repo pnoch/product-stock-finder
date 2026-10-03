@@ -107,7 +107,7 @@ export function appleAppSiteAssociation(): Record<string, unknown> | null {
   };
 }
 
-export function assetLinks(): Array<Record<string, unknown>> | null {
+export function assetLinks(): Record<string, unknown>[] | null {
   const certs = androidSha256Certs();
   if (certs.length === 0) return null;
   return [

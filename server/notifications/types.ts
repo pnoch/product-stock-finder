@@ -1,7 +1,7 @@
 import type { InsertNotificationEventRow } from "../../drizzle/schema";
 
 export interface NotificationConfig {
-  alerts: Array<{
+  alerts: {
     id: string;
     productId: string;
     /** Model number for products outside the static catalog. */
@@ -11,22 +11,22 @@ export interface NotificationConfig {
     distributorId?: string;
     direction?: "drop" | "rise";
     snoozedUntil?: string;
-  }>;
-  stockWatches: Array<{
+  }[];
+  stockWatches: {
     id: string;
     productId: string;
     modelNumber?: string;
     distributorId: string;
     lastKnownStatus?: string;
-  }>;
-  dateReminders: Array<{
+  }[];
+  dateReminders: {
     id: string;
     productId: string;
     modelNumber?: string;
     distributorId: string;
     reminderDate: string;
-  }>;
-  healthEvents?: Array<{
+  }[];
+  healthEvents?: {
     id: string;
     distributorId: string;
     distributorName: string;
@@ -38,7 +38,7 @@ export interface NotificationConfig {
     title: string;
     body: string;
     createdAt: number;
-  }>;
+  }[];
   // Quiet-hours digest batching: when set and covering now, the warmer holds
   // fresh events and flushes one grouped digest at the window end instead of
   // pushing immediately. Evaluated in server-local time.

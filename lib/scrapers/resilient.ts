@@ -443,7 +443,7 @@ async function runResilientFetch(
     return { status: "skipped", method: "none" };
   }
 
-  const methods: Array<"plain" | "browser"> =
+  const methods: ("plain" | "browser")[] =
     opts.parser.useBrowser === true
       ? ["browser", "plain"]
       : ["plain", "browser"];

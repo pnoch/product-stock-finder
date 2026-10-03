@@ -7791,3 +7791,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Cleared all 27 `react-hooks/exhaustive-deps` warnings (lint 146 → 119, no new warnings) across 8 files. Added provably-stable deps (`showToast`/`update`/`logout`/`setUser`/`setError`/`setLoading`), removed genuinely-unused deps (`trackedIdsArray`, `searchTagMode`), memoized `ProductDetail`'s `visibleListings`, hoisted `checkInterval` so the poller effect runs only on interval changes, wrapped `Settings` `loadDevices` in `useCallback`.
 - [x] Real fix surfaced by the change: adding `showToast` to a dep array evaluated it before its declaration (TDZ crash) — `useToast()` moved to the top of `Settings`. `use-live-prices` cleanups now invalidate only their own generation, so a superseding refresh is not clobbered on unmount.
 - [x] `tsc 0`, root `3151` / desktop `321` green. Follow-up (non-blocking): a regression test for the `use-live-prices` generation guard.
+
+## Phase 1049: Lint warnings to zero + ratchet
+
+- [x] Drove `pnpm lint` to **0 warnings** (from 119) and made warnings fail CI: the `lint` script now passes `-- --max-warnings 0`.
+- [x] Fixed: `array-type` (49, mechanical `Array<T>`→`T[]`), `import/first` (tests override — Vitest hoists `vi.mock` above imports — plus reordering the stray imports in `lib/fx.ts` and `server/routers.ts`), `no-unused-vars`/`no-redeclare`/`no-named-as-default-member` (aliased type import, optional catch bindings, dead `load-env.js` vars).
+- [x] `_core` remains untouched by convention: stylistic rules (`no-named-as-default-member`, `array-type`) are scoped off for `lib/_core`. `tsc 0`, root `3151` / desktop `321` green.

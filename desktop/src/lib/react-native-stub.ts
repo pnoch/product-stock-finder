@@ -10,7 +10,7 @@ export const Alert = {
   alert: (
     _title: string,
     _message?: string,
-    buttons?: Array<{ onPress?: () => void; style?: string }>,
+    buttons?: { onPress?: () => void; style?: string }[],
   ) => {
     const confirm = buttons?.find((b) => b.style !== "cancel");
     if (window.confirm(_message ?? _title)) confirm?.onPress?.();

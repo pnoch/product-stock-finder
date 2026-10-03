@@ -27,6 +27,31 @@ import { sharedWatchlists, sharedWatchlistMembers, watchlistItems } from "../dri
 import { userLlmConfigFromHeaders } from "./user-llm";
 import { llmRouter } from "./routers/llm";
 import { isDuplicateKeyError, isForeignKeyError } from "./db-errors";
+import { getPrice } from "./prices";
+import { mapWithConcurrency } from "./concurrency";
+import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
+import { getAllParserIds } from "../lib/scrapers/registry";
+import { checkAllDistributors } from "./health";
+import { getFxRates } from "./fx";
+import { mergeHistory } from "./price-history";
+import { checkRateLimit, checkRateLimitByKey } from "./rate-limit";
+import { getInsight } from "./price-insights";
+import { getProductImage } from "./product-images";
+import { discoveryRouter } from "./routers/discovery";
+import { trendingRouter } from "./routers/trending";
+import { parseProductText } from "./product-parse";
+import type { SyncRejectedItem, SyncStampedItem } from "../lib/types";
+import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
+import { upsertPushToken, pruneDeviceToken } from "./push-notifications";
+import {
+  listDevicesForUser,
+  getDeviceBinding,
+  assertDeviceAccess,
+  renameDevice,
+  signOutDevice,
+  cleanupStaleDevices,
+  STALE_DEVICE_MS,
+} from "./devices";
 
 const LOCAL_ORIGIN_FALLBACK = "http://localhost:8081";
 
@@ -70,11 +95,6 @@ const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 // Public share links return the owner's watchlist; cap the payload so a very
 // large watchlist can't turn the endpoint into an expensive unbounded read.
 const SHARED_WATCHLIST_MAX_ITEMS = 500;
-import { getPrice } from "./prices";
-import { mapWithConcurrency } from "./concurrency";
-import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
-import { getAllParserIds } from "../lib/scrapers/registry";
-import { checkAllDistributors } from "./health";
 
 // Short server cache: one health.check fans out to ~25 distributor scrapes,
 // so repeat calls within the window reuse the previous result instead of
@@ -92,26 +112,6 @@ let healthInFlight: Promise<Awaited<ReturnType<typeof checkAllDistributors>>> | 
 export function clearHealthCacheForTests(): void {
   healthCache = { at: 0, result: null };
 }
-import { getFxRates } from "./fx";
-import { mergeHistory } from "./price-history";
-import { checkRateLimit, checkRateLimitByKey } from "./rate-limit";
-import { getInsight } from "./price-insights";
-import { getProductImage } from "./product-images";
-import { discoveryRouter } from "./routers/discovery";
-import { trendingRouter } from "./routers/trending";
-import { parseProductText } from "./product-parse";
-import type { SyncRejectedItem, SyncStampedItem } from "../lib/types";
-import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
-import { upsertPushToken, pruneDeviceToken } from "./push-notifications";
-import {
-  listDevicesForUser,
-  getDeviceBinding,
-  assertDeviceAccess,
-  renameDevice,
-  signOutDevice,
-  cleanupStaleDevices,
-  STALE_DEVICE_MS,
-} from "./devices";
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),

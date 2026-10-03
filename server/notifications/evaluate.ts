@@ -83,22 +83,22 @@ export async function evaluateNotifications(now: number): Promise<void> {
 
 async function evaluateConfigPage(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
-  rows: Array<{
+  rows: {
     deviceId: string;
     userId: number | null;
     alerts: unknown;
     stockWatches: unknown;
     dateReminders: unknown;
     quietHours?: unknown;
-  }>,
+  }[],
   now: number,
   getPrice: PriceLookup,
 ): Promise<void> {
-  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
+  const anonDevices: { deviceId: string; config: NotificationConfig }[] =
     [];
   const userDevices = new Map<
     number,
-    Array<{ deviceId: string; config: NotificationConfig }>
+    { deviceId: string; config: NotificationConfig }[]
   >();
   for (const row of rows) {
     const config = rowToConfig(row);
@@ -129,11 +129,11 @@ async function evaluateMemory(
   now: number,
   getPrice: PriceLookup,
 ): Promise<void> {
-  const anonDevices: Array<{ deviceId: string; config: NotificationConfig }> =
+  const anonDevices: { deviceId: string; config: NotificationConfig }[] =
     [];
   const userDevices = new Map<
     number,
-    Array<{ deviceId: string; config: NotificationConfig }>
+    { deviceId: string; config: NotificationConfig }[]
   >();
   for (const [deviceId, entry] of memoryConfigs) {
     if (entry.userId) {
@@ -207,7 +207,7 @@ async function evaluateAnonMemory(
 
 async function evaluateUserMemory(
   userId: number,
-  devices: Array<{ deviceId: string; config: NotificationConfig }>,
+  devices: { deviceId: string; config: NotificationConfig }[],
   now: number,
   getPrice: PriceLookup,
 ): Promise<void> {
@@ -403,7 +403,7 @@ async function evaluateConfigDb(
 async function evaluateUserDb(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
   userId: number,
-  devices: Array<{ deviceId: string; config: NotificationConfig }>,
+  devices: { deviceId: string; config: NotificationConfig }[],
   now: number,
   getPrice: PriceLookup,
 ): Promise<void> {

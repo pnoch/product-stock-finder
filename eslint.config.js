@@ -19,4 +19,25 @@ export default defineConfig([
       globals: { __dirname: "readonly", __filename: "readonly", process: "readonly" },
     },
   },
+  {
+    // Tests intentionally call vi.mock() before their imports (Vitest hoists
+    // the mocks above the import statement), which `import/first` flags.
+    files: [
+      "tests/**/*.{ts,tsx}",
+      "desktop/tests/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "import/first": "off",
+    },
+  },
+  {
+    // Framework-level code: `themeConfig` intentionally mixes a default and a
+    // named export, and the tree uses `Array<T>` style; do not edit _core to
+    // satisfy stylistic lint rules.
+    files: ["lib/_core/**", "server/_core/**", "shared/_core/**"],
+    rules: {
+      "import/no-named-as-default-member": "off",
+      "@typescript-eslint/array-type": "off",
+    },
+  },
 ]);

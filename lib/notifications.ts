@@ -470,7 +470,7 @@ export async function scheduleServerEventNotification(
 // taps, so the launch pull sync can skip re-rendering them locally.
 export function setupPushEventTracking(): () => void {
   if (Platform.OS === "web") return () => {};
-  const subscriptions: Array<{ remove: () => void }> = [];
+  const subscriptions: { remove: () => void }[] = [];
   const recordEventId = (data: unknown): void => {
     const eventId = (data as { eventId?: unknown } | undefined)?.eventId;
     if (typeof eventId === "string" && eventId) {

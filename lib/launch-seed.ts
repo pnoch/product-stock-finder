@@ -12,11 +12,11 @@ export const SEED_IDS = [
 
 export interface SeedDeps {
   storage: {
-    getWatchlist(): Promise<Array<{ id: string; listings?: unknown[] }>>;
+    getWatchlist(): Promise<{ id: string; listings?: unknown[] }[]>;
     addToWatchlist(product: unknown): Promise<unknown>;
     updateProductListings(id: string, listings: DistributorListing[]): Promise<unknown>;
   };
-  catalog: Array<{ id: string }>;
+  catalog: { id: string }[];
   sampleListings: Record<string, DistributorListing[]>;
   freshen(listings: DistributorListing[]): DistributorListing[];
 }

@@ -195,11 +195,11 @@ export function clearPushTokensForTests(): void {
   memoryTokens.clear();
 }
 
-export function listMemoryTokenDevices(): Array<{
+export function listMemoryTokenDevices(): {
   deviceId: string;
   userId: number | null;
   platform: string | null;
-}> {
+}[] {
   return [...memoryTokens.entries()].map(([deviceId, token]) => ({
     deviceId,
     userId: token.userId,

@@ -25,10 +25,10 @@ export function clearNotificationsForTests(): void {
   digestBuffers.clear();
 }
 
-export function listMemoryConfigDevices(): Array<{
+export function listMemoryConfigDevices(): {
   deviceId: string;
   userId: number | null;
-}> {
+}[] {
   return [...memoryConfigs.entries()].map(([deviceId, entry]) => ({
     deviceId,
     userId: entry.userId,

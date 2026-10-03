@@ -19,7 +19,7 @@ const WEBHOOK_TEST_TIMEOUT_MS = 8_000;
 
 export async function uploadNotificationConfig(
   config: NotificationConfig,
-  healthEvents?: Array<{
+  healthEvents?: {
     id: string;
     distributorId: string;
     distributorName: string;
@@ -29,7 +29,7 @@ export async function uploadNotificationConfig(
     title: string;
     body: string;
     createdAt: number;
-  }>,
+  }[],
 ): Promise<boolean> {
   try {
     const client = createTRPCClient();

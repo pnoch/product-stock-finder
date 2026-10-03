@@ -303,7 +303,7 @@ async function tryParseUrl(raw: string): Promise<ParsedProduct | null> {
 }
 
 type LlmInvoke = (params: InvokeParams) => Promise<{
-  choices?: Array<{ message?: { content?: unknown } }>;
+  choices?: { message?: { content?: unknown } }[];
 }>;
 
 const LIMITS = {

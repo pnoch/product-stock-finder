@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const state = vi.hoisted(() => ({
-  pending: [] as Array<Record<string, unknown>>,
+  pending: [] as Record<string, unknown>[],
   mutateInput: null as Record<string, unknown> | null,
   mutateCalls: 0,
   pullCalls: 0,
