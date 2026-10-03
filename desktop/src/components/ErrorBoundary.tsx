@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from "react";
+import { log } from "@shared/log";
 
 // The boundary wraps <App /> in main.tsx — OUTSIDE the HashRouter that App
 // contains — so it can catch router crashes too. Retry is a state reset only;
@@ -14,7 +15,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error): void {
-    console.error("[boundary] render crash", error);
+    log.error("[boundary] render crash", error);
   }
 
   private reset = () => this.setState({ error: null });

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { log } from "@shared/log";
 import {
   BarChart3,
   Bell,
@@ -161,7 +162,7 @@ export function Alerts() {
       setNotifications(history);
       setUnreadCount(unread);
     } catch {
-      console.error("[Alerts] Failed to load notifications");
+      log.error("[Alerts] Failed to load notifications");
       setNotifError("Couldn't load notifications.");
     }
   }, []);
@@ -296,7 +297,7 @@ export function Alerts() {
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch {
-      console.error("[Alerts] Failed to update notification read state");
+      log.error("[Alerts] Failed to update notification read state");
       showToast("Couldn't update notification. Try again.");
     }
   };
@@ -307,7 +308,7 @@ export function Alerts() {
       setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch {
-      console.error("[Alerts] Failed to update notification read state");
+      log.error("[Alerts] Failed to update notification read state");
       showToast("Couldn't update notification. Try again.");
     }
   };

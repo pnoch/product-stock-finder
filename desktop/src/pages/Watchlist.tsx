@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { log } from "@shared/log";
 import { useNavigate, useSearchParams, Link } from "react-router";
 import {
   RefreshCw,
@@ -492,7 +493,7 @@ export function Watchlist() {
         showToast("No prices found");
       }
     } catch (e) {
-      console.error("[Watchlist] price discovery failed", e);
+      log.error("[Watchlist] price discovery failed", e);
       showToast("Couldn't find prices");
     } finally {
       setFindingIds((prev) => {
@@ -871,7 +872,7 @@ export function Watchlist() {
       const defs = await storage.getTagDefinitions();
       setTagDefinitions(defs as Record<string, TagDefinition>);
     } catch {
-      console.error("[Watchlist] Failed to load tag definitions");
+      log.error("[Watchlist] Failed to load tag definitions");
       showToast("Couldn't load tags");
     }
     setBulkSelectedTagIds([]);

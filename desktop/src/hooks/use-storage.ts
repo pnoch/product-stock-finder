@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { storage } from "../storage";
 import { onListingUpdated } from "../background";
 import type { Product, PriceAlert, AppSettings } from "../../../lib/types";
+import { log } from "@shared/log";
 
 export function useWatchlist() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -103,7 +104,7 @@ export function useSettings() {
       // Revert the optimistic update so the UI doesn't show a setting that was
       // never persisted.
       if (previous) setSettings(previous);
-      console.error("[settings] save failed", e);
+      log.error("[settings] save failed", e);
     });
     return write;
   }, []);

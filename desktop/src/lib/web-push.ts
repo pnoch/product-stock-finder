@@ -1,4 +1,5 @@
 import { createTRPCClient } from "./trpc";
+import { log } from "@shared/log";
 import { PENDING_UNREGISTER_KEY, unregisterServerToken } from "./push-unregister";
 
 export function isPushSupported(): boolean {
@@ -32,7 +33,7 @@ export async function getPushStatus(): Promise<"on" | "off"> {
     const subscription = await registration?.pushManager.getSubscription();
     return subscription ? "on" : "off";
   } catch (e) {
-    console.error("[web-push] status check failed", e);
+    log.error("[web-push] status check failed", e);
     return "off";
   }
 }
@@ -64,7 +65,7 @@ export async function ensurePushSubscription(): Promise<boolean> {
     });
     return true;
   } catch (e) {
-    console.error("[web-push] subscribe failed", e);
+    log.error("[web-push] subscribe failed", e);
     return false;
   }
 }
@@ -82,7 +83,7 @@ export async function unsubscribeLocalWebPush(): Promise<void> {
     const subscription = await registration?.pushManager.getSubscription();
     if (subscription) await subscription.unsubscribe();
   } catch (e) {
-    console.error("[web-push] unsubscribe failed", e);
+    log.error("[web-push] unsubscribe failed", e);
   }
 }
 

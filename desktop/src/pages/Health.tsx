@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { createTRPCClient } from "../lib/trpc";
+import { log } from "@shared/log";
 import { getDistributorById } from "@shared/distributors";
 import { computeHealthStats, createHealthService, sanitizeResponseTimeMs, type DistributorHealth, type HealthStats } from "../../../lib/scrapers/health";
 import { classifyFetchStatus } from "../../../lib/scrapers/resilient";
@@ -108,7 +109,7 @@ export function Health() {
         );
       } catch {
         // Web/PWA: Tauri unavailable — run checks server-side instead.
-        console.error("[Health] Tauri check unavailable, falling back to server");
+        log.error("[Health] Tauri check unavailable, falling back to server");
         const client = createTRPCClient();
         results = await client.health.check.query();
       }
@@ -126,7 +127,7 @@ export function Health() {
         // stats are best-effort
       }
     } catch (error) {
-      console.error("Health check failed:", error);
+      log.error("Health check failed:", error);
       setHealthError(error instanceof Error ? error.message : "Health check failed");
     } finally {
       if (unlisten) unlisten();

@@ -1,5 +1,6 @@
 import { isTauri } from "../lib/tauri";
 import { saveCsv } from "../lib/save-csv";
+import { log } from "@shared/log";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import {
@@ -346,7 +347,7 @@ export function Settings() {
       } catch {
         if (cancelled) return;
         showToast("Couldn't start background checks — reverted to Manual");
-        console.error("[Settings] startPricePoller failed, reverting to manual");
+        log.error("[Settings] startPricePoller failed, reverting to manual");
         await update({ checkInterval: "manual" });
       }
     })();
@@ -499,7 +500,7 @@ export function Settings() {
       const choice = await deferredPrompt.userChoice;
       if (choice.outcome === "accepted") setDeferredPrompt(null);
     } catch (e) {
-      console.warn("[Settings] install prompt failed", e);
+      log.warn("[Settings] install prompt failed", e);
     }
   };
 
