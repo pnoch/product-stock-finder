@@ -7829,3 +7829,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Removed 26 redundant `as unknown as …` casts (74 → 48 app-code escapes): Drizzle row casts in `server/routers/shared-watchlists.ts` + `server/db.ts`, the `getOrigin(ctx.req as …)` calls (its `req` is unused → `_req?: unknown`), the `lib/csv.ts` DistributorListing cast, `use-auth.ts` `(apiUser as any)`, and desktop `Health.tsx`/`HealthDetail.tsx`/`health-probe.ts` adapter+health casts (typed `StorageAdapter`/`DistributorHealth[]`).
 - [x] Genuine framework shims kept (RN `Animated` configs, Playwright `window.chrome`/permissions, `Intl.Segmenter`, dynamic `Record` key access, the two `lib/csv.ts` product literals whose required fields can be `undefined`). `_core` untouched. Behavior-preserving; `tsc 0`, lint 0 warnings, root `3160` / desktop `321` green.
+
+## Phase 1056: Centralize client logging
+
+- [x] Expanded `@shared/log` (`shared/src/log.ts`, keeping `LOG_ERROR`) with `log.debug/info/warn/error` + `setLogSink`: `debug`/`info` are silenced in production, `warn`/`error` forward to the same console methods (behavior-preserving, no prefix), and the sink is try/caught so a monitoring sink can never throw into app code or suppress the write.
+- [x] Converted all 75 client app-code (`lib/ app/ components/ hooks/`) `console.*` calls to `log.*` (0 remain in scope); server, `_core`, and `LOG_ERROR` usages untouched. New `tests/no-stray-console.test.ts` guard prevents regressions; `tests/log.test.ts` covers method mapping, production gating, and sink forwarding/failure. `tsc 0`, lint 0, root `3163` / desktop `321` green.
+- [ ] Follow-up: `desktop/src` (~20 `console.*` across 15 files) is not yet converted — separate pass.
