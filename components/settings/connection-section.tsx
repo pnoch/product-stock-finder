@@ -40,7 +40,7 @@ export function ConnectionSection() {
         >
           <ConnectionBadge status={connection.status} />
           <TouchableOpacity activeOpacity={0.7}
-            disabled={connection.isRefreshing}
+            disabled={connection.isRefreshing || connection.status === "local"}
             onPress={() => {
               if (Platform.OS !== "web")
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -69,7 +69,9 @@ export function ConnectionSection() {
             ? "Live price checks are active."
             : connection.status === "signed-out"
               ? "Sign in to sync prices with the backend."
-              : "Backend unreachable. Showing saved prices."}
+              : connection.status === "local"
+                ? "Local mode — prices are checked on this device. Add a server URL to enable sync, push and shared watchlists."
+                : "Backend unreachable. Showing saved prices."}
         </Text>
         <Text style={{ color: colors.muted, fontSize: 12 }}>
           {connection.lastCheckedAt
