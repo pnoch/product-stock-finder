@@ -48,12 +48,20 @@ describe("validateServerEnv", () => {
       }),
     ).toEqual([]);
   });
+
+  it("treats a whitespace-only value as missing", () => {
+    const issues = validateServerEnv({ NODE_ENV: "production", DATABASE_URL: "   " });
+    expect(issues.some((i) => i.level === "error" && i.message.includes("DATABASE_URL"))).toBe(true);
+  });
 });
 
 describe("assertServerEnv", () => {
-  it("throws in production when required env is missing", () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+  it("logs via console.error/warn with an [env] prefix and throws on a production error", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(() => assertServerEnv({ NODE_ENV: "production" })).toThrow(/environment validation failed/i);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("[env]"));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("[env]"));
   });
 
   it("never throws for warnings or in development", () => {

@@ -5,31 +5,30 @@ export interface EnvIssue {
   message: string;
 }
 
-function has(env: NodeJS.ProcessEnv, key: string): boolean {
+function hasValue(env: NodeJS.ProcessEnv, key: string): boolean {
   const value = env[key];
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function partialGroup(
+function partialGroupIssue(
   env: NodeJS.ProcessEnv,
   label: string,
-  keys: string[],
+  keys: readonly string[],
 ): EnvIssue | null {
-  const present = keys.filter((key) => has(env, key));
-  if (present.length === 0 || present.length === keys.length) return null;
-  const missing = keys.filter((key) => !has(env, key));
+  const missing = keys.filter((key) => !hasValue(env, key));
+  if (missing.length === 0 || missing.length === keys.length) return null;
   return {
     level: "warn",
     message: `${label} is only partially configured; missing ${missing.join(", ")}`,
   };
 }
 
-const FEATURE_GROUPS: [string, string[]][] = [
+const FEATURE_GROUPS = [
   ["Google OAuth", ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]],
   ["Apple OAuth", ["APPLE_CLIENT_ID", "APPLE_TEAM_ID", "APPLE_KEY_ID", "APPLE_PRIVATE_KEY"]],
   ["Web push (VAPID)", ["VAPID_SUBJECT", "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"]],
   ["Transactional email", ["RESEND_API_KEY", "EMAIL_FROM"]],
-];
+] as const satisfies readonly (readonly [string, readonly string[]])[];
 
 /**
  * Pure check of the server environment. Production-only problems are `error`
@@ -40,20 +39,20 @@ export function validateServerEnv(env: NodeJS.ProcessEnv): EnvIssue[] {
   const issues: EnvIssue[] = [];
   const isProduction = env.NODE_ENV === "production";
 
-  if (isProduction && !has(env, "DATABASE_URL")) {
+  if (isProduction && !hasValue(env, "DATABASE_URL")) {
     issues.push({
       level: "error",
       message: "DATABASE_URL must be set in production (sync, auth and shares are disabled without it)",
     });
   }
-  if (isProduction && !has(env, "CORS_ALLOWED_ORIGINS")) {
+  if (isProduction && !hasValue(env, "CORS_ALLOWED_ORIGINS")) {
     issues.push({
       level: "warn",
       message: "CORS_ALLOWED_ORIGINS is empty in production; the web origin will be rejected",
     });
   }
   for (const [label, keys] of FEATURE_GROUPS) {
-    const issue = partialGroup(env, label, keys);
+    const issue = partialGroupIssue(env, label, keys);
     if (issue) issues.push(issue);
   }
   return issues;
