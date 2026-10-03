@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 // Guards the class of bug that shipped a blank web app: `import.meta` in a
-// classic script. The built-artifact checks live in scripts/smoke-web.mjs,
+// classic script. The built-artifact checks live in scripts/smoke-web.ts,
 // which CI runs AFTER `pnpm build`; these are source-level invariants that hold
 // regardless of build order (CI runs `pnpm test` before `pnpm build`).
 
