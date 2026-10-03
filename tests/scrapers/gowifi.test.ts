@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { gowifiParser, scrapeGowifi } from "../../lib/scrapers/gowifi";
+import { gowifiParser } from "../../lib/scrapers/gowifi";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 

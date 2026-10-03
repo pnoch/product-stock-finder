@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { neobitsParser, scrapeNeobits } from "../../lib/scrapers/neobits";
+import { neobitsParser } from "../../lib/scrapers/neobits";
 
 describe("Neobits Parser", () => {
   it("should have correct parser config", () => {

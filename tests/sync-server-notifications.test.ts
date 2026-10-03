@@ -2,17 +2,17 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const state = vi.hoisted(() => ({
   deviceId: "dev-1",
-  alerts: [] as Array<Record<string, unknown>>,
-  stockWatches: [] as Array<Record<string, unknown>>,
-  dateReminders: [] as Array<Record<string, unknown>>,
-  pulledEvents: [] as Array<Record<string, unknown>>,
+  alerts: [] as Record<string, unknown>[],
+  stockWatches: [] as Record<string, unknown>[],
+  dateReminders: [] as Record<string, unknown>[],
+  pulledEvents: [] as Record<string, unknown>[],
   displayed: [] as string[],
   recorded: [] as string[],
-  historyRecorded: [] as Array<Record<string, unknown>>,
-  rendered: [] as Array<Record<string, unknown>>,
-  renderData: [] as Array<{ productId?: string; type?: string } | undefined>,
-  deactivated: [] as Array<Record<string, unknown>>,
-  pendingHealth: [] as Array<Record<string, unknown>>,
+  historyRecorded: [] as Record<string, unknown>[],
+  rendered: [] as Record<string, unknown>[],
+  renderData: [] as ({ productId?: string; type?: string } | undefined)[],
+  deactivated: [] as Record<string, unknown>[],
+  pendingHealth: [] as Record<string, unknown>[],
 }));
 
 vi.mock("../lib/trpc", () => ({

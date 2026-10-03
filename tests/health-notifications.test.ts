@@ -2,8 +2,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const state = vi.hoisted(() => ({
   platform: "ios",
-  scheduled: [] as Array<{ content: { title: string; body: string } }>,
-  recorded: [] as Array<Record<string, unknown>>,
+  scheduled: [] as { content: { title: string; body: string } }[],
+  recorded: [] as Record<string, unknown>[],
 }));
 
 vi.mock("react-native", () => ({

@@ -1,10 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import {
-  interprojektParser,
-  scrapeInterprojekt,
-} from "../../lib/scrapers/interprojekt";
+import { interprojektParser } from "../../lib/scrapers/interprojekt";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 

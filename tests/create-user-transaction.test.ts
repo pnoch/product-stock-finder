@@ -1,13 +1,10 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import { users } from "../drizzle/schema";
-import { getDb } from "../server/db";
-import {
-  createUserWithPassword,
-  getUserByOpenId,
-} from "../server/db";
+import { getDb, createUserWithPassword, getUserByOpenId } from "../server/db";
 
-const runDbTests = process.env.RUN_DB_TESTS === "1" && !!process.env.TEST_DATABASE_URL;
+const runDbTests =
+  process.env.RUN_DB_TESTS === "1" && !!process.env.TEST_DATABASE_URL;
 if (process.env.TEST_DATABASE_URL) {
   process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 }
@@ -46,7 +43,9 @@ describe.skipIf(!runDbTests)("createUserWithPassword", () => {
       "second-hash",
     );
     const user = await getUserByOpenId(openId);
-    expect((user as { passwordHash?: string }).passwordHash).toBe("second-hash");
+    expect((user as { passwordHash?: string }).passwordHash).toBe(
+      "second-hash",
+    );
   });
 
   it("never leaves a row with a NULL password hash", async () => {

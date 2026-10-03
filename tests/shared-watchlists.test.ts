@@ -70,7 +70,7 @@ function fakeDb(opts: { sharedRows?: unknown[]; watchlistRows?: unknown[]; membe
           // The router now filters tombstones in SQL (isNull(deletedAtMs));
           // mirror that so the fake DB behaves like the real one.
           if (table !== sharedWatchlists) {
-            rows = (rows as Array<{ deletedAtMs?: number | null }>).filter(
+            rows = (rows as { deletedAtMs?: number | null }[]).filter(
               (r) => r.deletedAtMs === null || r.deletedAtMs === undefined,
             );
           }

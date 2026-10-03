@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { hellascomParser, scrapeHellascom } from "../../lib/scrapers/hellascom";
+import { hellascomParser } from "../../lib/scrapers/hellascom";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 

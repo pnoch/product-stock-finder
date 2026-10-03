@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 
 // Guards that credential-bearing files can never be committed. `.gitignore`

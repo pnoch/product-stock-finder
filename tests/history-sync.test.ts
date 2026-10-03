@@ -3,11 +3,11 @@ import type { Product } from "../lib/types";
 
 const state = vi.hoisted(() => ({
   watchlistStore: [] as Product[],
-  uploaded: [] as Array<{
+  uploaded: [] as {
     distributorId: string;
     modelNumber: string;
     points: unknown[];
-  }>,
+  }[],
 }));
 
 vi.mock("../lib/storage", () => ({

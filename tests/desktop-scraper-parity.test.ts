@@ -269,7 +269,7 @@ describe("desktop/mobile scraper parity", () => {
       "desktop/src-tauri/src/scrapers/breaker.rs",
       "utf8",
     );
-    const pairs: Array<[string, string]> = [
+    const pairs: [string, string][] = [
       [
         "blockedCooldownMs = opts.blockedCooldownMs ?? 30 * 60 * 1000",
         "BLOCKED_COOLDOWN_MS: u64 = 30 * 60 * 1000",
@@ -333,7 +333,7 @@ describe("desktop/mobile scraper parity", () => {
 
     // The five region presets must match the shared REGION_SIGNALS.
     const sharedBrowser = await readFile("lib/scrapers/browser.ts", "utf8");
-    const presets: Array<[string, string]> = [
+    const presets: [string, string][] = [
       ["en-GB", "Europe/Berlin"],
       ["en-AU", "Australia/Sydney"],
       ["en-AE", "Asia/Dubai"],

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { nasstoreParser, scrapeNasstore } from "../../lib/scrapers/nasstore";
+import { nasstoreParser } from "../../lib/scrapers/nasstore";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 

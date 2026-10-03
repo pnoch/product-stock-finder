@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { pbtechParser, scrapePbtech } from "../../lib/scrapers/pbtech";
+import { pbtechParser } from "../../lib/scrapers/pbtech";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 

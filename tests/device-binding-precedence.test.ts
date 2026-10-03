@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const configRows: Array<{ deviceId: string; userId: number | null }> = [];
-const tokenRows: Array<{ deviceId: string; userId: number | null }> = [];
+const configRows: { deviceId: string; userId: number | null }[] = [];
+const tokenRows: { deviceId: string; userId: number | null }[] = [];
 
 const dbStub = {
   select: () => ({

@@ -2103,7 +2103,7 @@ describe("desktop chart guard", () => {
   // QA round 48: unguarded storage.then chains rejected unhandled on a storage
   // failure. Each must have a .catch.
   it("guards desktop storage.then chains with .catch", async () => {
-    const cases: Array<[string, string]> = [
+    const cases: [string, string][] = [
       ["desktop/src/pages/Alerts.tsx", "storage\n      .getWatchlist()"],
       ["desktop/src/pages/Alerts.tsx", "storage\n      .getSettings()"],
       ["desktop/src/pages/Watchlist.tsx", "storage.getSettings().then((s) => {"],

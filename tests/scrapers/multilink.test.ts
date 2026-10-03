@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { multilinkParser, scrapeMultilink } from "../../lib/scrapers/multilink";
+import { multilinkParser } from "../../lib/scrapers/multilink";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 

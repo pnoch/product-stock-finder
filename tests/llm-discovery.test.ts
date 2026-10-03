@@ -27,9 +27,14 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
   },
 }));
 
-import { discoverProduct, toDiscoverErrorState, DiscoveryAuthError, DiscoveryError, setDiscoveryHeadersProvider } from "../lib/llm-discovery";
-import { MAX_DISCOVERY_QUERY } from "../shared/const";
-import { BYO_LLM_AUTH_ERR_MSG } from "../shared/const";
+import {
+  discoverProduct,
+  toDiscoverErrorState,
+  DiscoveryAuthError,
+  DiscoveryError,
+  setDiscoveryHeadersProvider,
+} from "../lib/llm-discovery";
+import { MAX_DISCOVERY_QUERY, BYO_LLM_AUTH_ERR_MSG } from "../shared/const";
 
 describe("discoverProduct", () => {
   beforeEach(() => {
@@ -148,7 +153,10 @@ describe("discoverProduct", () => {
 
   it("throws typed DiscoveryError on fetch failure", async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
-    await expect(discoverProduct("nonexistent")).rejects.toMatchObject({ name: "DiscoveryError", kind: "server" });
+    await expect(discoverProduct("nonexistent")).rejects.toMatchObject({
+      name: "DiscoveryError",
+      kind: "server",
+    });
   });
 
   // QA round 299: the raw discovery fetch carried no auth/BYO headers, so the
@@ -189,7 +197,9 @@ describe("discoverProduct", () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 412,
-      json: async () => ({ error: { json: { message: BYO_LLM_AUTH_ERR_MSG } } }),
+      json: async () => ({
+        error: { json: { message: BYO_LLM_AUTH_ERR_MSG } },
+      }),
     });
     await expect(discoverProduct("rtx 5090")).rejects.toMatchObject({
       name: "DiscoveryError",
@@ -209,7 +219,10 @@ describe("discoverProduct", () => {
   it("throws typed DiscoveryError when getApiBaseUrl returns empty string", async () => {
     const { getApiBaseUrl } = await import("../constants/oauth");
     vi.mocked(getApiBaseUrl).mockReturnValueOnce("");
-    await expect(discoverProduct("test")).rejects.toMatchObject({ name: "DiscoveryError", kind: "server" });
+    await expect(discoverProduct("test")).rejects.toMatchObject({
+      name: "DiscoveryError",
+      kind: "server",
+    });
   });
 });
 
@@ -223,7 +236,9 @@ describe("toDiscoverErrorState", () => {
   });
 
   it("maps BYO-LLM key rejection to an actionable, non-retry prompt", () => {
-    expect(toDiscoverErrorState(new DiscoveryError("byo-auth", "boom"))).toEqual({
+    expect(
+      toDiscoverErrorState(new DiscoveryError("byo-auth", "boom")),
+    ).toEqual({
       title: "Check your API key",
       message:
         "Your AI provider rejected the API key. Update it in Settings → AI / LLM, or switch back to the built-in provider.",
@@ -232,7 +247,9 @@ describe("toDiscoverErrorState", () => {
   });
 
   it("maps timeout errors", () => {
-    expect(toDiscoverErrorState(new DiscoveryError("timeout", "timed out"))).toEqual({
+    expect(
+      toDiscoverErrorState(new DiscoveryError("timeout", "timed out")),
+    ).toEqual({
       title: "Discovery Failed",
       message: "Discovery timed out. Check your connection and try again.",
       retry: true,
@@ -240,15 +257,21 @@ describe("toDiscoverErrorState", () => {
   });
 
   it("maps network errors with cause message", () => {
-    expect(toDiscoverErrorState(new DiscoveryError("network", "boom"))).toEqual({
-      title: "Discovery Failed",
-      message: "Network error: boom",
-      retry: true,
-    });
+    expect(toDiscoverErrorState(new DiscoveryError("network", "boom"))).toEqual(
+      {
+        title: "Discovery Failed",
+        message: "Network error: boom",
+        retry: true,
+      },
+    );
   });
 
   it("maps server errors with status", () => {
-    expect(toDiscoverErrorState(new DiscoveryError("server", "boom", { status: 500 }))).toEqual({
+    expect(
+      toDiscoverErrorState(
+        new DiscoveryError("server", "boom", { status: 500 }),
+      ),
+    ).toEqual({
       title: "Discovery Failed",
       message: "Server error (500). Try again in a moment.",
       retry: true,

@@ -48,7 +48,7 @@ describe("markDirty does not tombstone an unknown id", () => {
       items: {},
     });
 
-    const setup = setupSync({
+    setupSync({
       storage,
       isSignedIn: () => true,
       pull: vi.fn(async () => ({ lastSyncedAt: 2000, items: [] })),
@@ -79,7 +79,7 @@ describe("markDirty does not tombstone an unknown id", () => {
       items: { watchlist: { p1: { updatedAt: 1500, deleted: false } } },
     });
 
-    const setup = setupSync({
+    setupSync({
       storage,
       isSignedIn: () => true,
       pull: vi.fn(async () => ({ lastSyncedAt: 2000, items: [] })),

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { rocnocParser, scrapeRocnoc } from "../../lib/scrapers/rocnoc";
+import { rocnocParser } from "../../lib/scrapers/rocnoc";
 
 describe("Rocnoc Parser", () => {
   it("should have correct parser config", () => {

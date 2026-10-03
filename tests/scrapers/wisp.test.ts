@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { wispParser, scrapeWisp } from "../../lib/scrapers/wisp";
+import { wispParser } from "../../lib/scrapers/wisp";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 

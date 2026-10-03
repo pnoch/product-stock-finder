@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { createStorage } from "../lib/storage";
 import { syncNow } from "../lib/sync";
 import type {
-  Collection,
   Product,
   SyncItem,
   SyncRejectedItem,

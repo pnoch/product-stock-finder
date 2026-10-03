@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { appRouter } from "../server/routers";
+import { appRouter, clearHealthCacheForTests } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
 import { clearRateLimitsForTests } from "../server/rate-limit";
 
@@ -8,7 +8,6 @@ vi.mock("../server/health", () => ({
 }));
 
 import { checkAllDistributors } from "../server/health";
-import { clearHealthCacheForTests } from "../server/routers";
 
 function publicCtx(ip: string): TrpcContext {
   return {

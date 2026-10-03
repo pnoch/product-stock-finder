@@ -30,7 +30,6 @@ import {
   isDeviceRevoked,
   clearDevicesForTests,
   seedGlobalRevocationForTests,
-  STALE_DEVICE_MS,
 } from "../server/devices";
 import {
   holdForDigest,

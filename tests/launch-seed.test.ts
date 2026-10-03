@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import { seedWatchlistProducts, SEED_IDS } from "../lib/launch-seed";
 
-function mockStorage(existing: Array<{ id: string; listings?: unknown[] }> = []) {
+function mockStorage(existing: { id: string; listings?: unknown[] }[] = []) {
   return {
     getWatchlist: vi.fn(async () => existing),
     addToWatchlist: vi.fn(async (_product: { id: string; name?: string; modelNumber?: string }) => {}),

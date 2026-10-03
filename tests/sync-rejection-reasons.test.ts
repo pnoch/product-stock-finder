@@ -1,7 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createStorage } from "../lib/storage";
 import { syncNow } from "../lib/sync";
-import type { Collection, Product, SyncItem, SyncRejectedItem, SyncRejectionReason, SyncStampedItem } from "../lib/types";
+import type { Collection, Product, SyncItem, SyncRejectionReason, SyncStampedItem } from "../lib/types";
 
 function adapter() {
   const m = new Map<string, string>();
@@ -56,7 +56,7 @@ describe("syncNow rejection reasons", () => {
       ): Promise<{
         accepted: number;
         stamped: SyncStampedItem[];
-        rejected: Array<{ collection: Collection; id: string; reason: SyncRejectionReason }>;
+        rejected: { collection: Collection; id: string; reason: SyncRejectionReason }[];
       }> => {
         seen = items;
         return {

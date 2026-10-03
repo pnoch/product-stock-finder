@@ -40,10 +40,10 @@ describe("apple-app-site-association", () => {
     process.env.APPLE_TEAM_ID = "TEAM123456";
     const doc = appleAppSiteAssociation() as {
       applinks: {
-        details: Array<{
+        details: {
           appIDs: string[];
-          components: Array<Record<string, string>>;
-        }>;
+          components: Record<string, string>[];
+        }[];
       };
     };
     expect(doc.applinks.details[0]!.appIDs[0]).toBe(
@@ -56,9 +56,9 @@ describe("apple-app-site-association", () => {
 
   it("builds assetlinks when fingerprints are configured", () => {
     process.env.ANDROID_SHA256_CERT_FINGERPRINTS = "AA:BB:CC, dd:ee:ff";
-    const links = assetLinks() as Array<{
+    const links = assetLinks() as {
       target: { package_name: string; sha256_cert_fingerprints: string[] };
-    }>;
+    }[];
     expect(links[0]!.target.package_name).toBe("com.app.stocktrackerpro");
     // Fingerprints are normalized to uppercase.
     expect(links[0]!.target.sha256_cert_fingerprints).toEqual([
@@ -88,7 +88,7 @@ describe("well-known routes", () => {
       expect(aasa.status).toBe(200);
       expect(aasa.headers.get("content-type")).toContain("application/json");
       const aasaBody = (await aasa.json()) as {
-        applinks: { details: Array<{ appIDs: string[] }> };
+        applinks: { details: { appIDs: string[] }[] };
       };
       expect(aasaBody.applinks.details[0]!.appIDs[0]).toContain(
         "com.app.stocktrackerpro",
@@ -96,9 +96,9 @@ describe("well-known routes", () => {
 
       const links = await fetch(`${base}/.well-known/assetlinks.json`);
       expect(links.status).toBe(200);
-      const linksBody = (await links.json()) as Array<{
+      const linksBody = (await links.json()) as {
         target: { package_name: string };
-      }>;
+      }[];
       expect(linksBody[0]!.target.package_name).toBe("com.app.stocktrackerpro");
     } finally {
       await close();

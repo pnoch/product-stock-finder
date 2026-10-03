@@ -5,7 +5,6 @@ import type {
   AppSettings,
   BackOrderReminder,
   DistributorListing,
-  PriceAlert,
   Product,
   StockStatus,
   SyncItem,
@@ -63,21 +62,6 @@ function makeProduct(id: string, listings: DistributorListing[] = []): Product {
     addedAt: "2026-08-01T00:00:00.000Z",
     isWatched: true,
     listings,
-  };
-}
-
-function makeAlert(
-  id: string,
-  overrides: Partial<PriceAlert> = {},
-): PriceAlert {
-  return {
-    id,
-    productId: "p1",
-    targetPrice: 100,
-    currency: "USD",
-    isActive: true,
-    createdAt: "2026-08-01T00:00:00.000Z",
-    ...overrides,
   };
 }
 

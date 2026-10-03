@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 interface SwHarness {
-  listeners: Record<string, Array<(event: unknown) => void>>;
+  listeners: Record<string, ((event: unknown) => void)[]>;
   matchAll: ReturnType<typeof vi.fn>;
   openWindow: ReturnType<typeof vi.fn>;
   showNotification: ReturnType<typeof vi.fn>;

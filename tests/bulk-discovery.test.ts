@@ -70,14 +70,14 @@ describe("runDiscoveryBatch", () => {
 
   it("reports progress with the model number", async () => {
     const h = harness();
-    const progress: Array<[number, number, string]> = [];
+    const progress: [number, number, string][] = [];
     await runDiscoveryBatch({ items: items(3), startIndex: 0, storage: h.storage, discover: h.discover, onProgress: (done, total, model) => progress.push([done, total, model]) });
     expect(progress).toEqual([[1, 3, "M0"], [2, 3, "M1"], [3, 3, "M2"]]);
   });
 
   it("reports overall progress across continuation batches", async () => {
     const h = harness();
-    const progress: Array<[number, number, string]> = [];
+    const progress: [number, number, string][] = [];
     await runDiscoveryBatch({
       items: items(7),
       startIndex: 3,

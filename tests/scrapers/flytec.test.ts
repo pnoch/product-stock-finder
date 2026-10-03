@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { flytecParser, scrapeFlytec } from "../../lib/scrapers/flytec";
+import { flytecParser } from "../../lib/scrapers/flytec";
 
 describe("Flytec Parser", () => {
   it("should have correct parser config", () => {

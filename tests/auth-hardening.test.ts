@@ -39,7 +39,6 @@ vi.mock("bcryptjs", () => ({
 
 import { registerOAuthRoutes } from "../server/_core/oauth";
 import { getSessionCookieOptions } from "../server/_core/cookies";
-import { consumePasswordResetToken } from "../server/db";
 import * as devices from "../server/devices";
 
 function makeApp() {

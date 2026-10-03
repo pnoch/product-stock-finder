@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { linitxParser, scrapeLinitx } from "../../lib/scrapers/linitx";
+import { linitxParser } from "../../lib/scrapers/linitx";
 
 describe("Linitx Parser", () => {
   it("should have correct parser config", () => {

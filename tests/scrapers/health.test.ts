@@ -19,7 +19,7 @@ import type {
   HealthStatus,
 } from "@/lib/scrapers/health";
 import type { DistributorParser, ScrapeResult } from "@/lib/scrapers/types";
-import { BLOCKED_MARKERS, resilientFetch } from "@/lib/scrapers/resilient";
+import { BLOCKED_MARKERS } from "@/lib/scrapers/resilient";
 
 const __resilientHolder = vi.hoisted(() => ({
   fn: async (_o: unknown): Promise<any> => ({

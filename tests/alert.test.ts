@@ -171,7 +171,7 @@ describe("showAlert on native", () => {
       { text: "B" },
       cancel,
     ]);
-    const buttons = alertMock.mock.calls.at(-1)![2] as Array<{ text: string }>;
+    const buttons = alertMock.mock.calls.at(-1)![2] as { text: string }[];
     expect(buttons.map((b) => b.text)).toEqual(["A", "B", "Cancel"]);
   });
 
@@ -183,7 +183,7 @@ describe("showAlert on native", () => {
       { text: "B" },
       { text: "C" },
     ]);
-    const buttons = alertMock.mock.calls.at(-1)![2] as Array<{ text: string }>;
+    const buttons = alertMock.mock.calls.at(-1)![2] as { text: string }[];
     expect(buttons.map((b) => b.text)).toEqual(["A", "B", "C"]);
   });
 });

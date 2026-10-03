@@ -11,7 +11,7 @@ vi.mock("../server/devices", async (importOriginal) => {
 
 vi.mock("../server/db", () => {
   const store = new Map<string, { userId: number; token: string; expiresAt: number; usedAt: number | null }>();
-  const hashCalls: Array<{ userId: number; passwordHash: string }> = [];
+  const hashCalls: { userId: number; passwordHash: string }[] = [];
   return {
     getUserByEmail: vi.fn(),
     getUserById: vi.fn(),
@@ -201,7 +201,7 @@ describe("POST /api/auth/reset", () => {
     const res = makeRes();
     await handler("POST", "/api/auth/reset")(makeReq({ token, newPassword: "newpass123" }), res);
     expect(bcrypt.hash).toHaveBeenCalled();
-    const hashCalls = (db as unknown as { __hashCalls: Array<{ userId: number; passwordHash: string }> }).__hashCalls;
+    const hashCalls = (db as unknown as { __hashCalls: { userId: number; passwordHash: string }[] }).__hashCalls;
     expect(hashCalls).toContainEqual({ userId: 42, passwordHash: "hashed" });
     expect(res.json).toHaveBeenCalledWith({ success: true });
     // Consumed: a second use must fail.

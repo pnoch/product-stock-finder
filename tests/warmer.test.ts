@@ -2,9 +2,14 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Hoisted holder so the mocked fetchAndParse can call the test's resilientFetch
 // mock (module-local bindings cannot be intercepted by vi.mock).
-const __resilientHolder = vi.hoisted(() => ({ fn: async (_o: unknown): Promise<any> => ({ status: "ok", html: "", method: "plain" }) }));
-import type { DistributorParser } from "../lib/scrapers/types";
-import type { PriceSnapshot } from "../lib/types";
+const __resilientHolder = vi.hoisted(() => ({
+  fn: async (_o: unknown): Promise<any> => ({
+    status: "ok",
+    html: "",
+    method: "plain",
+  }),
+}));
+import type { DistributorParser, ScrapeResult } from "../lib/scrapers/types";
 
 vi.mock("../lib/scrapers/registry", () => ({
   getParserByDistributorId: vi.fn(),
@@ -13,9 +18,15 @@ vi.mock("../lib/scrapers/registry", () => ({
 vi.mock("../lib/scrapers/resilient", () => ({
   resilientFetch: vi.fn(),
   fetchAndParse: vi.fn(async (parser: any, model: string) => {
-    const outcome = await __resilientHolder.fn({ parser, url: parser.buildSearchUrl(model) } as never);
+    const outcome = await __resilientHolder.fn({
+      parser,
+      url: parser.buildSearchUrl(model),
+    } as never);
     return {
-      result: outcome.status === "ok" && outcome.html ? parser.parsePrice(outcome.html, model, parser.buildSearchUrl(model)) : null,
+      result:
+        outcome.status === "ok" && outcome.html
+          ? parser.parsePrice(outcome.html, model, parser.buildSearchUrl(model))
+          : null,
       url: parser.buildSearchUrl(model),
       outcome,
     };
@@ -27,7 +38,8 @@ vi.mock("../lib/scrapers/resilient", () => ({
 }));
 
 vi.mock("../server/notifications", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../server/notifications")>();
+  const actual =
+    await importOriginal<typeof import("../server/notifications")>();
   return { ...actual, evaluateNotifications: vi.fn(async () => {}) };
 });
 
@@ -40,7 +52,8 @@ vi.mock("../server/price-history", () => ({
 }));
 
 vi.mock("../server/product-images", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../server/product-images")>();
+  const actual =
+    await importOriginal<typeof import("../server/product-images")>();
   return {
     ...actual,
     getProductImage: vi.fn(),
@@ -57,12 +70,12 @@ vi.mock("../server/price-cache", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../server/price-cache")>();
   return {
     ...actual,
-  getCachedPrice: vi.fn(),
-  setCachedPrice: vi.fn(),
-  listNearExpiry: vi.fn(),
-  clearPriceCacheForTests: vi.fn(),
-  getAllFetchedAt: vi.fn(async () => ({})),
-  purgeStalePriceCache: vi.fn(),
+    getCachedPrice: vi.fn(),
+    setCachedPrice: vi.fn(),
+    listNearExpiry: vi.fn(),
+    clearPriceCacheForTests: vi.fn(),
+    getAllFetchedAt: vi.fn(async () => ({})),
+    purgeStalePriceCache: vi.fn(),
   };
 });
 
@@ -74,9 +87,12 @@ import {
   setCachedPrice,
 } from "../server/price-cache";
 import { purgeOldHistory } from "../server/price-history";
-import { refreshNearExpiry, startWarmer, runWarmerTick } from "../server/prices";
+import {
+  refreshNearExpiry,
+  startWarmer,
+  runWarmerTick,
+} from "../server/prices";
 import { evaluateNotifications } from "../server/notifications";
-import type { ScrapeResult } from "../lib/scrapers/types";
 
 const mockedGetParser = vi.mocked(getParserByDistributorId);
 const mockedFetch = vi.mocked(resilientFetch);

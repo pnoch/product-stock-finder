@@ -144,7 +144,7 @@ describe("evaluateNotifications", () => {
 
   it("pushes newly created events on the database path", async () => {
     const inserted: unknown[] = [];
-    const storedSnapshots: Array<Record<string, unknown>> = [];
+    const storedSnapshots: Record<string, unknown>[] = [];
     const dbStub = {
       select: vi.fn(() => ({
         from: vi.fn((table: unknown) => {
@@ -672,7 +672,7 @@ describe("user-scoped notifications (database)", () => {
 
   it("evaluates a user's aggregated config once and pushes to the user", async () => {
     const inserted: unknown[] = [];
-    const storedSnapshots: Array<Record<string, unknown>> = [];
+    const storedSnapshots: Record<string, unknown>[] = [];
     const dbStub = {
       select: vi.fn(() => ({
         from: vi.fn((table: unknown) => {
@@ -757,7 +757,7 @@ describe("user-scoped notifications (database)", () => {
     });
     await evaluateNotifications(Date.now());
     expect(inserted).toHaveLength(1);
-    const rows = inserted[0] as Array<Record<string, unknown>>;
+    const rows = inserted[0] as Record<string, unknown>[];
     expect(rows[0]).toMatchObject({
       userId: 7,
       deviceId: null,
@@ -776,8 +776,8 @@ describe("user-scoped notifications (database)", () => {
   });
 
   it("omits userId from the duplicate-key update set on anonymous upsert", async () => {
-    const onUpdateSets: Array<Record<string, unknown>> = [];
-    const storedSnapshots: Array<Record<string, unknown>> = [];
+    const onUpdateSets: Record<string, unknown>[] = [];
+    const storedSnapshots: Record<string, unknown>[] = [];
     const dbStub = {
       insert: vi.fn((table: unknown) => ({
         values: vi.fn((rows: unknown) => {

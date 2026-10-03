@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 interface SwHarness {
-  listeners: Record<string, Array<(event: unknown) => void>>;
+  listeners: Record<string, ((event: unknown) => void)[]>;
   matchAll: ReturnType<typeof vi.fn>;
   openWindow: ReturnType<typeof vi.fn>;
   focus: ReturnType<typeof vi.fn>;
@@ -37,7 +37,7 @@ function loadSwNotificationClick(): SwHarness {
 
 function runClick(
   harness: SwHarness,
-  clients: Array<{ focus?: () => void }>,
+  clients: { focus?: () => void }[],
   data?: unknown,
 ) {
   harness.matchAll.mockResolvedValue(clients);

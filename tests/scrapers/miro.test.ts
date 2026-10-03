@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import { miroParser, scrapeMiro } from "../../lib/scrapers/miro";
+import { miroParser } from "../../lib/scrapers/miro";
 
 const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 

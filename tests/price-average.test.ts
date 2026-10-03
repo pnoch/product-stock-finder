@@ -7,7 +7,7 @@ const NOW = Date.parse("2026-06-15T12:00:00Z");
 
 function listing(
   distributorId: string,
-  history: Array<[number, number]>, // [daysAgo, price]
+  history: [number, number][], // [daysAgo, price]
   currentPrice?: number,
 ): DistributorListing {
   return {
