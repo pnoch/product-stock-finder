@@ -1,5 +1,6 @@
 import { isTauri } from "../lib/tauri";
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
+import { log } from "@shared/log";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   ArrowLeft,
@@ -295,7 +296,7 @@ export function ProductDetail() {
             setInsightLoading(false);
           }
         } catch (e) {
-          console.error("[ProductDetail] insight fetch failed", e);
+          log.error("[ProductDetail] insight fetch failed", e);
           if (loadIdRef.current === myId) setInsightLoading(false);
           // insight stays empty
         }
@@ -324,7 +325,7 @@ export function ProductDetail() {
           setInsightLoading(false);
         }
       } catch (e) {
-        console.error("[ProductDetail] insight fetch failed", e);
+        log.error("[ProductDetail] insight fetch failed", e);
         if (loadIdRef.current === myId) setInsightLoading(false);
       }
     }
@@ -443,7 +444,7 @@ export function ProductDetail() {
         showToast("No prices found");
       }
     } catch (e) {
-      console.error("[Product] price discovery failed", e);
+      log.error("[Product] price discovery failed", e);
       showToast("Couldn't find prices");
     } finally {
       setFindingPrices(false);

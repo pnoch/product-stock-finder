@@ -5,6 +5,7 @@ import { getApiBaseUrl, getAppId, getOAuthPortalUrl } from "../lib/api-base";
 import { getDesktopDeviceId } from "../lib/device-id";
 import { unregisterServerToken, PENDING_UNREGISTER_KEY } from "../lib/push-unregister";
 import { fetchCurrentUser } from "../../../lib/auth-refresh";
+import { log } from "@shared/log";
 
 const SESSION_TOKEN_KEY = "desktop_session_token";
 const USER_INFO_KEY = "desktop_user_info";
@@ -372,7 +373,7 @@ export function useAuth() {
       const { storage } = await import("../storage");
       await storage.clearAccountData();
     } catch (e) {
-      console.error("[Auth] Local data clear on logout failed:", e);
+      log.error("[Auth] Local data clear on logout failed:", e);
     }
   }, []);
 

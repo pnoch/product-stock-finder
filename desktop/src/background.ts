@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { log } from "@shared/log";
 
 export async function startPricePoller(
   intervalMinutes: number = 15,
@@ -8,7 +9,7 @@ export async function startPricePoller(
   try {
     await invoke("start_price_poller", { intervalMinutes, apiBaseUrl });
   } catch (e) {
-    console.error("Failed to start price poller:", e);
+    log.error("Failed to start price poller:", e);
     throw e;
   }
 }
@@ -17,7 +18,7 @@ export async function stopPricePoller(): Promise<void> {
   try {
     await invoke("stop_price_poller");
   } catch (e) {
-    console.error("Failed to stop price poller:", e);
+    log.error("Failed to stop price poller:", e);
   }
 }
 

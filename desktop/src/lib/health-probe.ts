@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getDistributorById } from "@shared/distributors";
+import { log } from "@shared/log";
 import {
   createHealthService,
   detectHealthAlert,
@@ -100,7 +101,7 @@ export async function runHealthProbeIfDue(now = Date.now()): Promise<void> {
     // Pending events upload on the next syncDesktopNotifications tick —
     // no direct call here to avoid coupling.
   } catch (e) {
-    console.error("[health-probe] probe failed", e);
+    log.error("[health-probe] probe failed", e);
   }
 }
 
@@ -215,6 +216,6 @@ export async function recordHealthFromPriceCheck(
     if (isInQuietHours(settings)) return;
     await evaluateHealthAlerts(svc, now);
   } catch (e) {
-    console.error("[health-probe] price-check health record failed", e);
+    log.error("[health-probe] price-check health record failed", e);
   }
 }

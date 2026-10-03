@@ -7835,3 +7835,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Expanded `@shared/log` (`shared/src/log.ts`, keeping `LOG_ERROR`) with `log.debug/info/warn/error` + `setLogSink`: `debug`/`info` are silenced in production, `warn`/`error` forward to the same console methods (behavior-preserving, no prefix), and the sink is try/caught so a monitoring sink can never throw into app code or suppress the write.
 - [x] Converted all 75 client app-code (`lib/ app/ components/ hooks/`) `console.*` calls to `log.*` (0 remain in scope); server, `_core`, and `LOG_ERROR` usages untouched. New `tests/no-stray-console.test.ts` guard prevents regressions; `tests/log.test.ts` covers method mapping, production gating, and sink forwarding/failure. `tsc 0`, lint 0, root `3163` / desktop `321` green.
 - [ ] Follow-up: `desktop/src` (~20 `console.*` across 15 files) is not yet converted — separate pass.
+
+## Phase 1057: Centralize desktop renderer logging
+
+- [x] Converted all 32 `desktop/src` `console.*` calls (30 error, 2 warn) to `log.*` from `@shared/log`; no levels flipped, no `desktop/tests` touched. Extended `tests/no-stray-console.test.ts` ROOTS with `desktop/src`, so the guard now covers mobile/web **and** the desktop renderer.
+- [x] `tsc 0` (root + desktop), lint 0 warnings, root `3163` / desktop `321` green; `pnpm verify` to be run on merge.

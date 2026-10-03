@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { log } from "@shared/log";
 import { storage } from "./storage";
 import { displayWebNotification } from "../../lib/web-notifications";
 
@@ -12,7 +13,7 @@ export async function sendDesktopNotification(
     await invoke("send_notification", { title, body, sound: true, route: route ?? null });
     return true;
   } catch (e) {
-    console.error("[notifications] Tauri send failed, trying web display", e);
+    log.error("[notifications] Tauri send failed, trying web display", e);
   }
   try {
     const settings = await storage.getSettings();
@@ -23,7 +24,7 @@ export async function sendDesktopNotification(
     // restock watch) for a notification the user never saw.
     return displayWebNotification(title, body);
   } catch (e) {
-    console.error("Failed to send notification:", e);
+    log.error("Failed to send notification:", e);
     return false;
   }
 }

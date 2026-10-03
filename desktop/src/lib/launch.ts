@@ -1,5 +1,6 @@
 import type { DistributorListing, Product } from "../../../lib/types";
 import type { Storage } from "../../../lib/storage";
+import { log } from "@shared/log";
 import { seedWatchlistProducts } from "../../../lib/launch-seed";
 
 export type SeedCatalogProduct = Omit<Product, "addedAt" | "isWatched" | "listings">;
@@ -44,24 +45,24 @@ export async function runLaunchSequence(deps: LaunchDeps): Promise<void> {
       try {
         await startPoller(minutes, getApiBaseUrl());
       } catch (e) {
-        console.error("[App] launch poller start failed", e);
+        log.error("[App] launch poller start failed", e);
       }
     }
   } catch (e) {
-    console.error("[App] launch poller start failed", e);
+    log.error("[App] launch poller start failed", e);
   }
 
   try {
     await loadFx(storage);
     await maybeRefreshFx(storage);
   } catch (e) {
-    console.error("[App] fx warm failed", e);
+    log.error("[App] fx warm failed", e);
   }
 
   // After the FX overlay is warm so the check converts with live rates.
   try {
     await checkPricesOnce();
   } catch (e) {
-    console.error("[App] launch price check failed", e);
+    log.error("[App] launch price check failed", e);
   }
 }
