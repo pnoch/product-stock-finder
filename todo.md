@@ -7809,3 +7809,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] `tests/settings-webhook.test.tsx` "sends a test to the entered URL when signed in" intermittently timed out (~1.25s) under parallel vitest load: RTL's default 1000ms `findBy*`/`waitFor` timeout was too tight for the click → async mutation → setState chain.
 - [x] Systemic fix: `desktop/tests/setup.ts` now calls `configure({ asyncUtilTimeout: 5000 })` so every RTL async query gets headroom; a real failure still reports instead of a timing flake. Verified 8/8 clean full-suite runs (previously ~1 in 5 failed).
+
+## Phase 1052: Startup env validation
+
+- [x] New pure `server/env-validation.ts` (`validateServerEnv` + `assertServerEnv`): production-missing `DATABASE_URL` is a fatal `error`; partially-configured Google/Apple OAuth (accepting the `EXPO_PUBLIC_*` id fallbacks), VAPID, or email groups warn. Dev/optional gaps never throw, preserving local-only mode. No CORS check (same-origin is the primary deploy, so an empty allowlist is valid). (`JWT_SECRET` was already enforced in `server/_core/env.ts`.)
+- [x] Called once at the top of `startServer()` in `server/_core/index.ts` (minimal `_core` infra extension). Tests cover each error/warn case, the `[env]` log contract, whitespace-as-missing, and throw/no-throw. `tsc 0`, lint 0 warnings, root `3158` / desktop `321` green.
+- [ ] Follow-up (not this phase): root `tests/` is excluded from the `lint` script and carries ~129 warnings (array-type/unused-vars/duplicate imports); extend the lint ratchet to cover it in a dedicated pass.
