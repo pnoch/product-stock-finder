@@ -89,15 +89,15 @@ export type InvokeResult = {
   id: string;
   created: number;
   model: string;
-  choices: {
+  choices: Array<{
     index: number;
     message: {
       role: Role;
-      content: string | (TextContent | ImageContent | FileContent)[];
+      content: string | Array<TextContent | ImageContent | FileContent>;
       tool_calls?: ToolCall[];
     };
     finish_reason: string | null;
-  }[];
+  }>;
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;

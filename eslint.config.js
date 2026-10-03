@@ -32,8 +32,12 @@ export default defineConfig([
   },
   {
     // Framework-level code: `themeConfig` intentionally mixes a default and a
-    // named export; do not edit _core to satisfy a stylistic import rule.
+    // named export, and the tree uses `Array<T>` style; do not edit _core to
+    // satisfy stylistic lint rules.
     files: ["lib/_core/**", "server/_core/**", "shared/_core/**"],
-    rules: { "import/no-named-as-default-member": "off" },
+    rules: {
+      "import/no-named-as-default-member": "off",
+      "@typescript-eslint/array-type": "off",
+    },
   },
 ]);
