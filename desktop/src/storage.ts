@@ -4,6 +4,9 @@ import { isTauri as detectTauri } from "./lib/tauri";
 
 const isTauri = detectTauri();
 
+let lastMirroredAlerts: Record<string, unknown>[] = [];
+let alertsMirrorSeeded = false;
+
 const localStorageAdapter = {
   getItem: async (key: string) => localStorage.getItem(key),
   setItem: async (key: string, value: string) =>
@@ -48,6 +51,29 @@ async function mirrorToFile(key: string, value: unknown): Promise<void> {
       }
       return;
     }
+    if (key === "price_alerts") {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const { computeAlertMutations } = await import("./lib/alert-mutations");
+      const next = Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+      if (!alertsMirrorSeeded) {
+        // Seed from disk so a deletion made before the first save is detected.
+        const current = await invoke<unknown>("read_value_for_key", { key: "price_alerts" });
+        lastMirroredAlerts = Array.isArray(current)
+          ? (current as Record<string, unknown>[])
+          : [];
+        alertsMirrorSeeded = true;
+      }
+      const { upserts, removes } = computeAlertMutations(lastMirroredAlerts, next);
+      if (upserts.length === 0 && removes.length === 0) return;
+      const merged = await invoke<string>("apply_alert_mutations", { upserts, removes });
+      lastMirroredAlerts = JSON.parse(merged) as Record<string, unknown>[];
+      try {
+        localStorage.setItem(key, merged);
+      } catch {
+        // storage disabled/full — the file store is authoritative
+      }
+      return;
+    }
     await invoke("set_value_for_key", { key, value });
   } catch {
     // best-effort — localStorage still updated
@@ -66,6 +92,19 @@ const tauriAwareAdapter = {
           } catch {
             return localStorage.getItem(key);
           }
+        }
+      } catch {
+        // fall through to localStorage
+      }
+    }
+    if (isTauri && key === "price_alerts") {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const val = await invoke<unknown>("read_value_for_key", { key: "price_alerts" });
+        if (Array.isArray(val)) {
+          lastMirroredAlerts = val as Record<string, unknown>[];
+          alertsMirrorSeeded = true;
+          return JSON.stringify(val);
         }
       } catch {
         // fall through to localStorage

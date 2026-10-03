@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const invokeMock = vi.hoisted(() => vi.fn(async () => "[]"));
+const invokeMock = vi.hoisted(() =>
+  vi.fn<(cmd: string, args?: unknown) => Promise<unknown>>(),
+);
 
 vi.mock("@tauri-apps/api/core", () => ({
   isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri, invoke: invokeMock }));
@@ -26,6 +28,7 @@ async function loadStorage() {
 describe("desktop watchlist mirror", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    invokeMock.mockResolvedValue("[]");
     localStorage.clear();
   });
 
@@ -43,11 +46,41 @@ describe("desktop watchlist mirror", () => {
 
   it("still uses the plain setter for the other mirrored keys", async () => {
     const { storage } = await loadStorage();
-    await storage.saveAlerts([] as never);
+    await storage.saveBackOrderReminders([] as never);
     expect(invokeMock).toHaveBeenCalledWith("set_value_for_key", {
-      key: "price_alerts",
+      key: "back_order_reminders",
       value: [],
     });
+  });
+
+  it("sends per-item alert mutations instead of overwriting the array", async () => {
+    const { storage } = await loadStorage();
+    invokeMock.mockImplementation(async (cmd: string) => {
+      if (cmd === "read_value_for_key") return [{ id: "a1", targetPrice: 500 }];
+      if (cmd === "apply_alert_mutations") {
+        return JSON.stringify([{ id: "a1", targetPrice: 450 }]);
+      }
+      return "[]";
+    });
+    await storage.saveAlerts([{ id: "a1", targetPrice: 450 }] as never);
+    expect(invokeMock).toHaveBeenCalledWith("apply_alert_mutations", {
+      upserts: [{ id: "a1", patch: { targetPrice: 450 } }],
+      removes: [],
+    });
+    expect(invokeMock).not.toHaveBeenCalledWith(
+      "set_value_for_key",
+      expect.objectContaining({ key: "price_alerts" }),
+    );
+  });
+
+  it("reads alerts from the file store", async () => {
+    const { storage } = await loadStorage();
+    invokeMock.mockImplementation(async (cmd: string) =>
+      cmd === "read_value_for_key" ? [{ id: "a1" }] : "[]",
+    );
+    const alerts = await storage.getAlerts();
+    expect(invokeMock).toHaveBeenCalledWith("read_value_for_key", { key: "price_alerts" });
+    expect(alerts).toEqual([{ id: "a1" }]);
   });
 
   it("writes the merged array back to localStorage", async () => {
