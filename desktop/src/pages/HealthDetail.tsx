@@ -11,15 +11,16 @@ import {
   type HealthStatus,
   timelineSegments,
 } from "../../../lib/scrapers/health";
+import type { StorageAdapter } from "../../../lib/storage/adapter";
 
-const localAdapter = {
+const localAdapter: StorageAdapter = {
   getItem: async (k: string) => localStorage.getItem(k),
   setItem: async (k: string, v: string) => localStorage.setItem(k, v),
   removeItem: async (k: string) => localStorage.removeItem(k),
   multiRemove: async (keys: string[]) => keys.forEach((k) => localStorage.removeItem(k)),
 };
 
-const healthService = createHealthService(localAdapter as unknown as import("../../../lib/storage/adapter").StorageAdapter);
+const healthService = createHealthService(localAdapter);
 
 export function HealthDetail() {
   const { id } = useParams();
