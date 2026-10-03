@@ -27,7 +27,7 @@ describe("BYO-LLM client wiring", () => {
     // drives this host's Ollama, so it must still consume the cap.
     expect(discovery).toContain("isServerFundedLlm(userLlm) && !tryConsumeBudget(");
 
-    const routers = await readFile("server/routers.ts", "utf8");
+    const routers = await readFile("server/routers/insights.ts", "utf8");
     expect(routers).toContain(
       "getInsight(input.productId, userLlmConfigFromHeaders(ctx.req.headers))",
     );

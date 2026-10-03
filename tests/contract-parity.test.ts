@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 
 const read = (p: string) => readFileSync(p, "utf8");
+
+// Scan the composition root plus every extracted router so moving a cap into a
+// new file does not silently drop it from the parity check.
+const readAllServerRouters = () =>
+  [
+    read("server/routers.ts"),
+    ...readdirSync("server/routers")
+      .filter((f) => f.endsWith(".ts"))
+      .map((f) => read(`server/routers/${f}`)),
+  ].join("\n");
 
 // Count mentions outside comments, so prose that names a constant cannot make
 // the wiring look present. A constant appears at least twice when it is
@@ -18,7 +28,7 @@ const usesConstant = (src: string, token: string) =>
 // touching shared/const.ts and both sides, never one side's literal.
 describe("server <-> client contract parity", () => {
   it("every upload/push cap is enforced by the server", () => {
-    const server = read("server/routers.ts");
+    const server = readAllServerRouters();
     for (const cap of [
       "SYNC_PUSH_MAX_ITEMS",
       "MAX_UPLOAD_ALERTS",

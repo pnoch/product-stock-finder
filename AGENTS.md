@@ -102,10 +102,12 @@ hooks/                 use-auth, use-colors, use-color-scheme, use-alert-badge, 
 constants/             const.ts, oauth.ts, theme.ts (re-exports)
 server/                Express + tRPC backend (see server/README.md)
   _core/               Framework backend code — do not modify unless extending infra
-  routers.ts           App router — sync (pull/push), auth, prices, fx, insights, images,
-                       products, notifications (uploadConfig/pull/registerPushToken),
-                       devices, sharedWatchlists; feature routers in server/routers/
-                       (discovery, trending)
+  routers.ts           App router — thin composition root: imports each sub-router
+                       from server/routers/ and re-exports appRouter/AppRouter +
+                       getOrigin/clearHealthCacheForTests
+  routers/             Per-router modules (auth, sync, prices, health, fx, insights,
+                       images, products, notifications, discovery, llm, trending,
+                       devices, shared-watchlists) + helpers.ts
   notifications/       Server notification scheduling + digest batching (evaluate.ts,
                        digest.ts hold-and-flush, build-events.ts, mappers.ts, types.ts,
                        memory-store.ts) + push-notifications.ts + web-push.ts
