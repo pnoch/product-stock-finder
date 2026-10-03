@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { showAlert } from "@/lib/alert";
 import {
@@ -130,7 +131,7 @@ export default function HealthScreen() {
       if (!isMountedRef.current) return;
       setStats(computeHealthStats(history));
     } catch (e) {
-      console.error("[Health] test all failed", e);
+      log.error("[Health] test all failed", e);
       if (isMountedRef.current) {
         showAlert("Test failed", "Couldn't test distributors. Please try again.");
       }

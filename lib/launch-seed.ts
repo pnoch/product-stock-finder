@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import type { DistributorListing } from "./types";
 
 export const SEED_IDS = [
@@ -53,10 +54,10 @@ export async function seedWatchlistProducts(deps: SeedDeps): Promise<void> {
           listings: freshen(sampleListings[id] ?? []),
         });
       } catch (e) {
-        console.error(`[Seed] failed for ${id}:`, e);
+        log.error(`[Seed] failed for ${id}:`, e);
       }
     }
   } catch (e) {
-    console.error("[Seed] failed:", e);
+    log.error("[Seed] failed:", e);
   }
 }

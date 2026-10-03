@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import type { StorageAdapter } from "./adapter";
 
 const DB_NAME = "psf-storage";
@@ -92,7 +93,7 @@ function writeLocalStorage(key: string, value: string): void {
   try {
     if (typeof localStorage !== "undefined") localStorage.setItem(key, value);
   } catch (e) {
-    console.warn("[idb-adapter] localStorage write failed", e);
+    log.warn("[idb-adapter] localStorage write failed", e);
   }
 }
 
@@ -100,7 +101,7 @@ function removeLocalStorage(key: string): void {
   try {
     if (typeof localStorage !== "undefined") localStorage.removeItem(key);
   } catch (e) {
-    console.warn("[idb-adapter] localStorage remove failed", e);
+    log.warn("[idb-adapter] localStorage remove failed", e);
   }
 }
 

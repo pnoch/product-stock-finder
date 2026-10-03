@@ -55,7 +55,7 @@ import {
   SortBy,
   filterByRange,
 } from "@shared/compare-utils";
-import { LOG_ERROR } from "@shared/log";
+import { LOG_ERROR, log } from "@shared/log";
 
 // ─── Compare Screen ───────────────────────────────────────────────────────────
 export default function CompareScreen() {
@@ -223,7 +223,7 @@ export default function CompareScreen() {
       await addAlert(alert);
       await schedulePriceAlert(productName || "Product", targetPrice, displayCurrency, id);
     } catch (e) {
-      console.error("[Compare] alert creation failed", e);
+      log.error("[Compare] alert creation failed", e);
       showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
       return;
     } finally {

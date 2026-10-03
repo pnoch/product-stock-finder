@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -129,7 +130,7 @@ export default function StatsScreen() {
         // Revert the optimistic update: leaving the new threshold on screen
         // after a failed save showed a setting that was never persisted.
         setBasketThreshold(previous);
-        console.error("[Stats] basket alert save failed", e);
+        log.error("[Stats] basket alert save failed", e);
         showAlert("Couldn't save", "We couldn't save your basket alert. Please try again.");
       }
     },

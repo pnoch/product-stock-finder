@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { Platform } from "react-native";
 import * as defaultStorageModule from "./storage";
 import { ensureNotificationPermission, scheduleStockAlert } from "./notifications";
@@ -42,7 +43,7 @@ export function checkRestocks(
   // abort the rest of runPriceCheckCore (including the digest send) even though
   // the restock check is independent.
   inFlight = runCheckRestocks(storage, notify)
-    .catch((e) => console.warn("[Restock] check failed", e))
+    .catch((e) => log.warn("[Restock] check failed", e))
     .finally(() => {
       inFlight = null;
     });

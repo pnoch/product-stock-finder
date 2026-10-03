@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import type { Storage } from "./storage";
 import type {
   AppSettings,
@@ -114,7 +115,7 @@ async function doSync(
       };
     }
   } catch (error) {
-    console.warn("[Sync] Pull failed; skipping sync", error);
+    log.warn("[Sync] Pull failed; skipping sync", error);
     await storage.saveSyncMeta({
       ...(await storage.getSyncMeta()),
       lastSyncError: `Pull failed: ${
@@ -226,7 +227,7 @@ async function doSync(
         );
       }
     } catch (error) {
-      console.warn("[Sync] Push failed; local changes kept", error);
+      log.warn("[Sync] Push failed; local changes kept", error);
       // Persist the stamps from batches that DID succeed before the failure.
       // Dropping them left those items with a meta stamp <= the old cursor, so
       // `collectDirty` treated them as already-synced and never re-pushed them.
@@ -652,7 +653,7 @@ async function applyLocalItem(
 ): Promise<void> {
   const sanitized = sanitizePulledItem(collection, data);
   if (sanitized === null) {
-    console.warn(`[Sync] dropped malformed pulled ${collection} item`);
+    log.warn(`[Sync] dropped malformed pulled ${collection} item`);
     return;
   }
   data = sanitized;
@@ -932,10 +933,10 @@ export function setupSync(
   const run = async () => {
     timer = null;
     await syncNow(opts).catch((error) => {
-      console.warn("[Sync] Background sync failed", error);
+      log.warn("[Sync] Background sync failed", error);
     });
     await afterSync().catch((error) => {
-      console.warn("[Sync] Retry scheduling failed", error);
+      log.warn("[Sync] Retry scheduling failed", error);
     });
   };
 
@@ -950,16 +951,16 @@ export function setupSync(
       timer = null;
     }
     await syncNow(opts).catch((error) => {
-      console.warn("[Sync] Launch sync failed", error);
+      log.warn("[Sync] Launch sync failed", error);
     });
     await afterSync().catch((error) => {
-      console.warn("[Sync] Retry scheduling failed", error);
+      log.warn("[Sync] Retry scheduling failed", error);
     });
   };
 
   opts.storage.setOnChange((collection, itemId) => {
     markDirty(opts.storage, collection, itemId)
-      .catch((e) => console.warn("[Sync] markDirty failed", e))
+      .catch((e) => log.warn("[Sync] markDirty failed", e))
       .then(() => schedule());
   });
   return { syncNow: runNow, schedule };

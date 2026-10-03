@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -77,7 +78,7 @@ export function BulkImportModal({
       const failedCount = results.length - addedCount;
       for (let i = 0; i < results.length; i++) {
         if (results[i].status === "rejected") {
-          console.warn("[BulkImport] Skipping", newProducts[i].modelNumber, (results[i] as PromiseRejectedResult).reason);
+          log.warn("[BulkImport] Skipping", newProducts[i].modelNumber, (results[i] as PromiseRejectedResult).reason);
         }
       }
       if (Platform.OS !== "web")

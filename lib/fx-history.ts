@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import type { FxHistory } from "./storage/fx-history";
 
 const MAX_POINTS = 90;
@@ -78,10 +79,11 @@ export function appendFxHistory(
       const pad = trimmedTimestamps.length - arr.length;
       arr = [...Array(pad).fill(null), ...arr];
     }
-    console.assert(
-      arr.length === trimmedTimestamps.length,
-      `FX invariant violated for ${code}: rates length ${arr.length} !== timestamps length ${trimmedTimestamps.length}`,
-    );
+    if (arr.length !== trimmedTimestamps.length) {
+      log.error(
+        `FX invariant violated for ${code}: rates length ${arr.length} !== timestamps length ${trimmedTimestamps.length}`,
+      );
+    }
     if (arr.length !== trimmedTimestamps.length) {
       throw new Error(
         `FX history invariant violated for ${code}: rates length ${arr.length} !== timestamps length ${trimmedTimestamps.length}`,

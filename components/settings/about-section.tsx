@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getApiBaseUrl } from "@/constants/oauth";
 import { getPrivacyPolicyUrl, getSupportMailtoUrl } from "@/lib/legal-links";
 import * as Auth from "@/lib/_core/auth";
-import { LOG_ERROR } from "@shared/log";
+import { LOG_ERROR, log } from "@shared/log";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -48,7 +48,7 @@ export function AboutSection() {
       const choice = await deferredPrompt.userChoice;
       if (choice.outcome === "accepted") setDeferredPrompt(null);
     } catch (e) {
-      console.warn("[AboutSection] install prompt failed", e);
+      log.warn("[AboutSection] install prompt failed", e);
     }
   };
 
@@ -88,7 +88,7 @@ export function AboutSection() {
       }
       await Linking.openURL(webFallback);
     } catch (e) {
-      console.warn("[AboutSection] rate app failed", e);
+      log.warn("[AboutSection] rate app failed", e);
       try {
         await Linking.openURL(webFallback);
       } catch {}
@@ -128,7 +128,7 @@ export function AboutSection() {
                     // intact; reporting success would be a false promise.
                     if (!res.ok) serverDeleteFailed = true;
                   } catch (e) {
-                    console.warn("[AboutSection] server delete failed", e);
+                    log.warn("[AboutSection] server delete failed", e);
                     serverDeleteFailed = true;
                   }
                 }

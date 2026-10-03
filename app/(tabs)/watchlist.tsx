@@ -84,7 +84,7 @@ import { SortGroupBar } from "@/components/watchlist/sort-group-bar";
 import { RegionFilterRow } from "@/components/watchlist/region-filter-row";
 import { EmptyState } from "@/components/watchlist/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
-import { LOG_ERROR } from "@shared/log";
+import { LOG_ERROR, log } from "@shared/log";
 
 // The header content lives in the list's ListHeaderComponent so it scrolls
 // away with the content (QA round 8: as flex siblings it squeezed the list
@@ -185,7 +185,7 @@ export default function WatchlistScreen() {
       settings = await getSettings();
       defs = await getTagDefinitions();
     } catch (e) {
-      console.error("[Watchlist] settings load failed", e);
+      log.error("[Watchlist] settings load failed", e);
       // Keep the previous values and leave the loaded flag unset: marking it
       // loaded would let the persist effect write these fallbacks over the
       // user's saved filters.
@@ -366,7 +366,7 @@ export default function WatchlistScreen() {
         await reload();
         exitSelection();
       } catch (e) {
-        console.error("[Watchlist] bulk delete failed", e);
+        log.error("[Watchlist] bulk delete failed", e);
         showAlert(
           "Delete Failed",
           "Could not remove some products. Please try again.",
@@ -437,7 +437,7 @@ export default function WatchlistScreen() {
         await reload();
         showUndoBar(product, removedAlerts, removedReminders, removedWatches);
       } catch (e) {
-        console.error("[Watchlist] remove failed", e);
+        log.error("[Watchlist] remove failed", e);
         showAlert("Remove failed", "We couldn't remove that product. Please try again.");
       }
     },
@@ -507,7 +507,7 @@ export default function WatchlistScreen() {
       undoWatchesRef.current = [];
       await reload();
     } catch (e) {
-      console.error("[Watchlist] undo failed", e);
+      log.error("[Watchlist] undo failed", e);
       showAlert("Undo failed", "We couldn't restore that product. Please try again.");
     }
   }, [undoProduct, reload]);
@@ -533,7 +533,7 @@ export default function WatchlistScreen() {
       await refreshAll();
       await loadData();
     } catch (e) {
-      console.error("[Watchlist] check now failed", e);
+      log.error("[Watchlist] check now failed", e);
       showAlert("Check failed", "We couldn't check prices. Please try again.");
     } finally {
       checkingRef.current = false;
@@ -712,7 +712,7 @@ export default function WatchlistScreen() {
       try {
         await updateSettings({ watchlistSort: sort, watchlistGroup: group });
       } catch (e) {
-        console.error("[Watchlist] persistViewPrefs failed", e);
+        log.error("[Watchlist] persistViewPrefs failed", e);
       }
     },
     [],

@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import type { Collection } from "../types";
 import type { StorageAdapter } from "./adapter";
 
@@ -145,13 +146,13 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     try {
       onChange?.(collection, itemId);
     } catch (e) {
-      console.warn("[storage] change handler failed", e);
+      log.warn("[storage] change handler failed", e);
     }
     for (const listener of changeListeners) {
       try {
         listener(collection, itemId);
       } catch (e) {
-        console.warn("[storage] change listener failed", e);
+        log.warn("[storage] change listener failed", e);
       }
     }
   }
@@ -233,7 +234,7 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     } catch (error) {
       // Adapter failures must not masquerade as empty stores: callers would
       // treat the result as empty and the next write would destroy data.
-      console.warn(`[storage] read failed for ${key}`, error);
+      log.warn(`[storage] read failed for ${key}`, error);
       throw error;
     }
     if (!raw) return [];
@@ -244,14 +245,14 @@ export function createContext(adapter: StorageAdapter): StorageContext {
       // overwrite the payload with a fresh array. Quarantine it like a corrupt
       // payload so the original survives for forensics/recovery.
       await quarantinePayload(adapter, key, raw);
-      console.warn(`[storage] quarantined non-array payload for ${key}`);
+      log.warn(`[storage] quarantined non-array payload for ${key}`);
       return [];
     } catch {
       // Corrupt payload: quarantine the raw value for forensics instead of
       // silently dropping it — returning [] here would let the next write
       // overwrite whatever the corrupt payload used to hold.
       await quarantinePayload(adapter, key, raw);
-      console.warn(`[storage] quarantined corrupt payload for ${key}`);
+      log.warn(`[storage] quarantined corrupt payload for ${key}`);
       return [];
     }
   }

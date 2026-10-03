@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import React from "react";
 import { Text, View, Pressable, Platform } from "react-native";
 import { router } from "expo-router";
@@ -139,7 +140,7 @@ export class RouteErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error) {
-    console.error("[RouteErrorBoundary]", error);
+    log.error("[RouteErrorBoundary]", error);
     void AsyncStorage.setItem("last_route_error", error.message).catch(() => {});
   }
 

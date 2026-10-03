@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import React from "react";
 import { Text, View, Pressable, Platform } from "react-native";
 import { router } from "expo-router";
@@ -135,7 +136,7 @@ export class AppErrorBoundary extends React.Component<
     return { hasError: true, message: safeMessage };
   }
   componentDidCatch(error: Error) {
-    console.error(error);
+    log.error(error);
     const truncated = String(error.message).slice(0, 500);
     void AsyncStorage.setItem("last_error", truncated).catch(() => {});
   }

@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { useFocusEffect } from "expo-router";
@@ -139,7 +140,7 @@ export function useAlertsData() {
           await snoozeAlert(alertId, days);
           await loadData();
         } catch (e) {
-          console.error("[Alerts] snooze failed", e);
+          log.error("[Alerts] snooze failed", e);
           showAlert("Snooze failed", "We couldn't snooze that alert. Please try again.");
         }
       };
@@ -211,7 +212,7 @@ export function useAlertsData() {
                 await removeBackOrderReminder(reminder.id);
                 await loadData();
               } catch (e) {
-                console.error("[Alerts] cancel reminder failed", e);
+                log.error("[Alerts] cancel reminder failed", e);
                 showAlert("Cancel failed", "We couldn't cancel that reminder. Please try again.");
               }
             },
@@ -245,7 +246,7 @@ export function useAlertsData() {
                 await removeStockWatch(watch.id);
                 await loadData();
               } catch (e) {
-                console.error("[Alerts] remove watch failed", e);
+                log.error("[Alerts] remove watch failed", e);
                 showAlert("Remove failed", "We couldn't remove that watch. Please try again.");
               }
             },
@@ -279,7 +280,7 @@ export function useAlertsData() {
         rescheduleTarget.productId,
       );
     } catch (e) {
-      console.error("[Alerts] reschedule notification failed", e);
+      log.error("[Alerts] reschedule notification failed", e);
       notifId = null;
     }
     const notificationFailed = !notifId && Platform.OS !== "web";
@@ -300,7 +301,7 @@ export function useAlertsData() {
           : (notifId ?? undefined),
       });
     } catch (e) {
-      console.error("[Alerts] reschedule save failed", e);
+      log.error("[Alerts] reschedule save failed", e);
       showAlert("Reschedule failed", "We couldn't save the new date. Please try again.");
       return;
     } finally {
@@ -339,7 +340,7 @@ export function useAlertsData() {
         await rearmAlert(alertId);
         await loadData();
       } catch (e) {
-        console.error("[Alerts] re-arm failed", e);
+        log.error("[Alerts] re-arm failed", e);
         showAlert("Re-arm failed", "We couldn't re-arm that alert. Please try again.");
         return;
       }

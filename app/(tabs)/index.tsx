@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ScrollView,
@@ -157,7 +158,7 @@ export default function HomeScreen() {
       const settings = await getSettings();
       setDisplayCurrency(settings?.displayCurrency ?? "USD");
     } catch (e) {
-      console.error(e);
+      log.error(e);
       setLoadError(e instanceof Error ? e.message : "Failed to load watchlist");
     } finally {
       setLoaded(true);

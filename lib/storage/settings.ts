@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import type { AppSettings, TagDefinition } from "../types";
 import { generateTagId } from "../tags";
 import type { StorageContext } from "./context";
@@ -40,7 +41,7 @@ export function createSettingsStorage(
     try {
       raw = await adapter.getItem(KEYS.SETTINGS);
     } catch (error) {
-      console.warn("[storage] read failed for app_settings", error);
+      log.warn("[storage] read failed for app_settings", error);
       throw error;
     }
     // A copy: callers may mutate what they read (e.g. `s.displayCurrency = …`
@@ -54,7 +55,7 @@ export function createSettingsStorage(
       return { ...DEFAULT_SETTINGS, ...(parsed as Partial<AppSettings>) };
     } catch {
       await quarantinePayload(adapter, KEYS.SETTINGS, raw);
-      console.warn("[storage] quarantined corrupt payload for app_settings");
+      log.warn("[storage] quarantined corrupt payload for app_settings");
       return { ...DEFAULT_SETTINGS };
     }
   }

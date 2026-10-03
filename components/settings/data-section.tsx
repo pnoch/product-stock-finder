@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { useState } from "react";
 import {
   Platform,
@@ -88,7 +89,7 @@ export function DataSection() {
       );
     } catch (e) {
       // A storage read failure must not reject unhandled.
-      console.error("[DataSection] backup export failed", e);
+      log.error("[DataSection] backup export failed", e);
       showAlert("Export Failed", "We couldn't create your backup. Please try again.");
     } finally {
       setBusy(false);
@@ -112,7 +113,7 @@ export function DataSection() {
       );
     } catch (e) {
       // A storage read failure must not reject unhandled.
-      console.error("[DataSection] CSV export failed", e);
+      log.error("[DataSection] CSV export failed", e);
       showAlert("Export Failed", "We couldn't export your watchlist. Please try again.");
     } finally {
       setBusy(false);
@@ -200,7 +201,7 @@ export function DataSection() {
               showAlert("Backup Imported", mergeSummary(fresh.counts));
             } catch (e) {
               // A storage write failure must not reject unhandled.
-              console.error("[DataSection] import save failed", e);
+              log.error("[DataSection] import save failed", e);
               showAlert("Import failed", "We couldn't save the imported backup. Please try again.");
             } finally {
               setBusy(false);
@@ -209,7 +210,7 @@ export function DataSection() {
         },
       ]);
     } catch (e) {
-      console.error("[DataSection] import failed", e);
+      log.error("[DataSection] import failed", e);
       showAlert("Import failed", "We couldn't import that backup. Please check the file and try again.");
     } finally {
       setBusy(false);
