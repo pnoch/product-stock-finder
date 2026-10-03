@@ -52,7 +52,6 @@ async function mirrorToFile(key: string, value: unknown): Promise<void> {
       return;
     }
     if (key === "price_alerts") {
-      const { invoke } = await import("@tauri-apps/api/core");
       const { computeAlertMutations } = await import("./lib/alert-mutations");
       const next = Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
       if (!alertsMirrorSeeded) {
@@ -78,8 +77,10 @@ async function mirrorToFile(key: string, value: unknown): Promise<void> {
       return;
     }
     await invoke("set_value_for_key", { key, value });
-  } catch {
-    // best-effort — localStorage still updated
+  } catch (error) {
+    // Best-effort — localStorage still updated — but log the dropped file write
+    // so a failed merge/mutation is not entirely silent.
+    console.warn("[storage] mirror write failed", key, error);
   }
 }
 
