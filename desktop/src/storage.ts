@@ -66,7 +66,10 @@ async function mirrorToFile(key: string, value: unknown): Promise<void> {
       const { upserts, removes } = computeAlertMutations(lastMirroredAlerts, next);
       if (upserts.length === 0 && removes.length === 0) return;
       const merged = await invoke<string>("apply_alert_mutations", { upserts, removes });
-      lastMirroredAlerts = JSON.parse(merged) as Record<string, unknown>[];
+      // Track the renderer's array, not Rust's merged copy: the merged array can
+      // carry poller-owned fields the UI never read, which a later diff would
+      // otherwise "remove" with a null patch.
+      lastMirroredAlerts = next;
       try {
         localStorage.setItem(key, merged);
       } catch {
@@ -123,8 +126,8 @@ const tauriAwareAdapter = {
     if (isTauri && TAURI_MIRRORED_KEYS.has(key)) {
       try {
         await mirrorToFile(key, JSON.parse(value));
-      } catch {
-        // non-JSON value — nothing to mirror
+      } catch (error) {
+        console.warn("[storage] mirror write failed", key, error);
       }
     }
   },

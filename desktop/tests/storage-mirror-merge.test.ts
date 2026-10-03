@@ -91,4 +91,32 @@ describe("desktop watchlist mirror", () => {
       JSON.stringify([{ id: "merged" }]),
     );
   });
+
+  it("does not invoke the mutation command when a save changes nothing", async () => {
+    const { storage } = await loadStorage();
+    invokeMock.mockImplementation(async (cmd: string) =>
+      cmd === "read_value_for_key" ? [{ id: "a1", targetPrice: 500 }] : "[]",
+    );
+    await storage.saveAlerts([{ id: "a1", targetPrice: 500 }] as never);
+    expect(invokeMock).not.toHaveBeenCalledWith(
+      "apply_alert_mutations",
+      expect.anything(),
+    );
+  });
+
+  it("sends removes and writes the merged array back to localStorage", async () => {
+    const { storage } = await loadStorage();
+    invokeMock.mockImplementation(async (cmd: string) => {
+      if (cmd === "read_value_for_key") return [{ id: "a1" }];
+      if (cmd === "apply_alert_mutations") return JSON.stringify([]);
+      return "[]";
+    });
+    await storage.getAlerts(); // seeds the diff baseline from the file
+    await storage.saveAlerts([] as never);
+    expect(invokeMock).toHaveBeenCalledWith("apply_alert_mutations", {
+      upserts: [],
+      removes: ["a1"],
+    });
+    expect(localStorage.getItem("price_alerts")).toBe(JSON.stringify([]));
+  });
 });
