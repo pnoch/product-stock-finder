@@ -15,7 +15,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:db": "node scripts/test-db.mjs",
-    "smoke:web": "node scripts/smoke-web.mjs",
+    "smoke:web": "tsx scripts/smoke-web.ts",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "android": "expo run:android",
     "ios": "expo run:ios",
