@@ -3,34 +3,17 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
-  COOKIE_NAME,
   MAX_UPLOAD_ALERTS,
   MAX_UPLOAD_DATE_REMINDERS,
   MAX_UPLOAD_HEALTH_EVENTS,
-  MAX_UPLOAD_HISTORY_POINTS,
   MAX_UPLOAD_STOCK_WATCHES,
-  SYNC_PULL_MAX_ITEMS,
-  SYNC_PUSH_MAX_ITEMS,
 } from "../shared/const.js";
-import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { getDb, getUserByEmail, getUserById } from "./db";
-import {
-  listChangedItems,
-  purgeOldTombstones,
-  SYNC_COLLECTION_ORDER,
-  TOMBSTONE_PURGE_WINDOW_MS,
-  upsertSyncItem,
-} from "./sync-db";
 import { sharedWatchlists, sharedWatchlistMembers, watchlistItems } from "../drizzle/schema";
 import { llmRouter } from "./routers/llm";
 import { isDuplicateKeyError, isForeignKeyError } from "./db-errors";
-import { getPrice } from "./prices";
-import { mapWithConcurrency } from "./concurrency";
-import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
-import { getAllParserIds } from "../lib/scrapers/registry";
-import { mergeHistory } from "./price-history";
 import { checkRateLimit, checkRateLimitByKey } from "./rate-limit";
 import { discoveryRouter } from "./routers/discovery";
 import { trendingRouter } from "./routers/trending";
@@ -39,8 +22,10 @@ import { fxRouter } from "./routers/fx";
 import { insightsRouter } from "./routers/insights";
 import { imagesRouter } from "./routers/images";
 import { productsRouter } from "./routers/products";
+import { authRouter } from "./routers/auth";
+import { syncRouter } from "./routers/sync";
+import { pricesRouter } from "./routers/prices";
 import { getOrigin } from "./routers/helpers";
-import type { SyncRejectedItem, SyncStampedItem } from "../lib/types";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
 import { upsertPushToken, pruneDeviceToken } from "./push-notifications";
 import {
@@ -56,308 +41,18 @@ import {
 export { getOrigin } from "./routers/helpers";
 export { clearHealthCacheForTests } from "./routers/health";
 
-let lastTombstonePurgeAt = 0;
-const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
-
 // Public share links return the owner's watchlist; cap the payload so a very
 // large watchlist can't turn the endpoint into an expensive unbounded read.
 const SHARED_WATCHLIST_MAX_ITEMS = 500;
 
-const syncItemSchema = z.object({
-  collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
-  id: z.string().min(1).max(191),
-  data: z.unknown().refine(
-    (v) => {
-      try {
-        return JSON.stringify(v ?? null).length < 100_000;
-      } catch {
-        return false;
-      }
-    },
-    { message: "data too large" },
-  ),
-  updatedAt: z.number().finite().nonnegative(),
-  deletedAt: z.number().finite().nonnegative().nullable(),
-});
-
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
-  auth: router({
-    // Never return the raw user row: it carries passwordHash, openId, and role.
-    // Mirrors the REST /api/auth/me shape.
-    me: publicProcedure.query((opts) => {
-      const user = opts.ctx.user;
-      if (!user) return null;
-      return {
-        id: user.id ?? null,
-        openId: user.openId ?? null,
-        name: user.name ?? null,
-        email: user.email ?? null,
-        loginMethod: user.loginMethod ?? null,
-        lastSignedIn: user.lastSignedIn
-          ? new Date(user.lastSignedIn).toISOString()
-          : null,
-        emailVerified: Boolean((user as { emailVerified?: unknown }).emailVerified),
-      };
-    }),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
-    }),
-    deleteAccount: protectedProcedure
-      // Same destructive-action guard as the REST endpoint: an accidental or
-      // CSRF-driven call must not delete the account.
-      .input(z.object({ confirm: z.literal("DELETE") }))
-      .mutation(async ({ ctx }) => {
-      checkRateLimit(ctx, "auth.deleteAccount", 5, 60_000);
-      const { deleteUserById } = await import("./db.js");
-      await deleteUserById(ctx.user.id);
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return { success: true } as const;
-    }),
-  }),
+  auth: authRouter,
 
-  sync: router({
-    pull: protectedProcedure
-      .input(
-        z.object({
-          since: z.number().finite().nonnegative().nullable(),
-          // Composite page cursor (stamp + collection + id) from the previous
-          // page. A stamp alone cannot page correctly when rows share a stamp.
-          cursor: z
-            .object({
-              stamp: z.number().finite().nonnegative(),
-              collection: z.string().min(1).max(32),
-              id: z.string().min(1).max(191),
-            })
-            .nullable()
-            .optional(),
-        }),
-      )
-      .query(async ({ ctx, input }) => {
-        checkRateLimit(ctx, "sync.pull", 60, 60_000);
-        const db = await getDb();
-        if (!db) {
-          console.warn("[Sync] Database not available; returning empty pull");
-          return { lastSyncedAt: input.since ?? 0, items: [], fullResyncSince: null as number | null };
-        }
-        // Capture the cursor before the SELECT so writes committed during
-        // the query are not missed on the next pull.
-        const lastSyncedAt = Date.now();
-        // Tombstones older than the retention window are purged, so a client
-        // whose cursor predates the window cannot distinguish "deleted long
-        // ago" from "unchanged since before the cursor" using an incremental
-        // pull. On a full resync, return the *complete* current state (plus
-        // recent tombstones) so the client can safely drop anything absent —
-        // an incremental pull would omit untouched live rows and the client
-        // would delete them.
-        const cutoff = lastSyncedAt - TOMBSTONE_PURGE_WINDOW_MS;
-        const needsFullResync = input.since != null && input.since < cutoff;
-        // Page the result: a full resync returns every live row plus
-        // tombstones, so an unbounded payload could be very large. `hasMore`
-        // tells the client to re-pull with the returned cursor.
-        // On a continuation page, re-include rows at the cursor (inclusive) so
-        // a boundary cannot skip an item; the client dedupes by key.
-        const pageSince = needsFullResync ? null : input.since;
-        const items = await listChangedItems(
-          ctx.user.id,
-          pageSince,
-          SYNC_PULL_MAX_ITEMS + 1,
-          input.cursor ?? null,
-        );
-        // The four per-collection queries are each ordered, but the merged
-        // list is not: sort globally by the same (stamp, collection, id) key
-        // the cursor uses, then take a prefix.
-        // Must match SYNC_COLLECTION_ORDER in server/sync-db.ts.
-        const COLLECTION_ORDER = SYNC_COLLECTION_ORDER;
-        const stampOf = (i: (typeof items)[number]) =>
-          Math.max(i.updatedAt, i.deletedAt ?? 0);
-        const sorted = [...items].sort((a, b) => {
-          const sa = stampOf(a);
-          const sb = stampOf(b);
-          if (sa !== sb) return sa - sb;
-          const ca = COLLECTION_ORDER.indexOf(a.collection);
-          const cb = COLLECTION_ORDER.indexOf(b.collection);
-          if (ca !== cb) return ca - cb;
-          return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-        });
-        const hasMore = sorted.length > SYNC_PULL_MAX_ITEMS;
-        const page = hasMore ? sorted.slice(0, SYNC_PULL_MAX_ITEMS) : sorted;
-        // The cursor is the last item of the page in the deterministic
-        // (stamp, collection, id) order the query uses.
-        const last = page[page.length - 1];
-        const nextCursor =
-          hasMore && last
-            ? {
-                stamp: Math.max(last.updatedAt, last.deletedAt ?? 0),
-                collection: last.collection,
-                id: last.id,
-              }
-            : null;
-        const fullResyncSince = needsFullResync ? cutoff : null;
-        return { lastSyncedAt, items: page, fullResyncSince, hasMore, nextCursor };
-      }),
-    push: protectedProcedure
-      .input(z.object({ items: z.array(syncItemSchema).max(SYNC_PUSH_MAX_ITEMS) }))
-      .mutation(async ({ ctx, input }) => {
-        checkRateLimit(ctx, "sync.push", 30, 60_000);
-        // Total-payload cap: 200 items × 100KB per item would let one push
-        // force ~20MB of upserts. Real clients send a handful of small rows.
-        let totalBytes = 0;
-        try {
-          for (const item of input.items) {
-            totalBytes += JSON.stringify(item.data ?? null).length;
-          }
-        } catch {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Unserializable sync data",
-          });
-        }
-        if (totalBytes > 5_000_000) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Sync payload too large",
-          });
-        }
-        // Future-dated stamps win LWW forever, so a client with a bad clock
-        // must not be able to poison conflict resolution. Clamp rather than
-        // reject the whole batch: rejecting wedged sync permanently (the
-        // client re-sends the same future stamp every retry), whereas clamping
-        // lets the server stamp win and the client self-heal.
-        const maxStamp = Date.now() + 5 * 60_000;
-        const nowMs = Date.now();
-        const items = input.items.map((item) => {
-          const updatedAt =
-            item.updatedAt > maxStamp ? nowMs : item.updatedAt;
-          const deletedAt =
-            item.deletedAt !== null && item.deletedAt > maxStamp
-              ? nowMs
-              : item.deletedAt;
-          return updatedAt === item.updatedAt && deletedAt === item.deletedAt
-            ? item
-            : { ...item, updatedAt, deletedAt };
-        });
-        const db = await getDb();
-        if (!db) {
-          console.warn("[Sync] Database not available; accepting nothing");
-          return { accepted: 0, stamped: [], rejected: [] as SyncRejectedItem[] };
-        }
-        // Bounded concurrency: each item is an INSERT + a SELECT, so a
-        // 200-item push was 400 serialized round trips holding the response
-        // open. Order is preserved so the stamped/rejected arrays stay stable.
-        const results = await mapWithConcurrency(items, 8, (item) =>
-          upsertSyncItem(ctx.user.id, item),
-        );
-        const stamped: SyncStampedItem[] = [];
-        const rejected: SyncRejectedItem[] = [];
-        let accepted = 0;
-        items.forEach((item, i) => {
-          const result = results[i]!;
-          if (result.accepted) {
-            accepted += 1;
-            stamped.push({
-              collection: item.collection,
-              id: item.id,
-              updatedAt: result.updatedAt,
-            });
-          } else {
-            rejected.push({
-              collection: item.collection,
-              id: item.id,
-              reason: result.reason ?? "stale_write",
-            });
-          }
-        });
-        const now = Date.now();
-        if (now - lastTombstonePurgeAt > TOMBSTONE_PURGE_INTERVAL_MS) {
-          lastTombstonePurgeAt = now;
-          await purgeOldTombstones(now - TOMBSTONE_PURGE_WINDOW_MS);
-        }
-        return { accepted, stamped, rejected };
-      }),
-  }),
+  sync: syncRouter,
 
-  prices: router({
-    get: publicProcedure
-      .input(
-        z.object({
-          distributorId: z.string().min(1).max(64),
-          modelNumber: z.string().min(1).max(128),
-        }),
-      )
-      .query(async ({ ctx, input }) => {
-        checkRateLimit(ctx, "prices.get", 60, 60_000);
-        return getPrice(input.distributorId, input.modelNumber);
-      }),
-    uploadHistory: protectedProcedure
-      .input(
-        z.object({
-          // Must be a registered parser id and a catalog model: otherwise any
-          // signed-in user can create orphaned rows for arbitrary keys.
-          distributorId: z.string().min(1).max(64).refine(
-            (v) => getAllParserIds().includes(v),
-            "unknown distributor",
-          ),
-          modelNumber: z.string().min(1).max(128).refine(
-            (v) => PRODUCT_CATALOG.some((p) => p.modelNumber === v),
-            "unknown model",
-          ),
-          points: z
-            .array(
-              z.object({
-                // Must be a strict ISO-8601 UTC instant: the column is a
-                // varchar(10) day key compared lexicographically, and a
-                // future-dated point would win every LWW merge forever
-                // (purgeOldHistory only removes past rows).
-                date: z
-                  .string()
-                  .regex(
-                    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/,
-                    "date must be an ISO-8601 UTC timestamp",
-                  )
-                  .refine(
-                    (v) => {
-                      const t = Date.parse(v);
-                      // One hour of tolerance for client clock skew: a whole day
-                      // let a point dated "tomorrow" (or later today) win that
-                      // day's LWW merge and outlive the purge.
-                      return !Number.isNaN(t) && t <= Date.now() + 3_600_000;
-                    },
-                    "date must not be more than an hour in the future",
-                  ),
-                // decimal(12,4) — a larger value fails the insert with a 500.
-                price: z.number().finite().positive().max(99_999_999),
-                currency: z.string().min(1).max(8),
-                stockStatus: z.enum([
-                  "in_stock",
-                  "back_order",
-                  "out_of_stock",
-                  "unknown",
-                ]),
-              }),
-            )
-            .max(MAX_UPLOAD_HISTORY_POINTS),
-        }),
-      )
-      .mutation(async ({ ctx, input }) => {
-        checkRateLimit(ctx, "prices.uploadHistory", 30, 60_000);
-        // History is global per distributor/model; writes are protected to
-        // prevent anonymous pollution. No per-user ownership check needed.
-        void ctx.user.id;
-        await mergeHistory(
-          input.distributorId,
-          input.modelNumber,
-          input.points,
-        );
-        return { accepted: input.points.length } as const;
-      }),
-  }),
+  prices: pricesRouter,
 
   health: healthRouter,
 

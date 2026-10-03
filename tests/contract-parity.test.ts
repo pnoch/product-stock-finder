@@ -18,7 +18,13 @@ const usesConstant = (src: string, token: string) =>
 // touching shared/const.ts and both sides, never one side's literal.
 describe("server <-> client contract parity", () => {
   it("every upload/push cap is enforced by the server", () => {
-    const server = read("server/routers.ts");
+    // The caps now live across the composition root and the extracted routers,
+    // so scan all of them rather than a single file.
+    const server = [
+      read("server/routers.ts"),
+      read("server/routers/sync.ts"),
+      read("server/routers/prices.ts"),
+    ].join("\n");
     for (const cap of [
       "SYNC_PUSH_MAX_ITEMS",
       "MAX_UPLOAD_ALERTS",
