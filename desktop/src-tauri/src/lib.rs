@@ -512,6 +512,12 @@ async fn set_value_for_key(
     if !is_allowed_storage_key(&key) {
         return Err(format!("Refusing to write disallowed key: {key}"));
     }
+    // Alerts have their own serialized writer (apply_alert_mutations); the
+    // plain setter must take the same lock or it can interleave with the poller.
+    if key == "price_alerts" {
+        let _guard = ALERTS_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        return write_json_file(&data_dir, &key, &value);
+    }
     write_json_file(&data_dir, &key, &value)
 }
 
@@ -650,6 +656,9 @@ struct AlertUpsert {
 fn apply_alert_patch(mut item: serde_json::Value, patch: &serde_json::Value) -> serde_json::Value {
     if let (Some(obj), Some(patch_obj)) = (item.as_object_mut(), patch.as_object()) {
         for (k, v) in patch_obj {
+            if k == "id" {
+                continue;
+            }
             if v.is_null() {
                 obj.remove(k);
             } else {
@@ -669,10 +678,10 @@ fn apply_alert_mutations_to(
         serde_json::Value::Array(items) => items,
         _ => Vec::new(),
     };
-    if !removes.is_empty() {
+    if removes.iter().any(|r| !r.is_empty()) {
         list.retain(|a| {
             let id = a.get("id").and_then(|v| v.as_str()).unwrap_or("");
-            !removes.iter().any(|r| r == id)
+            !removes.iter().any(|r| !r.is_empty() && r.as_str() == id)
         });
     }
     for up in upserts {
@@ -803,6 +812,9 @@ async fn import_watchlist(
             if !import.stock_watches.is_null() {
                 entries.push(("back_in_stock_watches", &import.stock_watches));
             }
+            // Serialize with the poller/command: the import writes price_alerts
+            // too, and an interleaved poller write would be lost.
+            let _guard = ALERTS_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
             write_json_files_atomically(&data_dir, &entries)?;
 
             Ok("Import successful".to_string())
@@ -2858,5 +2870,25 @@ mod tests {
         let disk = serde_json::json!([{ "id": "a1" }]);
         let merged = apply_alert_mutations_to(disk, &[], &["nope".to_string()]);
         assert_eq!(merged.as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn apply_alert_patch_ignores_id() {
+        let disk = serde_json::json!([{ "id": "a1", "targetPrice": 1 }]);
+        let upserts = vec![AlertUpsert {
+            id: "a1".into(),
+            patch: serde_json::json!({ "id": "evil", "targetPrice": 2 }),
+        }];
+        let merged = apply_alert_mutations_to(disk, &upserts, &[]);
+        let a = &merged.as_array().unwrap()[0];
+        assert_eq!(a["id"], serde_json::json!("a1"));
+        assert_eq!(a["targetPrice"], serde_json::json!(2));
+    }
+
+    #[test]
+    fn apply_alert_mutations_ignores_empty_remove_id() {
+        let disk = serde_json::json!([{ "id": "a1" }, { "targetPrice": 1 }]);
+        let merged = apply_alert_mutations_to(disk, &[], &["".to_string()]);
+        assert_eq!(merged.as_array().unwrap().len(), 2);
     }
 }
