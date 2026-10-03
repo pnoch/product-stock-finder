@@ -26,39 +26,3 @@ export async function fetchFxRates(): Promise<FxRatesResult | null> {
     return null;
   }
 }
-
-// Pure stubs — lib wrapper adds AsyncStorage persistence and setExchangeRates.
-export async function loadFxRates(): Promise<void> {}
-
-let lastFetchedAt: number | null = null;
-let inFlight: Promise<void> | null = null;
-
-export function refreshFxRates(): Promise<void> {
-  const doRefresh = async () => {
-    const result = await fetchFxRates();
-    if (!result || typeof result.fetchedAt !== "number" || result.fetchedAt <= 0) return;
-    lastFetchedAt = result.fetchedAt;
-  };
-  if (inFlight) return inFlight;
-  const promise = doRefresh().finally(() => {
-    inFlight = null;
-  });
-  inFlight = promise;
-  return promise;
-}
-
-function deterministicJitter(fetchedAt: number): number {
-  // Deterministic hash seeded by fetchedAt so TTL window is stable per fetch.
-  // Uses Knuth multiplicative hash variant to spread across [-300k, +300k).
-  const hash = (fetchedAt * 9301 + 49297) % 600_000;
-  return hash - 300_000;
-}
-
-export async function maybeRefreshFxRates(): Promise<void> {
-  const jitter = lastFetchedAt !== null ? deterministicJitter(lastFetchedAt) : 0;
-  const fresh =
-    lastFetchedAt !== null &&
-    lastFetchedAt > 0 &&
-    Date.now() - lastFetchedAt < FX_TTL_MS + jitter;
-  if (!fresh) await refreshFxRates();
-}

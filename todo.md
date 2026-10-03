@@ -7840,3 +7840,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Converted all 32 `desktop/src` `console.*` calls (30 error, 2 warn) to `log.*` from `@shared/log`; no levels flipped, no `desktop/tests` touched. Extended `tests/no-stray-console.test.ts` ROOTS with `desktop/src`, so the guard now covers mobile/web **and** the desktop renderer.
 - [x] `tsc 0` (root + desktop), lint 0 warnings, root `3163` / desktop `321` green; `pnpm verify` to be run on merge.
+
+## Phase 1058: shared/src/fx.ts — remove dead exports, test the shipped path
+
+- [x] The ~54% coverage "gap" was **dead code**: only `fetchFxRates` + `FX_TTL_MS` ship from `@shared/fx`; `lib/fx.ts` re-implements `loadFxRates`/`refreshFxRates`/`maybeRefreshFxRates` with storage. Removed the unused stateful exports (`shared/src/fx.ts` 64 → 28 lines).
+- [x] Added `tests/shared-fx.test.ts` for the shipped surface (valid/missing/invalid rates, rejection, 4000ms timeout + timer-leak check, `FX_TTL_MS`). 100% statements/lines/functions (one unreachable branch). `tsc 0`, lint 0, root `3173` / desktop `321` green.
