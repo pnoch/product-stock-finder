@@ -12,10 +12,14 @@ export function useConnection() {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
 
+  const configured = isServerConfigured();
   const query = useQuery({
     queryKey: ["connection"],
     queryFn: checkHealth,
-    refetchInterval: REFETCH_INTERVAL_MS,
+    // No server to poll in local mode: skip the query entirely so the app makes
+    // no outbound health requests and reports "local" directly.
+    enabled: configured,
+    refetchInterval: configured ? REFETCH_INTERVAL_MS : false,
     retry: 1,
   });
 
@@ -35,7 +39,7 @@ export function useConnection() {
   const status = deriveConnectionStatus({
     reachable,
     isAuthenticated,
-    configured: isServerConfigured(),
+    configured,
   });
 
   return {

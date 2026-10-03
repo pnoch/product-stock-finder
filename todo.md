@@ -7861,3 +7861,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] The release APK build failed at `:app:createBundleReleaseJsAndAssets` (and the earlier `expo export --clear`) with `[Worklets] Babel plugin exception: Requires Babel "^7.0.0-0", but was loaded with "8.0.6"`. Nothing pinned `@babel/core`, so pnpm installed 8.0.6 to satisfy peer ranges. Pinned `@babel/core` to `7.29.6` (devDependency + `pnpm.overrides`, matching `react-native-worklets`' exact peer).
 - [x] `cd android && ./gradlew assembleRelease` now succeeds: signed release APK at `android/app/build/outputs/apk/release/app-release.apk` (46 MB, `com.app.stocktrackerpro` v5.16.0, release keystore CN=Product Stock Finder). `expo export -p web --clear` is unblocked too.
 - [x] Regression check: `pnpm build:web` and `pnpm verify` exit 0 with Babel 7; root/desktop/cargo suites green. (APK/outputs are gitignored — not committed.)
+
+## Phase 1062: Standalone (local-mode) UX
+
+- [x] `connection-section` mislabelled local mode as "Backend unreachable. Showing saved prices." Now shows "Local mode — prices are checked on this device. Add a server URL to enable sync, push and shared watchlists." and disables "Check Now".
+- [x] `use-connection` no longer polls `checkHealth` when no server is configured (`enabled: configured`) — no pointless outbound requests in local mode.
+- [x] `account-section` shows a read-only "Local mode" row instead of a non-functional "Sign in to sync" CTA when unconfigured; the Home connection badge is tappable to Settings in local mode.
+- [x] `tests/standalone-ux.test.ts` guards all four. Behavior-preserving for the configured path; `tsc 0`, lint 0, root `3178` / desktop `321` green.

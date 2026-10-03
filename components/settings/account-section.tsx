@@ -16,7 +16,7 @@ import { useColors } from "@/hooks/use-colors";
 import { SettingRow } from "@/components/settings/setting-row";
 import { SectionHeader } from "@/components/settings/section-header";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { getOAuthUrl } from "@/constants/oauth";
+import { getOAuthUrl, isServerConfigured } from "@/constants/oauth";
 import type { SyncMeta } from "@/lib/types";
 import type { User } from "@/lib/_core/auth";
 import { useAuth } from "@/hooks/use-auth";
@@ -45,6 +45,8 @@ export function AccountSection({
   const colors = useColors();
   const router = useRouter();
   const { changePassword, deleteAccount, resendVerification } = useAuth({ autoFetch: false });
+  // Without a server, signing in cannot work — offer a local-mode note instead.
+  const configured = isServerConfigured();
 
   // ─── Change Password state ─────────────────────────────────────────────
   const [showChangePw, setShowChangePw] = useState(false);
@@ -202,7 +204,7 @@ export function AccountSection({
               </View>
             }
           />
-        ) : (
+        ) : configured ? (
           <SettingRow
             icon="person.crop.circle.badge.plus"
             label="Sign in to sync"
@@ -230,6 +232,13 @@ export function AccountSection({
                 </Text>
               </TouchableOpacity>
             }
+          />
+        ) : (
+          <SettingRow
+            icon="iphone"
+            label="Local mode"
+            description="No server configured — your data stays on this device"
+            right={<Text style={{ color: colors.muted, fontSize: 12 }}>On-device</Text>}
           />
         )}
         {needsVerification && (

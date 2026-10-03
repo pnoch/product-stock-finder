@@ -280,7 +280,8 @@ export default function HomeScreen() {
             <ConnectionBadge
               status={connection.status}
               onPress={
-                connection.status === "signed-out"
+                connection.status === "signed-out" ||
+                connection.status === "local"
                   ? () => router.push("/(tabs)/settings")
                   : undefined
               }
