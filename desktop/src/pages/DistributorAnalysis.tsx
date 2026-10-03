@@ -5,7 +5,7 @@ import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { getDistributorById } from "@shared/distributors";
 import { analyzeDistributors } from "../../../lib/distributor-analysis";
-import type { DistributorAnalysis } from "../../../lib/distributor-analysis";
+import type { DistributorAnalysis as DistributorAnalysisType } from "../../../lib/distributor-analysis";
 import { formatPrice } from "@shared/currency";
 import { watchlistToDetailedCsv } from "../../../lib/csv";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -13,7 +13,7 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 export function DistributorAnalysis() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const [analysis, setAnalysis] = useState<DistributorAnalysis[]>([]);
+  const [analysis, setAnalysis] = useState<DistributorAnalysisType[]>([]);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);

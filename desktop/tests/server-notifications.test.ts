@@ -104,7 +104,7 @@ describe("syncDesktopNotifications", () => {
     expect(state.uploaded).toHaveLength(1);
     const input = state.uploaded[0] as Record<string, unknown>;
     expect(input.deviceId).toBeUndefined();
-    const alerts = input.alerts as Array<{ id: string }>;
+    const alerts = input.alerts as { id: string }[];
     expect(alerts.map((a) => a.id)).toContain("a1");
     expect(state.notifications).toEqual([
       {

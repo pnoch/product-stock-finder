@@ -136,7 +136,7 @@ export async function getPrice(
 function pLimit(concurrency: number) {
   const slots = Math.max(1, Math.floor(concurrency) || 1);
   let active = 0;
-  const queue: Array<() => void> = [];
+  const queue: (() => void)[] = [];
   const next = () => {
     active--;
     const fn = queue.shift();

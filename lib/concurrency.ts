@@ -18,7 +18,7 @@ export function createSemaphore(
   const max = Math.max(1, Math.floor(limit) || 1);
   const maxQueue = opts?.maxQueue;
   let active = 0;
-  const waiters: Array<() => void> = [];
+  const waiters: (() => void)[] = [];
 
   return {
     get active() {

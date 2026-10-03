@@ -16,11 +16,11 @@ const DEFAULT_IMAGE_QUALITY = "medium";
 
 export type GenerateImageOptions = {
   prompt: string;
-  originalImages?: Array<{
+  originalImages?: {
     url?: string;
     b64Json?: string;
     mimeType?: string;
-  }>;
+  }[];
   model?: string;
   quality?: string;
 };
@@ -104,7 +104,7 @@ async function generateWithOllama(
   }
 
   const result = (await response.json()) as {
-    data: Array<{ b64_json?: string; b64Json?: string; url?: string }>;
+    data: { b64_json?: string; b64Json?: string; url?: string }[];
   };
   const item = result.data?.[0];
   if (!item) throw new Error("Ollama returned no images");
@@ -148,7 +148,7 @@ async function generateWithOpenAI(
   }
 
   const result = (await response.json()) as {
-    data: Array<{ b64_json?: string; url?: string }>;
+    data: { b64_json?: string; url?: string }[];
   };
   const item = result.data?.[0];
   if (!item) throw new Error("OpenAI returned no images");
@@ -182,7 +182,7 @@ export async function listImageModels(): Promise<ListImageModelsResponse> {
     try {
       const res = await fetchWithTimeout(`${baseUrl}/api/tags`);
       if (!res.ok) return { models: [] };
-      const data = (await res.json()) as { models?: Array<{ name: string }> };
+      const data = (await res.json()) as { models?: { name: string }[] };
       return {
         models: (data.models ?? []).map((m) => ({
           model: m.name,

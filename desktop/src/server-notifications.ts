@@ -13,7 +13,7 @@ import {
 const TIMEOUT_MS = 4000;
 
 interface PushConfig {
-  alerts: Array<{
+  alerts: {
     id: string;
     productId: string;
     modelNumber?: string;
@@ -22,24 +22,24 @@ interface PushConfig {
     distributorId?: string;
     direction?: "drop" | "rise";
     snoozedUntil?: string;
-  }>;
-  stockWatches: Array<{
+  }[];
+  stockWatches: {
     id: string;
     productId: string;
     modelNumber?: string;
     distributorId: string;
     lastKnownStatus?: string;
-  }>;
-  dateReminders: Array<{
+  }[];
+  dateReminders: {
     id: string;
     productId: string;
     modelNumber?: string;
     distributorId: string;
     reminderDate: string;
-  }>;
+  }[];
   /** `null` explicitly clears the setting; absent preserves it. */
   quietHours?: { start: string; end: string; utcOffsetMinutes?: number } | null;
-  healthEvents?: Array<{
+  healthEvents?: {
     id: string;
     distributorId: string;
     distributorName: string;
@@ -47,7 +47,7 @@ interface PushConfig {
     title: string;
     body: string;
     createdAt: number;
-  }>;
+  }[];
 }
 
 interface PushEvent {

@@ -23,7 +23,7 @@ function makeCatalog() {
 }
 
 function makeSampleListings() {
-  const listings: Record<string, Array<{ distributorId: string }>> = {};
+  const listings: Record<string, { distributorId: string }[]> = {};
   for (const id of SEED_IDS) {
     listings[id] = [{ distributorId: `dist-${id}` }];
   }

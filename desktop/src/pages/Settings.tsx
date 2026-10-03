@@ -940,7 +940,7 @@ export function Settings() {
     try {
       const result = await exportWatchlistAsJson();
       setImportExportMessage(result);
-    } catch (error) {
+    } catch {
       setImportExportMessage("Export failed");
     }
   };
@@ -949,7 +949,7 @@ export function Settings() {
     try {
       const result = await importWatchlistFromJson();
       setImportExportMessage(result);
-    } catch (error) {
+    } catch {
       setImportExportMessage("Import failed");
     }
   };

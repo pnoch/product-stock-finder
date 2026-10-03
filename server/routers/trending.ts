@@ -77,7 +77,7 @@ function parseRssItems(xml: string, source: string): RssItem[] {
 
 function parseJsonFeed(body: string, source: string): RssItem[] {
   try {
-    const data = JSON.parse(body) as { hits?: Array<{ title?: string; url?: string; story_title?: string }> };
+    const data = JSON.parse(body) as { hits?: { title?: string; url?: string; story_title?: string }[] };
     return (data.hits ?? [])
       .map((h) => ({ title: (h.title ?? h.story_title ?? "").trim(), link: h.url ?? "", source }))
       .filter((i) => i.title.length > 0);

@@ -96,11 +96,11 @@ export async function listNearExpiry(
   now: number,
   thresholdMs: number,
   limit: number = NEAR_EXPIRY_PER_TICK,
-): Promise<Array<{ distributorId: string; modelNumber: string }>> {
+): Promise<{ distributorId: string; modelNumber: string }[]> {
   const cutoff = now - thresholdMs;
   const db = await getDb();
   if (!db) {
-    const entries: Array<{ distributorId: string; modelNumber: string }> = [];
+    const entries: { distributorId: string; modelNumber: string }[] = [];
     for (const entry of memoryCache.values()) {
       if (entries.length >= limit) break;
       if (entry.snapshot.fetchedAt < cutoff) {
@@ -133,15 +133,15 @@ const FETCHED_AT_SCAN_CAP = 5000;
 export async function getAllFetchedAt(
   limit: number = FETCHED_AT_SCAN_CAP,
 ): Promise<
-  Array<{ distributorId: string; modelNumber: string; fetchedAt: number }>
+  { distributorId: string; modelNumber: string; fetchedAt: number }[]
 > {
   const db = await getDb();
   if (!db) {
-    const entries: Array<{
+    const entries: {
       distributorId: string;
       modelNumber: string;
       fetchedAt: number;
-    }> = [];
+    }[] = [];
     for (const entry of memoryCache.values()) {
       if (entries.length >= limit) break;
       entries.push({

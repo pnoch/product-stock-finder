@@ -134,7 +134,7 @@ export function createContext(adapter: StorageAdapter): StorageContext {
   // suppression ends. Dropping them (the previous behavior) meant a local edit
   // made during a sync was never marked dirty, so it was treated as
   // already-synced and never uploaded.
-  const suppressedChanges: Array<[Collection, string]> = [];
+  const suppressedChanges: [Collection, string][] = [];
   const changeListeners = new Set<
     (collection: Collection, itemId: string) => void
   >();

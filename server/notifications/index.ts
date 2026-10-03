@@ -36,7 +36,7 @@ async function processHealthEvents(
   if (!healthEvents || healthEvents.length === 0) return;
 
   const db = await getDb();
-  const toInsert: Array<Record<string, unknown>> = [];
+  const toInsert: Record<string, unknown>[] = [];
 
   if (db) {
     if (userId == null) return;

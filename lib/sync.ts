@@ -161,7 +161,7 @@ async function doSync(
   if (pulled.fullResyncSince != null) {
     const cutoff = pulled.fullResyncSince;
     const pulledIds = new Set(pulled.items.map((i) => `${i.collection}:${i.id}`));
-    const localLists: Array<{ collection: Collection; ids: string[] }> = [
+    const localLists: { collection: Collection; ids: string[] }[] = [
       {
         collection: "watchlist",
         ids: (await storage.getWatchlist()).map((p) => p.id),
@@ -208,8 +208,8 @@ async function doSync(
   const drainIncomplete = Boolean(pulled.hasMore);
   const nextCursor = drainIncomplete ? oldCursor : pulled.lastSyncedAt;
   const stampedKeys = new Set<string>();
-  const stampedTombstones: Array<{ collection: Collection; id: string }> = [];
-  let rejected: Array<{ collection: Collection; id: string; reason: SyncRejectionReason }> = [];
+  const stampedTombstones: { collection: Collection; id: string }[] = [];
+  let rejected: { collection: Collection; id: string; reason: SyncRejectionReason }[] = [];
   let rejectedValidation = 0;
   if (dirty.length > 0) {
     let stamped: SyncStampedItem[] = [];
@@ -263,7 +263,7 @@ async function doSync(
     // Stale tombstones must be cleared via a direct delete after the
     // merged save (persistSyncMeta merges per-item, so a missing key in
     // the snapshot would be resurrected from the stored copy).
-    const staleTombstonesToClear: Array<{ collection: Collection; id: string }> = [];
+    const staleTombstonesToClear: { collection: Collection; id: string }[] = [];
     for (const item of dirty) {
       const key = `${item.collection}:${item.id}`;
       const stampedAt = stampedByKey.get(key);
@@ -416,7 +416,7 @@ async function collectDirty(
   const keyOf = (c: Collection, id: string) => `${c}:${id}`;
   const retryKeys = new Set(meta.retryKeys ?? []);
   const local = await collectLocalState(storage);
-  const pendingSetMeta: Array<{ collection: Collection; id: string }> = [];
+  const pendingSetMeta: { collection: Collection; id: string }[] = [];
   const rawServerNow = await serverNow(storage);
   // NOTE: stamps deliberately use the per-item skew-corrected estimate, not
   // the just-observed server cursor. Flooring at the cursor would falsify

@@ -1,10 +1,11 @@
 // FX persistence layer over @shared/fx: AsyncStorage caching + live
 // overlay updates. Pure fetch/TTL live in @shared/fx.
 import { fetchFxRates, FX_TTL_MS } from "@shared/fx";
-export { fetchFxRates, FX_TTL_MS };
 import { defaultStorage, type Storage } from "./storage";
 import { appendFxHistory } from "./fx-history";
 import { setExchangeRates } from "./currency";
+
+export { fetchFxRates, FX_TTL_MS };
 
 export async function loadFxRates(storage: Storage = defaultStorage): Promise<void> {
   const stored = await storage.getFxRates();
