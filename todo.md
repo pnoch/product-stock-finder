@@ -7815,3 +7815,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] New pure `server/env-validation.ts` (`validateServerEnv` + `assertServerEnv`): production-missing `DATABASE_URL` is a fatal `error`; partially-configured Google/Apple OAuth (accepting the `EXPO_PUBLIC_*` id fallbacks), VAPID, or email groups warn. Dev/optional gaps never throw, preserving local-only mode. No CORS check (same-origin is the primary deploy, so an empty allowlist is valid). (`JWT_SECRET` was already enforced in `server/_core/env.ts`.)
 - [x] Called once at the top of `startServer()` in `server/_core/index.ts` (minimal `_core` infra extension). Tests cover each error/warn case, the `[env]` log contract, whitespace-as-missing, and throw/no-throw. `tsc 0`, lint 0 warnings, root `3158` / desktop `321` green.
 - [ ] Follow-up (not this phase): root `tests/` is excluded from the `lint` script and carries ~129 warnings (array-type/unused-vars/duplicate imports); extend the lint ratchet to cover it in a dedicated pass.
+
+## Phase 1053: Lint root tests to zero + extend the ratchet
+
+- [x] `eslint tests` is now **0 problems** (was 129 warnings + 2 errors): auto-fixed `array-type`/duplicate imports (82), removed ~45 genuinely-unused imports/bindings (mostly a stray `scrapeXxx` import per scraper test), fixed 2 `react/display-name` errors, and converted 2 `require()`s to imports. No assertion removed, no test skipped, side-effecting `vi.spyOn`/`setupSync` calls preserved.
+- [x] Added `tests` to the `lint` script (`--max-warnings 0`) so the ratchet now covers root tests. `tsc 0`, root `3160` / desktop `321` green.

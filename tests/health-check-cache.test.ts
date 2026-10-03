@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { appRouter , clearHealthCacheForTests } from "../server/routers";
+import { appRouter, clearHealthCacheForTests } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
 import { clearRateLimitsForTests } from "../server/rate-limit";
 
