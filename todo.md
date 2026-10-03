@@ -7855,3 +7855,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Investigated the proposed "de-dup merge logic": the three implementations are intentionally different algorithms, not duplicates — `lib/sync.ts applyLocalItem` (incoming fields win, history merged, tags LWW), `lib/backup.ts mergeProductListings` (wholesale LWW, **local wins ties**), and Rust `merge_listings` (wholesale LWW, **incoming wins ties**). Consolidating any two would change sync/backup/file-mirror behavior, so no code was merged.
 - [x] Locked the divergence instead: added a backup tie regression test (`tests/backup.test.ts`) and an AGENTS.md "Merge semantics" convention note so future agents don't try to unify them. Docs/test only; `tsc 0`, lint 0, suites green.
+
+## Phase 1061: Fix Android APK build (pin @babel/core to 7)
+
+- [x] The release APK build failed at `:app:createBundleReleaseJsAndAssets` (and the earlier `expo export --clear`) with `[Worklets] Babel plugin exception: Requires Babel "^7.0.0-0", but was loaded with "8.0.6"`. Nothing pinned `@babel/core`, so pnpm installed 8.0.6 to satisfy peer ranges. Pinned `@babel/core` to `7.29.6` (devDependency + `pnpm.overrides`, matching `react-native-worklets`' exact peer).
+- [x] `cd android && ./gradlew assembleRelease` now succeeds: signed release APK at `android/app/build/outputs/apk/release/app-release.apk` (46 MB, `com.app.stocktrackerpro` v5.16.0, release keystore CN=Product Stock Finder). `expo export -p web --clear` is unblocked too.
+- [x] Regression check: `pnpm build:web` and `pnpm verify` exit 0 with Babel 7; root/desktop/cargo suites green. (APK/outputs are gitignored — not committed.)
