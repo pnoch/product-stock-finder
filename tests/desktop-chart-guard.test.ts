@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { readFile, readdir } from "node:fs/promises";
 
+// Scan the composition root plus every extracted router so a router moved into
+// its own file is still asserted here.
+async function readAllServerRouters(): Promise<string> {
+  const dir = "server/routers";
+  const names = (await readdir(dir)).filter((f) => f.endsWith(".ts"));
+  const parts = await Promise.all([
+    readFile("server/routers.ts", "utf8"),
+    ...names.map((f) => readFile(`${dir}/${f}`, "utf8")),
+  ]);
+  return parts.join("\n");
+}
+
 async function desktopSrcFiles(): Promise<string[]> {
   const files: string[] = [];
   const walk = async (dir: string): Promise<void> => {
@@ -1046,7 +1058,7 @@ describe("desktop chart guard", () => {
       expect(src, file).toContain("sharedWatchlists.listJoined.useQuery()");
       expect(src, file).toContain("membersOnly");
     }
-    const routers = await readFile("server/routers.ts", "utf8");
+    const routers = await readAllServerRouters();
     expect(routers).toContain("setMembersOnly: protectedProcedure");
     expect(routers).toContain("listJoined: protectedProcedure");
     expect(routers).toContain("This share is members-only");
@@ -1066,7 +1078,7 @@ describe("desktop chart guard", () => {
       expect(src, file).toContain("sharedWatchlists.removeMember.useMutation()");
       expect(src, file).toContain("sharedWatchlists.members.useQuery(");
     }
-    const routers = await readFile("server/routers.ts", "utf8");
+    const routers = await readAllServerRouters();
     expect(routers).toContain("inviteByEmail: protectedProcedure");
     expect(routers).toContain("removeMember: protectedProcedure");
   });
@@ -1085,7 +1097,7 @@ describe("desktop chart guard", () => {
       expect(src, file).toContain("isOwner");
       expect(src, file).toContain("isMember");
     }
-    const routers = await readFile("server/routers.ts", "utf8");
+    const routers = await readAllServerRouters();
     expect(routers).toContain("isOwner, isMember } as const;");
   });
 
