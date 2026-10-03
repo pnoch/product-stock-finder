@@ -24,22 +24,22 @@ import {
   upsertSyncItem,
 } from "./sync-db";
 import { sharedWatchlists, sharedWatchlistMembers, watchlistItems } from "../drizzle/schema";
-import { userLlmConfigFromHeaders } from "./user-llm";
 import { llmRouter } from "./routers/llm";
 import { isDuplicateKeyError, isForeignKeyError } from "./db-errors";
 import { getPrice } from "./prices";
 import { mapWithConcurrency } from "./concurrency";
 import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { getAllParserIds } from "../lib/scrapers/registry";
-import { checkAllDistributors } from "./health";
-import { getFxRates } from "./fx";
 import { mergeHistory } from "./price-history";
 import { checkRateLimit, checkRateLimitByKey } from "./rate-limit";
-import { getInsight } from "./price-insights";
-import { getProductImage } from "./product-images";
 import { discoveryRouter } from "./routers/discovery";
 import { trendingRouter } from "./routers/trending";
-import { parseProductText } from "./product-parse";
+import { healthRouter } from "./routers/health";
+import { fxRouter } from "./routers/fx";
+import { insightsRouter } from "./routers/insights";
+import { imagesRouter } from "./routers/images";
+import { productsRouter } from "./routers/products";
+import { getOrigin } from "./routers/helpers";
 import type { SyncRejectedItem, SyncStampedItem } from "../lib/types";
 import { upsertDeviceConfig, pullPendingEvents } from "./notifications";
 import { upsertPushToken, pruneDeviceToken } from "./push-notifications";
@@ -53,41 +53,8 @@ import {
   STALE_DEVICE_MS,
 } from "./devices";
 
-const LOCAL_ORIGIN_FALLBACK = "http://localhost:8081";
-
-function cleanHttpUrl(raw: string | undefined): string | null {
-  if (!raw) return null;
-  const trimmed = raw.trim().replace(/\/$/, "");
-  try {
-    const u = new URL(trimmed);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
-    return `${u.protocol}//${u.host}`;
-  } catch {
-    return null;
-  }
-}
-
-// Share URLs must never be built from attacker-controlled Origin/Referer
-// headers (phishing via a poisoned link host). Only deployment config is
-// trusted; otherwise fall back to localhost.
-export function getOrigin(req?: { headers: Record<string, unknown> }): string {
-  void req;
-  const envWeb = cleanHttpUrl(process.env.EXPO_PUBLIC_WEB_URL);
-  if (envWeb) return envWeb;
-  const envApi = process.env.EXPO_PUBLIC_API_BASE_URL;
-  if (envApi) {
-    try {
-      const u = new URL(envApi.trim());
-      if (u.protocol === "http:" || u.protocol === "https:") {
-        if (u.port === "3000") u.port = "8081";
-        return `${u.protocol}//${u.host}`;
-      }
-    } catch {
-      // fall through to localhost
-    }
-  }
-  return LOCAL_ORIGIN_FALLBACK;
-}
+export { getOrigin } from "./routers/helpers";
+export { clearHealthCacheForTests } from "./routers/health";
 
 let lastTombstonePurgeAt = 0;
 const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
@@ -95,23 +62,6 @@ const TOMBSTONE_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 // Public share links return the owner's watchlist; cap the payload so a very
 // large watchlist can't turn the endpoint into an expensive unbounded read.
 const SHARED_WATCHLIST_MAX_ITEMS = 500;
-
-// Short server cache: one health.check fans out to ~25 distributor scrapes,
-// so repeat calls within the window reuse the previous result instead of
-// re-scraping (rate limiting alone still allows 125 scrapes/min/IP).
-const HEALTH_CACHE_TTL_MS = 5 * 60 * 1000;
-let healthCache: {
-  at: number;
-  result: Awaited<ReturnType<typeof checkAllDistributors>> | null;
-} = {
-  at: 0,
-  result: null,
-};
-let healthInFlight: Promise<Awaited<ReturnType<typeof checkAllDistributors>>> | null = null;
-
-export function clearHealthCacheForTests(): void {
-  healthCache = { at: 0, result: null };
-}
 
 const syncItemSchema = z.object({
   collection: z.enum(["watchlist", "alerts", "reminders", "settings"]),
@@ -409,65 +359,15 @@ export const appRouter = router({
       }),
   }),
 
-  health: router({
-    check: publicProcedure.query(async ({ ctx }) => {
-      checkRateLimit(ctx, "health.check", 5, 60_000);
-      const now = Date.now();
-      if (
-        healthCache.result !== null &&
-        now - healthCache.at < HEALTH_CACHE_TTL_MS
-      ) {
-        return healthCache.result;
-      }
-      // Single-flight: concurrent cold calls (many IPs bypassing the per-IP
-      // limit) would otherwise each launch a full 25-distributor scan.
-      if (!healthInFlight) {
-        healthInFlight = checkAllDistributors()
-          .then((result) => {
-            healthCache = { at: Date.now(), result };
-            return result;
-          })
-          .finally(() => {
-            healthInFlight = null;
-          });
-      }
-      return healthInFlight;
-    }),
-  }),
+  health: healthRouter,
 
-  fx: router({
-    get: publicProcedure.query(async ({ ctx }) => {
-      checkRateLimit(ctx, "fx.get", 60, 60_000);
-      return getFxRates();
-    }),
-  }),
+  fx: fxRouter,
 
-  insights: router({
-    get: publicProcedure
-      .input(z.object({ productId: z.string().min(1).max(191) }))
-      .query(async ({ ctx, input }) => {
-        checkRateLimit(ctx, "insights.get", 30, 60_000);
-        return getInsight(input.productId, userLlmConfigFromHeaders(ctx.req.headers));
-      }),
-  }),
+  insights: insightsRouter,
 
-  images: router({
-    get: publicProcedure
-      .input(z.object({ productId: z.string().min(1).max(191) }))
-      .query(async ({ ctx, input }) => {
-        checkRateLimit(ctx, "images.get", 30, 60_000);
-        return getProductImage(input.productId);
-      }),
-  }),
+  images: imagesRouter,
 
-  products: router({
-    parse: publicProcedure
-      .input(z.object({ raw: z.string().min(1).max(2000) }))
-      .query(async ({ ctx, input }) => {
-        checkRateLimit(ctx, "products.parse", 10, 60_000);
-        return { product: await parseProductText(input.raw) };
-      }),
-  }),
+  products: productsRouter,
 
   notifications: router({
     uploadConfig: protectedProcedure
