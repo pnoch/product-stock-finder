@@ -7797,3 +7797,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Drove `pnpm lint` to **0 warnings** (from 119) and made warnings fail CI: the `lint` script now passes `-- --max-warnings 0`.
 - [x] Fixed: `array-type` (49, mechanical `Array<T>`→`T[]`), `import/first` (tests override — Vitest hoists `vi.mock` above imports — plus reordering the stray imports in `lib/fx.ts` and `server/routers.ts`), `no-unused-vars`/`no-redeclare`/`no-named-as-default-member` (aliased type import, optional catch bindings, dead `load-env.js` vars).
 - [x] `_core` remains untouched by convention: stylistic rules (`no-named-as-default-member`, `array-type`) are scoped off for `lib/_core`. `tsc 0`, root `3151` / desktop `321` green.
+
+## Phase 1050: Split server/routers.ts into per-router modules
+
+- [x] Extracted the 11 inline sub-routers into `server/routers/<name>.ts` (auth, sync, prices, health, fx, insights, images, products, notifications, devices, shared-watchlists) plus `helpers.ts`; `server/routers.ts` went 1090 → 53 lines and is now composition + re-exports only. Pure move, no behavior change.
+- [x] Preserved the public surface (`appRouter`, `AppRouter`, `getOrigin`, `clearHealthCacheForTests`); moved router-owned state (`sync` tombstone constants, `health` cache, `SHARED_WATCHLIST_MAX_ITEMS`) into its file; fixed relative/dynamic-import paths for the deeper location.
+- [x] Generalized the cap/router source-inspection tests (`contract-parity`, `desktop-chart-guard`) to glob `server/routers/*.ts` so future moves don't silently drop coverage.
+- [x] `tsc 0`, lint 0 warnings, root `3151` / desktop `321` / DB `96` green.
