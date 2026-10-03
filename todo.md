@@ -7820,3 +7820,7 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] `eslint tests` is now **0 problems** (was 129 warnings + 2 errors): auto-fixed `array-type`/duplicate imports (82), removed ~45 genuinely-unused imports/bindings (mostly a stray `scrapeXxx` import per scraper test), fixed 2 `react/display-name` errors, and converted 2 `require()`s to imports. No assertion removed, no test skipped, side-effecting `vi.spyOn`/`setupSync` calls preserved.
 - [x] Added `tests` to the `lint` script (`--max-warnings 0`) so the ratchet now covers root tests. `tsc 0`, root `3160` / desktop `321` green.
+
+## Phase 1054: `pnpm verify` local gate
+
+- [x] Added `pnpm test:rust` (`cargo test --manifest-path desktop/src-tauri/Cargo.toml`) and `pnpm verify` (check + lint + test + check:desktop + desktop test + test:rust) for one-command local/CI parity, documented in AGENTS.md. Verified: root `3160` / desktop `321` / cargo `81`, exit 0. (DB-gated tests stay opt-in via `RUN_DB_TESTS`.)
