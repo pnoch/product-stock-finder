@@ -119,4 +119,41 @@ describe("desktop watchlist mirror", () => {
     });
     expect(localStorage.getItem("price_alerts")).toBe(JSON.stringify([]));
   });
+
+  it("does not null-out a poller field on a later unchanged save", async () => {
+    const { storage } = await loadStorage();
+    // First save: the file has no trigger; Rust returns a merged array WITH one.
+    invokeMock.mockImplementation(async (cmd: string) => {
+      if (cmd === "read_value_for_key") return [{ id: "a1", targetPrice: 500 }];
+      if (cmd === "apply_alert_mutations") {
+        return JSON.stringify([
+          { id: "a1", targetPrice: 450, triggeredAt: "2026-06-02T00:00:00.000Z", isActive: false },
+        ]);
+      }
+      return "[]";
+    });
+    await storage.saveAlerts([{ id: "a1", targetPrice: 450 }] as never);
+    expect(invokeMock).toHaveBeenCalledWith("apply_alert_mutations", {
+      upserts: [{ id: "a1", patch: { targetPrice: 450 } }],
+      removes: [],
+    });
+    // A later, unchanged save must NOT emit a `triggeredAt: null` patch.
+    invokeMock.mockClear();
+    await storage.saveAlerts([{ id: "a1", targetPrice: 450 }] as never);
+    expect(invokeMock).not.toHaveBeenCalledWith("apply_alert_mutations", expect.anything());
+  });
+
+  it("detects a deletion on the first save by seeding from disk", async () => {
+    const { storage } = await loadStorage();
+    invokeMock.mockImplementation(async (cmd: string) => {
+      if (cmd === "read_value_for_key") return [{ id: "a1" }, { id: "a2" }];
+      if (cmd === "apply_alert_mutations") return JSON.stringify([{ id: "a2" }]);
+      return "[]";
+    });
+    await storage.saveAlerts([{ id: "a2" }] as never);
+    expect(invokeMock).toHaveBeenCalledWith("apply_alert_mutations", {
+      upserts: [],
+      removes: ["a1"],
+    });
+  });
 });

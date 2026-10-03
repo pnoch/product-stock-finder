@@ -2891,4 +2891,27 @@ mod tests {
         let merged = apply_alert_mutations_to(disk, &[], &["".to_string()]);
         assert_eq!(merged.as_array().unwrap().len(), 2);
     }
+
+    #[test]
+    fn apply_alert_mutations_applies_a_snooze_patch_only() {
+        let disk = serde_json::json!([{
+            "id": "a1", "targetPrice": 500, "isActive": true,
+            "triggeredAt": "2026-06-02T00:00:00.000Z"
+        }]);
+        let upserts = vec![AlertUpsert {
+            id: "a1".into(),
+            patch: serde_json::json!({ "snoozedUntil": "2026-07-01T00:00:00.000Z" }),
+        }];
+        let merged = apply_alert_mutations_to(disk, &upserts, &[]);
+        let a = &merged.as_array().unwrap()[0];
+        assert_eq!(
+            a["snoozedUntil"],
+            serde_json::json!("2026-07-01T00:00:00.000Z")
+        );
+        assert_eq!(a["targetPrice"], serde_json::json!(500));
+        assert_eq!(
+            a["triggeredAt"],
+            serde_json::json!("2026-06-02T00:00:00.000Z")
+        );
+    }
 }
