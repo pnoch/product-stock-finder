@@ -7766,3 +7766,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] The opened item "the periodic digest is never recorded in the in-app history" is **already implemented**: `sendPriceDigestNotification` records a `type: "digest"` entry with a day-keyed `local-digest-<YYYY-MM-DD>` id (`lib/notifications.ts`), the desktop digest is recorded too, and server-batched digest events are recorded when pulled (`lib/server-notifications.ts`). Pinned by `tests/send-digest-notification.test.ts:44`, `tests/notifications-scheduling.test.ts:284`, `tests/desktop-chart-guard.test.ts:868`, and `tests/server-digest.test.ts:202`.
 - [x] Flipped the stale `todo.md` item (4086) to resolved. Docs only; no source change.
+
+## Phase 1045: Desktop price_alerts write-race (per-item patches)
+
+- [x] The desktop renderer overwrote `price_alerts` wholesale while the Rust poller read-modify-wrote it, so a stale snapshot could un-fire an alert (and the UI never saw poller triggers). Alerts now read from the file store (`read_value_for_key`) and save through `apply_alert_mutations` with renderer-computed per-item field patches (`desktop/src/lib/alert-mutations.ts`).
+- [x] Rust `apply_alert_mutations(upserts, removes)`: applies only the patched fields (`null` removes; absent fields untouched; `id` is never patchable), so poller-owned `triggeredAt`/`triggeredPrice` survive an unrelated save and a re-arm patch reliably clears them. Serialized by `ALERTS_FILE_LOCK`, now taken by every `price_alerts` writer (command, poller, `set_value_for_key`, import).
+- [x] The adapter tracks the renderer's array (not Rust's merged copy) so a later diff can't null-out poller fields; a dropped mirror write is logged.
+- [x] Tests: Rust `apply_alert_mutations_*` (trigger preserved, re-arm clears, add/remove, missing id, id-ignored, empty remove); renderer `computeAlertMutations` diff; adapter no-op/removes/write-back/routing. `tsc 0` (root + desktop), lint 0 errors, root `3150` / desktop `319` / cargo `78`, clippy + fmt clean.
