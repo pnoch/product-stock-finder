@@ -7804,3 +7804,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Preserved the public surface (`appRouter`, `AppRouter`, `getOrigin`, `clearHealthCacheForTests`); moved router-owned state (`sync` tombstone constants, `health` cache, `SHARED_WATCHLIST_MAX_ITEMS`) into its file; fixed relative/dynamic-import paths for the deeper location.
 - [x] Generalized the cap/router source-inspection tests (`contract-parity`, `desktop-chart-guard`) to glob `server/routers/*.ts` so future moves don't silently drop coverage.
 - [x] `tsc 0`, lint 0 warnings, root `3151` / desktop `321` / DB `96` green.
+
+## Phase 1051: Fix the flaky desktop settings-webhook test
+
+- [x] `tests/settings-webhook.test.tsx` "sends a test to the entered URL when signed in" intermittently timed out (~1.25s) under parallel vitest load: RTL's default 1000ms `findBy*`/`waitFor` timeout was too tight for the click → async mutation → setState chain.
+- [x] Systemic fix: `desktop/tests/setup.ts` now calls `configure({ asyncUtilTimeout: 5000 })` so every RTL async query gets headroom; a real failure still reports instead of a timing flake. Verified 8/8 clean full-suite runs (previously ~1 in 5 failed).
