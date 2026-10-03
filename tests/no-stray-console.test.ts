@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 // Client logging must route through @shared/log so that debug/info can be
 // silenced in production and a monitoring sink can be attached. Raw console.*
 // calls bypass both.
+// Scope: mobile/web client app code. desktop/src is a separate follow-up.
 const ROOTS = ["lib", "app", "components", "hooks"];
-const WHITELIST = new Set([path.join("shared", "src", "log.ts")]);
 
 async function walk(dir: string): Promise<string[]> {
   const out: string[] = [];
@@ -23,12 +23,11 @@ async function walk(dir: string): Promise<string[]> {
   return out;
 }
 
-describe("no stray console", () => {
+describe("no stray console (mobile/web client app code)", () => {
   it("client app code logs through @shared/log", async () => {
     const offenders: string[] = [];
     for (const root of ROOTS) {
       for (const file of await walk(root)) {
-        if (WHITELIST.has(file)) continue;
         const src = await readFile(file, "utf8");
         if (/\bconsole\./.test(src)) offenders.push(file);
       }

@@ -19,7 +19,16 @@ const isDev =
       : true;
 
 function emit(level: LogLevel, args: unknown[]): void {
-  sink?.(level, args);
+  // The sink is observability-only: it must never throw into app code or
+  // suppress the console write. It receives every level, including ones the
+  // console then silences in production.
+  if (sink) {
+    try {
+      sink(level, args);
+    } catch {
+      // ignore sink failures
+    }
+  }
   if ((level === "debug" || level === "info") && !isDev) return;
   const write =
     level === "error"
