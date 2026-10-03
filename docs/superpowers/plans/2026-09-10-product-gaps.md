@@ -1,5 +1,10 @@
 # Product Gaps Bundle Implementation Plan
 
+> **Status: implemented (verified Phase 1047).** Every task below is in the tree
+> (past-due pill `Alerts.tsx:969`; calendar day-select details `Stats.tsx:64,717`;
+> row sparklines `Watchlist.tsx:1011`, `ProductDetail.tsx:63`). Checkboxes were
+> never ticked; retained for history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Overdue visibility, calendar details, tappable summary, per-row sparklines — all mirroring mobile copy and behavior.
@@ -19,7 +24,7 @@
 
 Verified facts (re-confirm): row shows `{productName}`, `{distributorName} · Due {date}`, Reschedule/Delete, no isPast; mobile `isPast = reminderDate < startOfToday` (read `reminder-card.tsx:20-23` + pill markup `:97-117` first and mirror: amber pill + warning border/date classes); calendar cells are `<button>` without onClick; `DropDay.drops: {productId, name, from, to, percent}[]` in display currency (lib/drop-calendar.ts); mobile detail lists name + from→to + pct with `selectedKey` toggle.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 it("marks overdue reminders Past Due", async () => {
@@ -32,12 +37,12 @@ it("shows drop details on day select", async () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `pnpm test reminders-calendar` (workdir: `desktop/`)
 Expected: FAIL — no pill; no onClick/detail.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```tsx
 // Alerts.tsx row:
@@ -66,12 +71,12 @@ const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
 Rows link to the product (mobile shows plain rows; linking is a strict improvement consistent with the app — keep it, note it). Verify `formatPrice` + `displayCurrency` in scope in Stats.tsx (used elsewhere — copy specifier).
 
-- [ ] **Step 4: Run to verify**
+- [x] **Step 4: Run to verify**
 
 Run: `pnpm test reminders-calendar` (desktop); `pnpm check` (root, 0 errors).
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add desktop/src/pages/Alerts.tsx desktop/src/pages/Stats.tsx desktop/tests/reminders-calendar.test.tsx
@@ -89,7 +94,7 @@ git commit -m "Feat: past-due pills and calendar details. TypeScript: 0 errors."
 
 Verified facts (re-confirm): summary counts are static divs; mobile toggles `onStatusToggle(all ↔ key)` with highlight; desktop has filter chips driving SOME filter state — read which state the chips set (name? `filter`? — the toggle must write the SAME state); `PriceSparkline({history, currency})` at ProductDetail:50, used once at :901; row chart-icon at :1301 calls `setHistoryFor(listing)`; `historyFor` renders the modal (verify modal render location).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 it("toggles the status filter from summary counts", async () => {
@@ -101,12 +106,12 @@ it("renders per-row sparklines that open history", async () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: chosen suite(s) (workdir: `desktop/`)
 Expected: FAIL — static counts; no row sparklines.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Summary: convert the 4 count blocks to `<button>` writing the chips' filter state (`setX(statusFilter === key ? "all" : key)` — read the exact state name/setter from the chips first and reuse; selected highlight mirrors chip selected styling or simple underline — copy neighboring idiom).
 
@@ -122,12 +127,12 @@ Rows: in the price `<td>` (after converted/tax lines? or before? — place UNDER
 
 Reuse the chart-icon's aria-label + `setHistoryFor` (same modal). Verify `PriceSparkline` props (`{history: {price}[], currency}` — matches).
 
-- [ ] **Step 4: Run to verify**
+- [x] **Step 4: Run to verify**
 
 Run: chosen suite(s) (desktop); `pnpm check` (root, 0 errors).
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add desktop/src/pages/Watchlist.tsx desktop/src/pages/ProductDetail.tsx <test files> (verify via git status)

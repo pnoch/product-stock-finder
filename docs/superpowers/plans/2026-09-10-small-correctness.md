@@ -1,5 +1,10 @@
 # Small Correctness Leftovers Implementation Plan
 
+> **Status: implemented (verified Phase 1047).** All tasks are in the tree
+> (`components/search-chrome.tsx`; `ProductDetail.tsx:392` trend guard;
+> `Compare.tsx:702` native+converted region rows). Checkboxes were never ticked;
+> retained for history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** One search-chrome module, collision-safe ids, currency-correct trends, region rows with native prices — no behavior change otherwise.
@@ -22,7 +27,7 @@
 
 Verified facts (re-confirm): byte-identical `loadRecent/saveRecent/recordRecent` (recent-searches core), `CatalogSort` + `CATALOG_SORT_OPTIONS`, `PillFilterRow` in both files; aria-labels differ ("Category All" vs none — sweep) — read BOTH variants first and keep the more accessible one (with `${label} All` / `${label} ${opt}` labels).
 
-- [ ] **Step 1: Write the failing guard**
+- [x] **Step 1: Write the failing guard**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -40,19 +45,19 @@ describe("shared search chrome", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `pnpm vitest run tests/desktop-search-chrome-guard.test.ts` (root)
 Expected: FAIL — locals defined inline.
 
-- [ ] **Step 3: Write minimal implementation** — move (not copy) the three units + `RECENT_KEY`? (`loadRecent/saveRecent/recordRecent` wrap shared core + localStorage — move whole, they have no page deps; verify no page-specific references inside first) + `CatalogSort` type + `CATALOG_SORT_OPTIONS` + `PillFilterRow` into `search-chrome.tsx`, exporting all. Both files import them (specifiers: pages/ → `../components/search-chrome`; modal is IN components/ → `./search-chrome` — verify). Keep the better aria-labels.
+- [x] **Step 3: Write minimal implementation** — move (not copy) the three units + `RECENT_KEY`? (`loadRecent/saveRecent/recordRecent` wrap shared core + localStorage — move whole, they have no page deps; verify no page-specific references inside first) + `CatalogSort` type + `CATALOG_SORT_OPTIONS` + `PillFilterRow` into `search-chrome.tsx`, exporting all. Both files import them (specifiers: pages/ → `../components/search-chrome`; modal is IN components/ → `./search-chrome` — verify). Keep the better aria-labels.
 
-- [ ] **Step 4: Run to verify**
+- [x] **Step 4: Run to verify**
 
 Run: guard (root); `pnpm test search` (desktop — all search/modal suites); `pnpm check` (root, 0 errors); `pnpm build` (desktop, exit 0).
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add desktop/src/components/search-chrome.tsx desktop/src/pages/Search.tsx desktop/src/components/SearchModal.tsx tests/desktop-search-chrome-guard.test.ts
@@ -69,7 +74,7 @@ git commit -m "Refactor: shared search chrome module. TypeScript: 0 errors."
 
 Verified facts (re-confirm): bare `` `reminder-${Date.now()}` `` ×2, `` `watch-${Date.now()}` `` ×2; alert uses `` `alert-${Date.now()}-${random6}` `` (commit a9c1a2e — copy its exact suffix idiom `Math.random().toString(36).slice(2, 8)`); trendSignal raw-price + unguarded.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 it("mints distinct reminder ids on rapid double-create", async () => {
@@ -83,12 +88,12 @@ it("renders no trend for zero-price history", async () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: chosen suite(s) (workdir: `desktop/`)
 Expected: FAIL — colliding ids; raw-currency pct; `▲ Infinity%`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```tsx
 // 4 sites:
@@ -115,12 +120,12 @@ const trendSignal = useMemo(() => {
 
 Verify `convertPrice` + `displayCurrency` in scope (both used by neighboring headerConversion — yes). Deps: `[bestListing, displayCurrency]` matches sibling memos.
 
-- [ ] **Step 4: Run to verify**
+- [x] **Step 4: Run to verify**
 
 Run: chosen suite(s) (desktop); `pnpm check` (root, 0 errors).
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add desktop/src/pages/ProductDetail.tsx <test files> (verify via git status)
@@ -137,7 +142,7 @@ git commit -m "Fix: unique creation ids and currency-correct trend. TypeScript: 
 
 Verified facts (re-confirm): rows show `{region, flag, name, formatPrice(converted)}`; mobile shows native + `≈ converted`; `item.listing.price/currency` available; `formatPrice` in scope.
 
-- [ ] **Step 1: Write the failing test** (append):
+- [x] **Step 1: Write the failing test** (append):
 
 ```tsx
 it("shows native price alongside converted", async () => {
@@ -145,12 +150,12 @@ it("shows native price alongside converted", async () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `pnpm test compare-region` (workdir: `desktop/`)
 Expected: FAIL — converted only.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```tsx
 <span className="...">
@@ -163,12 +168,12 @@ Expected: FAIL — converted only.
 
 Mirror the listing-row idiom (ProductDetail `≈` pattern). Keep BEST highlight/empty state untouched.
 
-- [ ] **Step 4: Run to verify**
+- [x] **Step 4: Run to verify**
 
 Run: `pnpm test compare-region` (desktop); `pnpm check` (root, 0 errors).
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add desktop/src/pages/Compare.tsx desktop/tests/compare-region.test.tsx

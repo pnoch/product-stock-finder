@@ -4002,7 +4002,7 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Desktop `OnboardingModal` now renders lucide icons (`ShoppingCart`/`Sparkles`/`Bell`) in a tinted rounded slot; mobile `onboarding-screen` uses `IconSymbol` (`cart.fill`/`sparkles`/`bell`, all already mapped for Android/web) in a tinted circle. Captions unchanged.
 - [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 167) asserting both surfaces carry `icon:` and no `emoji: "` — verified non-vacuous by reverting the desktop slide.
 - [x] E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2301 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
-- [ ] **Remaining emoji (76 sites, mirrored across both platforms)** — deliberately not swept in this commit. Categories: decorative prefixes in JSX (`💳`/`🕐`/`🎉`/`👀`/`🔥`/`🏅`/`🧺`/`🎯`/`➕`/`➖`/`📅`/`✏️`/`📋`), status glyphs (`❓`/`✅`/`⚠️`/`❌` in distributor health), and **notification titles** (`🟢 Back In Stock!`, `🧺 Basket Alert`, health alerts) which the OS renders. Many are pinned by existing tests (e.g. `"Add Custom Product ✨"`, `"👀 Watching"`). Needs a phased decision per category.
+- [x] **Remaining emoji (76 sites, mirrored across both platforms)** — deliberately not swept in this commit. Categories: decorative prefixes in JSX (`💳`/`🕐`/`🎉`/`👀`/`🔥`/`🏅`/`🧺`/`🎯`/`➕`/`➖`/`📅`/`✏️`/`📋`), status glyphs (`❓`/`✅`/`⚠️`/`❌` in distributor health), and **notification titles** (`🟢 Back In Stock!`, `🧺 Basket Alert`, health alerts) which the OS renders. Many are pinned by existing tests (e.g. `"Add Custom Product ✨"`, `"👀 Watching"`). Needs a phased decision per category. — category-B emoji swept (Phase 1042)
 
 ## Phase 539: Emoji sweep A — status glyphs and error states
 
@@ -4010,7 +4010,7 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] The two mobile error boundaries (`app-error-boundary.tsx`, `route-error-boundary.tsx`) drew `⚠️`; now `IconSymbol name="exclamationmark.triangle.fill"` in the existing tinted circle.
 - [x] `tests/app-error-boundary.test.tsx` gained an `@/components/ui/icon-symbol` mock (its module, `expo-symbols`, doesn't parse under jsdom — same mock the other IconSymbol-rendering tests use).
 - [x] Guard added to `tests/desktop-chart-guard.test.ts` (now 168) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2302 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
-- [ ] Still to sweep (category B): decorative JSX prefixes (💳 🕐 🎉 👀 🔥 🏅 🧺 🎯 ➕ ➖ 📅 ✏️ 📋 ✨). Category C (notification titles) deliberately left as-is — OS-rendered, emoji is conventional there. Also noted: `distributor.countryFlag` is an emoji flag used across many screens — a separate decision (would need a flag asset or country code).
+- [x] Still to sweep (category B): decorative JSX prefixes (💳 🕐 🎉 👀 🔥 🏅 🧺 🎯 ➕ ➖ 📅 ✏️ 📋 ✨). Category C (notification titles) deliberately left as-is — OS-rendered, emoji is conventional there. Also noted: `distributor.countryFlag` is an emoji flag used across many screens — a separate decision (would need a flag asset or country code). — category-B emoji swept (Phase 1042)
 
 ## Phase 540: Emoji sweep B — decorative JSX emoji
 
@@ -4019,8 +4019,8 @@ Running the release APK on an emulator found two crashes that tsc/lint/unit test
 - [x] Label text kept otherwise, so accessible names stay meaningful; `✓` (U+2713, a font-safe dingbat — “Added ✓”, “Verified ✓”) is deliberately kept.
 - [x] Updated the guards that pinned the removed emoji: 10 assertions in `tests/desktop-chart-guard.test.ts`, both `🔥` assertions in `tests/deal-score-surfaces.test.ts`, and `desktop/tests/nav-header.test.tsx`'s payment-methods line.
 - [x] New guard: `has no decorative emoji left in the swept UI surfaces` (deny-list over the 22 files) — non-vacuous. E2E root `tsc 0`, lint 0 errors (157 warnings), root `335 passed | 2 skipped` / `2303 passed`; desktop `tsc 0`, `50 passed` / `248 passed`
-- [ ] Category C left as-is by decision: notification titles/bodies (`🟢 Back In Stock!`, `🧺 Basket Alert`, `📈 Price Increase Alert!`, `💰 Price Alert Set`, `📦 Back-Order Reminder`, `📊 Price Digest`, health-alert titles) — rendered by the OS notification surface, where emoji is conventional and a system emoji font is present.
-- [ ] Not swept: `distributor.countryFlag` (an emoji flag) is shown across many screens; converting needs a flag asset or country-code fallback — a separate product call.
+- [x] Category C left as-is by decision: notification titles/bodies (`🟢 Back In Stock!`, `🧺 Basket Alert`, `📈 Price Increase Alert!`, `💰 Price Alert Set`, `📦 Back-Order Reminder`, `📊 Price Digest`, health-alert titles) — rendered by the OS notification surface, where emoji is conventional and a system emoji font is present. — category-C title emoji swept (Phase 1042)
+- [x] Not swept: `distributor.countryFlag` (an emoji flag) is shown across many screens; converting needs a flag asset or country-code fallback — a separate product call. — countryFlag→countryCode (Phase 1042)
 
 ## Phase 541: Device QA round 283 (digest body vs in-app card disagreed)
 
@@ -4415,7 +4415,7 @@ Root `tsc 0`, lint 0 errors (157 warnings), `2375 passed`; desktop `tsc 0`, `266
   - `upsertDeviceConfig`'s DB branch passed the raw `userId` to the health-event path instead of the preserved binding.
 - [x] **Tests:** `tests/db-errors.test.ts` (the wrapped shape, non-vacuous), DB-gated `tests/token-double-consume-db.test.ts` (a dual-stored token's second reset is rejected) and `tests/server-db-branches.test.ts` (quiet hours cleared via the route incl. the schema's nullability, the invite FK → NOT_FOUND, a zero-row refresh keeps rows), plus the client `kind` fixture/assertion. All non-vacuous (each reverted fix fails its test).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2388 passed` (23 skipped without a DB) / **`2411 passed`** with the DB; desktop `tsc 0`, `266 passed`; `cargo test` 55; `cargo clippy` unchanged.
-- [ ] **Open (design decisions, reported):** credential-change revocation still misses sessions whose device id never registered a config/token (needs a session `iat`/epoch check rather than an enumeration); quiet-hours held digest drafts live only in process memory even in DB mode (a restart drops the batch, and `unbindDevice`'s DB branch doesn't clear the buffer); `deleteUserById` can leave a device label behind when the token was pruned earlier (the next account inherits it); `price-insights`/`product-images` lack the memory fallback on a DB error (a paid result can be discarded) and their test clears don't touch the DB. Low/cosmetic: case-insensitive collation collapses key case variants vs the exact-match memory store, and `decimal(12,4)` rounds prices the memory path keeps exact.
+- [ ] **Open (design decisions, reported):** credential-change revocation still misses sessions whose device id never registered a config/token (needs a session `iat`/epoch check rather than an enumeration); quiet-hours held digest drafts live only in process memory even in DB mode (a restart drops the batch, and `unbindDevice`'s DB branch doesn't clear the buffer); `deleteUserById` can leave a device label behind when the token was pruned earlier (the next account inherits it); `price-insights`/`product-images` lack the memory fallback on a DB error (a paid result can be discarded) and their test clears don't touch the DB. Low/cosmetic: case-insensitive collation collapses key case variants vs the exact-match memory store, and `decimal(12,4)` rounds prices the memory path keeps exact. — credential-change epoch implemented (Phases 1015/1041)
 
 ## Phase 595: DB-branch audit follow-ups (memory/DB divergence, resilience)
 
@@ -4426,7 +4426,7 @@ Root `tsc 0`, lint 0 errors (157 warnings), `2375 passed`; desktop `tsc 0`, `266
   - `clearInsightsForTests`/`clearImagesForTests` were synchronous and memory-only, so a DB-backed test run shared one schema with no reset (a row from an earlier test could serve a later one). Both are now `async` and clear their table when a DB is configured; call sites awaited.
 - [x] **Tests:** two new DB-resilience cases each for insights and images (read falls back to memory; a failed write keeps the result) and two device cases (the label is dropped on unbind; the digest buffer is dropped on a DB-mode unbind), plus the async-clear call sites. All four behaviours proven non-vacuous by reverting each fix and watching the matching test fail.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2394 passed` (23 skipped without a DB) / **`2417 passed`** with the DB; desktop `tsc 0`, `266 passed`; `cargo test` 55.
-- [ ] **Still open (needs a design decision, reported):** credential-change revocation misses sessions whose device id was never registered (needs a session-issued-at epoch rather than enumerating bound devices); low/cosmetic `case-insensitive collation` vs exact-match memory keys and `decimal(12,4)` rounding vs float.
+- [ ] **Still open (needs a design decision, reported):** credential-change revocation misses sessions whose device id was never registered (needs a session-issued-at epoch rather than enumerating bound devices); low/cosmetic `case-insensitive collation` vs exact-match memory keys and `decimal(12,4)` rounding vs float. — credential-change epoch implemented (Phases 1015/1041)
 
 ## Phase 596: Credential-change epoch (sessions that can't be enumerated are now revoked)
 
@@ -4532,7 +4532,7 @@ Three parallel reviews of the desktop client (the one surface this session had n
 - [x] **Desktop `/api/auth/me` was unauthenticated.** `refreshCurrentUser` sent no `Authorization: Bearer`, and desktop sessions have no cookie, so the email-verification banner never cleared. It now sends the header (test asserts it).
 - [x] Guards: `poller_interval_secs` saturates instead of overflowing the interval multiply (unit-tested); `Alerts.editDistributors` tolerates a product without `listings`; `Health.runTest` has a synchronous in-flight guard.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2445 passed` (24 skipped); desktop `tsc 0`, `270 passed`; `cargo test` 58, `cargo clippy` unchanged.
-- [ ] Reported, not changed: the renderer mirror and the Rust poller both do whole-array read-modify-write on the same files with no shared lock (lost update on a concurrent add/tag/snooze during a long sweep) — needs a real concurrency design; Rust import is non-atomic across its 4–5 files; the Rust export/import wire shape (`exported_at`/`stock_watches`, no `format`) is incompatible with the shared backup schema (mobile↔desktop files do not interchange); desktop discovered products persist via IndexedDB while the UI reads localStorage; `useWatchlist`/`useAlerts` blank the page with a spinner on every background refresh; spawned `xdg-open`/`open` children are not reaped; the distributor cookie jar is written world-readable.
+- [ ] Reported, not changed: the renderer mirror and the Rust poller both do whole-array read-modify-write on the same files with no shared lock (lost update on a concurrent add/tag/snooze during a long sweep) — needs a real concurrency design; Rust import is non-atomic across its 4–5 files; the Rust export/import wire shape (`exported_at`/`stock_watches`, no `format`) is incompatible with the shared backup schema (mobile↔desktop files do not interchange); desktop discovered products persist via IndexedDB while the UI reads localStorage; `useWatchlist`/`useAlerts` blank the page with a spinner on every background refresh; spawned `xdg-open`/`open` children are not reaped; the distributor cookie jar is written world-readable. — desktop alert write race fixed (Phase 1045)
 
 ## Phase 606: Desktop audit follow-ups (backup interop, discovery store, refresh blanking, process/cookie hygiene)
 
@@ -4542,14 +4542,14 @@ Three parallel reviews of the desktop client (the one surface this session had n
 - [x] **Spawned browser openers were never reaped** (`xdg-open`/`open`/`cmd`), leaking zombies for the app's lifetime; `spawn_and_reap` now waits on a detached thread.
 - [x] **The distributor cookie jar was world-readable** (`~/.cache/.../cookies`, umask default 0644) despite replaying session/clearance cookies. Written 0600 with a 0700 dir on Unix; mode test.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2446 passed` (24 skipped); desktop `tsc 0`, `274 passed`; `cargo test` 61, `cargo clippy` unchanged.
-- [ ] Reported, not changed (need design): the renderer mirror and the Rust poller both do whole-array read-modify-write on the same files with no shared lock; Rust import is non-atomic across its 4–5 files.
+- [ ] Reported, not changed (need design): the renderer mirror and the Rust poller both do whole-array read-modify-write on the same files with no shared lock; Rust import is non-atomic across its 4–5 files. — desktop alert write race fixed (Phase 1045)
 
 ## Phase 607: Desktop audit — the two remaining items
 
 - [x] **Rust import was non-atomic across its files.** `import_watchlist` wrote each collection's final file in turn, so a failure part-way (disk full, permissions) replaced some collections and not others while the UI still showed pre-import state. It now stages every collection to a sibling temp and only renames them into place once all writes succeeded (temps cleaned up on failure). Tests: an aborted staging leaves the existing file byte-identical with no leftovers, and the success path writes every file. Non-vacuous (writing finals directly fails both).
 - [x] **The price check could revert a concurrent alert change.** `check_price_drops_inner` read `price_alerts` when the (minutes-long) check began and wrote that snapshot back at the end, so adding/snoozing/deleting an alert meanwhile was silently lost. Triggered alerts are now collected by **id** and the flags are applied to a copy re-read immediately before the write (new `deactivate_alerts_by_id`, unit-tested; `deactivate_after_notify` now pairs ids). The remaining window is the write itself rather than the whole check.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2446 passed`; desktop `274 passed`; `cargo test` 64, `cargo clippy` unchanged (4).
-- [ ] Noted for a future pass: the renderer mirror still saves whole collections from React state, so a UI write built from a stale snapshot can overwrite a poller update between the JS read and the write — eliminating that needs per-item upsert commands rather than whole-array saves.
+- [x] Noted for a future pass: the renderer mirror still saves whole collections from React state, so a UI write built from a stale snapshot can overwrite a poller update between the JS read and the write — eliminating that needs per-item upsert commands rather than whole-array saves. — desktop alert write race fixed (Phase 1045)
 
 ## Phase 608: Desktop watchlist writes merge instead of overwriting (lost-update fix)
 
@@ -4576,7 +4576,7 @@ Four parallel reviews of the route screens and shared components (the largest su
 - [x] **The Alerts list and Notification Center never observed storage changes**, so a price check firing / a server event reconciling updated the badge but left the visible list stale. Both now subscribe (as the badge does); the Notification Center load also gained a generation guard against overlapping loads.
 - [x] Guards: `tests/screen-fixes-source-guards.test.ts` (9, each reverted-fix-failing — spot-checked 3 mutations) plus the strengthened alert-ordering assertions in `tests/mobile-criticals.test.ts`.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2455 passed` (24 skipped); desktop `277 passed`; `cargo test` 67.
-- [ ] Reported, not changed: the Alerts tab count excludes snoozed/disabled alerts that still render as cards; region *filter* uses "any listing in region" while region *group/sort* uses the first listing's region (semantics call).
+- [x] Reported, not changed: the Alerts tab count excludes snoozed/disabled alerts that still render as cards; region *filter* uses "any listing in region" while region *group/sort* uses the first listing's region (semantics call). — Alerts badge + region unified (Phase 1043)
 
 ## Phase 610: Guard-quality (mutation) pass — sampled the pre-existing suite
 
@@ -4646,7 +4646,7 @@ Three parallel reviews of the auth routes, the session/middleware layer, and the
 - [x] **Login timing oracle (Low).** An unknown email returned before any hashing, measuring faster than a wrong password; it now compares against a lazily-built dummy bcrypt hash first.
 - [x] **OAuth sign-in did not lift the user's wildcard revocation (Medium, regression from Phase 592).** The callback/consume minted a fresh session but never called `unrevokeDevice`, so after a password change a web OAuth session passed the epoch check yet `/api/auth/me` (device-less) 403'd — the app looked signed out while tRPC kept working. Both OAuth paths now lift the wildcard like `/api/auth/login` (test mocks updated to provide `getDb`).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2492 passed` (26 skipped without a DB) / **`2518 passed`** with the DB.
-- [ ] Batch 2 (transport, next) + reported-not-changed: registration reveals whether an email is taken (`tests/auth-error-leak.test.ts` currently enshrines it — a product call); the OAuth `state` is signed/single-use but not bound to the initiating browser, so a captured callback URL is login-CSRF (needs a state cookie/PKCE); `trust proxy` is hard-coded to 1.
+- [ ] Batch 2 (transport, next) + reported-not-changed: registration reveals whether an email is taken (`tests/auth-error-leak.test.ts` currently enshrines it — a product call); the OAuth `state` is signed/single-use but not bound to the initiating browser, so a captured callback URL is login-CSRF (needs a state cookie/PKCE); `trust proxy` is hard-coded to 1. — OAuth state browser-bound (Phase 1041); email-enumeration stays a product call
 
 ## Phase 618: Server auth-flow deep-dive, batch 2 (transport / abuse control)
 
@@ -4658,7 +4658,7 @@ Three parallel reviews of the auth routes, the session/middleware layer, and the
 - [x] **Apple `id_token` algorithm not pinned (Low).** Added `algorithms: ["RS256"]` (source-guarded).
 - [x] **Login timing oracle** now guarded by a source assertion (the dummy-hash compare).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2498 passed` (26 skipped without a DB) / **`2524 passed`** with the DB; desktop `280 passed`; `cargo test` 67.
-- [ ] Reported, not changed: registration reveals whether an email is taken (`tests/auth-error-leak.test.ts` enshrines it — a product call); the OAuth `state` is signed/single-use but not bound to the initiating browser, so a captured callback URL is login-CSRF (needs a state cookie or PKCE); `trust proxy` is hard-coded to 1 (IP limiters are spoofable if the app is ever reached without exactly one trusted hop).
+- [ ] Reported, not changed: registration reveals whether an email is taken (`tests/auth-error-leak.test.ts` enshrines it — a product call); the OAuth `state` is signed/single-use but not bound to the initiating browser, so a captured callback URL is login-CSRF (needs a state cookie or PKCE); `trust proxy` is hard-coded to 1 (IP limiters are spoofable if the app is ever reached without exactly one trusted hop). — OAuth state browser-bound (Phase 1041); email-enumeration stays a product call
 
 ## Phase 619: OAuth login-CSRF (state bound to the initiating browser)
 
@@ -4667,7 +4667,7 @@ Three parallel reviews of the auth routes, the session/middleware layer, and the
 - [x] **Platform details that would otherwise break logins:** native flows skip the check (their protection is the device-scoped ticket, and the app's `/start` request cannot set a cookie in the system browser), and Apple — which posts the callback cross-site via `response_mode=form_post` — gets `SameSite=None; Secure` (a Lax cookie is not sent on a cross-site POST at all).
 - [x] Tests: the web callback rejects a request without the cookie (no session cookie set, `error=invalid_state`); `/start` sets the nonce cookie (so removing it would break every web login); the Apple flavor is `SameSite=None; Secure`. All three non-vacuous.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2501 passed` (26 skipped without a DB) / **`2527 passed`** with the DB; desktop `280 passed`; `cargo test` 67.
-- [ ] Still reported, not changed: registration reveals whether an email is taken (a test enshrines it — a product call); `trust proxy` is hard-coded to 1.
+- [ ] Still reported, not changed: registration reveals whether an email is taken (a test enshrines it — a product call); `trust proxy` is hard-coded to 1. — trust proxy configurable (Phase 1041); email-enumeration stays a product call
 
 ## Phase 620: `trust proxy` is configurable instead of hard-coded
 
@@ -4703,7 +4703,7 @@ Three parallel reviews of the paths that pull product data in (backup/bulk impor
 - [x] **URL parse buffered unbounded bodies (Medium DoS).** The size check ran after `res.text()`, so one huge or endless response could exhaust the process inside the abort window; the body is now streamed through a capped reader. **NAT64/6to4/Teredo literals** (`[64:ff9b::a9fe:a9fe]` → 169.254.169.254) are decoded and re-checked (the earlier NAT64 decode used the wrong 32 bits, caught by the new test). The free scrape branch also consumes a process-wide `products.parseUrl` budget.
 - [x] **Bulk-import summaries overcounted.** `addToWatchlist` *resolves* `false` for a duplicate, so counting fulfilled promises reported more imports than landed; the mobile modal and both desktop paths now count only `value === true` and report failures. Guarded.
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2517 passed` (27 skipped without a DB) / **`2544 passed`** with the DB; desktop `280 passed`.
-- [ ] **Reported, not changed** (need a design/deeper change): the URL fetch still re-resolves DNS between the private-range gate and the connection (a rebinding window; the fix is an undici dispatcher with a pinned `lookup`); `parseBulkImportCsv` silently truncates at 500 rows; backup import writes from a pre-confirmation snapshot and is non-atomic across collections; `parseBackup` doesn't validate per-item ids; the paste-import path has no row cap / O(N²) whole-list writes; `resolvePrice` prefers a stale server snapshot over a device scrape.
+- [ ] **Reported, not changed** (need a design/deeper change): the URL fetch still re-resolves DNS between the private-range gate and the connection (a rebinding window; the fix is an undici dispatcher with a pinned `lookup`); `parseBulkImportCsv` silently truncates at 500 rows; backup import writes from a pre-confirmation snapshot and is non-atomic across collections; `parseBackup` doesn't validate per-item ids; the paste-import path has no row cap / O(N²) whole-list writes; `resolvePrice` prefers a stale server snapshot over a device scrape. — DNS-rebinding pinning implemented (Phase 1041)
 
 ## Phase 623: Ingestion follow-ups (the five reported items)
 
@@ -7779,3 +7779,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] The Rust price poller decided deactivations from a snapshot taken when the (minutes-long) check began, so a re-arm that landed mid-sweep was overwritten. It now records each triggered alert's snapshot `createdAt` and `deactivate_alerts_by_id` skips an alert whose on-disk `createdAt` parses newer than the snapshot's (parsed, not lexical; fails open to deactivation). Matches the client's `eventAt < target.createdAt` guard (`lib/storage/alerts.ts`).
 - [x] Fixed a Phase 1042 gap: the emoji sweep missed `desktop/src-tauri`, leaving `"📈 Price Increase Alert!"`/`"💸 Price Drop Alert!"` in the Rust poller. Titles are now plain, and `tests/emoji-sweep.test.ts` scans `desktop/src-tauri/src/**/*.rs` for emoji.
 - [x] Tests: `deactivate_alerts_by_id_skips_a_rearmed_alert` + boundary (`equal createdAt` deactivates); `cargo test` 81, clippy/fmt clean; root `3151` / desktop `321`, `tsc 0`, lint 0 errors.
+
+## Phase 1047: Docs truth pass — retire implemented plans + close stale items
+
+- [x] Verified the two older plans were fully implemented but never ticked: `2026-09-10-product-gaps` (past-due pill `Alerts.tsx:969`; calendar day-select details `Stats.tsx:64,717`; row sparklines `Watchlist.tsx:1011`, `ProductDetail.tsx:63`) and `2026-09-10-small-correctness` (`components/search-chrome.tsx`; `ProductDetail.tsx:392` trend guard; `Compare.tsx:702` native+converted region rows). Both marked **Status: implemented** and their task checkboxes set.
+- [x] Closed the six stale `todo.md` lines whose entire claim is resolved: the four emoji items (Phase 1042/1046), the alert-write-race line (Phase 1045), and the Alerts-badge/region line (Phase 1043). Bundled "reported, not changed" lines that mix a resolved clause with still-open ones were **left open** with a clarifying note naming the resolved clause (credential epoch; OAuth state; `trust proxy`; DNS pinning; desktop alert race) so only the genuinely-open clauses remain.
+- [x] Remaining open items (20) are product/design or ops/device-build: shared-watchlist invite/membership UX; deal-score streak window; dead diagnostic writes (delete vs wire); digest re-delivery semantics; registration email-enumeration disclosure; Tauri `withGlobalTauri`/CSP + device build; recharts→SVG; upload/backend hardening; macOS/Windows signing + `APPLE_TEAM_ID`/cert fingerprints; transitive advisories. Docs only; no source change.
