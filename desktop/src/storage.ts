@@ -81,7 +81,7 @@ async function mirrorToFile(key: string, value: unknown): Promise<void> {
   } catch (error) {
     // Best-effort — localStorage still updated — but log the dropped file write
     // so a failed merge/mutation is not entirely silent.
-        log.warn("[storage] mirror write failed", key, error);
+    log.warn("[storage] mirror write failed", key, error);
   }
 }
 
@@ -129,7 +129,7 @@ const tauriAwareAdapter = {
       try {
         await mirrorToFile(key, JSON.parse(value));
       } catch (error) {
-    log.warn("[storage] mirror write failed", key, error);
+        log.warn("[storage] mirror write failed", key, error);
       }
     }
   },
