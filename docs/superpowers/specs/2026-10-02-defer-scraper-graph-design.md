@@ -1,5 +1,16 @@
 # Defer the Scraper Graph from First Load — Design Spec
 
+> **Status: WITHDRAWN (not implemented).** Investigation after writing this spec
+> found the parser graph is also pulled at startup through the **health tree**:
+> `lib/scrapers/health.ts` statically imports `PARSERS`, and `lib/notifications.ts`
+> value-imports `HEALTH_ALERT_THRESHOLD` from it; `_layout.tsx` reaches health via
+> `lib/background-price-check`. Deferring only the four modules below would **not**
+> remove the parsers. A clean removal would also require deferring `scrapers/health`'s
+> `PARSERS` import and breaking the notifications→health value import (extract the
+> constant), plus the background-task singletons — ~6–7 modules. Given the framework
+> dominates the ~1.06 MB gzip bundle and the parser share is an uncertain ~5–10%,
+> the effort/risk was judged to outweigh the payoff. Retained for the findings.
+
 **Date:** 2026-10-02
 **Goal:** Remove the distributor-scraper graph (25 parsers + `resilient` + `cheerio` stub) from the initial web/mobile JS bundle by making the client's static imports into `lib/scrapers/**` lazy (dynamic `import()` at the point of use).
 
