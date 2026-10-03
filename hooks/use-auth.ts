@@ -137,7 +137,7 @@ export function useAuth(options?: UseAuthOptions) {
       setLoading(false);
       debugLog("[useAuth] fetchUser completed");
     }
-  }, []);
+  }, [setError, setLoading, setUser]);
 
   const logout = useCallback(async () => {
     try {
@@ -168,7 +168,7 @@ export function useAuth(options?: UseAuthOptions) {
       setUser(null);
       setError(null);
     }
-  }, []);
+  }, [setError, setUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -203,7 +203,7 @@ export function useAuth(options?: UseAuthOptions) {
     } catch (err) {
       throw err instanceof Error ? err : new Error("Login failed");
     }
-  }, []);
+  }, [setUser]);
 
   const register = useCallback(async (email: string, password: string, name?: string) => {
     try {
@@ -238,7 +238,7 @@ export function useAuth(options?: UseAuthOptions) {
     } catch (err) {
       throw err instanceof Error ? err : new Error("Registration failed");
     }
-  }, []);
+  }, [setUser]);
 
   const forgotPassword = useCallback(async (email: string) => {
     const baseUrl = getApiBaseUrl();
@@ -326,7 +326,7 @@ export function useAuth(options?: UseAuthOptions) {
     await Auth.clearUserInfo();
     setUser(null);
     return res.json();
-  }, []);
+  }, [setUser]);
 
   const resendVerification = useCallback(async () => {
     const baseUrl = getApiBaseUrl();
@@ -386,7 +386,7 @@ export function useAuth(options?: UseAuthOptions) {
       debugLog("[useAuth] autoFetch disabled, setting loading to false");
       setLoading(false);
     }
-  }, [autoFetch, fetchUser]);
+  }, [autoFetch, fetchUser, setLoading, setUser]);
 
   useEffect(() => {
     debugLog("[useAuth] State updated:", {

@@ -31,7 +31,6 @@ export function Search() {
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
-  const trackedIdsArray = useMemo(() => Array.from(trackedIds), [trackedIds]);
   const [discovering, setDiscovering] = useState(false);
   const [discoverError, setDiscoverError] = useState<{ title: string; message: string; retry: boolean } | null>(null);
   const { toast, showToast } = useToast();
@@ -112,7 +111,7 @@ export function Search() {
       base = base.filter((p) => tagMatchedIds?.has(p.id) || !trackedIds.has(p.id));
     }
     return base;
-  }, [deferredQuery, fuse, combinedCatalog, searchTagIds, searchTagMode, tagMatchedIds, trackedIds]);
+  }, [deferredQuery, fuse, combinedCatalog, searchTagIds, tagMatchedIds, trackedIds]);
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
@@ -170,7 +169,7 @@ export function Search() {
       setDiscoverError(errState);
       showToast(errState.title);
     } finally { setDiscovering(false); }
-  }, [query, discovering, navigate]);
+  }, [query, discovering, navigate, showToast]);
 
   const handleCreateTag = useCallback(async () => {
     const name = newTagName.trim();
@@ -190,7 +189,7 @@ export function Search() {
   }, [newTagName, tagPickerFor, showToast]);
 
   const bulkPreview = useMemo(() => matchModels(parseModelInput(bulkText)), [bulkText]);
-  const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIdsArray, trackedIds]);
+  const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIds]);
   const handleBulkImport = async () => {
     if (bulkImporting || bulkNew.length === 0) return;
     setBulkImporting(true);

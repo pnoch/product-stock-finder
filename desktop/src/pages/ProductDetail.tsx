@@ -334,10 +334,13 @@ export function ProductDetail() {
     void loadProduct();
   }, [loadProduct]);
 
-  const visibleListings =
-    regionFilter === "all"
-      ? (product?.listings ?? [])
-      : filterListingsByRegion(product?.listings ?? [], regionFilter);
+  const visibleListings = useMemo(
+    () =>
+      regionFilter === "all"
+        ? (product?.listings ?? [])
+        : filterListingsByRegion(product?.listings ?? [], regionFilter),
+    [regionFilter, product],
+  );
 
   const best = useMemo(() => {
     return getBestPrice(visibleListings, displayCurrency);
@@ -736,7 +739,7 @@ export function ProductDetail() {
     } catch {
       showToast("Couldn't save product image");
     }
-  }, [product]);
+  }, [product, showToast]);
 
   const handleWatchRestock = async () => {
     if (!product || !bestListing) {

@@ -72,7 +72,7 @@ export function Stats() {
     const message = buildWatchlistShareText({ watchlist: products ?? [], displayCurrency, days });
     if (await copyTextWithFallback(message)) showToast("Copied to clipboard");
     else showToast("Couldn't copy share text");
-  }, [products, displayCurrency, days]);
+  }, [products, displayCurrency, days, showToast]);
 
   const handleSaveImage = useCallback(async () => {
     if (summaryRef.current) {
@@ -84,7 +84,7 @@ export function Stats() {
         showToast("Couldn't save stats image");
       }
     }
-  }, []);
+  }, [showToast]);
 
   const loadStats = useCallback(async () => {
     setLoadError(null);
