@@ -15,38 +15,48 @@ The poller re-reads immediately before writing, but the renderer's whole-array w
 
 ## Design
 
-### 1. Rust `merge_alerts(app, value)` — mirror `merge_watchlist`
+### 0. Why not a field-ownership merge
 
-Merge the renderer's incoming array into the on-disk array, by `id`:
+A whole-array `merge_alerts` cannot tell a **stale snapshot** (alert was armed; the poller has since triggered it) from a **deliberate re-arm** — both look like `isActive:true` with no `triggeredAt`. So the renderer must send *intent* (only the fields the user actually changed), not the whole item.
 
-- **Unmatched incoming id** → append (a new alert).
-- **Disk id absent from incoming** → dropped (a deliberate removal; the poller never adds alerts, so absence means the user deleted it).
-- **Matched id** — field ownership:
-  - Renderer owns `targetPrice`, `currency`, `isActive`, `snoozedUntil`, `direction`, `distributorId`, `createdAt`.
-  - Poller owns `triggeredAt`/`triggeredPrice` and the `isActive:false` a trigger implies.
-  - Merge rule: if the disk item has `triggeredAt` and the incoming item does not, the poller fired after the snapshot — keep `disk.triggeredAt`/`disk.triggeredPrice` and force `isActive:false` — **unless** `incoming.isActive === true` (a deliberate re-arm), in which case the incoming item wins outright and the trigger fields are dropped. Otherwise the incoming item wins.
+### 1. Renderer diff + per-item Rust mutations (`desktop/src/storage.ts`)
 
-Write the merged array with the existing atomic writer and return it as a JSON string.
+The desktop adapter keeps the last array it read/wrote per key. On `setItem("price_alerts", nextJson)` it computes a diff against the last known array and invokes one command:
 
-### 2. Serialize the two read-modify-write paths
+- `removes`: ids in the last-known array but not in `next`.
+- `upserts`: for each item in `next`:
+  - id not in the last-known array → `{ id, patch: <full item> }` (an add);
+  - otherwise a shallow field diff → `{ id, patch: <changed fields, with JSON null for fields removed> }` (only if something changed).
+- No diff and no removes → no invoke (a no-op save cannot clobber the poller).
 
-Add a process-wide `std::sync::Mutex<()>` and hold it across the alert-file read-modify-write in **both** `merge_alerts` and the poller's write block (`lib.rs:1132-1145`). The file operations are synchronous, so a `std::sync::Mutex` held only across the sync section is sufficient; it must not be held across an `await`.
+`getItem("price_alerts")` reads from the file store via `read_value_for_key` (already allowlisted) so the UI sees poller triggers, and updates the last-known array.
 
-### 3. Renderer (`desktop/src/storage.ts`)
+### 2. Rust `apply_alert_mutations(app, upserts, removes)`
 
-- `getItem("price_alerts")` reads from the file store (via `read_value_for_key`, the same command the allowlist already permits) so the UI sees poller trigger updates — matching how the watchlist reads `read_watchlist`.
-- `setItem("price_alerts", …)` calls `merge_alerts` and writes the merged array back to localStorage, exactly like the `watchlist_products` branch of `mirrorToFile`. The whole-array `set_value_for_key` path is removed for `price_alerts`.
-- Non-Tauri (web preview/tests) keeps the plain localStorage adapter.
+Under a process-wide lock: read the on-disk alerts array; drop every `removes` id; for each upsert find the item by id and apply the `patch` field-by-field (`null` removes that field), or insert the patch as a new item when the id is absent; write the array with the existing atomic writer; return it as a JSON string. The renderer writes the returned array back to localStorage.
+
+Because patches carry only user edits:
+- a trigger the poller recorded survives an unrelated save (no patch for `triggeredAt`);
+- a snooze patch touches only `snoozedUntil`;
+- a re-arm patch is `{ isActive: true, triggeredAt: null }` and reliably clears the trigger.
+
+### 3. Serialize the two read-modify-write paths
+
+Add a process-wide `std::sync::Mutex<()>` and hold it across the alert-file read-modify-write in **both** `apply_alert_mutations` and the poller's write block (`lib.rs:1132-1145`). The file operations are synchronous, so a `std::sync::Mutex` held only across the sync section is sufficient; it must not be held across an `await`.
+
+Non-Tauri (web preview/tests) keeps the plain localStorage adapter.
 
 ## Testing
 
 - **Rust unit tests** (`desktop/src-tauri/src/lib.rs` `#[cfg(test)]`):
-  - a poller trigger (`triggeredAt`/`triggeredPrice`, `isActive:false`) survives a renderer save whose snapshot lacks it;
-  - a deliberate re-arm (`incoming.isActive === true`, no `triggeredAt`) clears the trigger;
-  - a user snooze (`snoozedUntil`) is preserved and wins over disk;
-  - a new incoming alert is appended; a disk-only alert is removed;
-  - an unmatched/invalid item does not panic.
-- **Desktop source guard** (`desktop/tests/…` or `tests/desktop-*`): `desktop/src/storage.ts` routes `price_alerts` through `merge_alerts` and reads it from the file, and no longer uses `set_value_for_key` for `price_alerts`.
+  - a patch touching only `targetPrice` leaves a poller `triggeredAt`/`triggeredPrice`/`isActive:false` intact;
+  - a re-arm patch `{ isActive: true, triggeredAt: null }` clears `triggeredAt`;
+  - a `snoozedUntil` patch applies and preserves other fields;
+  - an add inserts the full item; a remove drops the id; an unknown id is ignored without panicking.
+- **Renderer tests** (`desktop/tests/storage-mirror-merge.test.ts`, extended):
+  - `saveAlerts` on a changed item invokes `apply_alert_mutations` with a field patch (not the whole item), and the whole-array `set_value_for_key` path for `price_alerts` is gone;
+  - a removed id becomes a `removes` entry; a no-op save invokes nothing;
+  - `getItem("price_alerts")` reads from the file store.
 - Run `cargo test`, `cargo clippy --all-targets`, `cargo fmt --check`, and the desktop vitest suite.
 
 ## Out of scope
