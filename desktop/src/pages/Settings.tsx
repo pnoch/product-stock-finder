@@ -322,23 +322,25 @@ function JoinedSharedList() {
 export function Settings() {
   const { settings, loading, update } = useSettings();
   const navigate = useNavigate();
-  const prevIntervalRef = useRef<string | undefined>(settings?.checkInterval);
+  const { toast, showToast } = useToast();
+  const checkInterval = settings?.checkInterval;
+  const prevIntervalRef = useRef<string | undefined>(checkInterval);
   useEffect(() => {
     const prev = prevIntervalRef.current;
-    prevIntervalRef.current = settings?.checkInterval;
+    prevIntervalRef.current = checkInterval;
     let cancelled = false;
     (async () => {
       // Sequence stop BEFORE start. Firing both without awaiting let the start
       // be processed first (seeing POLLER_RUNNING=true and no-op'ing) and the
       // stop second, leaving no poller at all until the setting changed again.
-      if (!settings || settings.checkInterval === "manual") {
+      if (!checkInterval || checkInterval === "manual") {
         if (prev && prev !== "manual") await stopPricePoller();
         return;
       }
-      if (prev && prev !== "manual" && prev !== settings.checkInterval) {
+      if (prev && prev !== "manual" && prev !== checkInterval) {
         await stopPricePoller();
       }
-      const intervalMinutes = settings.checkInterval === "hourly" ? 60 : 1440;
+      const intervalMinutes = checkInterval === "hourly" ? 60 : 1440;
       try {
         await startPricePoller(intervalMinutes, getApiBaseUrl());
       } catch {
@@ -349,7 +351,7 @@ export function Settings() {
       }
     })();
     return () => { cancelled = true; };
-  }, [settings?.checkInterval]);
+  }, [checkInterval, showToast, update]);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
@@ -570,7 +572,6 @@ export function Settings() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
-  const { toast, showToast } = useToast();
 
   const [testingLlm, setTestingLlm] = useState(false);
   const handleTestLlm = useCallback(async () => {
@@ -849,9 +850,9 @@ export function Settings() {
     } finally {
       setReenabling(false);
     }
-  }, [reenabling]);
+  }, [reenabling, showToast]);
 
-  const loadDevices = async () => {
+  const loadDevices = useCallback(async () => {
     if (!isAuthenticated) return;
     setDevicesLoading(true);
     setDevicesError(null);
@@ -870,12 +871,12 @@ export function Settings() {
     } finally {
       setDevicesLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     void loadDevices();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadDevices]);
 
   const handleRename = async () => {
     if (!renameTarget) return;
@@ -1137,7 +1138,7 @@ export function Settings() {
     } finally {
       setDeleting(false);
     }
-  }, [deleting]);
+  }, [deleting, logout]);
 
   const deleteExpected = user?.email ?? "DELETE";
   const isDeleteConfirmed =

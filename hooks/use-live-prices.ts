@@ -53,8 +53,9 @@ export function useLiveProduct(productId: string) {
 
   useEffect(() => {
     void loadSeed();
+    const generation = generationRef.current;
     return () => {
-      generationRef.current++;
+      if (generationRef.current === generation) generationRef.current += 1;
     };
   }, [loadSeed]);
 
@@ -168,8 +169,9 @@ export function useLiveWatchlist() {
 
   useEffect(() => {
     void reload();
+    const generation = generationRef.current;
     return () => {
-      generationRef.current++;
+      if (generationRef.current === generation) generationRef.current += 1;
     };
   }, [reload]);
 

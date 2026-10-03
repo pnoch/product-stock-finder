@@ -498,14 +498,14 @@ export function Compare() {
       setCreatingAlert(false);
     }
     showToast(`Alert set below ${formatPrice(alertTarget, displayCurrency)}`);
-  }, [id, product, alertTarget, displayCurrency, creatingAlert]);
+  }, [id, product, alertTarget, displayCurrency, creatingAlert, showToast]);
 
   const handleShareCompare = useCallback(async () => {
     if (!product) return;
     const message = `${buildShareText({ product, listings: sortedListings, displayCurrency, limit: 5 })}\n\n${window.location.origin}/#/compare/${product.id}`;
     if (await copyTextWithFallback(message)) showToast("Copied to clipboard");
     else showToast("Couldn't copy share text");
-  }, [product, sortedListings, displayCurrency]);
+  }, [product, sortedListings, displayCurrency, showToast]);
 
   const handleSaveImage = useCallback(async () => {
     if (!chartRef.current || !product) return;
@@ -515,7 +515,7 @@ export function Compare() {
     } catch {
       showToast("Couldn't save comparison image");
     }
-  }, [product]);
+  }, [product, showToast]);
 
   // Mobile's compare screen exports the price history as CSV; desktop's had only
   // Share / Save image.

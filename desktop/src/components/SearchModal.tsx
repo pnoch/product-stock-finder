@@ -35,7 +35,6 @@ export function SearchModal({
   const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
-  const trackedIdsArray = useMemo(() => Array.from(trackedIds), [trackedIds]);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [bulkImporting, setBulkImporting] = useState(false);
@@ -137,7 +136,7 @@ export function SearchModal({
       const msg = e instanceof Error ? e.message : "Failed to add to watchlist";
       showToast(msg);
     }
-  }, [pendingTags, query]);
+  }, [pendingTags, query, showToast]);
 
   const handleDiscover = useCallback(async () => {
     if (!query.trim() || discovering) return;
@@ -165,10 +164,10 @@ export function SearchModal({
     } finally {
       setDiscovering(false);
     }
-  }, [query, discovering, onClose]);
+  }, [query, discovering, onClose, showToast]);
 
   const bulkPreview = useMemo(() => matchModels(parseModelInput(bulkText)), [bulkText]);
-  const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIdsArray, trackedIds]);
+  const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIds]);
 
   const handleCreateTag = useCallback(async () => {
     const name = newTagName.trim();
