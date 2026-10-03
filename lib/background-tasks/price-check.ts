@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import * as Notifications from "expo-notifications";
 import {
   getAlerts,
@@ -79,7 +80,7 @@ async function runPriceCheckCoreInner(opts?: {
   const CONCURRENCY = 3;
   for (let i = 0; i < watchlist.length; i += CONCURRENCY) {
     if (Date.now() - startTime > TIME_BUDGET_MS) {
-      console.warn(
+      log.warn(
         `[PriceCheck] Time budget exceeded after ${i}/${watchlist.length} products, deferring remainder`,
       );
       break;
@@ -102,7 +103,7 @@ async function runPriceCheckCoreInner(opts?: {
             await updateProductListings(product.id, updatedListings);
           }
         } catch (e) {
-          console.warn(`[PriceCheck] Skipping ${product.id}:`, e);
+          log.warn(`[PriceCheck] Skipping ${product.id}:`, e);
         }
       }),
     );

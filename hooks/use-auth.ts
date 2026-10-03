@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
 import { getApiBaseUrl } from "@/constants/oauth";
@@ -6,7 +7,7 @@ import { Platform } from "react-native";
 
 const debugLog = (...args: unknown[]) => {
   if (!__DEV__) return;
-  console.log(...args);
+  log.debug(...args);
 };
 
 type UseAuthOptions = {
@@ -134,7 +135,7 @@ export function useAuth(options?: UseAuthOptions) {
     } catch (err) {
       const error =
         err instanceof Error ? err : new Error("Failed to fetch user");
-      console.error("[useAuth] fetchUser error:", error);
+      log.error("[useAuth] fetchUser error:", error);
       setError(error);
       setUser(null);
     } finally {
@@ -150,12 +151,12 @@ export function useAuth(options?: UseAuthOptions) {
       const { unregisterPushToken } = await import("@/lib/push-token");
       await unregisterPushToken();
     } catch (err) {
-      console.error("[Auth] Push unregister failed:", err);
+      log.error("[Auth] Push unregister failed:", err);
     }
     try {
       await Api.logout();
     } catch (err) {
-      console.error("[Auth] Logout API call failed:", err);
+      log.error("[Auth] Logout API call failed:", err);
       // Continue with logout even if API call fails
     } finally {
       await Auth.removeSessionToken();
@@ -167,7 +168,7 @@ export function useAuth(options?: UseAuthOptions) {
         const { clearAccountData } = await import("@/lib/storage");
         await clearAccountData();
       } catch (err) {
-        console.error("[Auth] Local data clear on logout failed:", err);
+        log.error("[Auth] Local data clear on logout failed:", err);
       }
       setUser(null);
       setError(null);

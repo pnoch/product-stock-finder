@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View, Platform, ActivityIndicator, TouchableOpacity, TextInput } from "react-native";
 import { useRouter } from "expo-router";
@@ -499,7 +500,7 @@ export default function SettingsScreen() {
       setSyncMeta(meta);
       setNow(Date.now());
     } catch (e) {
-      console.error("[Settings] syncNow failed", e);
+      log.error("[Settings] syncNow failed", e);
     } finally {
       setSyncing(false);
     }
@@ -521,7 +522,7 @@ export default function SettingsScreen() {
           setProducts(p);
         }
       } catch (e) {
-        console.error("[Settings] load failed", e);
+        log.error("[Settings] load failed", e);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -610,7 +611,7 @@ export default function SettingsScreen() {
           })),
         );
       } catch (e) {
-        console.error("[Settings] handleReenableDistributor failed", e);
+        log.error("[Settings] handleReenableDistributor failed", e);
         showAlert("Failed", "Could not re-enable distributor. Please try again.");
       } finally {
         setReenabling(false);

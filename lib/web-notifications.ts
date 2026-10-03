@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { Platform } from "react-native";
 import { getSettings, updateSettings, recordDisplayedEventId } from "./storage";
 import { syncServerNotifications } from "./server-notifications";
@@ -41,7 +42,7 @@ export function displayWebNotification(title: string, body: string): boolean {
     };
     return true;
   } catch (err) {
-    console.warn("[web-notifications] display failed", err);
+    log.warn("[web-notifications] display failed", err);
     return false;
   }
 }

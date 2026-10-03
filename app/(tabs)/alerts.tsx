@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import {
   FlatList,
   Text,
@@ -548,7 +549,7 @@ export default function AlertsScreen() {
               distributorId: editDistributorId,
             });
           } catch (e) {
-            console.error("[Alerts] update failed", e);
+            log.error("[Alerts] update failed", e);
             showAlert("Update failed", "We couldn't save your changes. Please try again.");
             return;
           }

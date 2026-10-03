@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { Platform } from "react-native";
 import { createTRPCClient } from "./trpc";
 
@@ -45,7 +46,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   try {
     return await navigator.serviceWorker.register(SW_PATH);
   } catch (error) {
-    console.warn("[pwa] service worker registration failed", error);
+    log.warn("[pwa] service worker registration failed", error);
     return null;
   }
 }
@@ -74,7 +75,7 @@ export async function subscribeWebPush(): Promise<boolean> {
     });
     return true;
   } catch (error) {
-    console.warn("[web-push] subscribe failed", error);
+    log.warn("[web-push] subscribe failed", error);
     return false;
   }
 }
@@ -88,6 +89,6 @@ export async function unsubscribeWebPush(): Promise<void> {
       await subscription.unsubscribe();
     }
   } catch (error) {
-    console.warn("[web-push] unsubscribe failed", error);
+    log.warn("[web-push] unsubscribe failed", error);
   }
 }

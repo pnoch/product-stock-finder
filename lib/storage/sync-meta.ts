@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import type { Collection, SyncMeta } from "../types";
 import type { StorageContext } from "./context";
 import { quarantinePayload } from "./context";
@@ -12,7 +13,7 @@ export function createSyncMetaStorage(ctx: StorageContext) {
     try {
       raw = await adapter.getItem(KEYS.SYNC_META);
     } catch (error) {
-      console.warn("[storage] read failed for sync_meta", error);
+      log.warn("[storage] read failed for sync_meta", error);
       throw error;
     }
     if (!raw) return { lastSyncedAt: 0, items: {} };
@@ -50,7 +51,7 @@ export function createSyncMetaStorage(ctx: StorageContext) {
       };
     } catch {
       await quarantinePayload(adapter, KEYS.SYNC_META, raw);
-      console.warn("[storage] quarantined corrupt payload for sync_meta");
+      log.warn("[storage] quarantined corrupt payload for sync_meta");
       return { lastSyncedAt: 0, items: {} };
     }
   }

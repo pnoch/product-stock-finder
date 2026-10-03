@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -200,7 +201,7 @@ export default function SearchScreen() {
             modelNumber: result.product.modelNumber,
           }));
         } catch (e) {
-          console.warn("[Search] AI listing discovery failed", e);
+          log.warn("[Search] AI listing discovery failed", e);
         }
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast(
@@ -374,7 +375,7 @@ export default function SearchScreen() {
             modelNumber: item.modelNumber,
           }));
         } catch (e) {
-          console.warn("[Search] listing discovery failed", e);
+          log.warn("[Search] listing discovery failed", e);
         }
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         loadData();
@@ -395,7 +396,7 @@ export default function SearchScreen() {
           goBackOrHome(router, "/(tabs)/watchlist");
         }
       } catch (e) {
-        console.error("[Search] addToWatchlist failed", e);
+        log.error("[Search] addToWatchlist failed", e);
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert("Couldn't add product", "We couldn't add this product to your watchlist. Please check your connection and try again.");
       } finally {

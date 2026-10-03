@@ -1,3 +1,4 @@
+import { log } from "@shared/log";
 import "@/global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router, usePathname } from "expo-router";
@@ -110,7 +111,7 @@ export default function RootLayout() {
   // launch. Gate on the platform, not on the existence of `window`.
   useEffect(() => {
     if (Platform.OS !== "web") return;
-    const handler = (e: PromiseRejectionEvent) => console.error(e.reason);
+    const handler = (e: PromiseRejectionEvent) => log.error(e.reason);
     window.addEventListener("unhandledrejection", handler);
     return () => window.removeEventListener("unhandledrejection", handler);
   }, []);
@@ -193,7 +194,7 @@ export default function RootLayout() {
         registerHealthProbeTask();
         // Run a foreground check immediately on app launch. A storage read
         // failure must not reject unhandled.
-        void checkPriceDropsNow().catch((e) => console.error("[Launch] price check failed", e));
+        void checkPriceDropsNow().catch((e) => log.error("[Launch] price check failed", e));
         // Fill in products that have no listings at all: a bulk import stores an
         // empty array and only discovery fills it. Bounded per run, so a large
         // import drains over successive launches instead of firing N x 25
@@ -202,7 +203,7 @@ export default function RootLayout() {
           storage: { getWatchlist, updateProductListings },
           discover: discoverListings,
         }).catch((e) =>
-          console.error("[Launch] missing-listings discovery failed", e),
+          log.error("[Launch] missing-listings discovery failed", e),
         );
         if (isServerConfigured()) {
           // Register for Expo push delivery (best-effort)
@@ -214,7 +215,7 @@ export default function RootLayout() {
       // A rejection here (e.g. a storage read) previously skipped task
       // registration, the launch price check, push registration, and the
       // server-notification pull entirely.
-      .catch((e) => console.error("[Launch] setup failed", e));
+      .catch((e) => log.error("[Launch] setup failed", e));
     return () => {
       responseSubscription.remove();
       stopPushTracking();
@@ -238,7 +239,7 @@ export default function RootLayout() {
       catalog: PRODUCT_CATALOG,
       sampleListings: SAMPLE_LISTINGS,
       freshen: freshenSampleListings,
-    }).catch((err) => console.error("Seeding failed:", err));
+    }).catch((err) => log.error("Seeding failed:", err));
   }, []);
 
   // Create clients once and reuse them
