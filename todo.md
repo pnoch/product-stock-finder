@@ -7845,3 +7845,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] The ~54% coverage "gap" was **dead code**: only `fetchFxRates` + `FX_TTL_MS` ship from `@shared/fx`; `lib/fx.ts` re-implements `loadFxRates`/`refreshFxRates`/`maybeRefreshFxRates` with storage. Removed the unused stateful exports (`shared/src/fx.ts` 64 → 28 lines).
 - [x] Added `tests/shared-fx.test.ts` for the shipped surface (valid/missing/invalid rates, rejection, 4000ms timeout + timer-leak check, `FX_TTL_MS`). 100% statements/lines/functions (one unreachable branch). `tsc 0`, lint 0, root `3173` / desktop `321` green.
+
+## Phase 1059: Fix the desktop test timeout (real root cause)
+
+- [x] Phase 1051 raised RTL's `asyncUtilTimeout` to 5000 but the flake fired at **vitest's default 5s test-level timeout** (not RTL's), so it couldn't help. `desktop/vite.config.ts` now sets `testTimeout: 20000` (+ `hookTimeout`), and `desktop/tests/setup.ts` sets `asyncUtilTimeout: 10000` so RTL queries have room inside that budget.
+- [x] Confirmed under load: `pnpm test && pnpm --dir desktop test` ×2 and full `pnpm verify` all exit 0.

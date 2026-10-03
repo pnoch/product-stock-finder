@@ -5,7 +5,7 @@ import { configure } from "@testing-library/react";
 // click -> async mutation -> setState chain can exceed it and flake (seen in
 // tests/settings-webhook.test.tsx). Give findBy*/waitFor headroom so a slow CI
 // worker reports a real failure instead of a timing flake.
-configure({ asyncUtilTimeout: 5000 });
+configure({ asyncUtilTimeout: 10000 });
 
 // React Native global used by shared lib modules (lib/_core/auth.ts, api.ts).
 // Mirrors root tests/setup.ts. The vite `define` for __DEV__ does not reliably

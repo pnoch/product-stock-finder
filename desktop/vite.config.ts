@@ -93,5 +93,10 @@ export default defineConfig(({ mode }) => ({
     environment: "jsdom",
     setupFiles: [path.resolve(__dirname, "tests/setup.ts")],
     globals: true,
+    // Vitest's 5s default is too tight when the desktop suite runs after the
+    // root suite under `pnpm verify` load: a React state update can take >5s
+    // and the test-level timeout (not RTL's) is what fires. Give headroom.
+    testTimeout: 20000,
+    hookTimeout: 20000,
   },
 }));
