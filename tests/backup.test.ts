@@ -179,6 +179,37 @@ describe("applyBackup watchlist listing merge", () => {
     expect(merged.listings[0]!.lastChecked).toBe("2026-08-26T00:00:00.000Z");
   });
 
+  it("keeps the local listing on a lastChecked tie", () => {
+    // On equal timestamps the backup merge prefers the device copy (`>=`),
+    // whereas the Rust file-mirror merge prefers the incoming/UI copy (`>`).
+    // Pinned here so a future "unify the merges" change is deliberate.
+    const local = product("p1");
+    local.listings = [listing("d1", 480, "2026-08-26T00:00:00.000Z")];
+    const backupProduct = product("p1");
+    backupProduct.listings = [listing("d1", 500, "2026-08-26T00:00:00.000Z")];
+
+    const result = applyBackup(
+      {
+        version: 1,
+        exportedAt: NOW,
+        watchlist: [backupProduct],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+      } as never,
+      {
+        watchlist: [local],
+        alerts: [],
+        reminders: [],
+        stockWatches: [],
+        settings: undefined,
+      } as never,
+    );
+
+    const merged = result.watchlist.find((p) => p.id === "p1")!;
+    expect(merged.listings[0]!.price).toBe(480);
+  });
+
   it("compares lastChecked by parsed time across ISO formats", () => {
     // `"…T00:00:00Z" >= "…T00:00:00.500Z"` lexically, but the .500Z listing is
     // chronologically newer, so the string comparison kept the older local one.

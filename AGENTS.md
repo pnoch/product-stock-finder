@@ -164,6 +164,11 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 
 ## Conventions
 
+- **Merge semantics — three distinct merges, do not "unify" them.** They share only the *parsed-timestamp* comparison (ISO spellings of the same instant must not compare lexically):
+  1. `lib/sync.ts` `applyLocalItem` — incoming listing **fields** win, `priceHistory` is merged, device-only listings survive, tags LWW by `tagsUpdatedAt`.
+  2. `lib/backup.ts` `mergeProductListings` — wholesale LWW per listing by `lastChecked`; **local wins ties** (`>=`).
+  3. `desktop/src-tauri/src/lib.rs` `merge_listings` — wholesale LWW per listing by `lastChecked`; **incoming wins ties** (`>`); keeps disk-only (poller-discovered) listings.
+  Consolidating any two changes behavior in sync/backup/file-mirror paths.
 - **Path aliases:** `@/*` → repo root, `@shared/*` → `shared/`. Prefer `@/lib/...`, `@/components/...`, `@/hooks/...`.
 - **Styling:** Use NativeWind classes (`className="..."`) for layout where possible; inline `style={{}}` for dynamic/theme-driven colors via `useColors()`. Theme color tokens: `primary, background, surface, foreground, muted, border, success, warning, error, card, tint`.
 - **Colors:** Never hardcode brand colors in components. Pull from `useColors()` (returns current scheme palette) or `constants/theme.ts`.
