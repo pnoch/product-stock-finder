@@ -201,6 +201,7 @@ fn deactivate_after_notify(results: &[bool], triggered: &[(String, f64)]) -> Vec
 fn deactivate_alerts_by_id(
     alerts: serde_json::Value,
     triggered: &[(String, f64)],
+    snapshot_created: &std::collections::HashMap<String, String>,
 ) -> serde_json::Value {
     let mut list = match alerts {
         serde_json::Value::Array(items) => items,
@@ -209,6 +210,23 @@ fn deactivate_alerts_by_id(
     for (id, best_price) in triggered {
         for alert in list.iter_mut() {
             if alert.get("id").and_then(|v| v.as_str()) == Some(id.as_str()) {
+                // Re-arm guard: the decision came from a snapshot taken when the
+                // (minutes-long) check began. If the on-disk `createdAt` is newer
+                // than the snapshot's, the user re-armed/edited the alert in the
+                // meantime — overwriting it would undo their action.
+                if let (Some(snapshot), Some(fresh)) = (
+                    snapshot_created.get(id),
+                    alert.get("createdAt").and_then(|v| v.as_str()),
+                ) {
+                    if let (Some(s), Some(f)) = (
+                        parse_iso_to_epoch_ms(snapshot),
+                        parse_iso_to_epoch_ms(fresh),
+                    ) {
+                        if f > s {
+                            continue;
+                        }
+                    }
+                }
                 if let Some(obj) = alert.as_object_mut() {
                     obj.insert("isActive".to_string(), serde_json::Value::Bool(false));
                     obj.insert(
@@ -1066,6 +1084,10 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
     // (alert id, best price): ids, not indices, so the flags can be applied to
     // a freshly read copy of the file (the check runs for minutes).
     let mut triggered: Vec<(String, f64)> = Vec::new();
+    // Snapshot `createdAt` per triggered alert id, so the post-notify write can
+    // skip an alert the user re-armed while the check was running.
+    let mut snapshot_created: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
     let mut notifications: Vec<(String, String, Option<String>)> = Vec::new();
     let mut events: Vec<serde_json::Value> = Vec::new();
 
@@ -1172,14 +1194,17 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
             );
             notifications.push((
                 if is_rise {
-                    "📈 Price Increase Alert!".to_string()
+                    "Price Increase Alert!".to_string()
                 } else {
-                    "💸 Price Drop Alert!".to_string()
+                    "Price Drop Alert!".to_string()
                 },
                 body,
                 Some(notification_route_for_product(product_id)),
             ));
             let alert_id = alert.get("id").and_then(|v| v.as_str()).unwrap_or("");
+            if let Some(created) = alert.get("createdAt").and_then(|v| v.as_str()) {
+                snapshot_created.insert(alert_id.to_string(), created.to_string());
+            }
             events.push(trigger_event_json(
                 alert_id,
                 product_id,
@@ -1217,7 +1242,7 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
             // while this (minutes-long) check ran, and writing the snapshot read
             // at the start silently reverted a concurrent add/snooze/delete.
             let fresh = array_or_empty(read_json_file(data_dir, "price_alerts")?);
-            let updated_val = deactivate_alerts_by_id(fresh, &to_deactivate);
+            let updated_val = deactivate_alerts_by_id(fresh, &to_deactivate, &snapshot_created);
             // Emit only the delivered alerts: the renderer deactivates every
             // event it receives, so emitting an undelivered one consumed an
             // alert the user was never notified about (undoing the file-store
@@ -2642,7 +2667,11 @@ mod tests {
             { "id": "a", "isActive": true },
             { "id": "other", "isActive": true }
         ]);
-        let updated = deactivate_alerts_by_id(alerts, &[("a".to_string(), 12.5)]);
+        let updated = deactivate_alerts_by_id(
+            alerts,
+            &[("a".to_string(), 12.5)],
+            &std::collections::HashMap::new(),
+        );
         let list = updated.as_array().unwrap();
         assert_eq!(list[0]["isActive"], serde_json::json!(false));
         assert_eq!(list[0]["triggeredPrice"], serde_json::json!(12.5));
@@ -2651,9 +2680,43 @@ mod tests {
         assert_eq!(list[1]["isActive"], serde_json::json!(true));
         // A non-array is returned unchanged.
         assert_eq!(
-            deactivate_alerts_by_id(serde_json::Value::Null, &[]),
+            deactivate_alerts_by_id(
+                serde_json::Value::Null,
+                &[],
+                &std::collections::HashMap::new()
+            ),
             serde_json::Value::Null
         );
+    }
+
+    #[test]
+    fn deactivate_alerts_by_id_skips_a_rearmed_alert() {
+        let alerts = serde_json::json!([
+            { "id": "a", "isActive": true, "createdAt": "2026-06-02T00:00:00.000Z" }
+        ]);
+        let mut snapshot = std::collections::HashMap::new();
+        snapshot.insert("a".to_string(), "2026-06-01T00:00:00.000Z".to_string());
+        let updated = deactivate_alerts_by_id(alerts, &[("a".to_string(), 12.5)], &snapshot);
+        let a = &updated.as_array().unwrap()[0];
+        // The on-disk createdAt is newer than the snapshot: the user re-armed it
+        // during the check, so it must not be deactivated.
+        assert_eq!(a["isActive"], serde_json::json!(true));
+        assert!(a.get("triggeredAt").is_none());
+    }
+
+    #[test]
+    fn deactivate_alerts_by_id_deactivates_when_not_rearmed() {
+        let alerts = serde_json::json!([
+            { "id": "a", "isActive": true, "createdAt": "2026-06-01T00:00:00.000Z" }
+        ]);
+        let mut snapshot = std::collections::HashMap::new();
+        snapshot.insert("a".to_string(), "2026-06-01T00:00:00.000Z".to_string());
+        let updated = deactivate_alerts_by_id(alerts, &[("a".to_string(), 12.5)], &snapshot);
+        let a = &updated.as_array().unwrap()[0];
+        // An equal createdAt is not a re-arm, so the alert is deactivated.
+        assert_eq!(a["isActive"], serde_json::json!(false));
+        assert_eq!(a["triggeredPrice"], serde_json::json!(12.5));
+        assert!(a["triggeredAt"].is_string());
     }
 
     #[test]
