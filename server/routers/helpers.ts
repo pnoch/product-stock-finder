@@ -15,8 +15,8 @@ function cleanHttpUrl(raw: string | undefined): string | null {
 // Share URLs must never be built from attacker-controlled Origin/Referer
 // headers (phishing via a poisoned link host). Only deployment config is
 // trusted; otherwise fall back to localhost.
-export function getOrigin(req?: { headers: Record<string, unknown> }): string {
-  void req;
+export function getOrigin(_req?: unknown): string {
+  void _req;
   const envWeb = cleanHttpUrl(process.env.EXPO_PUBLIC_WEB_URL);
   if (envWeb) return envWeb;
   const envApi = process.env.EXPO_PUBLIC_API_BASE_URL;

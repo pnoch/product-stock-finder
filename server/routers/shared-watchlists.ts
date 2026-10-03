@@ -44,7 +44,7 @@ export const sharedWatchlistsRouter = router({
           throw e;
         }
       }
-      const origin = getOrigin(ctx.req as unknown as { headers: Record<string, unknown> });
+      const origin = getOrigin(ctx.req);
       return { token, shareUrl: `${origin}/w/${token}`, expiresAt: expiresAt.toISOString() } as const;
     }),
   get: publicProcedure
@@ -65,7 +65,7 @@ export const sharedWatchlistsRouter = router({
         .from(sharedWatchlists)
         .where(eq(sharedWatchlists.token, input.token))
         .limit(1);
-      const row = rows[0] as unknown as { ownerId: number; token: string; title: string; createdAt: Date; expiresAt: Date | null; updatedAt?: Date; membersOnly?: boolean } | undefined;
+      const row = rows[0];
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
       if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
         await db.delete(sharedWatchlists).where(eq(sharedWatchlists.token, input.token));
@@ -141,9 +141,9 @@ export const sharedWatchlistsRouter = router({
       .from(sharedWatchlists)
       .where(eq(sharedWatchlists.ownerId, ctx.user.id))
       .orderBy(desc(sharedWatchlists.createdAt));
-    const origin = getOrigin(ctx.req as unknown as { headers: Record<string, unknown> });
+    const origin = getOrigin(ctx.req);
     return {
-      links: (rows as unknown as { token: string; title: string; createdAt: Date | null; expiresAt: Date | null; membersOnly: boolean }[]).map((r) => ({
+      links: rows.map((r) => ({
         token: r.token,
         title: r.title,
         shareUrl: `${origin}/w/${r.token}`,
@@ -161,7 +161,7 @@ export const sharedWatchlistsRouter = router({
       .select()
       .from(sharedWatchlistMembers)
       .where(eq(sharedWatchlistMembers.userId, ctx.user.id));
-    const origin = getOrigin(ctx.req as unknown as { headers: Record<string, unknown> });
+    const origin = getOrigin(ctx.req);
     const joined = await Promise.all(
       memberRows.map(async (m) => {
         const rows = await db
@@ -169,9 +169,7 @@ export const sharedWatchlistsRouter = router({
           .from(sharedWatchlists)
           .where(eq(sharedWatchlists.token, m.token))
           .limit(1);
-        const share = rows[0] as unknown as
-          | { ownerId: number; token: string; title: string; expiresAt: Date | null; membersOnly: boolean }
-          | undefined;
+        const share = rows[0];
         if (!share) return null;
         // Drop expired shares (get/members reject them) so the list can't
         // point at a dead link.
@@ -203,7 +201,7 @@ export const sharedWatchlistsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-      const row = rows[0] as unknown as { ownerId: number } | undefined;
+      const row = rows[0];
       if (!row || row.ownerId !== ctx.user.id) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
       await db
         .update(sharedWatchlists)
@@ -218,7 +216,7 @@ export const sharedWatchlistsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-      const row = rows[0] as unknown as { ownerId: number } | undefined;
+      const row = rows[0];
       if (!row || row.ownerId !== ctx.user.id) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       await db
@@ -234,7 +232,7 @@ export const sharedWatchlistsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-      const row = rows[0] as unknown as { ownerId: number; expiresAt: Date | null } | undefined;
+      const row = rows[0];
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
       if (row.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Only owner can invite" });
       // Expired shares must not accept new members (get/members/join all
@@ -262,7 +260,7 @@ export const sharedWatchlistsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-      const row = rows[0] as unknown as { ownerId: number; expiresAt: Date | null } | undefined;
+      const row = rows[0];
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
       if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
@@ -298,7 +296,7 @@ export const sharedWatchlistsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-      const row = rows[0] as unknown as { ownerId: number; expiresAt: Date | null } | undefined;
+      const row = rows[0];
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
       if (row.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Only owner can invite" });
       if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
@@ -329,7 +327,7 @@ export const sharedWatchlistsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-      const row = rows[0] as unknown as { ownerId: number } | undefined;
+      const row = rows[0];
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
       if (row.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Only owner can remove members" });
       await db
@@ -349,10 +347,7 @@ export const sharedWatchlistsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       const rows = await db.select().from(sharedWatchlists).where(eq(sharedWatchlists.token, input.token)).limit(1);
-      const joinRow = rows[0] as unknown as {
-        expiresAt: Date | null;
-        membersOnly?: boolean | null;
-      } | undefined;
+      const joinRow = rows[0];
       if (!joinRow) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
       // Expired shares must not be joinable (get already rejects them).
       if (joinRow.expiresAt && new Date(joinRow.expiresAt).getTime() < Date.now()) {

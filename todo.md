@@ -7824,3 +7824,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 ## Phase 1054: `pnpm verify` local gate
 
 - [x] Added `pnpm test:rust` (`cargo test --manifest-path desktop/src-tauri/Cargo.toml`) and `pnpm verify` (check + lint + test + check:desktop + desktop test + test:rust) for one-command local/CI parity, documented in AGENTS.md. Verified: root `3160` / desktop `321` / cargo `81`, exit 0. (DB-gated tests stay opt-in via `RUN_DB_TESTS`.)
+
+## Phase 1055: Tighten redundant type escapes in app code
+
+- [x] Removed 26 redundant `as unknown as …` casts (74 → 48 app-code escapes): Drizzle row casts in `server/routers/shared-watchlists.ts` + `server/db.ts`, the `getOrigin(ctx.req as …)` calls (its `req` is unused → `_req?: unknown`), the `lib/csv.ts` DistributorListing cast, `use-auth.ts` `(apiUser as any)`, and desktop `Health.tsx`/`HealthDetail.tsx`/`health-probe.ts` adapter+health casts (typed `StorageAdapter`/`DistributorHealth[]`).
+- [x] Genuine framework shims kept (RN `Animated` configs, Playwright `window.chrome`/permissions, `Intl.Segmenter`, dynamic `Record` key access, the two `lib/csv.ts` product literals whose required fields can be `undefined`). `_core` untouched. Behavior-preserving; `tsc 0`, lint 0 warnings, root `3160` / desktop `321` green.

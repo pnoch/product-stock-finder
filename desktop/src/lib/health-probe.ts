@@ -32,7 +32,7 @@ async function probeDistributors(): Promise<DistributorHealth[]> {
   } catch {
     // Web/PWA: Tauri unavailable — run checks server-side instead.
     const client = createTRPCClient();
-    return (await client.health.check.query()) as unknown as DistributorHealth[];
+    return await client.health.check.query();
   }
 }
 

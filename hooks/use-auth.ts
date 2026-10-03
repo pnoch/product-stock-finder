@@ -13,6 +13,10 @@ type UseAuthOptions = {
   autoFetch?: boolean;
 };
 
+type ApiUser = NonNullable<Awaited<ReturnType<typeof Api.getMe>>> & {
+  emailVerified?: boolean;
+};
+
 // Every auth request must carry the device id: the server binds the session to
 // it, un-revokes the presenting device on login, and enforces revocation on the
 // account-mutation routes. Without it a revoked device could sign back in (and
@@ -80,7 +84,7 @@ export function useAuth(options?: UseAuthOptions) {
       // Web platform: use cookie-based auth, fetch user from API
       if (Platform.OS === "web") {
         debugLog("[useAuth] Web platform: fetching user from API...");
-        const apiUser = await Api.getMe();
+        const apiUser: ApiUser | null = await Api.getMe();
 
         if (apiUser) {
           const userInfo: Auth.User = {
@@ -90,7 +94,7 @@ export function useAuth(options?: UseAuthOptions) {
             email: apiUser.email,
             loginMethod: apiUser.loginMethod,
             lastSignedIn: new Date(apiUser.lastSignedIn),
-            emailVerified: (apiUser as any).emailVerified ?? false,
+            emailVerified: apiUser.emailVerified ?? false,
           };
           setUser(userInfo);
           // Cache user info in localStorage for faster subsequent loads
