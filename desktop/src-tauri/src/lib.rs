@@ -2705,6 +2705,21 @@ mod tests {
     }
 
     #[test]
+    fn deactivate_alerts_by_id_deactivates_when_not_rearmed() {
+        let alerts = serde_json::json!([
+            { "id": "a", "isActive": true, "createdAt": "2026-06-01T00:00:00.000Z" }
+        ]);
+        let mut snapshot = std::collections::HashMap::new();
+        snapshot.insert("a".to_string(), "2026-06-01T00:00:00.000Z".to_string());
+        let updated = deactivate_alerts_by_id(alerts, &[("a".to_string(), 12.5)], &snapshot);
+        let a = &updated.as_array().unwrap()[0];
+        // An equal createdAt is not a re-arm, so the alert is deactivated.
+        assert_eq!(a["isActive"], serde_json::json!(false));
+        assert_eq!(a["triggeredPrice"], serde_json::json!(12.5));
+        assert!(a["triggeredAt"].is_string());
+    }
+
+    #[test]
     fn snooze_blocks_matches_the_mobile_predicate() {
         let now = 1_700_000_000_000_i64; // 2023-11-14
         assert!(!snooze_blocks(None, now));
