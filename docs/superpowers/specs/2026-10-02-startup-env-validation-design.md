@@ -23,8 +23,13 @@ export function assertServerEnv(env?: NodeJS.ProcessEnv): void;
 
 `validateServerEnv` (pure) checks:
 - **error (production only):** `DATABASE_URL` unset/empty.
-- **warn:** any group set *partially* (some members present, not all) — Google OAuth (`GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`), Apple OAuth (`APPLE_CLIENT_ID` + `APPLE_TEAM_ID` + `APPLE_KEY_ID` + `APPLE_PRIVATE_KEY`), web push (`VAPID_SUBJECT` + `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY`), email (`RESEND_API_KEY` + `EMAIL_FROM`).
-- **warn:** production with empty/whitespace `CORS_ALLOWED_ORIGINS`.
+- **warn:** any feature group set *partially*. Groups are slot-based, and a slot may accept alternatives:
+  - Google OAuth: `GOOGLE_CLIENT_ID` **or** `EXPO_PUBLIC_GOOGLE_CLIENT_ID`, plus `GOOGLE_CLIENT_SECRET`.
+  - Apple OAuth: `APPLE_CLIENT_ID` **or** `EXPO_PUBLIC_APPLE_CLIENT_ID`, plus `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`.
+  - Web push: `VAPID_SUBJECT` + `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY`.
+  - Email: `RESEND_API_KEY` + `EMAIL_FROM`.
+
+**No CORS check.** The app's primary deploy serves `dist-web` same-origin (`server/spa.ts`), and `registerCors` only *adds* headers for allowlisted origins — an empty `CORS_ALLOWED_ORIGINS` is valid same-origin, so a production warning there is a false positive that trains operators to ignore the channel. (An earlier draft warned on it; removed.)
 
 `assertServerEnv`:
 - logs every issue (`console.error` for errors, `console.warn` for warnings);
