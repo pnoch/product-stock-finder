@@ -33,9 +33,32 @@ async function walk(dir: string): Promise<string[]> {
   return out;
 }
 
+async function walkRust(dir: string): Promise<string[]> {
+  const out: string[] = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (!["target", "node_modules"].includes(entry.name)) {
+        out.push(...(await walkRust(p)));
+      }
+    } else if (entry.name.endsWith(".rs")) {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
 describe("emoji sweep", () => {
   it("notification title sources contain no emoji", async () => {
     for (const file of TITLE_SOURCES) {
+      const src = await readFile(file, "utf8");
+      const found = src.match(/\p{Extended_Pictographic}/gu) ?? [];
+      expect(found, `${file} contains emoji`).toEqual([]);
+    }
+  });
+
+  it("has no emoji in the Tauri backend sources", async () => {
+    for (const file of await walkRust("desktop/src-tauri/src")) {
       const src = await readFile(file, "utf8");
       const found = src.match(/\p{Extended_Pictographic}/gu) ?? [];
       expect(found, `${file} contains emoji`).toEqual([]);
