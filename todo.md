@@ -4864,7 +4864,7 @@ Audited the one user-facing, security-relevant surface not yet covered: a token 
 - [x] **Verified the upgrades are safe:** root `tsc 0`, `2544 passed` (27 skipped) / **`2571 passed` with the DB** (the mysql2/drizzle bumps exercise the real SQL paths), desktop `281 passed`, lint 0 errors (157 warnings).
 - [x] **`undici` 7.29.0 (added in Phase 624) is already patched** — every undici advisory targets `<6.28.0`; the audit's remaining undici hits are transitive 6.x copies nested inside other packages.
 - [x] **The 2 remaining criticals are dev-tooling only:** `shell-quote` and `tar` are pulled in by `@expo/cli` (Expo's build/dev CLI) via `react-devtools-core`/`expo-router` — never shipped to users and never run in production. Not upgradeable without an Expo SDK bump.
-- [ ] Remaining advisories (113) are transitive build/dev dependencies (Expo/Metro/RN tooling); clearing them needs upstream releases, not local pins. **(Phase 1071: `pnpm audit --prod` now reports 4 high — `image-size` (fix needs a 2.x major Metro can't consume), `node-forge` and `braces` (no patched release) — all transitively under Expo/Metro build tooling.)**
+- [ ] Remaining advisories (113) are transitive build/dev dependencies (Expo/Metro/RN tooling); clearing them needs upstream releases, not local pins. **(Phase 1071: `pnpm audit --prod` now reports 4 high — `image-size` (fix needs a 2.x major Metro can't consume), `node-forge` and `braces` (no patched release) — all transitively under Expo/Metro build tooling.)** **(Phase 1077: attempted the `image-size` override; `2.0.3` resolves but breaks `expo export -p web` on `unmatched.png`, so it was reverted.)**
 
 ## Phase 640: Accessibility pass
 
@@ -7959,3 +7959,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Guard: `tests/desktop-release-workflow.test.ts` asserts the tag trigger, the signing env, `projectPath: desktop` / `tauriScript: pnpm tauri`, all three platforms, `contents: write`, and that the published endpoint matches `tauri.conf.json`.
 - [x] Fixed a pre-existing flake the first full run surfaced: `desktop/tests/settings-webhook.test.tsx` typed the URL before the async settings load seeded the input, so the seed effect (`Settings.tsx`) sometimes reverted the value; the test now waits for the seeded value first.
 - [x] YAML parses; `pnpm verify` exit 0 — root `3193` / desktop `324` / cargo `82`. Remaining open: **4** — ops signing hosts / `APPLE_TEAM_ID` (2034/2066), quiet-hours drafts tradeoff (4418), transitive advisories (4867).
+
+## Phase 1077: `image-size` advisory override rejected (breaks Metro)
+
+- [x] `image-size@2.0.3` is the release that patches the advisory, and its CJS build is still compatible on paper (`type: commonjs`, dual CJS/ESM exports, and `exports.default` is the `imageSize` function Metro calls via `_interopRequireDefault`). Adding `"image-size@<2.0.3": "2.0.3"` to `pnpm.overrides` resolved it graph-wide and dropped `pnpm audit --prod` from 4 highs to 2.
+- [x] But it is **not** safe: `pnpm build:web` (`expo export -p web`) then fails on `node_modules/expo-router/assets/unmatched.png` — `SyntaxError: The "list" argument must be an instance of SharedArrayBuffer, ArrayBuffer or ArrayBufferView` (Metro 0.83.3 passes a Buffer shape v2 rejects). Reverting the override restores a green `pnpm build:web`.
+- [x] No change kept (tree clean, `pnpm audit --prod` back to 4 highs); annotated on 4867. Lesson: the Expo/Metro advisories can't be cleared by a local pin — they need an upstream Metro release that consumes image-size 2.x.
