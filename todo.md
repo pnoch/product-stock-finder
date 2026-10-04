@@ -7965,3 +7965,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `image-size@2.0.3` is the release that patches the advisory, and its CJS build is still compatible on paper (`type: commonjs`, dual CJS/ESM exports, and `exports.default` is the `imageSize` function Metro calls via `_interopRequireDefault`). Adding `"image-size@<2.0.3": "2.0.3"` to `pnpm.overrides` resolved it graph-wide and dropped `pnpm audit --prod` from 4 highs to 2.
 - [x] But it is **not** safe: `pnpm build:web` (`expo export -p web`) then fails on `node_modules/expo-router/assets/unmatched.png` — `SyntaxError: The "list" argument must be an instance of SharedArrayBuffer, ArrayBuffer or ArrayBufferView` (Metro 0.83.3 passes a Buffer shape v2 rejects). Reverting the override restores a green `pnpm build:web`.
 - [x] No change kept (tree clean, `pnpm audit --prod` back to 4 highs); annotated on 4867. Lesson: the Expo/Metro advisories can't be cleared by a local pin — they need an upstream Metro release that consumes image-size 2.x.
+
+## Phase 1078: Desktop bundle split (vendor chunks + lazy routes)
+
+- [x] `desktop/vite.config.ts`: added `build.rollupOptions.output.manualChunks` splitting the eager vendors into `vendor-react` (187 KB), `vendor-query` (111 KB), `vendor-router` (38 KB), `vendor-icons` (25 KB) and `vendor` (332 KB); `@tauri-apps/*` returns `undefined` so the dynamically-imported updater stays in its own lazy chunk.
+- [x] `desktop/src/App.tsx`: all 16 route pages are now `React.lazy` (named-export → default map) behind a `<Suspense>` fallback, so each page is its own chunk.
+- [x] Result: the app entry chunk dropped from `1,268.63 kB` (gzip `365.83`) to `232.10 kB` (gzip `64.95`) — an 82% cut — the largest chunk is now `vendor` at `332 kB` (gzip `114`), and the "chunks larger than 500 kB" warning is gone; `pnpm --filter desktop build` clean.
+- [x] `pnpm verify` exit 0 — root `3193` / desktop `324` / cargo `82`; `tsc`/lint 0.

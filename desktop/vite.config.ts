@@ -88,6 +88,34 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: "esnext",
     minify: "esbuild",
+    rollupOptions: {
+      output: {
+        // Split the eager vendor libraries so the app entry chunk is small and
+        // stable vendors cache independently of app code. Dynamically-imported
+        // node_modules (the Tauri updater) return undefined so Rollup keeps them
+        // in their own lazy chunk instead of pulling them into a vendor bundle.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("@tauri-apps")) return undefined;
+          if (id.includes("react-router")) return "vendor-router";
+          if (
+            id.includes("@tanstack") ||
+            id.includes("@trpc") ||
+            id.includes("superjson")
+          )
+            return "vendor-query";
+          if (id.includes("lucide-react")) return "vendor-icons";
+          if (
+            id.includes("react-dom") ||
+            id.includes("/react/") ||
+            id.includes("scheduler") ||
+            id.includes("use-sync-external-store")
+          )
+            return "vendor-react";
+          return "vendor";
+        },
+      },
+    },
   },
   test: {
     environment: "jsdom",

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useId } from "react";
+import { useState, useEffect, useRef, useId, lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, useNavigate } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { X } from "lucide-react";
@@ -7,22 +7,6 @@ import { SearchModal } from "./components/SearchModal";
 import { OnboardingModal, useOnboardingModal } from "./components/OnboardingModal";
 import { ConnectionBadge } from "./components/ConnectionBadge";
 import { useConnection } from "./hooks/use-connection";
-import { Home } from "./pages/Home";
-import { Watchlist } from "./pages/Watchlist";
-import { ProductDetail } from "./pages/ProductDetail";
-import { Compare } from "./pages/Compare";
-import { Alerts } from "./pages/Alerts";
-import { Search } from "./pages/Search";
-import { Settings } from "./pages/Settings";
-import { Health } from "./pages/Health";
-import { HealthDetail } from "./pages/HealthDetail";
-import { RestockWatches } from "./pages/RestockWatches";
-import { DistributorAnalysis } from "./pages/DistributorAnalysis";
-import { Stats } from "./pages/Stats";
-import { Rates } from "./pages/Rates";
-import { SharedWatchlist } from "./pages/SharedWatchlist";
-import { ResetPassword } from "./pages/ResetPassword";
-import { OAuthCallback } from "./pages/OAuthCallback";
 import { exportWatchlistAsJson } from "./import-export";
 import { useToast } from "./hooks/use-toast";
 import { useTheme } from "./hooks/use-theme";
@@ -46,6 +30,58 @@ import { createForegroundSyncRetry } from "./lib/sync-retry";
 import { cleanupStaleDevices } from "./lib/device-cleanup";
 import { backfillLocalHistory } from "./lib/history-sync";
 import { evaluateBasketAlert } from "./lib/basket-alert";
+
+// Routes are lazy so each page (Settings and Stats are large) is its own chunk
+// instead of loading the whole app up front. The named-export -> default map is
+// required because the pages use named exports.
+const Home = lazy(() => import("./pages/Home").then((m) => ({ default: m.Home })));
+const Watchlist = lazy(() =>
+  import("./pages/Watchlist").then((m) => ({ default: m.Watchlist })),
+);
+const ProductDetail = lazy(() =>
+  import("./pages/ProductDetail").then((m) => ({ default: m.ProductDetail })),
+);
+const Compare = lazy(() =>
+  import("./pages/Compare").then((m) => ({ default: m.Compare })),
+);
+const Alerts = lazy(() =>
+  import("./pages/Alerts").then((m) => ({ default: m.Alerts })),
+);
+const Search = lazy(() =>
+  import("./pages/Search").then((m) => ({ default: m.Search })),
+);
+const Settings = lazy(() =>
+  import("./pages/Settings").then((m) => ({ default: m.Settings })),
+);
+const Rates = lazy(() =>
+  import("./pages/Rates").then((m) => ({ default: m.Rates })),
+);
+const Stats = lazy(() =>
+  import("./pages/Stats").then((m) => ({ default: m.Stats })),
+);
+const Health = lazy(() =>
+  import("./pages/Health").then((m) => ({ default: m.Health })),
+);
+const HealthDetail = lazy(() =>
+  import("./pages/HealthDetail").then((m) => ({ default: m.HealthDetail })),
+);
+const RestockWatches = lazy(() =>
+  import("./pages/RestockWatches").then((m) => ({ default: m.RestockWatches })),
+);
+const DistributorAnalysis = lazy(() =>
+  import("./pages/DistributorAnalysis").then((m) => ({
+    default: m.DistributorAnalysis,
+  })),
+);
+const SharedWatchlist = lazy(() =>
+  import("./pages/SharedWatchlist").then((m) => ({ default: m.SharedWatchlist })),
+);
+const ResetPassword = lazy(() =>
+  import("./pages/ResetPassword").then((m) => ({ default: m.ResetPassword })),
+);
+const OAuthCallback = lazy(() =>
+  import("./pages/OAuthCallback").then((m) => ({ default: m.OAuthCallback })),
+);
 
 // Discovery does a raw fetch (the tRPC client can't wrap its abort/timeout
 // needs), so register the API headers it must carry — auth + BYO-LLM.
@@ -517,28 +553,36 @@ export default function App() {
               <div className="min-h-full flex flex-col">
                 <HeaderBar />
                 <div className="flex-1 w-full max-w-6xl mx-auto">
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/watchlist" element={<Watchlist />} />
-                    <Route path="/product/:id" element={<ProductDetail />} />
-                    <Route path="/compare/:id" element={<Compare />} />
-                    <Route path="/alerts" element={<Alerts />} />
-                    <Route path="/search" element={<Search />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/rates" element={<Rates />} />
-                    <Route path="/stats" element={<Stats />} />
-                    <Route path="/health" element={<Health />} />
-                    <Route path="/health/:id" element={<HealthDetail />} />
-                    <Route path="/restock-watches" element={<RestockWatches />} />
-                    <Route
-                      path="/distributor-analysis"
-                      element={<DistributorAnalysis />}
-                    />
-                    <Route path="/w/:token" element={<SharedWatchlist />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/oauth/callback" element={<OAuthCallback />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                  <Suspense
+                    fallback={
+                      <div className="p-6 text-sm text-gray-500 dark:text-gray-400">
+                        Loading...
+                      </div>
+                    }
+                  >
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/watchlist" element={<Watchlist />} />
+                      <Route path="/product/:id" element={<ProductDetail />} />
+                      <Route path="/compare/:id" element={<Compare />} />
+                      <Route path="/alerts" element={<Alerts />} />
+                      <Route path="/search" element={<Search />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/rates" element={<Rates />} />
+                      <Route path="/stats" element={<Stats />} />
+                      <Route path="/health" element={<Health />} />
+                      <Route path="/health/:id" element={<HealthDetail />} />
+                      <Route path="/restock-watches" element={<RestockWatches />} />
+                      <Route
+                        path="/distributor-analysis"
+                        element={<DistributorAnalysis />}
+                      />
+                      <Route path="/w/:token" element={<SharedWatchlist />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/oauth/callback" element={<OAuthCallback />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
                 </div>
               </div>
             </main>
