@@ -530,12 +530,10 @@ async fn set_value_for_key(
     if !is_allowed_storage_key(&key) {
         return Err(format!("Refusing to write disallowed key: {key}"));
     }
-    // Alerts have their own serialized writer (apply_alert_mutations); the
-    // plain setter must take the same lock or it can interleave with the poller.
-    if key == "price_alerts" {
-        let _guard = ALERTS_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        return write_json_file(&data_dir, &key, &value);
-    }
+    // Serialize with every other mirrored-file writer (the poller's listing
+    // updates, the alert mutation command, and a multi-file import): a plain
+    // setter that interleaves with a read-modify-write loses one side's change.
+    let _guard = STORE_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     write_json_file(&data_dir, &key, &value)
 }
 
@@ -652,15 +650,24 @@ async fn merge_watchlist(
     value: serde_json::Value,
 ) -> Result<String, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    // Serialize the read-merge-write with the poller's listing updates and the
+    // plain setter: reading before a poller write and writing after reverted it.
+    let _guard = STORE_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let disk = read_json_file(&data_dir, "watchlist_products")?;
     let merged = merge_watchlist_products(disk, value);
     write_json_file(&data_dir, "watchlist_products", &merged)?;
     serde_json::to_string(&merged).map_err(|e| e.to_string())
 }
 
-/// Process-wide lock serializing the alert file's read-modify-write so the
-/// renderer's mutation command and the poller's write cannot interleave.
-static ALERTS_FILE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+/// Process-wide lock serializing every mirrored-file read-modify-write: the
+/// renderer's commands (`set_value_for_key`, `merge_watchlist`,
+/// `apply_alert_mutations`, `import_watchlist`) and the poller's writes
+/// (`update_listing_price`, `check_price_drops_inner`) all take it, so two
+/// writers cannot interleave and lose each other's update. One lock for all
+/// keys is intentional: writes are small and infrequent, and it also keeps a
+/// multi-file import from racing a per-key writer. Never call a locked writer
+/// from inside another locked section (the mutex is not reentrant).
+static STORE_FILE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[derive(serde::Deserialize)]
 struct AlertUpsert {
@@ -724,7 +731,7 @@ async fn apply_alert_mutations(
     removes: Vec<String>,
 ) -> Result<String, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let _guard = ALERTS_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _guard = STORE_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let disk = read_json_file(&data_dir, "price_alerts")?;
     let merged = apply_alert_mutations_to(disk, &upserts, &removes);
     write_json_file(&data_dir, "price_alerts", &merged)?;
@@ -830,9 +837,10 @@ async fn import_watchlist(
             if !import.stock_watches.is_null() {
                 entries.push(("back_in_stock_watches", &import.stock_watches));
             }
-            // Serialize with the poller/command: the import writes price_alerts
-            // too, and an interleaved poller write would be lost.
-            let _guard = ALERTS_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+            // Serialize with every other mirrored-file writer: the import
+            // rewrites five collections, and an interleaved poller/UI write
+            // would be lost.
+            let _guard = STORE_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
             write_json_files_atomically(&data_dir, &entries)?;
 
             Ok("Import successful".to_string())
@@ -1237,7 +1245,7 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
         }
         let to_deactivate = deactivate_after_notify(&results, &triggered);
         if !to_deactivate.is_empty() {
-            let _guard = ALERTS_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+            let _guard = STORE_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
             // Re-read immediately before writing: the file may have changed
             // while this (minutes-long) check ran, and writing the snapshot read
             // at the start silently reverted a concurrent add/snooze/delete.
@@ -1729,6 +1737,9 @@ fn update_listing_price(
     scrape: &scrapers::ScrapeResult,
     server_history: &[serde_json::Value],
 ) -> Result<(), String> {
+    // Serialize the read-modify-write with the renderer mirror: a UI save built
+    // from a pre-sweep snapshot otherwise reverted this listing's fresh price.
+    let _guard = STORE_FILE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let watchlist_val = read_json_file(data_dir, "watchlist_products")?;
     let mut watchlist: Vec<serde_json::Value> =
         watchlist_val.as_array().cloned().unwrap_or_default();
@@ -2394,6 +2405,49 @@ mod tests {
         let content = std::fs::read_to_string(dir.join("watchlist_products.json")).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert!(parsed.is_array());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn update_listing_price_preserves_product_fields_and_history() {
+        // The poller's read-modify-write now runs under STORE_FILE_LOCK; this
+        // pins that it still merges one listing's scrape without dropping the
+        // renderer-owned product fields or the existing history.
+        let dir = std::env::temp_dir().join(format!("psf-update-listing-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        write_json_file(
+            &dir,
+            "watchlist_products",
+            &serde_json::json!([
+                { "id": "p1", "name": "P1", "tags": ["a"], "listings": [
+                    { "distributorId": "d1", "price": 1.0, "currency": "USD",
+                      "stockStatus": "out_of_stock",
+                      "lastChecked": "2026-06-01T00:00:00.000Z" }
+                ]}
+            ]),
+        )
+        .unwrap();
+
+        let scrape = scrapers::ScrapeResult {
+            price: 5.0,
+            currency: "USD".to_string(),
+            stock_status: "in_stock".to_string(),
+            expected_date: None,
+            url: "https://example.test/d1".to_string(),
+        };
+        update_listing_price(&dir, "p1", "d1", &scrape, &[]).unwrap();
+
+        let content = std::fs::read_to_string(dir.join("watchlist_products.json")).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
+        let product = &parsed.as_array().unwrap()[0];
+        assert_eq!(product["name"], serde_json::json!("P1"));
+        assert_eq!(product["tags"], serde_json::json!(["a"]));
+        let listing = &product["listings"][0];
+        assert_eq!(listing["price"], serde_json::json!(5.0));
+        assert_eq!(listing["stockStatus"], serde_json::json!("in_stock"));
+        assert_eq!(listing["url"], serde_json::json!("https://example.test/d1"));
+        assert!(!listing["priceHistory"].as_array().unwrap().is_empty());
         let _ = std::fs::remove_dir_all(&dir);
     }
 
