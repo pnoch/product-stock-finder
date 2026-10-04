@@ -8008,3 +8008,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Added `CHANGELOG.md` for 5.17.0: auto-update + release workflow; desktop bundle split + lazy routes; the Gradle workaround removal; recharts→SVG; the desktop write-lock, cookie-jar and CSV fixes; and the share-roster / updater-downgrade / invite-enumeration security hardening.
 - [x] Added `tests/version-lockstep.test.ts` (guards every manifest against future drift and that the changelog documents the current version) and listed `CHANGELOG.md` in `AGENTS.md`.
 - [x] `pnpm verify` exit 0 — root `3228` / desktop `324` / cargo `82`; `tsc`/lint 0. Push a `v5.17.0` tag to trigger the release workflow.
+
+## Phase 1084: Finish client-wrapper branch coverage
+
+- [x] Closed the last branch gaps in three client wrappers (tests only): `lib/server-insights.ts` (the `!isServerConfigured()` early return) → `100/100/100`; `lib/devices.ts` (the `?? null` / `?? false` / `?? 0` fallbacks when the tRPC result is null or partial) → `100/100/100`; `lib/background-fetch.ts` (null response body, the `settled` guard on every terminal callback, and a non-`Error` throw from `send()`) → `100%` line / `93.8%` branch / `100%` fn.
+- [x] `pnpm verify` exit 0 — root `3233` / desktop `324` / cargo `82`; `tsc`/lint 0.

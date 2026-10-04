@@ -65,6 +65,23 @@ describe("client device API", () => {
     expect(await fetchCurrentDeviceBinding()).toBeNull();
   });
 
+  it("defaults null/partial results to null/false/0", async () => {
+    mockClient.devices.list.query.mockResolvedValueOnce(null);
+    expect(await fetchDevices()).toBeNull();
+    mockClient.devices.list.query.mockResolvedValueOnce({});
+    expect(await fetchDevices()).toBeNull();
+
+    mockClient.devices.current.query.mockResolvedValueOnce(null);
+    expect(await fetchCurrentDeviceBinding()).toBeNull();
+
+    mockClient.devices.rename.mutate.mockResolvedValueOnce({});
+    expect(await renameDevice("d1", "Desk")).toBe(false);
+    mockClient.devices.signOut.mutate.mockResolvedValueOnce({});
+    expect(await signOutDevice("d1")).toBe(false);
+    mockClient.devices.cleanupStale.mutate.mockResolvedValueOnce({});
+    expect(await cleanupStaleDevices()).toBe(0);
+  });
+
   it("reports rename/sign-out/cleanup results, defaulting to false/0 on failure", async () => {
     mockClient.devices.rename.mutate.mockResolvedValueOnce({ renamed: true });
     expect(await renameDevice("d1", "Desk")).toBe(true);

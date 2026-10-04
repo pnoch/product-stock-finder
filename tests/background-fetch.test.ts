@@ -8,9 +8,10 @@ import {
 class FakeXhr {
   static last: FakeXhr | null = null;
   static sendThrows = false;
+  static sendThrowsValue: unknown = new Error("send failed");
   open = vi.fn();
   send = vi.fn(() => {
-    if (FakeXhr.sendThrows) throw new Error("send failed");
+    if (FakeXhr.sendThrows) throw FakeXhr.sendThrowsValue;
   });
   setRequestHeader = vi.fn((name: string) => {
     if (name === "User-Agent") throw new Error("forbidden header");
@@ -31,6 +32,7 @@ describe("backgroundFetch", () => {
   beforeEach(() => {
     FakeXhr.last = null;
     FakeXhr.sendThrows = false;
+    FakeXhr.sendThrowsValue = new Error("send failed");
     vi.stubGlobal("XMLHttpRequest", FakeXhr);
   });
   afterEach(() => {
@@ -79,6 +81,31 @@ describe("backgroundFetch", () => {
     await expect(backgroundFetch("https://x.test/a", 1000)).rejects.toThrow(
       /send failed/,
     );
+  });
+
+  it("resolves with an empty body when the response is null", async () => {
+    const p = backgroundFetch("https://x.test/a", 1000);
+    const xhr = FakeXhr.last!;
+    xhr.response = null;
+    xhr.onload!();
+    await expect(p).resolves.toEqual({ html: "", status: 200 });
+  });
+
+  it("ignores every callback after the first settles it", async () => {
+    const p = backgroundFetch("https://x.test/a", 1000);
+    const xhr = FakeXhr.last!;
+    xhr.onload!();
+    // All of these hit the `if (settled) return` guards.
+    xhr.onload!();
+    xhr.ontimeout!();
+    xhr.onabort!();
+    await expect(p).resolves.toEqual({ html: "<html>ok</html>", status: 200 });
+  });
+
+  it("wraps a non-Error throw from send()", async () => {
+    FakeXhr.sendThrows = true;
+    FakeXhr.sendThrowsValue = "boom";
+    await expect(backgroundFetch("https://x.test/a", 1000)).rejects.toThrow("boom");
   });
 
   it("keeps the first outcome when a second callback fires late", async () => {

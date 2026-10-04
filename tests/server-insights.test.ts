@@ -10,6 +10,7 @@ vi.mock("../lib/trpc", () => ({
 }));
 
 import { createTRPCClient } from "../lib/trpc";
+import { isServerConfigured } from "@/constants/oauth";
 import { fetchPriceInsight } from "../lib/server-insights";
 
 const mockedCreateClient = vi.mocked(createTRPCClient);
@@ -22,6 +23,12 @@ function mockClientQuery(query: Mock) {
 
 describe("fetchPriceInsight", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("returns null without contacting the server when it is not configured", async () => {
+    vi.mocked(isServerConfigured).mockReturnValueOnce(false);
+    expect(await fetchPriceInsight("x")).toBeNull();
+    expect(mockedCreateClient).not.toHaveBeenCalled();
+  });
 
   it("returns the insight from the server", async () => {
     const query = vi.fn().mockResolvedValue({
@@ -39,8 +46,7 @@ describe("fetchPriceInsight", () => {
     });
   });
 
-  it("returns null when the server returns null", async () => {
-    const query = vi.fn().mockResolvedValue(null);
+  it("returns null when the server returns null", async () => {    const query = vi.fn().mockResolvedValue(null);
     mockClientQuery(query);
     expect(await fetchPriceInsight("x")).toBeNull();
   });
