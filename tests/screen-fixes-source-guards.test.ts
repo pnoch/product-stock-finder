@@ -110,6 +110,14 @@ describe("screen-level fixes", () => {
     expect(src.split("if (gen !== loadGenRef.current) return;").length - 1).toBe(4);
   });
 
+  it("the launch price check runs only after the app UI (and webview host) mounts", () => {
+    const src = read("app/_layout.tsx");
+    // Running it in the mount effect raced the hidden WebView host: during
+    // onboarding the host isn't mounted, so the check was plain-HTTP only.
+    expect(src).toContain("launchCheckRanRef");
+    expect(src).toContain('onboardingState !== "app" || launchCheckRanRef.current');
+  });
+
   it("the mobile verify-email refresh sends the Bearer token", () => {
     const src = read("app/verify-email.tsx");
     // On React Native the session cookie is not reliably sent cross-origin, so

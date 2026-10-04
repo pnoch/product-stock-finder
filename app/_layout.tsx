@@ -201,17 +201,6 @@ export default function RootLayout() {
     // Register background tasks
     registerPriceCheckTask();
     registerHealthProbeTask();
-    // Run a foreground check immediately on app launch. A storage read failure
-    // must not reject unhandled.
-    void checkPriceDropsNow().catch((e) => log.error("[Launch] price check failed", e));
-    // Fill in products that have no listings at all: a bulk import stores an
-    // empty array and only discovery fills it. Bounded per run, so a large
-    // import drains over successive launches instead of firing N x 25 requests
-    // at once (the desktop does the same after each price check).
-    void rediscoverMissingListings({
-      storage: { getWatchlist, updateProductListings },
-      discover: discoverListings,
-    }).catch((e) => log.error("[Launch] missing-listings discovery failed", e));
     if (isServerConfigured()) {
       // Register for Expo push delivery (best-effort)
       void registerPushToken();
@@ -386,6 +375,25 @@ export default function RootLayout() {
       const t = setTimeout(() => router.push(pending), 0);
       return () => clearTimeout(t);
     }
+  }, [onboardingState]);
+
+  // Run the launch price check + missing-listings discovery once the app UI has
+  // mounted, NOT in the mount effect above: during "checking"/"intro" the
+  // component returns early so the hidden WebView host isn't mounted yet, and
+  // the check fell back to plain HTTP for browser-only distributors. The host is
+  // a child of the content tree, so its effect registers the renderer before
+  // this (parent) effect runs on the same commit.
+  const launchCheckRanRef = useRef(false);
+  useEffect(() => {
+    if (onboardingState !== "app" || launchCheckRanRef.current) return;
+    launchCheckRanRef.current = true;
+    void checkPriceDropsNow().catch((e) =>
+      log.error("[Launch] price check failed", e),
+    );
+    void rediscoverMissingListings({
+      storage: { getWatchlist, updateProductListings },
+      discover: discoverListings,
+    }).catch((e) => log.error("[Launch] missing-listings discovery failed", e));
   }, [onboardingState]);
 
 

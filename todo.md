@@ -8089,3 +8089,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Hardened:** the hidden WebView blocks non-web navigations via `onShouldStartLoadWithRequest` (`intent://` / `market://` / `tel:` → false), so a distributor page can't launch external apps from the hidden view.
 - [x] Remaining findings (documented, not changed): (1) renders are serialized through one hidden WebView with a ~15s budget each, so a product with many browser-only listings refreshes slowly — a small WebView pool is a future optimization; (2) the host timeout starts at enqueue (a fixed per-request budget avoids unbounded redirect loops) rather than at load-start; (3) the launch `checkPriceDropsNow()` fires before the host mounts during onboarding, so that first check is plain-only; (4) consent/age-gate sites still need per-site tuning; (5) `originWhitelist=["*"]` is intentional (we only read HTML).
 - [x] `pnpm verify` exit 0 — root `3271` / desktop `324` / cargo `82`; APK rebuilt (43.4 MB).
+
+## Phase 1094: Standalone renderer — fix the launch-mount race
+
+- [x] The launch `checkPriceDropsNow()` + missing-listings discovery ran in the root mount effect, which fires during onboarding — before the hidden WebView host is mounted — so the first launch refresh was plain-HTTP only. Moved both into an effect gated on `onboardingState === "app"`; the host is a child of the content tree, so its effect registers the renderer before this parent effect runs on the same commit. Guard test added (`tests/screen-fixes-source-guards.test.ts`).
+- [x] `pnpm verify` exit 0 — root `3272` / desktop `324` / cargo `82`.
