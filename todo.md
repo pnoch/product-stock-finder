@@ -4856,7 +4856,7 @@ Audited the one user-facing, security-relevant surface not yet covered: a token 
 - [x] **Verified in a real browser:** on Home the chart chunks are not requested (0); navigating to a product fetches `PriceHistoryChart-*.js` + `LineChart-*.js` on demand, the recharts SVG renders, and there are 0 page errors. (The desktop router is state-based, so a `/product/...` URL does not deep-link — a harness detail, not a bug.)
 - [x] Fixed the two consequences of the change: the `lazy(...)` consts sat between imports (12 `import/first` lint warnings → back to 157/0), and the modal test asserted the chart synchronously (now awaits the chunk).
 - [x] Root `tsc 0`, lint 0 errors (157 warnings), `2544 passed`; desktop `tsc 0`, `281 passed`.
-- [ ] Not done (larger, riskier): replacing recharts with the mobile app's hand-rolled SVG chart would remove the dependency entirely (~110 KB gzip) but means rewriting two chart components; the lazy split captures most of the win without that risk.
+- [x] Not done (larger, riskier): replacing recharts with the mobile app's hand-rolled SVG chart would remove the dependency entirely (~110 KB gzip) but means rewriting two chart components; the lazy split captures most of the win without that risk. **(Phase 1069: done — both components rewritten as raw DOM SVG, `recharts` removed, built bundle contains no recharts.)**
 
 ## Phase 639: Dependency security audit
 
@@ -7906,3 +7906,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Dead diagnostic writes removed.** The two error boundaries persisted `last_error` (500 chars of `error.message`) and `last_route_error` to AsyncStorage; nothing ever read them and they embed user data. Both `setItem` calls and the now-unused `AsyncStorage` imports are gone. The two keys stay in `clearAccountData`/`clearAllData` (re-commented as legacy) so pre-existing copies are still wiped on upgrade; `tests/clear-account-data.test.ts` keeps covering that cleanup.
 - [x] Also verified the desktop discovered-products clause is resolved: every desktop discovery call (`discoverProduct`, `runDiscoveryLoop`, `rediscoverProduct`) passes the desktop `storage`, so there is no IDB-vs-localStorage split.
 - [x] `pnpm verify` exit 0 — root `3183` / desktop `321` / cargo `82`, clippy + fmt clean.
+
+## Phase 1069: Replace recharts with hand-rolled DOM SVG
+
+- [x] Rewrote `desktop/src/components/PriceHistoryChart.tsx` and `desktop/src/components/MultiLineChart.tsx` as raw `<svg>` (grid, axis ticks, polyline, dots, hover tooltip + crosshair, legend chips), modeled on Compare's existing `SeriesChart`. Kept the same props/exports, theme-awareness (`useTheme`/`isDark`), the `@/lib/currency` live-rate conversion, unconvertible-point skipping, and invalid-date handling.
+- [x] Removed `recharts` from `desktop/package.json` (`pnpm install` dropped 212 packages). The built bundle contains no recharts: the lazy `PriceHistoryChart` chunk is 3.0 KB and `MultiLineChart` 4.1 KB (previously a ~110 KB-gzip recharts chunk).
+- [x] Updated the tests that asserted recharts DOM (`svg.recharts-surface`/`path.recharts-line-curve` → `svg[role="img"]`/`polyline`) in `desktop/tests/price-history-chart.test.tsx` and `desktop/tests/distributor-history-modal.test.tsx`; `price-chart.test.tsx` unchanged (still finds the date + distributor labels).
+- [x] `pnpm verify` exit 0 — root `3183` / desktop `321` / cargo `82`; `pnpm --filter desktop build` clean, no recharts in `desktop/dist`.

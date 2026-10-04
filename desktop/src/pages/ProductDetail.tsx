@@ -50,8 +50,8 @@ import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
 import { ProductImage } from "../components/ProductImage";
-// Lazy: recharts is ~400 KB of the bundle and only this screen needs it, so it
-// is split into its own chunk instead of loading on every route.
+// Lazy: the chart is only needed on this screen, so it is split into its own
+// chunk instead of loading on every route.
 import { externalLinkHandler } from "../lib/open-external";
 
 const PriceHistoryChart = lazy(() =>

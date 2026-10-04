@@ -12,8 +12,8 @@ describe("price history chart", () => {
     const { container } = render(
       <PriceHistoryChart history={history as never} displayCurrency="USD" />,
     );
-    expect(container.querySelector("svg.recharts-surface")).not.toBeNull();
-    expect(container.querySelector("path.recharts-line-curve")).not.toBeNull();
+    expect(container.querySelector("svg[role='img']")).not.toBeNull();
+    expect(container.querySelector("polyline")).not.toBeNull();
     expect(container.textContent).toMatch(/\$\d+/);
   });
 
@@ -28,7 +28,6 @@ describe("price history chart", () => {
       />,
     );
     // Dropped point's date label vanishes; kept point remains; no $0.00 value.
-    // (Y-axis $0 floor tick is recharts domain behavior, not a data point.)
     expect(container.textContent).not.toContain("Sep 1");
     expect(container.textContent).toContain("Aug 1");
     expect(container.textContent).not.toContain("$0.00");
