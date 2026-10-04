@@ -8013,3 +8013,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Closed the last branch gaps in three client wrappers (tests only): `lib/server-insights.ts` (the `!isServerConfigured()` early return) → `100/100/100`; `lib/devices.ts` (the `?? null` / `?? false` / `?? 0` fallbacks when the tRPC result is null or partial) → `100/100/100`; `lib/background-fetch.ts` (null response body, the `settled` guard on every terminal callback, and a non-`Error` throw from `send()`) → `100%` line / `93.8%` branch / `100%` fn.
 - [x] `pnpm verify` exit 0 — root `3233` / desktop `324` / cargo `82`; `tsc`/lint 0.
+
+## Phase 1085: Dry-run the desktop release build
+
+- [x] Generated a throwaway updater key and ran `cargo tauri build --bundles deb` (tauri-cli 2.11.4, webkit2gtk-4.1 present). It compiled the release binary, bundled `Product Stock Finder_5.17.0_amd64.deb`, and produced the updater signature `…deb.sig` — so the workflow's Linux leg and `createUpdaterArtifacts` signing are valid. (`latest.json` is emitted by `tauri-action`, not the CLI, which is why the workflow uses it.)
+- [x] **Finding:** with `createUpdaterArtifacts: true`, `tauri build` fails closed while `plugins.updater.pubkey` is the committed placeholder — `failed to decode base64 pubkey … Invalid symbol 95` (the `_` in `REPLACE_WITH…`). The real public key must be set before the release workflow can succeed, exactly as documented. The throwaway key was deleted and `tauri.conf.json` reverted.
+- [x] No source change (tree clean).
