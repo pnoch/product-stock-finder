@@ -278,7 +278,9 @@ export const sharedWatchlistsRouter = router({
             userId: m.userId,
             role: m.role,
             name: u?.name ?? null,
-            email: u?.email ?? null,
+            // Only the owner (who manages the roster) sees member emails;
+            // a plain member viewing the share must not harvest co-members' PII.
+            email: isOwner ? (u?.email ?? null) : null,
           };
         }),
       );

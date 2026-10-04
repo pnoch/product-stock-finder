@@ -19,6 +19,8 @@ describe("desktop auto-update wiring", () => {
     expect(Array.isArray(conf.plugins.updater.endpoints)).toBe(true);
     expect(conf.plugins.updater.endpoints.length).toBeGreaterThan(0);
     expect(typeof conf.plugins.updater.pubkey).toBe("string");
+    // Downgrade hardening: bind the artifact signature to the announced version.
+    expect(conf.plugins.updater.requireSignedVersion).toBe(true);
   });
 
   it("grants the updater capability", () => {

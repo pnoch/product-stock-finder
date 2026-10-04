@@ -7986,3 +7986,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/csv.ts` is now `100%` line / `79%` branch (was `89.4%`/`63.9%`).
 - [x] Rewrote `tests/app-error-boundary.test.tsx` (9 tests): fallback with/without a message, Try Again re-render, Go Home navigation + haptics (native vs web), 160-char grapheme truncation, non-Error value, and the `Intl.Segmenter` unavailable/throwing fallbacks. Coverage `57.7%`/`31.3%`/`50%` → `100%`/`93.8%`/`100%`.
 - [x] `pnpm verify` exit 0 — root `3225` / desktop `324` / cargo `82`; `tsc`/lint 0.
+
+## Phase 1081: Security review — share surface + updater/release pipeline
+
+- [x] Reviewed the public `/w/:token` share surface. Already strong: UUID tokens (no enumeration); per-IP **and** per-token rate limits over a bounded LRU (a rotating-IP scrape still hits the token budget); `req.ip` derived after `trust proxy` (not raw XFF); 500-item payload cap with tombstones filtered in SQL; expired shares deleted/rejected; owner-scoped `invite`/`removeMember`/`setMembersOnly`/`extend`/`revoke` and membership-gated `get`/`join`/`members`; Drizzle parameterized queries; `Referrer-Policy: strict-origin-when-cross-origin` keeps the token out of outbound Referer; strict shell CSP (`script-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`); `open_external` allowlists http/https/mailto.
+- [x] **Fixed:** `members` returned every member's email to any member; now only the owner sees emails (names remain) so a viewer can't harvest co-members' PII. DB test added.
+- [x] **Fixed:** the updater lacked downgrade hardening — set `plugins.updater.requireSignedVersion: true` so the artifact signature must carry the announced version (an unsigned `latest.json` can't pair an inflated version with a validly-signed older build). Guard test extended.
+- [x] **Flagged (product call):** `inviteByEmail` returns `NOT_FOUND "No account with that email"` for an unknown address — any authenticated user can use a share of their own to probe account existence (rate-limited, per-IP). Left as-is (changing it degrades the inviter's feedback).
+- [x] **Flagged (supply chain):** the release workflow uses floating action majors (`tauri-apps/tauri-action@v0`); pin to commit SHAs when convenient. `releaseDraft: true`, job-scoped `contents: write`, pubkey placeholder fails closed, no `dangerous*` transport flags.
+- [x] `pnpm verify` exit 0 — root `3225` / desktop `324` / cargo `82`; DB suite `21 files / 110 tests`; `tsc`/lint 0.

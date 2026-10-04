@@ -124,6 +124,23 @@ describe.skipIf(!runDbTests)("shared watchlists router (DB)", () => {
     expect(roster.members[0]!.name).toBe("member");
   });
 
+  it("hides member emails from non-owner members but keeps names", async () => {
+    const owner = await seedUser("owner");
+    const memberA = await seedUser("membera");
+    const memberB = await seedUser("memberb");
+    const token = await seedShare(owner.id);
+    await owner.caller.inviteByEmail({ token, email: memberA.email });
+    await owner.caller.inviteByEmail({ token, email: memberB.email });
+
+    const ownerView = await owner.caller.members({ token });
+    expect(ownerView.members.map((m) => m.email)).toContain(memberA.email);
+
+    const memberView = await memberA.caller.members({ token });
+    expect(memberView.members.length).toBeGreaterThan(0);
+    expect(memberView.members.every((m) => m.email === null)).toBe(true);
+    expect(memberView.members.some((m) => m.name === "memberb")).toBe(true);
+  });
+
   it("invite rejects unknown tokens, non-owners, and unknown user ids", async () => {
     const owner = await seedUser("owner");
     const outsider = await seedUser("outsider");

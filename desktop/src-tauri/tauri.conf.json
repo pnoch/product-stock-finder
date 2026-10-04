@@ -46,7 +46,8 @@
       "endpoints": [
         "https://github.com/pnoch/product-stock-finder/releases/latest/download/latest.json"
       ],
-      "pubkey": "REPLACE_WITH_YOUR_TAURI_UPDATER_PUBLIC_KEY"
+      "pubkey": "REPLACE_WITH_YOUR_TAURI_UPDATER_PUBLIC_KEY",
+      "requireSignedVersion": true
     }
   }
 }
