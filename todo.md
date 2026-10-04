@@ -8094,3 +8094,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] The launch `checkPriceDropsNow()` + missing-listings discovery ran in the root mount effect, which fires during onboarding — before the hidden WebView host is mounted — so the first launch refresh was plain-HTTP only. Moved both into an effect gated on `onboardingState === "app"`; the host is a child of the content tree, so its effect registers the renderer before this parent effect runs on the same commit. Guard test added (`tests/screen-fixes-source-guards.test.ts`).
 - [x] `pnpm verify` exit 0 — root `3272` / desktop `324` / cargo `82`.
+
+## Phase 1095: Standalone renderer — consent/age-gate auto-dismissal
+
+- [x] `buildInjectedJS` now best-effort dismisses cookie/consent/age overlays before waiting for the price selector: a list of known CMP accept buttons (OneTrust, Cookiebot, CookieYes, Complianz, Iubenda, Shopify, Quantcast) plus a text scan **restricted to consent-context ancestors** (so it can't click an unrelated "Accept"/"Enter"). It fires a few times (CMPs can appear after hydration), then stops. The generated script is asserted to parse (`new Function`) and the injected-JS test pins the scoping markers.
+- [x] Note: most CMP overlays are visual only and the price is already in the DOM (the node Playwright path relies on that plus saved cookies), so this is defensive coverage for sites that gate their scripts behind consent.
+- [x] `pnpm verify` exit 0 — root `3273` / desktop `324` / cargo `82`; APK rebuilt.

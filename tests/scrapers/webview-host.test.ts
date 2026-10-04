@@ -41,4 +41,19 @@ describe("buildInjectedJS", () => {
     expect(js).toContain('".price"');
     expect(buildInjectedJS({ timeoutMs: 1, settleMs: 0 })).toContain("null");
   });
+
+  it("includes a scoped consent/age-gate dismissal", () => {
+    const js = buildInjectedJS({
+      waitForSelector: ".price",
+      timeoutMs: 20000,
+      settleMs: 500,
+    });
+    expect(js).toContain("dismissOverlays");
+    expect(js).toContain("onetrust-accept-btn-handler");
+    expect(js).toContain("CybotCookiebotDialog");
+    expect(js).toContain("shopify-pc__banner__btn-accept");
+    // The text scan is restricted to consent-context ancestors so it can't click
+    // an unrelated "Accept" button.
+    expect(js).toContain("cookie|consent|gdpr");
+  });
 });
