@@ -2,63 +2,40 @@ import { describe, expect, it } from "vitest";
 import {
   resolveBrowserModulePath,
   BROWSER_STUB_PATH,
+  BROWSER_NATIVE_PATH,
 } from "../scripts/metro-resolver";
 
 describe("resolveBrowserModulePath", () => {
   const request = "/repo/lib/scrapers/browser";
   const utilsOrigin = "/repo/lib/scrapers/utils.ts";
 
-  it("redirects browser.ts to the web stub on android", () => {
-    expect(resolveBrowserModulePath("android", request)).toBe(BROWSER_STUB_PATH);
+  it("redirects browser.ts to the native module on android/ios", () => {
+    expect(resolveBrowserModulePath("android", request)).toBe(BROWSER_NATIVE_PATH);
+    expect(resolveBrowserModulePath("ios", request)).toBe(BROWSER_NATIVE_PATH);
   });
 
-  it("redirects browser.ts to the web stub on ios", () => {
-    expect(resolveBrowserModulePath("ios", request)).toBe(BROWSER_STUB_PATH);
-  });
-
-  it("matches the real dynamic import specifier from utils.ts", () => {
-    expect(resolveBrowserModulePath("android", "./browser", utilsOrigin)).toBe(
-      BROWSER_STUB_PATH,
-    );
+  it("matches the real dynamic import from a lib/scrapers module", () => {
+    expect(
+      resolveBrowserModulePath("android", "./browser", "/repo/lib/scrapers/resilient.ts"),
+    ).toBe(BROWSER_NATIVE_PATH);
   });
 
   it("does not redirect ./browser imported from elsewhere", () => {
     expect(
-      resolveBrowserModulePath(
-        "android",
-        "./browser",
-        "/repo/components/foo.tsx",
-      ),
+      resolveBrowserModulePath("android", "./browser", "/repo/components/foo.tsx"),
     ).toBeNull();
   });
 
-  it("redirects ./browser from any lib/scrapers module (resilient.ts dynamic import)", () => {
-    // resilient.ts does `await import("./browser")`; without this Metro bundles
-    // the Playwright-backed module into native builds.
-    expect(
-      resolveBrowserModulePath(
-        "android",
-        "./browser",
-        "/repo/lib/scrapers/resilient.ts",
-      ),
-    ).toBe(BROWSER_STUB_PATH);
-    expect(
-      resolveBrowserModulePath(
-        "ios",
-        "./browser",
-        "/repo/lib/scrapers/resilient.ts",
-      ),
-    ).toBe(BROWSER_STUB_PATH);
-  });
-
-  it("leaves web alone", () => {
+  it("leaves web alone (the .web.ts variant resolves normally)", () => {
     expect(resolveBrowserModulePath("web", request)).toBeNull();
     expect(resolveBrowserModulePath("web", "./browser", utilsOrigin)).toBeNull();
   });
 
   it("ignores unrelated requests on native", () => {
-    expect(
-      resolveBrowserModulePath("android", "/repo/lib/scrapers/utils"),
-    ).toBeNull();
+    expect(resolveBrowserModulePath("android", "/repo/lib/scrapers/utils")).toBeNull();
+  });
+
+  it("still exports the web stub path", () => {
+    expect(BROWSER_STUB_PATH.endsWith("lib/scrapers/browser.web.ts")).toBe(true);
   });
 });

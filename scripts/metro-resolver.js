@@ -1,12 +1,13 @@
 /**
  * Pure helper used by metro.config.js: on native platforms, redirect requests
- * for lib/scrapers/browser(.ts) to the playwright-free browser.web.ts stub so
- * Playwright never enters Android/iOS bundles.
+ * for lib/scrapers/browser(.ts) to browser-native.ts; on web, the .web.ts
+ * variant resolves normally. Playwright never enters any Expo bundle.
  */
 
 const path = require("path");
 
 const STUB_PATH = path.join(__dirname, "..", "lib", "scrapers", "browser.web.ts");
+const NATIVE_PATH = path.join(__dirname, "..", "lib", "scrapers", "browser-native.ts");
 // cheerio's default entry pulls in node:stream, which Hermes cannot resolve.
 // Its browser build is dependency-free and has the same API surface.
 const CHEERIO_BROWSER_PATH = path.join(
@@ -47,10 +48,13 @@ function isBrowserModule(request, originModulePath) {
 function resolveBrowserModulePath(platform, request, originModulePath) {
   if (platform !== "ios" && platform !== "android") return null;
   if (!isBrowserModule(request, originModulePath)) return null;
-  return STUB_PATH;
+  // A real on-device WebView renderer (browser-native.ts), not the Playwright
+  // module — Playwright must never enter an Expo bundle.
+  return NATIVE_PATH;
 }
 
 module.exports.BROWSER_STUB_PATH = STUB_PATH;
+module.exports.BROWSER_NATIVE_PATH = NATIVE_PATH;
 module.exports.CHEERIO_BROWSER_PATH = CHEERIO_BROWSER_PATH;
 module.exports.resolveBrowserModulePath = resolveBrowserModulePath;
 module.exports.resolveCheerioPath = resolveCheerioPath;
