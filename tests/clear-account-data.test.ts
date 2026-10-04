@@ -112,8 +112,9 @@ describe("clearAccountData vs clearAllData", () => {
 
   // QA round 286: `recent_searches` had its own key outside STORAGE_KEYS, so
   // neither wipe removed it — "Clear all data" (and the next user on the
-  // device) still saw the previous user's search terms.
-  it("both wipes remove recent searches and error breadcrumbs", async () => {
+  // device) still saw the previous user's search terms. The legacy error
+  // breadcrumbs are no longer written but stay in the wipe lists for cleanup.
+  it("both wipes remove recent searches and legacy error breadcrumbs", async () => {
     for (const wipe of ["clearAccountData", "clearAllData"] as const) {
       const { storage, map } = makeStorage();
       map.set("recent_searches", JSON.stringify(["rtx 5090", "crs326"]));

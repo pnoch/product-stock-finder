@@ -1,5 +1,5 @@
 import { chromium, Browser, BrowserContext } from "playwright";
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { USER_AGENTS } from "./utils";
 import { BrowserBlockedError } from "./resilient";
@@ -62,7 +62,10 @@ async function saveCookies(domain: string, cookies: any[]): Promise<void> {
   try {
     await mkdir(COOKIE_DIR, { recursive: true });
     const filePath = join(COOKIE_DIR, `${hashDomain(domain)}.json`);
-    await writeFile(filePath, JSON.stringify(cookies, null, 2));
+    // Distributor session cookies are credentials: owner-only. `mode` applies
+    // only on create, so chmod too (files written by older builds keep 0644).
+    await writeFile(filePath, JSON.stringify(cookies, null, 2), { mode: 0o600 });
+    await chmod(filePath, 0o600);
   } catch {
     // Ignore save errors
   }

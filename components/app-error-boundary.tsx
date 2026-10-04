@@ -2,7 +2,6 @@ import { log } from "@shared/log";
 import React from "react";
 import { Text, View, Pressable, Platform } from "react-native";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import * as Haptics from "expo-haptics";
@@ -137,8 +136,6 @@ export class AppErrorBoundary extends React.Component<
   }
   componentDidCatch(error: Error) {
     log.error(error);
-    const truncated = String(error.message).slice(0, 500);
-    void AsyncStorage.setItem("last_error", truncated).catch(() => {});
   }
   render() {
     if (!this.state.hasError) return this.props.children;
