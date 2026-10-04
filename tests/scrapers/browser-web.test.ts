@@ -125,3 +125,31 @@ describe("playwright web-bundle guard", () => {
     expect(files).toContain("browser.web.ts");
   });
 });
+
+describe("native browser module", () => {
+  it("browser-native.ts has the same surface as browser.ts", async () => {
+    const real = await import("@/lib/scrapers/browser");
+    const native = await import("@/lib/scrapers/browser-native");
+    for (const key of Object.keys(real)) {
+      expect(Object.keys(native), `native missing ${key}`).toContain(key);
+    }
+  });
+
+  it("only the webview host component references react-native-webview", async () => {
+    const roots = [
+      path.resolve(__dirname, "../../lib"),
+      path.resolve(__dirname, "../../app"),
+      path.resolve(__dirname, "../../components"),
+    ];
+    const offenders: string[] = [];
+    for (const root of roots) {
+      for (const file of await listTsFiles(root)) {
+        const rel = path.relative(path.resolve(__dirname, "../.."), file);
+        if (rel === "components/webview-fetch-host.tsx") continue;
+        const src = await readFile(file, "utf-8");
+        if (/from\s+["']react-native-webview["']/.test(src)) offenders.push(rel);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
