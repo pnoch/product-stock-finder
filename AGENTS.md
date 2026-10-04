@@ -135,7 +135,7 @@ desktop/              Tauri desktop app (Vite + React 19 + Tailwind 4) — versi
                       lockstep with root package.json; `desktop/src/` mirrors mobile
                       surfaces (Watchlist, Settings, Rates), `desktop/tests/` vitest suite
 shared/               Cross-platform types/consts; shared/_core/ — don't modify
-tests/                vitest (~424 files: ~391 root + 33 scrapers, ~3200 tests, incl. per-scraper tests under tests/scrapers/)
+tests/                vitest (~445 files: ~409 root + 33 scrapers, ~3300 tests, incl. per-scraper tests under tests/scrapers/)
 docs/superpowers/     Design specs (specs/) + implementation plans (plans/)
 scripts/              load-env.js, generate_qr.mjs, reset-project.js
 references/           periodic-updates.md (reference docs)
@@ -188,7 +188,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - **No comments** unless explaining non-obvious logic. Existing code uses `// ─── Section ───` banners in storage/notifications — match that style for section dividers.
 - **Client/server payload caps:** Any server-side `.max()`/limit on a payload the client sends must live in `shared/const.ts` (e.g. `MAX_UPLOAD_ALERTS`, `SYNC_PUSH_MAX_ITEMS`) and the client must trim/batch to it before sending. A server cap the client doesn't respect rejects the whole payload, silently disabling the feature (see Phases 211/213).
 - **Commit style:** Checkpoint commits follow `Checkpoint: vX.Y: <features>. TypeScript: 0 errors.` — match this when committing.
-- **Tests:** vitest. ~424 test files under `tests/` (~391 root + 33 scrapers, ~3200 tests). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
+- **Tests:** vitest. ~445 test files under `tests/` (~409 root + 33 scrapers, ~3300 tests), plus 69 files / ~324 tests in `desktop/tests/` (`pnpm --filter desktop test`). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
 
 ## Brand / Theme (theme.config.js)
 
@@ -247,7 +247,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 ## Reference Docs
 
 - `design.md` — full UI/UX design spec (screen list, flows, component design, distributor catalog)
-- `todo.md` — phase-by-phase feature history (198 phases through 5.16.0)
+- `todo.md` — phase-by-phase feature history (1078 phases through 5.16.0)
 - `server/README.md` — backend guide (auth, DB, tRPC, storage, LLM, image gen) — read only if adding backend features
 - `docs/superpowers/` — design specs (`specs/`) and implementation plans (`plans/`) for recent phases
 - `references/periodic-updates.md` — reference doc on periodic updates

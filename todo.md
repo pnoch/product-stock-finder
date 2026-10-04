@@ -7972,3 +7972,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `desktop/src/App.tsx`: all 16 route pages are now `React.lazy` (named-export → default map) behind a `<Suspense>` fallback, so each page is its own chunk.
 - [x] Result: the app entry chunk dropped from `1,268.63 kB` (gzip `365.83`) to `232.10 kB` (gzip `64.95`) — an 82% cut — the largest chunk is now `vendor` at `332 kB` (gzip `114`), and the "chunks larger than 500 kB" warning is gone; `pnpm --filter desktop build` clean.
 - [x] `pnpm verify` exit 0 — root `3193` / desktop `324` / cargo `82`; `tsc`/lint 0.
+
+## Phase 1079: `lib/csv.ts` branch coverage + AGENTS counts
+
+- [x] Added `tests/csv-branches.test.ts` (23 tests) for the uncovered CSV branches: detailed-export placeholder rows (no listings), `resolveStockStatus` precedence (in_stock > back_order > out_of_stock > unknown), `parseDetailedCsv` (empty / no-header / short-row padding / escaped quotes), `detailedCsvToProducts` (no-distributor, duplicate-listing replace, bogus status+price, empty key), `parseBulkImportCsv` (modelNumber alias, zero/non-numeric price, tag split+cap, bare-CR row break, empty model column, blank input) and `parseWatchlistCsv` (blank, short-row padding, dedup, legacy `//` skip).
+- [x] `lib/csv.ts` coverage rose from `89.4%` line / `63.9%` branch to `98.7%` / `78.1%`. The two remaining uncovered branches are dead defensive checks: the final `return "unknown"` in `resolveStockStatus`, and the `/^shareUrl,/` test in `isShareDeepLinkLine` — it receives the first *field*, so a comma can never appear and the branch can never fire (left as-is; documenting rather than changing import behavior).
+- [x] Refreshed stale `AGENTS.md` counts: `tests/` is now ~445 files (~409 root + 33 scrapers, ~3300 tests) plus 69 desktop files / 324 tests; `todo.md` is 1078 phases (was "198 phases").
+- [x] `pnpm verify` exit 0 — root `3216` / desktop `324` / cargo `82`; `tsc`/lint 0.
