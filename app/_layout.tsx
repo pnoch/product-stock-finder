@@ -17,6 +17,7 @@ import {
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
+import { WebViewFetchHost } from "@/components/webview-fetch-host";
 import { showAlert } from "@/lib/alert";
 import {
   requestNotificationPermissions,
@@ -427,6 +428,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="oauth/callback" />
           </Stack>
+          <WebViewFetchHost />
           <StatusBar style="auto" />
         </QueryClientProvider>
       </trpc.Provider>
