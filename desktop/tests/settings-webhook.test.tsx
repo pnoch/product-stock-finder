@@ -172,6 +172,11 @@ describe("Settings webhook alerts", () => {
     const queryClient = renderSettingsWithProviders();
     try {
       const urlInput = await screen.findByLabelText("Webhook URL");
+      // The input is seeded from the async settings load; typing before that
+      // resolves lets the seed effect overwrite the new value (flaky).
+      await waitFor(() =>
+        expect(urlInput).toHaveValue("https://discord.com/api/webhooks/1/x"),
+      );
       const newUrl = "https://discord.com/api/webhooks/2/y";
       fireEvent.change(urlInput, { target: { value: newUrl } });
 
