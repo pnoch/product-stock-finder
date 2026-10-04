@@ -8100,3 +8100,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `buildInjectedJS` now best-effort dismisses cookie/consent/age overlays before waiting for the price selector: a list of known CMP accept buttons (OneTrust, Cookiebot, CookieYes, Complianz, Iubenda, Shopify, Quantcast) plus a text scan **restricted to consent-context ancestors** (so it can't click an unrelated "Accept"/"Enter"). It fires a few times (CMPs can appear after hydration), then stops. The generated script is asserted to parse (`new Function`) and the injected-JS test pins the scoping markers.
 - [x] Note: most CMP overlays are visual only and the price is already in the DOM (the node Playwright path relies on that plus saved cookies), so this is defensive coverage for sites that gate their scripts behind consent.
 - [x] `pnpm verify` exit 0 — root `3273` / desktop `324` / cargo `82`; APK rebuilt.
+
+## Phase 1096: Standalone renderer — end-to-end chain integration test
+
+- [x] Added `tests/scrapers/webview-chain.test.ts`. It mocks resilient's dynamic `import("./browser")` to `browser-native` (what the Metro resolver does on Android) and drives the real chain: a fake `webview-host` returning a rendered pbtech fixture → `fetchAndParse` → `pbtechParser.parsePrice` → NZ$480 in stock, and asserts the renderer was asked for the parser's search URL. Also covers the no-host plain-HTTP fallback and a rendered Cloudflare challenge classified as blocked (fake timers keep it fast). 3 tests.
+- [x] `pnpm verify` exit 0 — root `3276` / desktop `324` / cargo `82`.
