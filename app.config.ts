@@ -121,6 +121,9 @@ const config: ExpoConfig = {
     // Allows cleartext HTTP for dev backends (localhost / 10.0.2.2). Android 9+
     // blocks it by default, silently failing every fetch in release builds.
     "./plugins/with-android-cleartext-traffic",
+    // Drops the RN-overlay SYSTEM_ALERT_WINDOW permission from release, scopes
+    // the legacy storage permissions, and disables adb/cloud backup.
+    "./plugins/with-android-hardening",
     // Required for expo-background-task on iOS: injects UIBackgroundModes
     // ("processing") and BGTaskSchedulerPermittedIdentifiers. Without it the
     // native module's hasBackgroundModeEnabled check fails and
@@ -155,6 +158,10 @@ const config: ExpoConfig = {
         android: {
           buildArchs: ["armeabi-v7a", "arm64-v8a"],
           minSdkVersion: 24,
+          // R8 minify + resource shrinking for release builds (off by default),
+          // to cut APK size and strip unused code.
+          enableMinifyInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
         },
       },
     ],
