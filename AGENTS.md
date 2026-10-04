@@ -36,6 +36,7 @@ pnpm lint         # expo lint (ESLint flat config, eslint-config-expo)
 pnpm format       # prettier --write .
 pnpm test         # vitest run
 pnpm verify       # full local gate: check + lint + test + check:desktop + desktop test + cargo test
+pnpm build:apk    # deterministic Android release APK (android/app/build/outputs/apk/release/app-release-standalone.apk)
 pnpm test:rust    # cargo test for desktop/src-tauri
 pnpm db:push      # drizzle-kit generate && migrate (requires DATABASE_URL)
 pnpm build        # esbuild bundle server to dist/

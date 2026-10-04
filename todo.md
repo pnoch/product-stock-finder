@@ -7873,3 +7873,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Produced a standalone release APK (no backend baked): `android/app/build/outputs/apk/release/app-release-standalone.apk` — `com.app.stocktrackerpro` v5.16.0, release-signed (CN=Product Stock Finder), zipaligned, and containing the Phase 1062 local-mode UX.
 - [x] **Build gotcha:** Gradle's `:app:createBundleReleaseJsAndAssets` served a **stale JS bundle** (it reuses Metro's persisted file-map cache and does not pass `--reset-cache`), so source changes (and `EXPO_NO_DOTENV`/`EXPO_PUBLIC_*` changes) were not picked up — even with `--rerun-tasks`/`clean`/daemon stop. Reliable path used: `npx expo export:embed --platform android --dev false --reset-cache …` to a fresh bundle, then replace `assets/index.android.bundle` in the built APK, `zipalign -f 4`, and re-sign with `credentials/release.keystore`. Follow-up: make release builds rebundle deterministically (e.g., wire `resetCache` into the Gradle bundle task) so this manual repack is unnecessary.
+
+## Phase 1064: Deterministic `pnpm build:apk`
+
+- [x] Added `scripts/build-apk.sh` + `pnpm build:apk`: builds the native APK, then **always** rebundles via `expo export:embed --reset-cache`, repacks `assets/index.android.bundle`, `zipalign`s, and re-signs with `credentials/release.keystore`. This sidesteps the Phase 1063 Gradle bundle-cache staleness entirely.
+- [x] Verified end-to-end: produces a signed, zipaligned `app-release-standalone.apk` (`com.app.stocktrackerpro` v5.16.0) whose bundle contains the current source (Phase 1062 local-mode copy) — confirmed with the API base unset. Documented in AGENTS.md.
