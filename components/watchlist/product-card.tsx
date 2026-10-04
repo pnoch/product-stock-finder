@@ -219,25 +219,10 @@ export const ProductCard = memo(function ProductCard({
       delayLongPress={350}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      accessibilityLabel={[
-        product.name,
-        bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : null,
-        // Derive from the same value the badge renders: the inline rollup here
-        // announced "out of stock" for an all-unknown product whose badge says
-        // "Unknown".
-        bestStatus === "in_stock"
-          ? "in stock"
-          : bestStatus === "back_order"
-            ? "back order"
-            : bestStatus === "unknown"
-              ? "unknown"
-              : "out of stock",
-      ]
-        .filter(Boolean)
-        .join(", ")}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityHint={selectionMode ? (selected ? "Double tap to deselect" : "Double tap to select") : undefined}
+      // Not an accessibility element: aggregating the whole card would hide the
+      // nested Find/tag/delete buttons from VoiceOver/TalkBack. The product name
+      // below is the accessible "open" control instead.
+      accessible={false}
     >
       <Animated.View style={cardStyle}>
       <View
@@ -311,17 +296,48 @@ export const ProductCard = memo(function ProductCard({
           </View>
         )}
         <View style={{ flex: 1, marginRight: 10 }}>
-          <Text
-            style={{
-              color: colors.foreground,
-              fontWeight: "700",
-              fontSize: 15,
-            }}
-            numberOfLines={2}
-            ellipsizeMode="tail"
+          <Pressable
+            onPress={onPress}
+            onLongPress={onLongPress}
+            delayLongPress={350}
+            accessibilityLabel={[
+              product.name,
+              bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : null,
+              // Derive from the same value the badge renders: the inline rollup
+              // here announced "out of stock" for an all-unknown product whose
+              // badge says "Unknown".
+              bestStatus === "in_stock"
+                ? "in stock"
+                : bestStatus === "back_order"
+                  ? "back order"
+                  : bestStatus === "unknown"
+                    ? "unknown"
+                    : "out of stock",
+            ]
+              .filter(Boolean)
+              .join(", ")}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            accessibilityHint={
+              selectionMode
+                ? selected
+                  ? "Double tap to deselect"
+                  : "Double tap to select"
+                : "Double tap to open"
+            }
           >
-            {product.name}
-          </Text>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontWeight: "700",
+                fontSize: 15,
+              }}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {product.name}
+            </Text>
+          </Pressable>
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }} numberOfLines={1} ellipsizeMode="tail">
             {product.modelNumber}
           </Text>

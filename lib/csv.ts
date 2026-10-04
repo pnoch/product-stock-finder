@@ -1,4 +1,5 @@
 import type { DistributorListing, PricePoint, Product, StockStatus } from "./types";
+import type { DistributorAnalysis } from "./distributor-analysis";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "./currency";
 import { getDistributorById } from "@shared/distributors";
@@ -106,6 +107,32 @@ export function watchlistToDetailedCsv(
       ].join(",");
       lines.push(row);
     }
+  }
+  return lines.join("\n");
+}
+
+// ─── Distributor analysis export ────────────────────────────────────────────
+// The analysis screen ranks distributors by coverage/average price, so its CSV
+// must carry those columns — not the per-listing watchlist rows (which is what
+// the screen used to export under a "distributor-analysis" filename).
+export function distributorAnalysisToCsv(
+  analysis: DistributorAnalysis[],
+  displayCurrency: string,
+): string {
+  const header = "distributor,country,coverage,avgPrice,totalCost,currency";
+  const lines = [header];
+  for (const a of analysis) {
+    const distributor = getDistributorById(a.distributorId);
+    lines.push(
+      [
+        escapeCsv(distributor?.name ?? a.distributorId),
+        escapeCsv(distributor?.countryCode ?? ""),
+        String(a.coverage),
+        a.averagePrice.toFixed(2),
+        a.totalCost.toFixed(2),
+        escapeCsv(displayCurrency),
+      ].join(","),
+    );
   }
   return lines.join("\n");
 }

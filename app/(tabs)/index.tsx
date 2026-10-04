@@ -148,20 +148,26 @@ export default function HomeScreen() {
     ]).start();
   }, [statAnim0, statAnim1, statAnim2]);
 
+  const loadGenRef = useRef(0);
   const loadData = useCallback(async () => {
+    const gen = ++loadGenRef.current;
     try {
       setLoadError(null);
       const list = await getWatchlist();
+      if (gen !== loadGenRef.current) return;
       setWatchlist(list);
       const alerts = await getAlerts();
+      if (gen !== loadGenRef.current) return;
       setAlertCount(countActiveAlerts(alerts));
       const settings = await getSettings();
+      if (gen !== loadGenRef.current) return;
       setDisplayCurrency(settings?.displayCurrency ?? "USD");
     } catch (e) {
+      if (gen !== loadGenRef.current) return;
       log.error(e);
       setLoadError(e instanceof Error ? e.message : "Failed to load watchlist");
     } finally {
-      setLoaded(true);
+      if (gen === loadGenRef.current) setLoaded(true);
     }
   }, []);
 

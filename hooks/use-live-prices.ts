@@ -188,11 +188,21 @@ export function useLiveWatchlist() {
   const resultsRef = useRef(results);
   resultsRef.current = results;
 
+  // `results` is a new array on every render (useQueries), so key the derived
+  // values on dataUpdatedAt (which changes only when a query resolves new data)
+  // instead — otherwise `liveProducts` is new every render and invalidates every
+  // downstream memo and list row on the Watchlist.
+  const persistKey = useMemo(
+    () => results.map((r) => r.dataUpdatedAt).join("|"),
+    [results],
+  );
+
   const liveProducts = useMemo(() => {
+    const current = resultsRef.current;
     let idx = 0;
     return products.map((p) => {
       const count = p.listings?.length ?? 0;
-      const productResults = results
+      const productResults = current
         .slice(idx, idx + count)
         .map((r) => r.data ?? null);
       idx += count;
@@ -201,15 +211,13 @@ export function useLiveWatchlist() {
         listings: composeLiveListings(p.listings ?? [], productResults),
       };
     });
-  }, [products, results]);
+    // `persistKey` is an intentional cache key: the callback reads `results`
+    // through `resultsRef`, so the rule cannot see the dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, persistKey]);
 
   const liveProductsRef = useRef<Product[]>([]);
   liveProductsRef.current = liveProducts;
-
-  const persistKey = useMemo(
-    () => results.map((r) => r.dataUpdatedAt).join("|"),
-    [results],
-  );
 
   const hasLiveData = useMemo(
     () => results.some((r) => r.data != null),

@@ -283,8 +283,11 @@ export default function ProductDetailScreen() {
   }, [id, product, alertPrice, alertCurrency, alertDistributorId, alertDirection, showToast, creatingAlert]);
 
   const alertSuggestions = useMemo(
-    () => suggestAlertPrices(product?.listings ?? [], alertCurrency),
-    [product, alertCurrency],
+    // Use the live listings, not `product.listings` (which the hook only seeds
+    // from storage on load and never re-syncs after a refresh), so the suggested
+    // target prices match the chart/sparkline on screen.
+    () => suggestAlertPrices(listings ?? [], alertCurrency),
+    [listings, alertCurrency],
   );
 
   const alertDistributors = useMemo(() => {
@@ -435,20 +438,21 @@ export default function ProductDetailScreen() {
 
   const handleExportCsv = useCallback(async () => {
     if (!product) return;
-    if (!hasExportablePriceData(product)) {
+    const exportable = { ...product, listings };
+    if (!hasExportablePriceData(exportable)) {
       showAlert("Nothing to export", "No price history is available for this product yet.");
       return;
     }
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const fileName = `${product.modelNumber ?? product.id}-history.csv`;
-    const ok = await exportCsvFile(productHistoryToCsv(product), fileName);
+    const ok = await exportCsvFile(productHistoryToCsv(exportable), fileName);
     if (!ok) {
       showAlert("Export unavailable", "We couldn't export the price history on this device.");
       return;
     }
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showToast("Price history exported", "success");
-  }, [product, showToast]);
+  }, [product, listings, showToast]);
 
   if (!loaded || !isSettingsLoaded) {
     return (

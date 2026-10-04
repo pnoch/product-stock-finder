@@ -121,6 +121,32 @@ function PillFilterRow({
   );
 }
 
+// Watchlist dedupe keys on `id` only, but an AI-discovered product gets a
+// generated id (`discovered-<ts>`) that never matches the static catalog id, so
+// the same item could be added twice (and shown as two search rows). Identity
+// is brand + model, normalized.
+function productIdentityKey(p: { brand?: string; modelNumber?: string }): string {
+  const brand = (p.brand ?? "").trim().toLowerCase();
+  const model = (p.modelNumber ?? "").trim().toLowerCase();
+  return brand || model ? `${brand}|${model}` : "";
+}
+
+function dedupeByIdentity<T extends { brand?: string; modelNumber?: string }>(
+  items: T[],
+): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const item of items) {
+    const key = productIdentityKey(item);
+    if (key) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+    }
+    out.push(item);
+  }
+  return out;
+}
+
 export default function SearchScreen() {
   const router = useRouter();
   const colors = useColors();
@@ -170,6 +196,17 @@ export default function SearchScreen() {
     try {
       const result = await discoverProduct(query);
       if (result) {
+        // Guard the discovered-vs-static duplicate: identity is brand + model,
+        // not the generated id. Navigate to the existing watchlist entry.
+        const identity = productIdentityKey(result.product);
+        const existing = watchlist.find((p) =>
+          identity ? productIdentityKey(p) === identity : p.id === result.product.id,
+        );
+        if (existing) {
+          showAlert("Already tracked", `"${existing.name}" is already in your watchlist.`);
+          router.push(`/product/${existing.id}`);
+          return;
+        }
         // discoverProduct only saves to the discovered catalog; the product
         // detail screen reads the watchlist, so without this the toast claimed
         // "Added to watchlist" and then showed "Product not found" (desktop
@@ -236,7 +273,7 @@ export default function SearchScreen() {
     } finally {
       setDiscovering(false);
     }
-  }, [query, discovering, loadData, router, showToast]);
+  }, [query, discovering, loadData, router, showToast, watchlist]);
 
   const deferredQuery = useDeferredValue(query);
   const [discoveredProducts, setDiscoveredProducts] = useState<
@@ -278,7 +315,7 @@ export default function SearchScreen() {
       if (deferredQuery.trim().length > 0) return searchCatalog(deferredQuery);
       return sortPreviewByStock(PRODUCT_CATALOG).slice(0, PREVIEW_LIMIT);
     }
-    const combined = [...PRODUCT_CATALOG, ...discoveredProducts];
+    const combined = dedupeByIdentity([...PRODUCT_CATALOG, ...discoveredProducts]);
     if (deferredQuery.trim().length === 0) return sortPreviewByStock(combined).slice(0, PREVIEW_LIMIT);
     const fuse = new Fuse(combined, SEARCH_OPTIONS);
     return fuse.search(deferredQuery).map((r) => r.item);

@@ -101,6 +101,15 @@ describe("screen-level fixes", () => {
     expect(src).toContain("if (gen !== loadGenRef.current) return;");
   });
 
+  it("the home screen guards against an out-of-order load", () => {
+    const src = read("app/(tabs)/index.tsx");
+    // Focus + pull-to-refresh can run loadData concurrently; the earlier
+    // watchlist/alerts/settings read could land last and overwrite newer state.
+    expect(src).toContain("loadGenRef");
+    // Guarded after each of the three reads, plus the catch.
+    expect(src.split("if (gen !== loadGenRef.current) return;").length - 1).toBe(4);
+  });
+
   it("the mobile verify-email refresh sends the Bearer token", () => {
     const src = read("app/verify-email.tsx");
     // On React Native the session cookie is not reliably sent cross-origin, so

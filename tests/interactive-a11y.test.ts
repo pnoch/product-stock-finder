@@ -21,6 +21,9 @@ function walk(dir: string, out: string[] = []): string[] {
 function isControl(tag: string): boolean {
   if (!/onPress=/.test(tag)) return false;
   if (/onPress=\{\(e\)\s*=>\s*e\.stopPropagation\(\)\}/.test(tag)) return false;
+  // `accessible={false}` explicitly defers a11y to nested controls (e.g. a card
+  // whose open action lives on an inner labeled Pressable).
+  if (/accessible=\{false\}/.test(tag)) return false;
   return true;
 }
 

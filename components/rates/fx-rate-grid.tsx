@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { EXCHANGE_RATES } from "@shared/currency";
 import { FxSparklineCard } from "./fx-sparkline-card";
 
 const CURRENCIES = [
@@ -28,7 +29,7 @@ export function FxRateGrid({ currentRates, history, change }: FxRateGridProps) {
             <FxSparklineCard
               key={code}
               currency={code}
-              rate={currentRates[code] ?? 1}
+              rate={currentRates[code] ?? EXCHANGE_RATES[code] ?? 1}
               change={change[code] ?? 0}
               history={history[code] ?? []}
             />

@@ -379,3 +379,21 @@ describe("setupPushEventTracking", () => {
     expect(state.displayedIds).toHaveLength(0);
   });
 });
+
+describe("master notification switch", () => {
+  it("does not schedule a back-order reminder when notifications are disabled", async () => {
+    state.platform = "android";
+    state.settings = { notificationsEnabled: false };
+    expect(
+      await scheduleBackOrderReminder("P", "D", new Date(Date.now() + 86_400_000), "p1"),
+    ).toBeNull();
+    expect(state.scheduled).toHaveLength(0);
+  });
+
+  it("does not schedule a restock-watch confirmation when notifications are disabled", async () => {
+    state.platform = "android";
+    state.settings = { notificationsEnabled: false };
+    expect(await scheduleStockWatchConfirmation("P", "D")).toBeNull();
+    expect(state.scheduled).toHaveLength(0);
+  });
+});

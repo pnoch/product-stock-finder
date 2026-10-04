@@ -203,7 +203,7 @@ describe("watchlist undo restores the deleted product's cascade", () => {
     // The card's Delete button previously called a no-undo handler; both the
     // SwipeableCard and the ProductCard must now use the undo path.
     expect(src).not.toContain("handleSwipeDelete");
-    const wired = src.match(/onDelete=\{\(\) => handleDelete\(item as Product\)\}/g);
+    const wired = src.match(/onDelete=\{\(\) => handleDelete\((?:item|item as Product)\)\}/g);
     expect(wired?.length).toBe(2);
   });
 

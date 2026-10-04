@@ -133,23 +133,27 @@ export function DistributorListingSection({
   findingPrices,
 }: DistributorListingSectionProps) {
   const colors = useColors();
-  const globalBestInStockListing = (() => {
-    const inStock = sortedListings.filter((l) => l.stockStatus === "in_stock");
-    if (inStock.length > 0) {
-      let best: DistributorListing | null = null;
-      let bestConverted = Infinity;
-      const target = displayCurrency ?? "USD";
-      for (const l of inStock) {
-        const c = convertPrice(l.price, l.currency, target);
-        if (c === null || !Number.isFinite(c)) continue;
-        if (c < bestConverted) {
-          bestConverted = c;
-          best = l;
-        }
+  // The Best Price card must never crown an `unknown`/`out_of_stock` listing
+  // (lib/currency.ts also excludes those). Prefer the region-filtered listing the
+  // screen already computed; otherwise take the cheapest in-stock/back-order
+  // listing, and render no card at all when nothing is orderable.
+  const globalBestInStockListing = bestInStockListing ?? (() => {
+    const orderable = sortedListings.filter(
+      (l) => l.stockStatus === "in_stock" || l.stockStatus === "back_order",
+    );
+    if (orderable.length === 0) return null;
+    const target = displayCurrency ?? "USD";
+    let best: DistributorListing | null = null;
+    let bestConverted = Infinity;
+    for (const l of orderable) {
+      const c = convertPrice(l.price, l.currency, target);
+      if (c === null || !Number.isFinite(c)) continue;
+      if (c < bestConverted) {
+        bestConverted = c;
+        best = l;
       }
-      if (best) return best;
     }
-    return sortedListings.find((l) => l.stockStatus !== "out_of_stock") ?? sortedListings[0] ?? null;
+    return best;
   })();
 
   return (

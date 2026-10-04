@@ -21,6 +21,18 @@ if (Platform.OS !== "web") {
   });
 }
 
+// The Settings "Enable Notifications" toggle must gate every scheduled or
+// confirmational notification, not just the price-check path. Only an explicit
+// `false` mutes (the default settings set it true); a settings read failure
+// proceeds, matching the previous best-effort behavior.
+async function notificationsMuted(): Promise<boolean> {
+  try {
+    return (await getSettings()).notificationsEnabled === false;
+  } catch {
+    return false;
+  }
+}
+
 // ─── Android Channel Setup ────────────────────────────────────────────────────
 export const NOTIFICATION_CHANNELS = {
   stock: "stock-alerts",
@@ -140,6 +152,7 @@ export async function scheduleStockWatchConfirmation(
   distributorName: string,
 ): Promise<string | null> {
   if (Platform.OS === "web") return null;
+  if (await notificationsMuted()) return null;
   try {
     const id = await Notifications.scheduleNotificationAsync({
       content: {
@@ -332,6 +345,7 @@ export async function scheduleBackOrderReminder(
   productId?: string,
 ): Promise<string | null> {
   if (Platform.OS === "web") return null;
+  if (await notificationsMuted()) return null;
   try {
     const granted = await requestNotificationPermissions();
     if (!granted) return null;

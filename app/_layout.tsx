@@ -181,41 +181,42 @@ export default function RootLayout() {
     // Record eventIds from push notifications for dedup (registered first so
     // pushes arriving during channel setup are captured too)
     const stopPushTracking = setupPushEventTracking();
-    setupAndroidNotificationChannel()
-      .then(async () => {
-        // Only prompt for notification permission if the user has enabled notifications
+    // Channel/permission setup must not gate task registration or the launch
+    // price check: a rejection from either previously skipped everything below.
+    void setupAndroidNotificationChannel().catch((e) =>
+      log.error("[Launch] notification channel setup failed", e),
+    );
+    void (async () => {
+      try {
+        // Only prompt for notification permission if the user enabled them.
         const settings = await getSettings().catch(() => null);
         if (settings?.notificationsEnabled) {
           await requestNotificationPermissions();
         }
-        // Register background price-check task
-        registerPriceCheckTask();
-        // Register background health probe task
-        registerHealthProbeTask();
-        // Run a foreground check immediately on app launch. A storage read
-        // failure must not reject unhandled.
-        void checkPriceDropsNow().catch((e) => log.error("[Launch] price check failed", e));
-        // Fill in products that have no listings at all: a bulk import stores an
-        // empty array and only discovery fills it. Bounded per run, so a large
-        // import drains over successive launches instead of firing N x 25
-        // requests at once (the desktop does the same after each price check).
-        void rediscoverMissingListings({
-          storage: { getWatchlist, updateProductListings },
-          discover: discoverListings,
-        }).catch((e) =>
-          log.error("[Launch] missing-listings discovery failed", e),
-        );
-        if (isServerConfigured()) {
-          // Register for Expo push delivery (best-effort)
-          void registerPushToken();
-          // Pull any server-queued notification events
-          void syncServerNotifications();
-        }
-      })
-      // A rejection here (e.g. a storage read) previously skipped task
-      // registration, the launch price check, push registration, and the
-      // server-notification pull entirely.
-      .catch((e) => log.error("[Launch] setup failed", e));
+      } catch (e) {
+        log.error("[Launch] notification permission request failed", e);
+      }
+    })();
+    // Register background tasks
+    registerPriceCheckTask();
+    registerHealthProbeTask();
+    // Run a foreground check immediately on app launch. A storage read failure
+    // must not reject unhandled.
+    void checkPriceDropsNow().catch((e) => log.error("[Launch] price check failed", e));
+    // Fill in products that have no listings at all: a bulk import stores an
+    // empty array and only discovery fills it. Bounded per run, so a large
+    // import drains over successive launches instead of firing N x 25 requests
+    // at once (the desktop does the same after each price check).
+    void rediscoverMissingListings({
+      storage: { getWatchlist, updateProductListings },
+      discover: discoverListings,
+    }).catch((e) => log.error("[Launch] missing-listings discovery failed", e));
+    if (isServerConfigured()) {
+      // Register for Expo push delivery (best-effort)
+      void registerPushToken();
+      // Pull any server-queued notification events
+      void syncServerNotifications();
+    }
     return () => {
       responseSubscription.remove();
       stopPushTracking();
@@ -315,6 +316,10 @@ export default function RootLayout() {
       syncRef.current?.syncNow();
       void backfillLocalHistory();
       void cleanupStaleDevices();
+      // A sign-in without a restart previously left the device unbound and
+      // never pulled server notification events until the next cold launch.
+      void registerPushToken();
+      void syncServerNotifications();
     }
   }, [isAuthenticated]);
 

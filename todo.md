@@ -8033,3 +8033,21 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Enabled R8 minify + resource shrinking via `expo-build-properties` (`enableMinifyInReleaseBuilds` / `enableShrinkResourcesInReleaseBuilds`). `./gradlew :app:assembleRelease` succeeds; the APK dropped from 46 MB to 43 MB.
 - [x] Guard test `tests/android-hardening.test.ts`. `pnpm verify` exit 0 — root `3241` / desktop `324` / cargo `82`; `tsc`/lint 0.
 - [x] Still open for Android: FCM credentials (EAS or `googleServicesFile`) for remote push, and `EXPO_PUBLIC_WEB_URL` + `ANDROID_SHA256_CERT_FINGERPRINTS` for App Links.
+
+## Phase 1088: Android screen review — fix High/Medium findings
+
+- [x] Reviewed all 23 app screens (7 parallel passes) and fixed the top findings:
+  - **Notifications:** `scheduleBackOrderReminder` / `scheduleStockWatchConfirmation` now respect the master Notifications toggle (`lib/notifications.ts`), which previously gated only the price-check path.
+  - **Distributor Analysis:** Export CSV now writes the analysis columns (`distributorAnalysisToCsv`, new in `lib/csv.ts`), not the watchlist listing rows.
+  - **Search:** AI-discovered products are deduped against the watchlist and the combined list by normalized `brand|model` (generated ids never match static ids), so the same item can't be added or shown twice.
+  - **Watchlist perf:** `liveProducts` is keyed on `dataUpdatedAt` (not the per-render `results` identity) and `renderItem` is memoized, so the heavy insight/deal/sort memos no longer recompute on every state change.
+  - **Accessibility:** `ProductCard` no longer aggregates as one element (`accessible={false}`), so the nested Find/tag/delete buttons are reachable; the product name is the labeled "open" control.
+  - **Health:** the probe single-flight guard is module-scoped, so manual "Test All" and the scheduled task can't run concurrently (was per-instance).
+  - **Home:** `loadData` gained the generation guard Rates/Health already had.
+  - **Rates:** the headline "current" rate is the last finite value of the full history, so a time window can't change it or revert it to the static table.
+  - **Product detail:** alert suggestions and the history CSV use the live `listings`, not the stale seeded `product.listings`.
+  - **Best Price card:** never crowns an `unknown`/`out_of_stock` listing, and uses the region-filtered listing when provided.
+  - **Compare:** chart width `w - 32` → `w - 64` (matches the card's margin+padding; 32px overflow).
+  - **Launch:** notification channel/permission setup no longer gates background-task registration or the launch price check; a mid-session sign-in registers the push token and pulls server events.
+- [x] Tests: master-switch tests, `distributorAnalysisToCsv` test, Home generation-guard source assertion; updated the a11y guard for `accessible={false}` and the delete-affordance guard.
+- [x] `pnpm verify` exit 0 — root `3245` / desktop `324` / cargo `82`; `tsc`/lint 0.

@@ -467,7 +467,9 @@ export default function CompareScreen() {
               pointerEvents="box-none"
               onLayout={(e) => {
                 const w = e.nativeEvent.layout.width;
-                if (w > 0) setChartWidth(w - 32);
+                // The ChartCard adds 16px horizontal margin + 16px padding, so
+                // usable width is w - 64 (matches the initial windowWidth - 64).
+                if (w > 0) setChartWidth(Math.max(0, w - 64));
               }}
             >
               <View pointerEvents="auto">

@@ -308,6 +308,13 @@ export type HealthService = {
   ): Promise<void>;
 };
 
+// The background probe task and the manual "Test All" button each build their
+// own service instance, so this single-flight promise must live at module scope
+// or the two runs overlap and double the requests (25 parsers → 50). A joining
+// caller drops its own onProgress, which is correct — the running pass reports
+// its own progress.
+let inFlightProbe: Promise<DistributorHealth[]> | null = null;
+
 export function createHealthService(adapter: StorageAdapter): HealthService {
   async function getDistributorHealth(): Promise<DistributorHealth[]> {
     try {
@@ -376,12 +383,7 @@ export function createHealthService(adapter: StorageAdapter): HealthService {
     }
   }
 
-  // The background probe task and the manual "Test All" button can overlap, and
-  // each run fires one request per parser (25). The second caller joins the
-  // in-flight run instead of doubling the requests; its own onProgress is
-  // dropped, which is correct — the running pass reports its own progress.
-  let inFlightProbe: Promise<DistributorHealth[]> | null = null;
-
+  // See the module-level `inFlightProbe` note above.
   async function testAllDistributors(
     onProgress?: (current: number, total: number) => void,
   ): Promise<DistributorHealth[]> {

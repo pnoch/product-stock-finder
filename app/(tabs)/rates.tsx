@@ -62,14 +62,24 @@ export default function RatesScreen() {
     [history, range],
   );
 
-  const currentRates = sliced?.rates
-    ? Object.fromEntries(
-        Object.entries(sliced.rates).map(([code, rates]) => {
-          const last = rates[rates.length - 1];
-          return [code, last !== null && last !== undefined && Number.isFinite(last) ? last : (EXCHANGE_RATES[code] ?? 1)];
-        })
-      )
-    : EXCHANGE_RATES;
+  // "Current" rate = the last finite value across the FULL history, not the
+  // window-sliced series: tapping a range must not change the headline number,
+  // and a window with no fresh point must not fall back to the static table.
+  const currentRates = useMemo(() => {
+    if (!history) return EXCHANGE_RATES;
+    const entries = Object.entries(history.rates).map(([code, rates]) => {
+      let last: number | null = null;
+      for (let i = rates.length - 1; i >= 0; i--) {
+        const v = rates[i];
+        if (v !== null && v !== undefined && Number.isFinite(v)) {
+          last = v;
+          break;
+        }
+      }
+      return [code, last ?? EXCHANGE_RATES[code] ?? 1] as const;
+    });
+    return Object.fromEntries(entries);
+  }, [history]);
 
   const change = history ? getFxWindowChange(history, range) : {};
 

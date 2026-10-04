@@ -740,6 +740,51 @@ export default function WatchlistScreen() {
     );
   }, [groupMode, tagDefinitions, colors.background, colors.muted]);
 
+  // Memoized so unrelated state changes (sheets, query, prefs) don't rebuild and
+  // re-render every visible row; combined with the stabilized `liveProducts` in
+  // use-live-prices this keeps the SectionList cheap on large watchlists.
+  const renderItem = useCallback(
+    ({ item }: { item: Product & { _sectionKey?: string } }) => (
+      <SwipeableCard enabled={!selectionMode} onDelete={() => handleDelete(item)}>
+        <ProductCard
+          product={item}
+          displayCurrency={displayCurrency}
+          selectionMode={selectionMode}
+          insight={
+            insightMap.has(item.id)
+              ? {
+                  atAllTimeLow: insightMap.get(item.id)!.atAllTimeLow,
+                  dropStreak: insightMap.get(item.id)!.dropStreak,
+                }
+              : undefined
+          }
+          dealScore={dealScoreMap.get(item.id) ?? undefined}
+          selected={selectedIds.has(item.id)}
+          onPress={() => handleProductPress(item)}
+          onLongPress={() => handleProductLongPress(item)}
+          onDelete={() => handleDelete(item)}
+          onTagPress={() => setPickerProduct(item)}
+          onFindPrices={() => handleFindPrices(item)}
+          findingPrices={findingIds.has(item.id)}
+          tagDefinitions={tagDefinitions}
+        />
+      </SwipeableCard>
+    ),
+    [
+      selectionMode,
+      displayCurrency,
+      insightMap,
+      dealScoreMap,
+      selectedIds,
+      findingIds,
+      tagDefinitions,
+      handleProductPress,
+      handleProductLongPress,
+      handleDelete,
+      handleFindPrices,
+    ],
+  );
+
   if (!loaded) {
     return (
       <ScreenContainer>
@@ -982,32 +1027,7 @@ export default function WatchlistScreen() {
           />
         }
         renderSectionHeader={renderSectionHeader}
-        renderItem={({ item }) => (
-          <SwipeableCard enabled={!selectionMode} onDelete={() => handleDelete(item as Product)}>
-            <ProductCard
-              product={item as Product}
-              displayCurrency={displayCurrency}
-              selectionMode={selectionMode}
-              insight={
-                insightMap.has(item.id)
-                  ? {
-                      atAllTimeLow: insightMap.get(item.id)!.atAllTimeLow,
-                      dropStreak: insightMap.get(item.id)!.dropStreak,
-                    }
-                  : undefined
-              }
-              dealScore={dealScoreMap.get(item.id) ?? undefined}
-              selected={selectedIds.has(item.id)}
-              onPress={() => handleProductPress(item)}
-              onLongPress={() => handleProductLongPress(item)}
-              onDelete={() => handleDelete(item as Product)}
-              onTagPress={() => setPickerProduct(item)}
-              onFindPrices={() => handleFindPrices(item as Product)}
-              findingPrices={findingIds.has(item.id)}
-              tagDefinitions={tagDefinitions}
-            />
-          </SwipeableCard>
-        )}
+        renderItem={renderItem}
       />
       <TagPickerSheet
         visible={!!pickerProduct}

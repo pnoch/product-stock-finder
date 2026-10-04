@@ -18,7 +18,7 @@ import {
   DistributorAnalysis,
 } from "@/lib/distributor-analysis";
 import { formatPrice } from "@shared/currency";
-import { watchlistToDetailedCsv } from "@/lib/csv";
+import { distributorAnalysisToCsv } from "@/lib/csv";
 import { exportCsvFile } from "@/lib/csv-export";
 import { showAlert } from "@/lib/alert";
 import { goBackOrHome } from "@/lib/navigation";
@@ -52,12 +52,13 @@ export default function DistributorAnalysisScreen() {
   const handleExport = useCallback(async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      const watchlist = await getWatchlist();
-      if (watchlist.length === 0) {
+      if (analysis.length === 0) {
         showAlert("Nothing to export", "Add a product to your watchlist first.");
         return;
       }
-      const csv = watchlistToDetailedCsv(watchlist);
+      // Export the analysis itself (coverage/avg/total per distributor), not
+      // the watchlist listing rows.
+      const csv = distributorAnalysisToCsv(analysis, displayCurrency);
       // Shared helper: web downloads a .csv file, native writes it to the cache
       // dir and opens the share sheet. The previous text-share path only sent
       // the CSV as a message, so the recipient got text instead of a file.
@@ -71,7 +72,7 @@ export default function DistributorAnalysisScreen() {
     } catch (e) {
       showAlert("Export failed", e instanceof Error ? e.message : "Couldn't export the analysis.");
     }
-  }, []);
+  }, [analysis, displayCurrency]);
 
   useFocusEffect(
     useCallback(() => {
