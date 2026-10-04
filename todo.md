@@ -7979,3 +7979,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `lib/csv.ts` coverage rose from `89.4%` line / `63.9%` branch to `98.7%` / `78.1%`. The two remaining uncovered branches are dead defensive checks: the final `return "unknown"` in `resolveStockStatus`, and the `/^shareUrl,/` test in `isShareDeepLinkLine` — it receives the first *field*, so a comma can never appear and the branch can never fire (left as-is; documenting rather than changing import behavior).
 - [x] Refreshed stale `AGENTS.md` counts: `tests/` is now ~445 files (~409 root + 33 scrapers, ~3300 tests) plus 69 desktop files / 324 tests; `todo.md` is 1078 phases (was "198 phases").
 - [x] `pnpm verify` exit 0 — root `3216` / desktop `324` / cargo `82`; `tsc`/lint 0.
+
+## Phase 1080: csv dead-branch cleanup + app-error-boundary coverage
+
+- [x] Fixed the ineffective `isShareDeepLinkLine` check: it receives the first *field*, so `/^shareUrl,/` could never match; it now matches the column name (`/^shareurl$/i`) and actually skips a legacy `shareUrl,...` header (test added). Dropped the unreachable final `return "unknown"` and the write-only `hasUnknown` flag in `resolveStockStatus`.
+- [x] `lib/csv.ts` is now `100%` line / `79%` branch (was `89.4%`/`63.9%`).
+- [x] Rewrote `tests/app-error-boundary.test.tsx` (9 tests): fallback with/without a message, Try Again re-render, Go Home navigation + haptics (native vs web), 160-char grapheme truncation, non-Error value, and the `Intl.Segmenter` unavailable/throwing fallbacks. Coverage `57.7%`/`31.3%`/`50%` → `100%`/`93.8%`/`100%`.
+- [x] `pnpm verify` exit 0 — root `3225` / desktop `324` / cargo `82`; `tsc`/lint 0.

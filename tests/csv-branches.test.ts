@@ -214,4 +214,10 @@ describe("parseWatchlistCsv summary edge cases", () => {
     expect(products).toHaveLength(1);
     expect(products[0]!.modelNumber).toBe("M1");
   });
+
+  it("skips a shareUrl header row", () => {
+    const products = parseWatchlistCsv("shareUrl,product,model\nhttp://x,Router A,M1");
+    expect(products).toHaveLength(1);
+    expect(products.some((p) => p.name === "shareUrl")).toBe(false);
+  });
 });

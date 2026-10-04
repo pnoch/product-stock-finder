@@ -36,17 +36,14 @@ function resolveStockStatus(product: Product): string {
   let hasInStock = false;
   let hasBackOrder = false;
   let hasOutOfStock = false;
-  let hasUnknown = false;
   for (const l of listings) {
     if (l.stockStatus === "in_stock") hasInStock = true;
     else if (l.stockStatus === "back_order") hasBackOrder = true;
     else if (l.stockStatus === "out_of_stock") hasOutOfStock = true;
-    else hasUnknown = true;
   }
   if (hasInStock) return "in_stock";
   if (hasBackOrder) return "back_order";
   if (hasOutOfStock) return "out_of_stock";
-  if (hasUnknown) return "unknown";
   return "unknown";
 }
 
@@ -189,8 +186,10 @@ function isShareDeepLinkLine(line: string): boolean {
   if (/^#\s*share\s*:/i.test(t)) return true;
   // Legacy "//" comment lines.
   if (t.startsWith("//")) return true;
-  // A header row carrying the share URL column.
-  if (/^shareUrl,/i.test(t)) return true;
+  // A header row whose first column is the share-URL column ("shareUrl,...").
+  // This runs on the first *field*, so match the column name, not a literal
+  // comma (which can never appear in a single field).
+  if (/^shareurl$/i.test(t)) return true;
   return false;
 }
 
