@@ -1,8 +1,6 @@
 import type { Product } from "./types";
 import { convertPrice, hasExchangeRate } from "./currency";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 export interface DropEvent {
   productId: string;
   distributorId: string;
@@ -96,7 +94,16 @@ export function computeDropCalendar(
   days = 30,
   now = Date.now(),
 ): DropCalendarResult {
-  const cutoff = now - days * DAY_MS;
+  // Window boundary = the oldest calendar day the grid renders (local midnight),
+  // matching buildGridCells. A fixed `now - days*DAY_MS` cutoff precedes that
+  // midnight, so it admitted drops on a day that has no cell (inflating
+  // totalDrops) — and across a DST transition the two windows diverged further.
+  const nowDate = new Date(now);
+  const cutoff = new Date(
+    nowDate.getFullYear(),
+    nowDate.getMonth(),
+    nowDate.getDate() - (days - 1),
+  ).getTime();
   const byDay = new Map<string, DropDay>();
   let totalDrops = 0;
 

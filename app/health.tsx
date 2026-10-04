@@ -190,6 +190,7 @@ export default function HealthScreen() {
               if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setFilter(f);
             }}
+            hitSlop={6}
             style={{
               paddingHorizontal: 12,
               paddingVertical: 6,

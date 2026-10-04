@@ -107,6 +107,7 @@ export default function DistributorAnalysisScreen() {
         {analysis.length > 0 && (
           <TouchableOpacity activeOpacity={0.85}
             onPress={handleExport}
+            hitSlop={8}
             style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 }}
             accessibilityLabel="Export CSV"
             accessibilityRole="button"

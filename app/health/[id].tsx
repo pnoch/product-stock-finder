@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity, Platform } from "react-native";
+import { ActivityIndicator, SectionList, Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -133,9 +133,20 @@ export default function HealthDetailScreen() {
           </Text>
         </View>
       ) : (
-      <ScrollView
+      <SectionList
+        sections={groups.map((g) => ({
+          day: g.day,
+          workingPct: Math.round(
+            (g.samples.filter((s) => s.status === "working").length /
+              g.samples.length) *
+              100,
+          ),
+          data: g.samples,
+        }))}
+        keyExtractor={(item, index) => `${item.at}-${index}`}
+        stickySectionHeadersEnabled={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
-      >
+        ListHeaderComponent={
         <View
           style={{
             backgroundColor: colors.surface,
@@ -218,79 +229,65 @@ export default function HealthDetailScreen() {
             </View>
           )}
         </View>
-
-        {groups.map((g) => {
-          const working = g.samples.filter((s) => s.status === "working").length;
-          const workingPct = Math.round((working / g.samples.length) * 100);
-          return (
-            <View key={g.day}>
-              <Text
-                style={{
-                  color: colors.muted,
-                  fontSize: 12,
-                  fontWeight: "600",
-                  textTransform: "uppercase",
-                  marginTop: 16,
-                  marginBottom: 4,
-                }}
-              >
-                {new Date(g.day + "T00:00:00").toLocaleDateString(undefined, {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                })}{" "}
-                · {g.samples.length} sample{g.samples.length === 1 ? "" : "s"} · {workingPct}% working
-              </Text>
-              {g.samples.map((s, i) => (
-                <View
-                  key={`${s.at}-${i}`}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingVertical: 10,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.border,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 5,
-                      backgroundColor: statusColors[s.status],
-                      marginRight: 10,
-                    }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        color: colors.foreground,
-                        fontSize: 14,
-                        fontWeight: "500",
-                      }}
-                    >
-                      {new Date(s.at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </Text>
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      {s.reason || s.status}
-                      {sanitizeResponseTimeMs(s.responseTimeMs) != null
-                        ? ` · ${sanitizeResponseTimeMs(s.responseTimeMs)}ms`
-                        : ""}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          );
-        })}
-        {groups.length === 0 && (
+        }
+        renderSectionHeader={({ section }) => (
           <Text
-            style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}
+            style={{
+              color: colors.muted,
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginTop: 16,
+              marginBottom: 4,
+            }}
           >
-            No health history yet. Run Test All or wait for scheduled probes.
+            {new Date(section.day + "T00:00:00").toLocaleDateString(undefined, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            })}{" "}
+            · {section.data.length} sample{section.data.length === 1 ? "" : "s"} · {section.workingPct}% working
           </Text>
         )}
-      </ScrollView>
+        renderItem={({ item: s }) => (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingVertical: 10,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
+            }}
+          >
+            <View
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                backgroundColor: statusColors[s.status] ?? colors.muted,
+                marginRight: 10,
+              }}
+            />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontSize: 14,
+                  fontWeight: "500",
+                }}
+              >
+                {new Date(s.at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                {s.reason || s.status}
+                {sanitizeResponseTimeMs(s.responseTimeMs) != null
+                  ? ` · ${sanitizeResponseTimeMs(s.responseTimeMs)}ms`
+                  : ""}
+              </Text>
+            </View>
+          </View>
+        )}
+      />
       )}
     </ScreenContainer>
   );

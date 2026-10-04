@@ -186,4 +186,17 @@ describe("computeDropCalendar", () => {
     expect(day.drops[0]!.percent).toBeCloseTo(-10, 1);
     expect(day.biggestPct).toBeCloseTo(-10, 1);
   });
+
+  it("does not count a drop that lands on a day with no grid cell", () => {
+    // days=2 => the grid's oldest cell is Sunday 00:00 local. A fixed
+    // `now - 2*DAY` cutoff would reach back to Saturday noon, admitting a
+    // Saturday-evening drop into a day the grid never renders.
+    const p = product("p1", [
+      listing("d1", [
+        [2.75, 20], // Saturday 06:00
+        [2.25, 15], // Saturday 18:00 — before the oldest cell
+      ]),
+    ]);
+    expect(computeDropCalendar([p], "USD", 2, NOW).totalDrops).toBe(0);
+  });
 });

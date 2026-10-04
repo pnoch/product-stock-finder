@@ -8062,3 +8062,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Lists/touch:** removed the Android `removeClippedSubviews` on the search list (known blank-row cause); added `hitSlop` to the stats/health/analysis header buttons.
 - [x] Not changed (noted): the "Re-enable" row already clears the distributor breaker (the faked `lastChecked` is only cosmetic); a secret store for the LLM key, full SectionList virtualization for health detail, and drop-calendar DST remain.
 - [x] `pnpm verify` exit 0 — root `3245` / desktop `324` / cargo `82`; `tsc`/lint 0.
+
+## Phase 1090: Android polish — health virtualization, DST cutoff, touch targets
+
+- [x] **Health detail** converted from a plain `ScrollView` to a day-grouped `SectionList`, so up to 720 samples virtualize instead of mounting every row.
+- [x] **Drop calendar:** the window cutoff is now the oldest rendered calendar day's local midnight (matching `buildGridCells`), not `now - days*DAY_MS`, so an off-grid early drop can't inflate `totalDrops` and a DST transition can't diverge the two windows. Test added.
+- [x] **Touch targets:** `hitSlop` on the alerts "Restock Watches" button, the alerts tab switcher, the health filter chips, the Analysis export chip, and the restock-watches back/Remove controls.
+- [x] `pnpm verify` exit 0 — root `3246` / desktop `324` / cargo `82`; `tsc`/lint 0.

@@ -732,7 +732,7 @@ describe("count labels pluralize", () => {
   const cases: [string, RegExp][] = [
     ["components/stats/stock-health-card.tsx", /listing\{health\.totalListings === 1 \? "" : "s"\}/],
     ["app/health/[id].tsx", /sample\{summary\.count === 1 \? "" : "s"\}/],
-    ["app/health/[id].tsx", /sample\{g\.samples\.length === 1 \? "" : "s"\}/],
+    ["app/health/[id].tsx", /sample\{section\.data\.length === 1 \? "" : "s"\}/],
     ["components/price-sparkline.tsx", /point\$\{data\.length === 1 \? "" : "s"\}/],
     ["components/search/bulk-import-modal.tsx", /product\$\{newProducts\.length === 1 \? "" : "s"\}/],
   ];

@@ -154,6 +154,7 @@ export default function AlertsScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push("/restock-watches");
             }}
+            hitSlop={8}
             style={{
               paddingHorizontal: 12,
               paddingVertical: 6,

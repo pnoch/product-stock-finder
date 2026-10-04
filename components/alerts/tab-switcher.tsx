@@ -49,6 +49,7 @@ export function TabSwitcher({ active, counts, onChange }: TabSwitcherProps) {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onChange(tab);
           }}
+          hitSlop={{ top: 6, bottom: 6 }}
           style={{
             flex: 1,
             paddingVertical: 8,
