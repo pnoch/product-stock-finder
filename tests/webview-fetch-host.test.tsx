@@ -3,10 +3,10 @@ import { render, act, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
 
-const wvProps = vi.hoisted(() => ({ current: null as any }));
+const wv = vi.hoisted(() => ({ list: [] as any[] }));
 vi.mock("react-native-webview", () => ({
   WebView: (props: Record<string, unknown>) => {
-    wvProps.current = props;
+    wv.list.push(props);
     return React.createElement("div");
   },
 }));
@@ -22,9 +22,15 @@ import { WebViewFetchHost } from "@/components/webview-fetch-host";
 import { getWebViewHost } from "@/lib/scrapers/webview-host";
 import { BrowserUnavailableError } from "@/lib/scrapers/resilient";
 
+// Latest props for a given source uri: the component re-renders per state change
+// and the mock runs on every render, so scan from the end.
+function wvFor(uri: string) {
+  return [...wv.list].reverse().find((p) => p.source?.uri === uri);
+}
+
 describe("WebViewFetchHost", () => {
   beforeEach(() => {
-    wvProps.current = null;
+    wv.list = [];
   });
 
   afterEach(() => {
@@ -39,11 +45,12 @@ describe("WebViewFetchHost", () => {
 
     const pending = host!.load("https://example.com", { waitForSelector: ".price" });
     await act(async () => {});
-    expect(wvProps.current?.source?.uri).toBe("https://example.com");
-    expect(String(wvProps.current?.injectedJavaScript)).toContain(".price");
+    const props = wvFor("https://example.com");
+    expect(props).toBeTruthy();
+    expect(String(props.injectedJavaScript)).toContain(".price");
 
     act(() => {
-      wvProps.current.onMessage({ nativeEvent: { data: "<html>x</html>" } });
+      props.onMessage({ nativeEvent: { data: "<html>x</html>" } });
     });
     await expect(pending).resolves.toBe("<html>x</html>");
   });
@@ -51,41 +58,59 @@ describe("WebViewFetchHost", () => {
   it("rejects when the WebView errors", async () => {
     render(<WebViewFetchHost />);
     const pending = getWebViewHost()!.load("https://x.test");
+    pending.catch(() => {});
     await act(async () => {});
     act(() => {
-      wvProps.current.onError({ nativeEvent: { description: "boom" } });
+      wvFor("https://x.test").onError({ nativeEvent: { description: "boom" } });
     });
     await expect(pending).rejects.toThrow("boom");
   });
 
-  it("serializes requests, one WebView load at a time", async () => {
+  it("renders two at once and starts the next when a slot frees", async () => {
     render(<WebViewFetchHost />);
     const host = getWebViewHost()!;
     const a = host.load("https://a.test");
     const b = host.load("https://b.test");
     await act(async () => {});
-    expect(wvProps.current.source.uri).toBe("https://a.test");
+    expect(wvFor("https://a.test")).toBeTruthy();
+    expect(wvFor("https://b.test")).toBeTruthy();
+
+    // Third request waits: both pool slots are busy.
+    const c = host.load("https://c.test");
+    await act(async () => {});
+    expect(wvFor("https://c.test")).toBeFalsy();
 
     act(() => {
-      wvProps.current.onMessage({ nativeEvent: { data: "A" } });
+      wvFor("https://a.test").onMessage({ nativeEvent: { data: "A" } });
     });
     await expect(a).resolves.toBe("A");
-
     await act(async () => {});
-    expect(wvProps.current.source.uri).toBe("https://b.test");
+    expect(wvFor("https://c.test")).toBeTruthy();
+
     act(() => {
-      wvProps.current.onMessage({ nativeEvent: { data: "B" } });
+      wvFor("https://b.test").onMessage({ nativeEvent: { data: "B" } });
+    });
+    act(() => {
+      wvFor("https://c.test").onMessage({ nativeEvent: { data: "C" } });
     });
     await expect(b).resolves.toBe("B");
+    await expect(c).resolves.toBe("C");
   });
 
-  it("rejects queued work when unmounted", async () => {
+  it("rejects queued and active work when unmounted", async () => {
     const { unmount } = render(<WebViewFetchHost />);
-    const pending = getWebViewHost()!.load("https://x.test");
+    const host = getWebViewHost()!;
+    const a = host.load("https://a.test");
+    const b = host.load("https://b.test");
+    const c = host.load("https://c.test");
+    a.catch(() => {});
+    b.catch(() => {});
+    c.catch(() => {});
     await act(async () => {});
     unmount();
-    await expect(pending).rejects.toBeInstanceOf(BrowserUnavailableError);
-    await expect(pending).rejects.toThrow();
+    await expect(a).rejects.toBeInstanceOf(BrowserUnavailableError);
+    await expect(b).rejects.toBeInstanceOf(BrowserUnavailableError);
+    await expect(c).rejects.toBeInstanceOf(BrowserUnavailableError);
     expect(getWebViewHost()).toBeNull();
   });
 
@@ -97,7 +122,7 @@ describe("WebViewFetchHost", () => {
     });
     pending.catch(() => {});
     await act(async () => {});
-    expect(wvProps.current.source.uri).toBe("https://slow.test");
+    expect(wvFor("https://slow.test")).toBeTruthy();
 
     act(() => {
       vi.advanceTimersByTime(1000);
@@ -106,43 +131,50 @@ describe("WebViewFetchHost", () => {
     await expect(pending).rejects.toThrow(/timed out/i);
   });
 
-  it("ignores stale events from a superseded request", async () => {
+  it("ignores a stale event from a request whose slot was reused", async () => {
     vi.useFakeTimers();
     render(<WebViewFetchHost />);
     const host = getWebViewHost()!;
     const a = host.load("https://a.test", { timeoutMs: 1000 });
     const b = host.load("https://b.test");
     a.catch(() => {});
+    b.catch(() => {});
     await act(async () => {});
-    expect(wvProps.current.source.uri).toBe("https://a.test");
-    const aProps = wvProps.current;
+    const aProps = wvFor("https://a.test");
+    expect(aProps).toBeTruthy();
 
     act(() => {
       vi.advanceTimersByTime(1000);
     });
     await act(async () => {});
     await expect(a).rejects.toBeInstanceOf(BrowserUnavailableError);
-    await expect(a).rejects.toThrow(/timed out/i);
-    expect(wvProps.current.source.uri).toBe("https://b.test");
 
-    let bSettled = false;
-    b.then(
-      () => {
-        bSettled = true;
-      },
-      () => {
-        bSettled = true;
-      },
-    );
-
+    // C reuses A's freed slot; A's late handler must not settle C.
+    const c = host.load("https://c.test");
+    await act(async () => {});
     act(() => {
-      aProps.onMessage({ nativeEvent: { data: "A" } });
+      aProps.onMessage({ nativeEvent: { data: "STALE-A" } });
     });
     await act(async () => {});
-    expect(bSettled).toBe(false);
+
+    let cSettled = false;
+    c.then(
+      () => {
+        cSettled = true;
+      },
+      () => {
+        cSettled = true;
+      },
+    );
+    await act(async () => {});
+    expect(cSettled).toBe(false);
 
     act(() => {
-      wvProps.current.onMessage({ nativeEvent: { data: "B" } });
+      wvFor("https://c.test").onMessage({ nativeEvent: { data: "C" } });
+    });
+    await expect(c).resolves.toBe("C");
+    act(() => {
+      wvFor("https://b.test").onMessage({ nativeEvent: { data: "B" } });
     });
     await expect(b).resolves.toBe("B");
   });
@@ -153,7 +185,7 @@ describe("WebViewFetchHost", () => {
     pending.catch(() => {});
     await act(async () => {});
 
-    const shouldLoad = wvProps.current.onShouldStartLoadWithRequest;
+    const shouldLoad = wvFor("https://nav.test").onShouldStartLoadWithRequest;
     expect(shouldLoad({ url: "https://nav.test/page" })).toBe(true);
     expect(shouldLoad({ url: "http://nav.test" })).toBe(true);
     expect(shouldLoad({ url: "about:blank" })).toBe(true);
@@ -166,10 +198,10 @@ describe("WebViewFetchHost", () => {
     render(<WebViewFetchHost />);
     const host = getWebViewHost()!;
 
-    // 1 active + MAX_QUEUE (25) queued = 26 in flight; the 27th call is the
-    // first that finds the queue already at MAX_QUEUE and must reject.
+    // 2 active + MAX_QUEUE (25) queued = 27 in flight; the 28th call finds the
+    // queue already at MAX_QUEUE and must reject.
     const settled: boolean[] = [];
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 27; i++) {
       const p = host.load(`https://q${i}.test`);
       settled.push(false);
       p.then(
@@ -182,7 +214,7 @@ describe("WebViewFetchHost", () => {
       );
     }
     await act(async () => {});
-    expect(settled).toEqual(new Array(26).fill(false));
+    expect(settled).toEqual(new Array(27).fill(false));
 
     await expect(host.load("https://overflow.test")).rejects.toBeInstanceOf(
       BrowserUnavailableError,
@@ -190,6 +222,6 @@ describe("WebViewFetchHost", () => {
     await expect(host.load("https://overflow2.test")).rejects.toThrow(
       "queue full",
     );
-    expect(settled).toEqual(new Array(26).fill(false));
+    expect(settled).toEqual(new Array(27).fill(false));
   });
 });

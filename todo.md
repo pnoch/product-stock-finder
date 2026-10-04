@@ -8105,3 +8105,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Added `tests/scrapers/webview-chain.test.ts`. It mocks resilient's dynamic `import("./browser")` to `browser-native` (what the Metro resolver does on Android) and drives the real chain: a fake `webview-host` returning a rendered pbtech fixture → `fetchAndParse` → `pbtechParser.parsePrice` → NZ$480 in stock, and asserts the renderer was asked for the parser's search URL. Also covers the no-host plain-HTTP fallback and a rendered Cloudflare challenge classified as blocked (fake timers keep it fast). 3 tests.
 - [x] `pnpm verify` exit 0 — root `3276` / desktop `324` / cargo `82`.
+
+## Phase 1097: Standalone renderer — 2-WebView pool
+
+- [x] `WebViewFetchHost` runs a pool of **2** hidden WebViews instead of one serial renderer: each slot owns its own active request + timeout, FIFO assignment, and the stale-event guard is per-slot (a late event can't settle a request that reused the freed slot). A product's browser-only listings now render in pairs. Queue cap (25) and unmount cleanup unchanged.
+- [x] Rewrote `tests/webview-fetch-host.test.tsx` for concurrency (8 tests: two-at-once, slot reuse, stale event, timeout, nav guard, queue-full, unmount).
+- [x] `pnpm verify` exit 0 — root `3276` / desktop `324` / cargo `82`; APK rebuilt (43.4 MB).
