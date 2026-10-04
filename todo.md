@@ -4864,7 +4864,7 @@ Audited the one user-facing, security-relevant surface not yet covered: a token 
 - [x] **Verified the upgrades are safe:** root `tsc 0`, `2544 passed` (27 skipped) / **`2571 passed` with the DB** (the mysql2/drizzle bumps exercise the real SQL paths), desktop `281 passed`, lint 0 errors (157 warnings).
 - [x] **`undici` 7.29.0 (added in Phase 624) is already patched** — every undici advisory targets `<6.28.0`; the audit's remaining undici hits are transitive 6.x copies nested inside other packages.
 - [x] **The 2 remaining criticals are dev-tooling only:** `shell-quote` and `tar` are pulled in by `@expo/cli` (Expo's build/dev CLI) via `react-devtools-core`/`expo-router` — never shipped to users and never run in production. Not upgradeable without an Expo SDK bump.
-- [ ] Remaining advisories (113) are transitive build/dev dependencies (Expo/Metro/RN tooling); clearing them needs upstream releases, not local pins.
+- [ ] Remaining advisories (113) are transitive build/dev dependencies (Expo/Metro/RN tooling); clearing them needs upstream releases, not local pins. **(Phase 1071: `pnpm audit --prod` now reports 4 high — `image-size` (fix needs a 2.x major Metro can't consume), `node-forge` and `braces` (no patched release) — all transitively under Expo/Metro build tooling.)**
 
 ## Phase 640: Accessibility pass
 
@@ -7919,3 +7919,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Flipped four more stale/resolved `[ ]` lines after verifying against source: the shared-watchlist membership items (the invite/roster UI ships on both mobile `app/(tabs)/settings.tsx` `SharedSection` and desktop `desktop/src/pages/Settings.tsx` — `members` + `inviteByEmail` + `removeMember`; `inviteByEmail` does an exact-email lookup with no prefix search, so an owner cannot enumerate) in 3854/3981; the deal-score streak factor (now the best in-stock series via `bestPricePoints`/`dropStreak`, not the averaged window) in 3954; and the digest line (the day bucket is now offset-aware, and post-flush per-tick re-delivery is the intended, tested behavior) in 4509.
 - [x] Remaining 11 open items are product / ops / cosmetic only: macOS/Windows signing hosts (2034) + `APPLE_TEAM_ID`/`ANDROID_SHA256_CERT_FINGERPRINTS` (2066); quiet-hours held drafts are process-memory only (4418, documented tradeoff); DB case-insensitive collation + `decimal(12,4)` rounding (4418/4429/4438); Tauri `connect-src` width + no auto-update (4637); registration email-enumeration disclosure (4649/4661/4670/4678, product call); transitive advisories (4867, upstream).
 - [x] Docs only; no source change. `tsc 0`, lint 0.
+
+## Phase 1071: Quality/health sweep
+
+- [x] Coverage (`vitest run --coverage`): statements `86.7%` / branches `76.3%` / functions `88.3%` / lines `89.3%`. The low spots are structural — `server/_core/*` (hands-off framework), DB-gated server modules (`sync-db`, `db`, routers) whose tests need `RUN_DB_TESTS`, and the node-only `lib/scrapers/browser.ts` — not regressions.
+- [x] The one unexercised app component was `components/stats/drop-calendar-card.tsx` (`0%` branch): added `tests/drop-calendar-card.test.tsx` covering the summary, a selectable day (label + `role="button"` + click → drop rows, click again → deselect), and disabled non-interactive no-drop cells. Root tests now `3186 passed | 93 skipped`.
+- [x] Dependencies: `pnpm audit --prod` reports 4 high — `image-size` (the fix requires a 2.x major Metro can't consume), `node-forge` and `braces` (no patched release) — all transitive under Expo/Metro build tooling. No safe local fix (annotated on 4867). Secret + code-security scans clean; `dependency-analyzer` reports 0 outdated/unused direct deps.
+- [x] `pnpm check` 0, `pnpm lint` 0.
