@@ -49,9 +49,13 @@ export function createAlertsStorage(ctx: StorageContext) {
   async function toggleAlert(alertId: string): Promise<void> {
     await enqueue(KEYS.ALERTS, async () => {
       const alerts = await getAlerts();
-      const updated = alerts.map((a) =>
-        a.id === alertId ? { ...a, isActive: !a.isActive } : a,
-      );
+      const updated = alerts.map((a) => {
+        if (a.id !== alertId) return a;
+        const isActive = !a.isActive;
+        // Turning an alert back on must also lift an active snooze, or the
+        // switch reads ON while `isAlertActive()` keeps skipping it.
+        return { ...a, isActive, snoozedUntil: isActive ? undefined : a.snoozedUntil };
+      });
       await persistAlerts(updated);
       notify("alerts", alertId);
     });

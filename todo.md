@@ -8051,3 +8051,14 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
   - **Launch:** notification channel/permission setup no longer gates background-task registration or the launch price check; a mid-session sign-in registers the push token and pulls server events.
 - [x] Tests: master-switch tests, `distributorAnalysisToCsv` test, Home generation-guard source assertion; updated the a11y guard for `accessible={false}` and the delete-affordance guard.
 - [x] `pnpm verify` exit 0 — root `3245` / desktop `324` / cargo `82`; `tsc`/lint 0.
+
+## Phase 1089: Android screen review — second batch
+
+- [x] **Auth timeouts + a11y:** `redeemOAuthTicket` aborts after 10s and the OAuth callback now shows a spinner instead of a blank screen; verify-email's POST is timeboxed; verify-email / reset-password / OAuth error text uses `accessibilityRole="alert"`.
+- [x] **Alerts:** toggling an alert back on clears an active `snoozedUntil`, so the switch no longer reads ON while price checks keep skipping it.
+- [x] **Settings:** "Delete My Data" triggers a re-read (`AboutSection` `onDataCleared`), so the screen no longer shows the just-wiped settings.
+- [x] **Health detail:** the 720-sample derivations (stats/summary/segments/day groups) are memoized (and the hooks moved above the early returns).
+- [x] **Deep links:** product/compare share links encode the id, so model numbers with `/` or spaces no longer produce malformed links.
+- [x] **Lists/touch:** removed the Android `removeClippedSubviews` on the search list (known blank-row cause); added `hitSlop` to the stats/health/analysis header buttons.
+- [x] Not changed (noted): the "Re-enable" row already clears the distributor breaker (the faked `lastChecked` is only cosmetic); a secret store for the LLM key, full SectionList virtualization for health detail, and drop-calendar DST remain.
+- [x] `pnpm verify` exit 0 — root `3245` / desktop `324` / cargo `82`; `tsc`/lint 0.

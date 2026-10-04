@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -66,6 +66,19 @@ export default function HealthDetailScreen() {
     load();
   }, [load]);
 
+  // These walk up to 720 samples; memoize (before the early returns so the hook
+  // order stays stable) so unrelated re-renders don't re-derive them.
+  const stats = useMemo(
+    () =>
+      id && samples.length > 0
+        ? computeHealthStats({ [id]: samples })[id]
+        : undefined,
+    [samples, id],
+  );
+  const summary = useMemo(() => computeHealthSummary(samples), [samples]);
+  const segments = useMemo(() => timelineSegments(samples), [samples]);
+  const groups = useMemo(() => groupSamplesByDay(samples), [samples]);
+
   if (!distributor) {
     return (
       <ScreenContainer>
@@ -83,13 +96,6 @@ export default function HealthDetailScreen() {
     );
   }
 
-  const stats = computeHealthStats(
-    samples.length > 0 ? { [id]: samples } : {},
-  )[id];
-  const summary = computeHealthSummary(samples);
-  const segments = timelineSegments(samples);
-  const groups = groupSamplesByDay(samples);
-
   return (
     <ScreenContainer>
       <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
@@ -101,6 +107,7 @@ export default function HealthDetailScreen() {
             goBackOrHome(router, "/health");
           }}
           style={{ marginRight: 12 }}
+          hitSlop={12}
         >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
         </TouchableOpacity>

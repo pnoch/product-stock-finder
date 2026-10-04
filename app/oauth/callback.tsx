@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   setSessionToken,
@@ -85,7 +85,28 @@ export default function OAuthCallback() {
     };
   }, [params.ticket, params.error, params.error_description, router]);
 
-  if (!error) return null;
+  // Signed-out callback is transient: show a spinner rather than a blank screen
+  // (a hung consume used to strand the user on white).
+  if (!error) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 24,
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          accessibilityLabel="Signing in"
+        />
+        <Text style={{ marginTop: 12, color: colors.muted }}>Signing you in…</Text>
+      </View>
+    );
+  }
   return (
     <View
       style={{
@@ -101,7 +122,10 @@ export default function OAuthCallback() {
       >
         Sign-in failed
       </Text>
-      <Text style={{ marginTop: 8, color: colors.muted, textAlign: "center" }}>
+      <Text
+        accessibilityRole="alert"
+        style={{ marginTop: 8, color: colors.muted, textAlign: "center" }}
+      >
         {error}
       </Text>
     </View>

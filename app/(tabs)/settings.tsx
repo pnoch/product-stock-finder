@@ -512,6 +512,16 @@ export default function SettingsScreen() {
     setShowLoginModal(true);
   }, []);
 
+  const reloadData = useCallback(async () => {
+    try {
+      const [s, p] = await Promise.all([getSettings(), getWatchlist()]);
+      setSettings(s);
+      setProducts(p);
+    } catch (e) {
+      log.error("[Settings] reload failed", e);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -806,7 +816,7 @@ export default function SettingsScreen() {
           {isAuthenticated && <JoinedSharedList />}
         </View>
 
-        <AboutSection />
+        <AboutSection onDataCleared={reloadData} />
       </ScrollView>
 
       <LoginModal

@@ -47,15 +47,30 @@ export function parseOAuthCallbackParams(
 export async function redeemOAuthTicket(
   ticket: string,
   opts: { baseUrl: string; deviceId?: string },
+  timeoutMs = 10_000,
 ): Promise<{ sessionToken: string; user: unknown }> {
-  const res = await fetch(
-    `${opts.baseUrl.replace(/\/$/, "")}/api/auth/oauth/consume`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ticket, deviceId: opts.deviceId }),
-    },
-  );
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(
+      `${opts.baseUrl.replace(/\/$/, "")}/api/auth/oauth/consume`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticket, deviceId: opts.deviceId }),
+        signal: controller.signal,
+      },
+    );
+  } catch (e) {
+    // A hung consume otherwise left the callback screen blank forever.
+    if (controller.signal.aborted) {
+      throw new Error("Sign-in timed out. Please try again.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
   const data = (await res.json().catch(() => ({}))) as {
     sessionToken?: string;
     user?: unknown;

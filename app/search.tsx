@@ -530,7 +530,6 @@ export default function SearchScreen() {
         windowSize={5}
         maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
-        removeClippedSubviews={Platform.OS === "android"}
         contentContainerStyle={{ paddingBottom: 24 }}
         ListHeaderComponent={
           <View>

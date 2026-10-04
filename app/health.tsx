@@ -161,6 +161,7 @@ export default function HealthScreen() {
             goBackOrHome(router);
           }}
           style={{ marginRight: 12 }}
+          hitSlop={12}
         >
           <Text style={{ color: colors.primary, fontSize: 16 }}>‹ Back</Text>
         </TouchableOpacity>

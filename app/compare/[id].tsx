@@ -301,7 +301,7 @@ export default function CompareScreen() {
       ]).start();
     }
     const shareText = buildShareText({ product, listings, displayCurrency, limit: 5 });
-    const deepLink = Linking.createURL(`/product/${id}`, { scheme: "productstockfinder" });
+    const deepLink = Linking.createURL(`/product/${encodeURIComponent(id)}`, { scheme: "productstockfinder" });
     const message = `${shareText}\n\n${deepLink}`;
     try {
       const imageShared = await captureAndShareImage(shareRef as React.RefObject<View | null>, `compare-${id}`);

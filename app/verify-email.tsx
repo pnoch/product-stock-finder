@@ -37,12 +37,20 @@ export default function VerifyEmailScreen() {
           }
           return;
         }
-        const res = await fetch(`${baseUrl}/api/auth/verify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-          credentials: "include",
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10_000);
+        let res: Response;
+        try {
+          res = await fetch(`${baseUrl}/api/auth/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token }),
+            credentials: "include",
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeout);
+        }
         if (cancelled) return;
         if (res.ok) {
           setState("success");
@@ -116,7 +124,10 @@ export default function VerifyEmailScreen() {
         {state === "error" && (
           <>
             <Text style={{ color: colors.error, fontSize: 18, fontWeight: "700", textAlign: "center" }}>Verification Failed</Text>
-            <Text style={{ color: colors.muted, fontSize: 14, marginTop: 8, textAlign: "center" }}>
+            <Text
+              accessibilityRole="alert"
+              style={{ color: colors.muted, fontSize: 14, marginTop: 8, textAlign: "center" }}
+            >
               {error ?? "This link may have expired. Request a new one from Settings."}
             </Text>
           </>

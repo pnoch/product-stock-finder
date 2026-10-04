@@ -414,7 +414,9 @@ export default function ProductDetailScreen() {
       displayCurrency: effectiveCurrency,
       limit: 5,
     });
-    const deepLink = Linking.createURL(`/product/${id}`, { scheme: "productstockfinder" });
+    // `id` can be a user-supplied model number (CSV import), so encode it or a
+    // "/" or space produces a malformed deep link.
+    const deepLink = Linking.createURL(`/product/${encodeURIComponent(id)}`, { scheme: "productstockfinder" });
     const message = `${shareText}\n\n${deepLink}`;
     try {
       const imageShared = await captureAndShareImage(shareRef as React.RefObject<View | null>, `product-${id}`);

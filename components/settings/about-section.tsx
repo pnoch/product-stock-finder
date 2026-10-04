@@ -19,7 +19,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
-export function AboutSection() {
+export function AboutSection({ onDataCleared }: { onDataCleared?: () => void } = {}) {
   const colors = useColors();
   const { isAuthenticated, logout } = useAuth();
   const [deleting, setDeleting] = useState(false);
@@ -139,6 +139,9 @@ export function AboutSection() {
                 }
               }
               await clearAllData();
+              // clearAllData doesn't emit a storage change, so tell the screen to
+              // re-read or it keeps showing the just-wiped settings.
+              onDataCleared?.();
               if (serverDeleteFailed) {
                 showAlert(
                   "Local Data Deleted",

@@ -212,6 +212,7 @@ export default function StatsScreen() {
             goBackOrHome(router);
           }}
           style={{ padding: 4 }}
+          hitSlop={12}
         >
           <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
         </TouchableOpacity>
@@ -226,7 +227,7 @@ export default function StatsScreen() {
           Statistics
         </Text>
         {refreshing && <ActivityIndicator size="small" color={colors.primary} />}
-        <TouchableOpacity activeOpacity={0.7} accessibilityLabel="Share statistics" accessibilityRole="button" onPress={handleShare} style={{ padding: 4 }}>
+        <TouchableOpacity activeOpacity={0.7} accessibilityLabel="Share statistics" accessibilityRole="button" onPress={handleShare} style={{ padding: 4 }} hitSlop={12}>
           <IconSymbol
             name="square.and.arrow.up"
             size={22}

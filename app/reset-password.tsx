@@ -122,7 +122,7 @@ export default function ResetPasswordScreen() {
           accessibilityLabel="Confirm new password"
         />
 
-        {error && <Text style={{ color: colors.error, fontSize: 13, marginBottom: 12 }}>{error}</Text>}
+        {error && <Text accessibilityRole="alert" style={{ color: colors.error, fontSize: 13, marginBottom: 12 }}>{error}</Text>}
 
         <TouchableOpacity
           onPress={handleReset}
