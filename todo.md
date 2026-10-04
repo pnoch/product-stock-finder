@@ -7873,8 +7873,16 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 
 - [x] Produced a standalone release APK (no backend baked): `android/app/build/outputs/apk/release/app-release-standalone.apk` — `com.app.stocktrackerpro` v5.16.0, release-signed (CN=Product Stock Finder), zipaligned, and containing the Phase 1062 local-mode UX.
 - [x] **Build gotcha:** Gradle's `:app:createBundleReleaseJsAndAssets` served a **stale JS bundle** (it reuses Metro's persisted file-map cache and does not pass `--reset-cache`), so source changes (and `EXPO_NO_DOTENV`/`EXPO_PUBLIC_*` changes) were not picked up — even with `--rerun-tasks`/`clean`/daemon stop. Reliable path used: `npx expo export:embed --platform android --dev false --reset-cache …` to a fresh bundle, then replace `assets/index.android.bundle` in the built APK, `zipalign -f 4`, and re-sign with `credentials/release.keystore`. Follow-up: make release builds rebundle deterministically (e.g., wire `resetCache` into the Gradle bundle task) so this manual repack is unnecessary.
+- [x] **Corrected by Phase 1065:** this "stale bundle" was a **false positive**. Gradle passes `--reset-cache` and emits Hermes bytecode; the Phase 1062 local-mode string contains an em-dash (U+2014), so Hermes stores that literal as UTF-16LE and ASCII `grep` cannot see it. No workaround was ever needed.
 
 ## Phase 1064: Deterministic `pnpm build:apk`
 
 - [x] Added `scripts/build-apk.sh` + `pnpm build:apk`: builds the native APK, then **always** rebundles via `expo export:embed --reset-cache`, repacks `assets/index.android.bundle`, `zipalign`s, and re-signs with `credentials/release.keystore`. This sidesteps the Phase 1063 Gradle bundle-cache staleness entirely.
 - [x] Verified end-to-end: produces a signed, zipaligned `app-release-standalone.apk` (`com.app.stocktrackerpro` v5.16.0) whose bundle contains the current source (Phase 1062 local-mode copy) — confirmed with the API base unset. Documented in AGENTS.md.
+- [x] **Corrected by Phase 1065:** the rebundle/repack/re-sign workaround was removed — it replaced the correct 4.4 MB Hermes bytecode bundle with an 11 MB plain-JS one for a non-existent problem.
+
+## Phase 1065: Root-cause the "Gradle stale bundle" myth; drop the workaround
+
+- [x] The Phase 1063 "stale bundle" was a **false positive**: `:app:createBundleReleaseJsAndAssets` hardcodes `--reset-cache` (`BundleHermesCTask.kt:151`) and Hermes-compiles the bundle, while the Phase 1062 local-mode copy contains an em-dash (U+2014) so Hermes stores that string literal as **UTF-16LE** — invisible to ASCII `grep`/`strings`. The old ASCII-only fallback string is still in the source, so it greps fine, which made the new copy look absent.
+- [x] Proven by appending the ASCII-only token `ZZSENTINEL1065` to the ASCII fallback literal, running `:app:createBundleReleaseJsAndAssets --rerun-tasks`, and matching it in the fresh Hermes bundle (`grep=1`); the prior sentinel test had inserted the token into the em-dash string, so it too was UTF-16 and grepped as 0.
+- [x] Removed `scripts/build-apk.sh` and pointed `pnpm build:apk` at `cd android && ./gradlew assembleRelease`, which already bundles fresh with `--reset-cache` and writes `android/app/build/outputs/apk/release/app-release.apk` (signed, Hermes bytecode). AGENTS.md updated. `tsc 0`, lint 0; APK build verified.
