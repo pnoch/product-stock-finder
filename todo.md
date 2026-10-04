@@ -7868,3 +7868,8 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `use-connection` no longer polls `checkHealth` when no server is configured (`enabled: configured`) — no pointless outbound requests in local mode.
 - [x] `account-section` shows a read-only "Local mode" row instead of a non-functional "Sign in to sync" CTA when unconfigured; the Home connection badge is tappable to Settings in local mode.
 - [x] `tests/standalone-ux.test.ts` guards all four. Behavior-preserving for the configured path; `tsc 0`, lint 0, root `3178` / desktop `321` green.
+
+## Phase 1063: Standalone APK build (local-mode bundle) + bundler-cache gotcha
+
+- [x] Produced a standalone release APK (no backend baked): `android/app/build/outputs/apk/release/app-release-standalone.apk` — `com.app.stocktrackerpro` v5.16.0, release-signed (CN=Product Stock Finder), zipaligned, and containing the Phase 1062 local-mode UX.
+- [x] **Build gotcha:** Gradle's `:app:createBundleReleaseJsAndAssets` served a **stale JS bundle** (it reuses Metro's persisted file-map cache and does not pass `--reset-cache`), so source changes (and `EXPO_NO_DOTENV`/`EXPO_PUBLIC_*` changes) were not picked up — even with `--rerun-tasks`/`clean`/daemon stop. Reliable path used: `npx expo export:embed --platform android --dev false --reset-cache …` to a fresh bundle, then replace `assets/index.android.bundle` in the built APK, `zipalign -f 4`, and re-sign with `credentials/release.keystore`. Follow-up: make release builds rebundle deterministically (e.g., wire `resetCache` into the Gradle bundle task) so this manual repack is unnecessary.
