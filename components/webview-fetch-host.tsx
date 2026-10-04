@@ -13,6 +13,7 @@ const SETTLE_MS = 500;
 const MAX_QUEUE = 25;
 
 interface PendingRequest {
+  id: number;
   url: string;
   waitForSelector?: string;
   timeoutMs: number;
@@ -31,6 +32,7 @@ export function WebViewFetchHost() {
   const queueRef = useRef<PendingRequest[]>([]);
   const activeRef = useRef<PendingRequest | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nextIdRef = useRef(0);
 
   const pump = useCallback(() => {
     if (activeRef.current) return;
@@ -39,20 +41,19 @@ export function WebViewFetchHost() {
     activeRef.current = next;
     setActive(next);
     timerRef.current = setTimeout(() => {
-      const req = activeRef.current;
+      if (activeRef.current !== next) return;
       activeRef.current = null;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = null;
       setActive(null);
-      req?.reject(new Error("webview render timed out"));
+      next.reject(new Error("webview render timed out"));
       pump();
     }, next.timeoutMs);
   }, []);
 
   const finish = useCallback(
-    (html: string | null, error: Error | null) => {
-      const req = activeRef.current;
-      if (!req) return;
+    (req: PendingRequest, html: string | null, error: Error | null) => {
+      if (activeRef.current !== req) return;
       activeRef.current = null;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -73,6 +74,7 @@ export function WebViewFetchHost() {
             return;
           }
           queueRef.current.push({
+            id: nextIdRef.current++,
             url,
             waitForSelector: opts?.waitForSelector,
             timeoutMs: opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
@@ -100,26 +102,34 @@ export function WebViewFetchHost() {
 
   if (!active) return null;
 
+  const request = active;
+
   return (
     <View
       style={{ width: 0, height: 0, overflow: "hidden" }}
       pointerEvents="none"
     >
       <WebView
-        source={{ uri: active.url }}
+        key={request.id}
+        source={{ uri: request.url }}
         originWhitelist={["*"]}
         javaScriptEnabled
         injectedJavaScript={buildInjectedJS({
-          waitForSelector: active.waitForSelector,
-          timeoutMs: active.timeoutMs,
+          waitForSelector: request.waitForSelector,
+          timeoutMs: request.timeoutMs,
           settleMs: SETTLE_MS,
         })}
-        onMessage={(event) => finish(event.nativeEvent.data, null)}
+        onMessage={(event) => finish(request, event.nativeEvent.data, null)}
         onError={(event) =>
-          finish(null, new Error(event.nativeEvent.description || "webview error"))
+          finish(
+            request,
+            null,
+            new Error(event.nativeEvent.description || "webview error"),
+          )
         }
         onHttpError={(event) =>
           finish(
+            request,
             null,
             new Error(`webview HTTP ${event.nativeEvent.statusCode}`),
           )
