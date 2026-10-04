@@ -147,14 +147,19 @@ describe("WebViewFetchHost", () => {
     await expect(b).resolves.toBe("B");
   });
 
-  it("rejects when the WebView returns an HTTP error", async () => {
+  it("allows http(s) navigations and blocks non-web schemes", async () => {
     render(<WebViewFetchHost />);
-    const pending = getWebViewHost()!.load("https://http.test");
+    const pending = getWebViewHost()!.load("https://nav.test");
+    pending.catch(() => {});
     await act(async () => {});
-    act(() => {
-      wvProps.current.onHttpError({ nativeEvent: { statusCode: 503 } });
-    });
-    await expect(pending).rejects.toThrow("503");
+
+    const shouldLoad = wvProps.current.onShouldStartLoadWithRequest;
+    expect(shouldLoad({ url: "https://nav.test/page" })).toBe(true);
+    expect(shouldLoad({ url: "http://nav.test" })).toBe(true);
+    expect(shouldLoad({ url: "about:blank" })).toBe(true);
+    expect(shouldLoad({ url: "intent://scan/#Intent;scheme=zxing;end" })).toBe(false);
+    expect(shouldLoad({ url: "market://details?id=x" })).toBe(false);
+    expect(shouldLoad({ url: "tel:+123456" })).toBe(false);
   });
 
   it("rejects with BrowserUnavailableError once the queue is full", async () => {

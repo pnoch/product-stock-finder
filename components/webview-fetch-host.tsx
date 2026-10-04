@@ -129,13 +129,12 @@ export function WebViewFetchHost() {
             new Error(event.nativeEvent.description || "webview error"),
           )
         }
-        onHttpError={(event) =>
-          finish(
-            request,
-            null,
-            new Error(`webview HTTP ${event.nativeEvent.statusCode}`),
-          )
-        }
+        // Do NOT reject on HTTP error status: a Cloudflare challenge is served
+        // as 403 and the page then solves it and reloads, so rejecting here
+        // abandons the challenge before it completes (the node Playwright path
+        // likewise returns the body for resilient to classify). Only block
+        // non-web navigations (intent://, market://, tel:) from the hidden view.
+        onShouldStartLoadWithRequest={(req) => /^(https?:|about:)/i.test(req.url)}
       />
     </View>
   );
