@@ -304,18 +304,29 @@ export const sharedWatchlistsRouter = router({
       if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
       }
-      // Emails are stored normalised (lowercased) at signup, so match exactly
-      // and don't prefix-search (that would let an owner enumerate accounts).
-      const target = await getUserByEmail(input.email.trim().toLowerCase());
-      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "No account with that email" });
-      if (target.id === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "You already own this share" });
-      // Invitations are viewer-only: the `editor` role has no enforced
-      // capabilities, so offering it would imply powers that don't exist.
-      await db
-        .insert(sharedWatchlistMembers)
-        .values({ token: input.token, userId: target.id, role: "viewer" })
-        .onDuplicateKeyUpdate({ set: { role: "viewer" } });
-      return { invited: true, name: target.name ?? target.email ?? "member" } as const;
+      // Emails are stored normalised (lowercased) at signup, so match exactly.
+      // The response is deliberately non-enumerable: an unknown address returns
+      // the same `{ invited: true, name }` shape as a real invite (with `name`
+      // echoing the email) and stores nothing, so an authenticated owner cannot
+      // use this endpoint to discover which emails are registered. Inviting your
+      // own email is rejected — it only reveals your own account, which you know.
+      const normalizedEmail = input.email.trim().toLowerCase();
+      const target = await getUserByEmail(normalizedEmail);
+      if (target?.id === ctx.user.id) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "You already own this share" });
+      }
+      if (target) {
+        // Invitations are viewer-only: the `editor` role has no enforced
+        // capabilities, so offering it would imply powers that don't exist.
+        await db
+          .insert(sharedWatchlistMembers)
+          .values({ token: input.token, userId: target.id, role: "viewer" })
+          .onDuplicateKeyUpdate({ set: { role: "viewer" } });
+      }
+      return {
+        invited: true,
+        name: target?.name ?? target?.email ?? normalizedEmail,
+      } as const;
     }),
   removeMember: protectedProcedure
     .input(

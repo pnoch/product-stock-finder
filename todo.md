@@ -7995,3 +7995,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Flagged (product call):** `inviteByEmail` returns `NOT_FOUND "No account with that email"` for an unknown address — any authenticated user can use a share of their own to probe account existence (rate-limited, per-IP). Left as-is (changing it degrades the inviter's feedback).
 - [x] **Flagged (supply chain):** the release workflow uses floating action majors (`tauri-apps/tauri-action@v0`); pin to commit SHAs when convenient. `releaseDraft: true`, job-scoped `contents: write`, pubkey placeholder fails closed, no `dangerous*` transport flags.
 - [x] `pnpm verify` exit 0 — root `3225` / desktop `324` / cargo `82`; DB suite `21 files / 110 tests`; `tsc`/lint 0.
+
+## Phase 1082: Non-enumerable invite-by-email
+
+- [x] `inviteByEmail` no longer returns `NOT_FOUND "No account with that email"` for an unknown address (an authenticated owner could otherwise use their own share to probe which emails are registered — an account-existence oracle). It now returns the same `{ invited: true, name }` shape whether or not the account exists (`name` echoes the email when unknown) and only creates the membership when the account is found. Inviting your own email still returns `BAD_REQUEST` (reveals only the caller's own account).
+- [x] Updated the mock test (`tests/shared-watchlists.test.ts`) and the DB test (`tests/shared-watchlists-db.test.ts`, which also asserts no member is stored for an unknown email). Clients only use `res.name`, so no client change.
+- [x] DB suite `21 files / 110 tests`; `pnpm verify` exit 0 — root `3225` / desktop `324` / cargo `82`; `tsc`/lint 0.

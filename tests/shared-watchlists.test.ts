@@ -297,15 +297,16 @@ describe("sharedWatchlists router", () => {
     expect(mockedGetUserByEmail).toHaveBeenCalledWith("bob@example.com");
   });
 
-  it("inviteByEmail rejects an unknown email", async () => {
+  it("inviteByEmail is non-enumerable for an unknown email", async () => {
     mockedGetDb.mockResolvedValue(
       fakeDb({ sharedRows: [{ ownerId: 1, token: "tok123", expiresAt: null }] }) as never,
     );
     mockedGetUserByEmail.mockResolvedValue(null as never);
     const caller = appRouter.createCaller(createAuthedContext(1));
+    // Same success shape as a real invite, but nothing is stored — no oracle.
     await expect(
       caller.sharedWatchlists.inviteByEmail({ token: "tok123", email: "nobody@example.com" }),
-    ).rejects.toThrow(/No account/i);
+    ).resolves.toMatchObject({ invited: true, name: "nobody@example.com" });
   });
 
   it("inviteByEmail is owner-only", async () => {

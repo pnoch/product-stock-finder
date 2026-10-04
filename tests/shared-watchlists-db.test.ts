@@ -160,7 +160,7 @@ describe.skipIf(!runDbTests)("shared watchlists router (DB)", () => {
     });
   });
 
-  it("inviteByEmail rejects non-owners, unknown accounts, self, and expired shares", async () => {
+  it("inviteByEmail rejects non-owners and expired shares, and is non-enumerable", async () => {
     const owner = await seedUser("owner");
     const outsider = await seedUser("outsider");
     const member = await seedUser("member");
@@ -168,9 +168,6 @@ describe.skipIf(!runDbTests)("shared watchlists router (DB)", () => {
 
     await expect(outsider.caller.inviteByEmail({ token, email: member.email })).rejects.toMatchObject({
       code: "FORBIDDEN",
-    });
-    await expect(owner.caller.inviteByEmail({ token, email: "ghost@example.com" })).rejects.toMatchObject({
-      code: "NOT_FOUND",
     });
     await expect(owner.caller.inviteByEmail({ token, email: owner.email })).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -180,6 +177,13 @@ describe.skipIf(!runDbTests)("shared watchlists router (DB)", () => {
     await expect(owner.caller.inviteByEmail({ token: expired, email: member.email })).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
+
+    // Unknown account: the same success shape as a real invite, but nothing is
+    // stored — so an owner can't use it to discover which emails are registered.
+    const ghost = await owner.caller.inviteByEmail({ token, email: "ghost@example.com" });
+    expect(ghost).toMatchObject({ invited: true, name: "ghost@example.com" });
+    const roster = await owner.caller.members({ token });
+    expect(roster.members).toHaveLength(0);
   });
 
   it("removeMember requires ownership and removes the roster entry", async () => {
