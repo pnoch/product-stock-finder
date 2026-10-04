@@ -12,8 +12,30 @@ const env = {
 
 export const API_BASE_URL = env.apiBaseUrl;
 
+// A loopback API base (localhost / 127.0.0.1 / ::1 / the Android emulator alias)
+// only resolves in development — via `adb reverse` or the emulator. A release
+// build that baked one in (e.g. the dev `.env`) is effectively standalone:
+// treating it as configured made the app try, and fail, to reach the device's
+// own localhost instead of running local-only (prices from on-device scraping).
+function isLoopbackApiBase(url: string): boolean {
+  try {
+    const host = new URL(url).hostname;
+    return (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host === "10.0.2.2"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function getApiBaseUrl(): string {
-  if (API_BASE_URL) return API_BASE_URL.replace(/\/$/, "");
+  if (API_BASE_URL) {
+    if (!__DEV__ && isLoopbackApiBase(API_BASE_URL)) return "";
+    return API_BASE_URL.replace(/\/$/, "");
+  }
 
   if (
     ReactNative.Platform.OS === "web" &&

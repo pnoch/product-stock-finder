@@ -8069,3 +8069,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Drop calendar:** the window cutoff is now the oldest rendered calendar day's local midnight (matching `buildGridCells`), not `now - days*DAY_MS`, so an off-grid early drop can't inflate `totalDrops` and a DST transition can't diverge the two windows. Test added.
 - [x] **Touch targets:** `hitSlop` on the alerts "Restock Watches" button, the alerts tab switcher, the health filter chips, the Analysis export chip, and the restock-watches back/Remove controls.
 - [x] `pnpm verify` exit 0 — root `3246` / desktop `324` / cargo `82`; `tsc`/lint 0.
+
+## Phase 1091: Standalone Android — ignore a baked loopback API base
+
+- [x] A release build baked the dev `.env` `EXPO_PUBLIC_API_BASE_URL=http://localhost:3000`, and `isServerConfigured()` treated any non-empty URL as configured, so the on-device app tried (and failed) to reach its own localhost instead of running local-only. `getApiBaseUrl()` (`constants/oauth.ts`) now returns `""` in release when the baked base is loopback (`localhost` / `127.0.0.1` / `::1` / `10.0.2.2`); dev builds keep it (adb reverse / emulator). Test `tests/api-base-standalone.test.ts`; rebuilt the signed `app-release.apk`.
+- [x] Known by design: Android OTA is off — `expo.modules.updates.ENABLED=false` (no `updates` config) — so the app can't self-update; ship a new APK. Local builds also keep `versionCode 1`, so installing over an APK signed with a different key fails ("App not installed") — uninstall first, or switch to EAS-managed `versionCode`/EAS Update.
+- [x] `pnpm verify` exit 0 — root `3251` / desktop `324` / cargo `82`; `tsc`/lint 0.
