@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { WebView } from "react-native-webview";
+import { BrowserUnavailableError } from "@/lib/scrapers/resilient";
 import {
   buildInjectedJS,
   setWebViewHost,
@@ -46,7 +47,7 @@ export function WebViewFetchHost() {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = null;
       setActive(null);
-      next.reject(new Error("webview render timed out"));
+      next.reject(new BrowserUnavailableError("webview render timed out"));
       pump();
     }, next.timeoutMs);
   }, []);
@@ -70,7 +71,7 @@ export function WebViewFetchHost() {
       load(url: string, opts?: WebViewLoadOptions) {
         return new Promise<string>((resolve, reject) => {
           if (queueRef.current.length >= MAX_QUEUE) {
-            reject(new Error("webview queue full"));
+            reject(new BrowserUnavailableError("webview queue full"));
             return;
           }
           queueRef.current.push({
@@ -88,7 +89,7 @@ export function WebViewFetchHost() {
     setWebViewHost(host);
     return () => {
       setWebViewHost(null);
-      const err = new Error("webview host unmounted");
+      const err = new BrowserUnavailableError("webview host unmounted");
       for (const req of queueRef.current) req.reject(err);
       queueRef.current = [];
       if (activeRef.current) {
@@ -114,6 +115,7 @@ export function WebViewFetchHost() {
         source={{ uri: request.url }}
         originWhitelist={["*"]}
         javaScriptEnabled
+        androidLayerType="software"
         injectedJavaScript={buildInjectedJS({
           waitForSelector: request.waitForSelector,
           timeoutMs: request.timeoutMs,

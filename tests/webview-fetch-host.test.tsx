@@ -20,6 +20,7 @@ vi.mock("react-native", async () => {
 
 import { WebViewFetchHost } from "@/components/webview-fetch-host";
 import { getWebViewHost } from "@/lib/scrapers/webview-host";
+import { BrowserUnavailableError } from "@/lib/scrapers/resilient";
 
 describe("WebViewFetchHost", () => {
   beforeEach(() => {
@@ -83,6 +84,7 @@ describe("WebViewFetchHost", () => {
     const pending = getWebViewHost()!.load("https://x.test");
     await act(async () => {});
     unmount();
+    await expect(pending).rejects.toBeInstanceOf(BrowserUnavailableError);
     await expect(pending).rejects.toThrow();
     expect(getWebViewHost()).toBeNull();
   });
@@ -100,6 +102,7 @@ describe("WebViewFetchHost", () => {
     act(() => {
       vi.advanceTimersByTime(1000);
     });
+    await expect(pending).rejects.toBeInstanceOf(BrowserUnavailableError);
     await expect(pending).rejects.toThrow(/timed out/i);
   });
 
@@ -118,6 +121,7 @@ describe("WebViewFetchHost", () => {
       vi.advanceTimersByTime(1000);
     });
     await act(async () => {});
+    await expect(a).rejects.toBeInstanceOf(BrowserUnavailableError);
     await expect(a).rejects.toThrow(/timed out/i);
     expect(wvProps.current.source.uri).toBe("https://b.test");
 
@@ -151,5 +155,36 @@ describe("WebViewFetchHost", () => {
       wvProps.current.onHttpError({ nativeEvent: { statusCode: 503 } });
     });
     await expect(pending).rejects.toThrow("503");
+  });
+
+  it("rejects with BrowserUnavailableError once the queue is full", async () => {
+    render(<WebViewFetchHost />);
+    const host = getWebViewHost()!;
+
+    // 1 active + MAX_QUEUE (25) queued = 26 in flight; the 27th call is the
+    // first that finds the queue already at MAX_QUEUE and must reject.
+    const settled: boolean[] = [];
+    for (let i = 0; i < 26; i++) {
+      const p = host.load(`https://q${i}.test`);
+      settled.push(false);
+      p.then(
+        () => {
+          settled[i] = true;
+        },
+        () => {
+          settled[i] = true;
+        },
+      );
+    }
+    await act(async () => {});
+    expect(settled).toEqual(new Array(26).fill(false));
+
+    await expect(host.load("https://overflow.test")).rejects.toBeInstanceOf(
+      BrowserUnavailableError,
+    );
+    await expect(host.load("https://overflow2.test")).rejects.toThrow(
+      "queue full",
+    );
+    expect(settled).toEqual(new Array(26).fill(false));
   });
 });

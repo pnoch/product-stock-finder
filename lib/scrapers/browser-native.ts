@@ -4,7 +4,11 @@
 // (components/webview-fetch-host.tsx); this module only adapts the fetch call
 // to the same surface resilient.ts expects.
 import { BrowserUnavailableError } from "./resilient";
-import { requireWebViewHost, WEBVIEW_UNAVAILABLE_MESSAGE } from "./webview-host";
+import {
+  requireWebViewHost,
+  WEBVIEW_UNAVAILABLE_MESSAGE,
+  type WebViewLoadOptions,
+} from "./webview-host";
 
 export const browserPool = {
   async acquire(): Promise<never> {
@@ -20,7 +24,7 @@ export const browserPool = {
 
 export async function fetchWithBrowser(
   url: string,
-  options?: { waitForSelector?: string; timeoutMs?: number },
+  options?: WebViewLoadOptions,
 ): Promise<string> {
   return requireWebViewHost().load(url, options);
 }
