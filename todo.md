@@ -8001,3 +8001,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `inviteByEmail` no longer returns `NOT_FOUND "No account with that email"` for an unknown address (an authenticated owner could otherwise use their own share to probe which emails are registered — an account-existence oracle). It now returns the same `{ invited: true, name }` shape whether or not the account exists (`name` echoes the email when unknown) and only creates the membership when the account is found. Inviting your own email still returns `BAD_REQUEST` (reveals only the caller's own account).
 - [x] Updated the mock test (`tests/shared-watchlists.test.ts`) and the DB test (`tests/shared-watchlists-db.test.ts`, which also asserts no member is stored for an unknown email). Clients only use `res.name`, so no client change.
 - [x] DB suite `21 files / 110 tests`; `pnpm verify` exit 0 — root `3225` / desktop `324` / cargo `82`; `tsc`/lint 0.
+
+## Phase 1083: Release checkpoint — v5.17.0
+
+- [x] Bumped the version to `5.17.0` in lockstep across `package.json`, `app.config.ts`, `desktop/package.json`, `desktop/src-tauri/tauri.conf.json`, `Cargo.toml` and `Cargo.lock` (validated with `cargo check` — the lock diff is only the version line). Updated `docs/store-listing.md`.
+- [x] Added `CHANGELOG.md` for 5.17.0: auto-update + release workflow; desktop bundle split + lazy routes; the Gradle workaround removal; recharts→SVG; the desktop write-lock, cookie-jar and CSV fixes; and the share-roster / updater-downgrade / invite-enumeration security hardening.
+- [x] Added `tests/version-lockstep.test.ts` (guards every manifest against future drift and that the changelog documents the current version) and listed `CHANGELOG.md` in `AGENTS.md`.
+- [x] `pnpm verify` exit 0 — root `3228` / desktop `324` / cargo `82`; `tsc`/lint 0. Push a `v5.17.0` tag to trigger the release workflow.

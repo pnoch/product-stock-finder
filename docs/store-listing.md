@@ -10,7 +10,7 @@ Copy for App Store Connect and Google Play Console. Keep this in sync with
 | App name | Product Stock Finder |
 | iOS bundle id | `com.app.stocktrackerpro` |
 | Android package | `com.app.stocktrackerpro` |
-| Version | `5.16.0` (EAS `appVersionSource: remote` manages build numbers) |
+| Version | `5.17.0` (EAS `appVersionSource: remote` manages build numbers) |
 | Category | Utilities |
 | Price | Free |
 
