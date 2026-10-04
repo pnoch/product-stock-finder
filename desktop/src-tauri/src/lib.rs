@@ -2182,6 +2182,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let open_item = MenuItemBuilder::new("Open").id("open").build(app)?;
             let check_item = MenuItemBuilder::new("Check Now")

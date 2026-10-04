@@ -309,6 +309,9 @@ importers:
       '@tauri-apps/plugin-fs':
         specifier: ^2.5.1
         version: 2.5.1
+      '@tauri-apps/plugin-updater':
+        specifier: ^2.0.0
+        version: 2.13.1
       '@trpc/client':
         specifier: 11.19.0
         version: 11.19.0(@trpc/server@11.19.0(typescript@5.9.3))(typescript@5.9.3)
@@ -2275,11 +2278,17 @@ packages:
   '@tauri-apps/api@2.11.1':
     resolution: {integrity: sha512-M2FPuYND2m+wh5hfW9ZpSdxMPdEJovPBWwoHJmwUpysTYNHaOkVFN419m/K0LIgjb/7KU2vBgsUepJWugQCvAA==}
 
+  '@tauri-apps/api@2.12.1':
+    resolution: {integrity: sha512-DeyFHa3wynpyoqTDikDEDGTJIq4LQ5USfolQGRmGIWT6JMADyxZBTDa5cAdT3tDg73rUXufPaCwN7aXBos4OnQ==}
+
   '@tauri-apps/plugin-dialog@2.7.2':
     resolution: {integrity: sha512-pX0IGm1I3I6wc+zeKYcq1GSqogK6okCNX5fOdaNU5ab1AjGS6l1E5wFNjEb7meg7ZFSp0JUs+0jQGQNyOvLrsg==}
 
   '@tauri-apps/plugin-fs@2.5.1':
     resolution: {integrity: sha512-9Lz+Jopp6QyeEWhlpkMx4R/+P9HgR+AVAI4vOZhlT8Xaymtz8iVI/Ov984/XTqgJz/5gz5NretqPB/XEMS3NhQ==}
+
+  '@tauri-apps/plugin-updater@2.13.1':
+    resolution: {integrity: sha512-+STDzJ0sdQLImjc63zkv6Nncimqeo6jyCWoTQtbSwgGLNj1qbP9I6LC4p5R5ocBk3gNKAZs6i/AJz0jxysytiw==}
 
   '@testing-library/dom@10.4.1':
     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
@@ -8656,6 +8665,8 @@ snapshots:
 
   '@tauri-apps/api@2.11.1': {}
 
+  '@tauri-apps/api@2.12.1': {}
+
   '@tauri-apps/plugin-dialog@2.7.2':
     dependencies:
       '@tauri-apps/api': 2.11.1
@@ -8663,6 +8674,10 @@ snapshots:
   '@tauri-apps/plugin-fs@2.5.1':
     dependencies:
       '@tauri-apps/api': 2.11.1
+
+  '@tauri-apps/plugin-updater@2.13.1':
+    dependencies:
+      '@tauri-apps/api': 2.12.1
 
   '@testing-library/dom@10.4.1':
     dependencies:

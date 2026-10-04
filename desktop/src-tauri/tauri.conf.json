@@ -27,6 +27,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -39,5 +40,13 @@
     "category": "Utility",
     "shortDescription": "Track product availability and prices across distributors",
     "longDescription": "Product Stock Finder tracks product availability and prices across 25 global electronics distributors. Maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history."
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/pnoch/product-stock-finder/releases/latest/download/latest.json"
+      ],
+      "pubkey": "REPLACE_WITH_YOUR_TAURI_UPDATER_PUBLIC_KEY"
+    }
   }
 }
