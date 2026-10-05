@@ -27,6 +27,10 @@ export const browserPool = {
   },
 };
 
+export async function launchBrowser(): Promise<never> {
+  throw new BrowserUnavailableError(WEBVIEW_UNAVAILABLE_MESSAGE);
+}
+
 // The native overlay renderer is imported lazily so its react-native /
 // expo-modules-core dependency never enters the node/web module graph. The
 // import is started once, eagerly, at module load; a failure (module absent on

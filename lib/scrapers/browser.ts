@@ -96,6 +96,24 @@ class Mutex {
   }
 }
 
+const LAUNCH_ARGS = [
+  "--disable-blink-features=AutomationControlled",
+  "--disable-dev-shm-usage",
+  "--no-sandbox",
+  "--disable-web-security",
+  "--disable-features=IsolateOrigins,site-per-process",
+];
+
+// Prefer the host's real Chrome (its TLS/JA4 and version shape pass more
+// anti-bot gates than bundled Chromium); fall back when Chrome isn't installed.
+export async function launchBrowser(): Promise<Browser> {
+  try {
+    return await chromium.launch({ headless: true, channel: "chrome", args: LAUNCH_ARGS });
+  } catch {
+    return await chromium.launch({ headless: true, args: LAUNCH_ARGS });
+  }
+}
+
 class BrowserPool {
   private browsers: Browser[] = [];
   private checkedOut = 0;
@@ -128,16 +146,7 @@ class BrowserPool {
     });
     if (shouldLaunch) {
       try {
-        return await chromium.launch({
-          headless: true,
-          args: [
-            "--disable-blink-features=AutomationControlled",
-            "--disable-dev-shm-usage",
-            "--no-sandbox",
-            "--disable-web-security",
-            "--disable-features=IsolateOrigins,site-per-process",
-          ],
-        });
+        return await launchBrowser();
       } catch (error) {
         await this.mutex.runExclusive(async () => {
           this.checkedOut = Math.max(0, this.checkedOut - 1);

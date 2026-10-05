@@ -151,7 +151,11 @@ describe("BrowserPool launch + release failures", () => {
     // Empty the shared pool so acquire must launch rather than reuse.
     await browserPool.shutdown();
     const launchMock = vi.mocked(chromium.launch);
-    launchMock.mockRejectedValueOnce(new Error("boom"));
+    // Both the system-Chrome attempt and the bundled fallback must fail for the
+    // pool to surface the error (a single failure falls back to bundled).
+    launchMock
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockRejectedValueOnce(new Error("boom"));
     await expect(browserPool.acquire()).rejects.toThrow(
       "Failed to launch browser: boom",
     );

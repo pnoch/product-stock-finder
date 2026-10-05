@@ -12,6 +12,10 @@ export const browserPool = {
   },
 };
 
+export async function launchBrowser(): Promise<never> {
+  throw new BrowserUnavailableError("browser escalation unavailable on this platform");
+}
+
 export async function fetchWithBrowser(
   _url: string,
   _options?: { waitForSelector?: string; timeoutMs?: number },
