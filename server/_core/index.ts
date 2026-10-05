@@ -17,6 +17,7 @@ import {
 } from "../http-middleware";
 import { registerSpa, registerWellKnown } from "../spa";
 import { startWarmer } from "../prices";
+import { registerScrapingProvider } from "../scrapers/provider";
 import { closeDb } from "../db";
 import { assertServerEnv } from "../env-validation";
 
@@ -145,6 +146,7 @@ async function startServer() {
   });
 
   const stopWarmer = startWarmer();
+  registerScrapingProvider();
 
   const shutdown = async (signal: string) => {
     console.log(`[api] ${signal} received, shutting down`);
