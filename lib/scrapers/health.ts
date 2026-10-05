@@ -299,6 +299,7 @@ export type HealthService = {
   testAllDistributors(
     onProgress?: (current: number, total: number) => void,
   ): Promise<DistributorHealth[]>;
+  testDistributor(parserId: string): Promise<DistributorHealth | null>;
   getHealthHistory(): Promise<HealthHistory>;
   recordSample(
     distributorId: string,
@@ -395,6 +396,53 @@ export function createHealthService(adapter: StorageAdapter): HealthService {
     return run;
   }
 
+  async function probeParser(
+    parser: (typeof PARSERS)[number],
+    breakerStore: ReturnType<typeof createStorageBreakerStore>,
+  ): Promise<DistributorHealth> {
+    const start = Date.now();
+    try {
+      const model = getProbeModel(parser.id);
+      const { outcome } = await fetchAndParse(parser, model, breakerStore);
+      const { status, reason } = classifyProbeOutcome(outcome, parser);
+      return {
+        distributorId: parser.id,
+        status,
+        reason,
+        responseTimeMs: sanitizeResponseTimeMs(Date.now() - start),
+        lastChecked: new Date().toISOString(),
+      };
+    } catch (error) {
+      return {
+        distributorId: parser.id,
+        status: "error" as HealthStatus,
+        reason: error instanceof Error ? error.message : String(error),
+        responseTimeMs: sanitizeResponseTimeMs(Date.now() - start),
+        lastChecked: new Date().toISOString(),
+      };
+    }
+  }
+
+  async function testDistributor(
+    parserId: string,
+  ): Promise<DistributorHealth | null> {
+    const parser = PARSERS.find((p) => p.id === parserId);
+    if (!parser) return null;
+    const breakerStore = createStorageBreakerStore(adapter);
+    const result = await probeParser(parser, breakerStore);
+    const current = await getDistributorHealth();
+    const merged = current.filter((h) => h.distributorId !== parserId);
+    merged.push(result);
+    await saveDistributorHealth(merged);
+    await recordSample(
+      result.distributorId,
+      result.status,
+      result.reason,
+      result.responseTimeMs,
+    );
+    return result;
+  }
+
   async function testAllDistributorsInner(
     onProgress?: (current: number, total: number) => void,
   ): Promise<DistributorHealth[]> {
@@ -406,29 +454,7 @@ export function createHealthService(adapter: StorageAdapter): HealthService {
     for (let i = 0; i < total; i += CONCURRENCY) {
       const batch = PARSERS.slice(i, i + CONCURRENCY);
       const batchResults = await Promise.all(
-        batch.map(async (parser) => {
-          const start = Date.now();
-          try {
-            const model = getProbeModel(parser.id);
-            const { outcome } = await fetchAndParse(parser, model, breakerStore);
-            const { status, reason } = classifyProbeOutcome(outcome, parser);
-            return {
-              distributorId: parser.id,
-              status,
-              reason,
-              responseTimeMs: sanitizeResponseTimeMs(Date.now() - start),
-              lastChecked: new Date().toISOString(),
-            };
-          } catch (error) {
-            return {
-              distributorId: parser.id,
-              status: "error" as HealthStatus,
-              reason: error instanceof Error ? error.message : String(error),
-              responseTimeMs: sanitizeResponseTimeMs(Date.now() - start),
-              lastChecked: new Date().toISOString(),
-            };
-          }
-        }),
+        batch.map((parser) => probeParser(parser, breakerStore)),
       );
       results.push(...batchResults);
       onProgress?.(Math.min(i + CONCURRENCY, total), total);
@@ -445,6 +471,7 @@ export function createHealthService(adapter: StorageAdapter): HealthService {
     getDistributorHealth,
     saveDistributorHealth,
     testAllDistributors,
+    testDistributor,
     getHealthHistory,
     recordSample,
   };
