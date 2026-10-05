@@ -13,8 +13,35 @@ export type FetchStatus = "ok" | "blocked" | "error" | "skipped";
 export interface FetchOutcome {
   html?: string;
   status: FetchStatus;
-  method: "plain" | "browser" | "none";
+  method: "plain" | "browser" | "provider" | "none";
   error?: string;
+}
+
+export type ProviderFetcher = (url: string) => Promise<string | null>;
+let providerFetcher: ProviderFetcher | null = null;
+export function setProviderFetcher(fn: ProviderFetcher | null): void {
+  providerFetcher = fn;
+}
+export function getProviderFetcher(): ProviderFetcher | null {
+  return providerFetcher;
+}
+
+async function attemptProvider(opts: ResilientFetchOptions): Promise<FetchOutcome> {
+  const fetcher = providerFetcher;
+  if (!fetcher) return { status: "error", method: "none", error: "no provider" };
+  try {
+    const html = await fetcher(opts.url);
+    if (!html) return { status: "error", method: "provider", error: "provider returned nothing" };
+    const status = classifyFetchStatus(html);
+    if (status === "ok") return { html, status: "ok", method: "provider" };
+    return { status, method: "provider", error: "provider blocked" };
+  } catch (error) {
+    return {
+      status: "error",
+      method: "provider",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 export interface BreakerEntry {
@@ -475,6 +502,17 @@ async function runResilientFetch(
   }
 
   if (blockedOutcome) lastOutcome = blockedOutcome;
+
+  // A managed provider is the last resort for a genuine block, and only when
+  // one is registered (server-only). It is never tried on a plain success.
+  if (blockedOutcome && providerFetcher) {
+    const outcome = await attemptProvider(opts);
+    if (outcome.status === "ok") {
+      await recordSuccess(opts.state, opts.parser.id, now());
+      return outcome;
+    }
+    lastOutcome = outcome;
+  }
 
   const isBlocked = lastOutcome.status === "blocked";
   const next: BreakerEntry = {
