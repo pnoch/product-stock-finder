@@ -29,6 +29,7 @@ const SETTING_DEFAULTS: Record<string, unknown> = {
   alertWebhookUrl: "",
   shippingRegion: "Asia-Pacific",
   webNotificationsEnabled: false,
+  backgroundServiceEnabled: false,
   watchlistSort: "recent",
   watchlistGroup: "off",
 };
