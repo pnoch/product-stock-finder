@@ -142,6 +142,7 @@ export interface AppSettings {
   displayCurrency: string;
   checkInterval: "manual" | "hourly" | "daily";
   notificationsEnabled: boolean;
+  backgroundServiceEnabled?: boolean;
   stockAlerts: boolean;
   priceAlerts: boolean;
   healthAlerts: boolean;

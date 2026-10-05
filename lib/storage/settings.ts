@@ -22,6 +22,7 @@ export function createSettingsStorage(
     displayCurrency: "USD",
     checkInterval: "manual",
     notificationsEnabled: true,
+    backgroundServiceEnabled: false,
     stockAlerts: true,
     priceAlerts: true,
     healthAlerts: true,

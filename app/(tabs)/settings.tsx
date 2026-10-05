@@ -1,6 +1,6 @@
 import { log } from "@shared/log";
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, Platform, ActivityIndicator, TouchableOpacity, TextInput } from "react-native";
+import { ScrollView, Text, View, Platform, ActivityIndicator, TouchableOpacity, TextInput, Switch } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -24,6 +24,7 @@ import { showAlert } from "@/lib/alert";
 import { shareText } from "@/lib/share-text";
 import { sendTestNotification } from "@/lib/notifications";
 import { syncBackgroundTasks } from "@/lib/background-price-check";
+import { applyBackgroundServiceToggle } from "@/lib/background-service-toggle";
 
 import { ConnectionSection } from "@/components/settings/connection-section";
 import { AccountSection } from "@/components/settings/account-section";
@@ -38,6 +39,7 @@ import { LoginModal } from "@/components/settings/login-modal";
 import { PillPicker } from "@/components/settings/pill-picker";
 import { RadioPicker } from "@/components/settings/radio-picker";
 import { SectionHeader } from "@/components/settings/section-header";
+import { SettingRow } from "@/components/settings/setting-row";
 
 function SharedLinksList() {
   const colors = useColors();
@@ -445,6 +447,7 @@ export default function SettingsScreen() {
     displayCurrency: "USD",
     checkInterval: "manual",
     notificationsEnabled: true,
+    backgroundServiceEnabled: false,
     stockAlerts: true,
     priceAlerts: true,
     healthAlerts: true,
@@ -721,6 +724,44 @@ export default function SettingsScreen() {
           webNotificationHint={webNotificationHint}
           setWebNotificationHint={setWebNotificationHint}
         />
+
+        <SectionHeader title="Background Refresh" />
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: "hidden",
+          }}
+        >
+          <SettingRow
+            icon="arrow.clockwise"
+            label="Background refresh"
+            description="Keeps checking prices while the app is closed (shows a persistent notification)."
+            right={
+              <Switch
+                value={!!settings.backgroundServiceEnabled}
+                onValueChange={(v) => {
+                  void updateSetting("backgroundServiceEnabled", v);
+                  void applyBackgroundServiceToggle(v);
+                }}
+                trackColor={{
+                  false: colors.border,
+                  true: colors.primary + "88",
+                }}
+                thumbColor={
+                  settings.backgroundServiceEnabled
+                    ? colors.primary
+                    : colors.muted
+                }
+                accessibilityLabel="Enable background refresh"
+                accessibilityRole="switch"
+              />
+            }
+          />
+        </View>
 
         <SectionHeader title="Display" />
         <View
