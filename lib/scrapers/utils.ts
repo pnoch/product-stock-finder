@@ -6,6 +6,7 @@ import {
 } from "../background-safe-timers";
 import type { Cheerio } from "cheerio";
 import type { Element } from "domhandler";
+import { plainFetch } from "./plain-fetch";
 
 export const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
@@ -60,7 +61,7 @@ export async function fetchWithRateLimit(
   // Android backgrounded: every setTimeout freezes and politeness is moot
   // inside the short background budget — skip the delay entirely there.
   if (getBackgroundAppState() === "background") {
-    const response = await fetch(url, {
+    const response = await plainFetch(url, {
       headers: {
         "User-Agent": getRandomUserAgent(),
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -74,7 +75,7 @@ export async function fetchWithRateLimit(
     return response.text();
   }
   await backgroundSafeDelay(rateLimitMs);
-  const response = await fetch(url, {
+  const response = await plainFetch(url, {
     headers: {
       "User-Agent": getRandomUserAgent(),
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",

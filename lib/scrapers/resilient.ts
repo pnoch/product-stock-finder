@@ -5,6 +5,7 @@ import { DISTRIBUTOR_BREAKER_KEY, type StorageAdapter } from "../storage/adapter
 import { getRandomUserAgent } from "./utils";
 import { backgroundSafeDelay, getBackgroundAppState } from "../background-safe-timers";
 import { backgroundFetch } from "../background-fetch";
+import { plainFetch } from "./plain-fetch";
 import type { DistributorParser, ScrapeResult } from "./types";
 
 export type FetchStatus = "ok" | "blocked" | "error" | "skipped";
@@ -190,7 +191,7 @@ async function fetchPlain(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, {
+    const response = await plainFetch(url, {
       headers: {
         "User-Agent": getRandomUserAgent(),
         Accept:
