@@ -235,6 +235,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - DB-backed tests use `TEST_DATABASE_URL` + `RUN_DB_TESTS=1` (see `pnpm test`).
 - Desktop auto-update (`tauri-plugin-updater`): `bundle.createUpdaterArtifacts` is on, so `tauri build` needs `TAURI_SIGNING_PRIVATE_KEY` (and optional `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`). Put the matching public key in `desktop/src-tauri/tauri.conf.json` (`plugins.updater.pubkey`) and publish the release `latest.json` at the configured endpoint (the repo's GitHub Releases by default). `.github/workflows/release.yml` automates this on a `v*` tag (`tauri-apps/tauri-action` builds + signs + publishes the release and `latest.json`). `tauri dev` is unaffected; until the real pubkey is set, the in-app check reports a friendly error.
 - `scripts/load-env.js` loads env with system > `.env` priority.
+- Server browser scraping is **headless by default**. Set `PSF_BROWSER_HEADED=1` to launch headed — Cloudflare's gate keys on headed-ness (Winncom/B&H return 403 headless, 200 headed), so production sets it and runs under a virtual display (`xvfb-run -a pnpm start`, or a systemd unit with `Xvfb`). Server-only; mobile/web/desktop are unaffected.
 
 ## Before You Commit
 

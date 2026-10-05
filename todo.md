@@ -8173,3 +8173,14 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] The fetcher is **server-only** — mobile/web never register one, and `tests/scrapers/provider-guard.test.ts` pins every `SCRAPING_PROVIDER_*` read to `server/scrapers/provider.ts` across `lib/app/components/hooks/shared/server`.
 - [x] Tests: `provider-fallback`, `server-scraping-provider`, `provider-guard`. `pnpm verify` exit 0 — root `3324` / desktop `324` / cargo `82`.
 - [x] Note: the managed-provider gain is only measurable against **real blocked targets with a provider key** (not in CI); unconfigured it is inert, and it is the last rung after plain HTTP (`impit`) and the patchright/browser escalation.
+
+## Phase 1106: Headed browser path + Cloudflare-hard parser fixes
+
+- [x] **Root cause corrected by direct measurement:** the Cloudflare gate keys on **headed-ness**, not system-Chrome-vs-bundled (the Phase-1103 conclusion). Winncom + B&H: bundled headless 403, system-Chromium headless 403, `--headless=new` 403, **headed 200** (bundled or system). A headless UA override passes Winncom but not B&H.
+- [x] `launchBrowser()` (`lib/scrapers/browser.ts`) now reads `PSF_BROWSER_HEADED`; default stays headless (dev machines never pop windows), production sets `PSF_BROWSER_HEADED=1` under Xvfb. System-Chrome→bundled fallback preserved. Tests: headed-when-set, headless-when-unset.
+- [x] **B&H:** added `[data-selenium='miniProductPageProduct']` to `CARD_SELECTORS` (`lib/scrapers/utils.ts`) — the price sits 6 levels below the card, beyond the 4-level walk-up, so the model gate rejected it. Fixture nests it that deep, so the test is non-vacuous.
+- [x] **Winncom:** added `td:contains('Sale Price')` to the price selector — the price is a bare `<td>` marked by `.yourpricediscounted`, matching none of the configured selectors. `:contains()` (not `:has()`) because the desktop Rust engine supports the former only and the parity guard requires identical strings.
+- [x] **GoWiFi:** corrected `buildSearchUrl` to the VirtueMart endpoint (`/index.php?option=com_virtuemart&…&keyword=`) — the old `/search?q=` 404s. Verified `$419.00` → 419 NZD on first contact; the site then rate-limited repeated probes (403), so production success depends on request pacing.
+- [x] **Desktop parity:** synced the Rust parsers (`winncom.rs`, `gowifi.rs`, `mod.rs` `CARD_SELECTOR`) and added a Rust test proving the new B&H card + Winncom `:contains` selectors parse in the `scraper` crate (not silently skipped).
+- [x] Tests: `browser-launch` (+2), `bhphoto`/`winncom`/`gowifi` (+2 each), `desktop-scraper-parity` (green), Rust +1. `pnpm verify` exit 0 — root `3332` / desktop `324` / cargo `83`.
+- [x] Note: the live pass-rate gain is only measurable against real targets (not in CI); headed needs a display, so the server must run under Xvfb.
