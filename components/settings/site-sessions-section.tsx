@@ -10,7 +10,7 @@ import {
   clearSiteData,
   isAssistCandidate,
 } from "@/lib/scrapers/session-assist";
-import { getUnlocked } from "@/lib/scrapers/session-store";
+import { getUnlocked, markUnlocked } from "@/lib/scrapers/session-store";
 import { SessionAssistModal } from "@/components/session-assist-modal";
 
 const healthService = createHealthService(AsyncStorage);
@@ -165,8 +165,15 @@ export function SiteSessionsSection() {
           title={getDistributorById(assistId)?.name ?? assistId}
           onClose={() => setAssistId(null)}
           onDone={() => {
+            const id = assistId;
             setAssistId(null);
-            void load();
+            if (!id) return;
+            // Record the unlock and re-probe so the row shows Active/Expired.
+            void (async () => {
+              await markUnlocked(id);
+              await healthService.testDistributor(id).catch(() => {});
+              await load();
+            })();
           }}
         />
       )}
