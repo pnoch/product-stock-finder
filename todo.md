@@ -8142,3 +8142,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Hybrid dispatch** in `browser-native.ts`: the React host is used in the foreground; the native overlay renderer is used when `getBackgroundAppState() === "background"` (or no host). **Fixed a real bug found on-device:** dispatching on host presence alone kept using the throttled React host while backgrounded (the React tree stays mounted), so the dispatch now keys on app state. Verified on-device that the app creates its overlay window (`appop=SYSTEM_ALERT_WINDOW`) while backgrounded.
 - [x] Tests: `browser-native-overlay` dispatch (foreground host / backgrounded-with-host overlay / no-host overlay / failure), `foreground-service-module-guard` (permissions + overlay type + native extraction), hardening-plugin update. `pnpm verify` exit 0 — root `3308` / desktop `324` / cargo `82`.
 - [x] Remaining limit: **per-site parser coverage** (the ~9 no-price distributors).
+
+## Phase 1102: Per-site parser coverage
+
+- [x] Reconned the "no price found" distributors with the local Playwright path. **Fixed:** Linitx (`linitx-uk`) had no `useBrowser` config, so on-device it only tried plain HTTP (blocked by the storefront) even though it parses fine from the rendered DOM (791.99 verified); added `useBrowser` + `waitForSelector: ".price"` and aligned the Rust parser's wait selector for the desktop/mobile parity guard.
+- [x] **Not fixable (documented):** Winncom / B&H / GoWiFi are Cloudflare-blocked even for Playwright; ROC-NOC / HellasCom / Neobits are JS-driven with no usable search endpoint (recon found only cart/newsletter forms); MBS I-WAV's search returns no priced CRS326 row; Getic already parses locally (its device miss is anti-bot/timing).
+- [x] On-device: the probe now shows **working 9** (Aerial, Baltic, DuxTel, Inter Projekt, LinkTechs, MikroTik Store, MiRO, Server2U, WISP) with DuxTel/WISP recovering; Linitx remains challenged on the emulator (anti-bot, not a selector bug).
+- [x] `pnpm verify` exit 0 — root `3311` / desktop `324` / cargo `82`; arm APK rebuilt.
