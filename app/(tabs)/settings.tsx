@@ -33,6 +33,7 @@ import { NotificationsSection } from "@/components/settings/notifications-sectio
 import { ScraperStatusSection } from "@/components/settings/scraper-status-section";
 import { LlmSettingsSection } from "@/components/settings/llm-settings-section";
 import { AboutSection } from "@/components/settings/about-section";
+import { SiteSessionsSection } from "@/components/settings/site-sessions-section";
 import { LoginModal } from "@/components/settings/login-modal";
 import { PillPicker } from "@/components/settings/pill-picker";
 import { RadioPicker } from "@/components/settings/radio-picker";
@@ -817,6 +818,7 @@ export default function SettingsScreen() {
         </View>
 
         <AboutSection onDataCleared={reloadData} />
+        <SiteSessionsSection />
       </ScrollView>
 
       <LoginModal
