@@ -106,17 +106,20 @@ function parseSearchResults(html: string, model?: string): string | null {
 }
 
 function buildMikrotikSearchUrl(model: string): string {
-  return `https://mikrotik-store.eu/en/search?q=${encodeURIComponent(model)}`;
+  // Use the `www` host: the apex `https://mikrotik-store.eu/...` 302s to
+  // `http://www.mikrotik-store.eu/...` (cleartext), which Android's network
+  // security config blocks on-device (net::ERR_CLEARTEXT_NOT_PERMITTED).
+  return `https://www.mikrotik-store.eu/en/search?q=${encodeURIComponent(model)}`;
 }
 
 export const mikrotikstoreParser: DistributorParser = {
   id: "mikrotikstore-de",
-  baseUrl: "https://mikrotik-store.eu",
+  baseUrl: "https://www.mikrotik-store.eu",
   buildSearchUrl: buildMikrotikSearchUrl,
   parsePrice: (html, model, url) =>
     parseProductPage(
       html,
-      url ?? (model ? buildMikrotikSearchUrl(model) : "https://mikrotik-store.eu"),
+      url ?? (model ? buildMikrotikSearchUrl(model) : "https://www.mikrotik-store.eu"),
       model,
     ),
   // The search page is JS-rendered and ignores the query, so callers must hop

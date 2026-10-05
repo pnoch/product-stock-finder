@@ -16,13 +16,13 @@ vi.mock("../../lib/scrapers/utils", async (importOriginal) => {
 describe("MikroTik Store Parser", () => {
   it("should have correct parser config", () => {
     expect(mikrotikstoreParser.id).toBe("mikrotikstore-de");
-    expect(mikrotikstoreParser.baseUrl).toBe("https://mikrotik-store.eu");
+    expect(mikrotikstoreParser.baseUrl).toBe("https://www.mikrotik-store.eu");
     expect(mikrotikstoreParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = mikrotikstoreParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://mikrotik-store.eu/en/search?q=hAP%20ac3");
+    expect(url).toBe("https://www.mikrotik-store.eu/en/search?q=hAP%20ac3");
   });
 
   it("should return null for invalid HTML", () => {
@@ -105,7 +105,7 @@ describe("search result link extraction", () => {
     // Resolved against the search URL: a raw relative href makes fetch throw on
     // native and hit the app origin on web.
     expect(fetchMock).toHaveBeenLastCalledWith(
-      "https://mikrotik-store.eu/en/mikrotik-crs804-ddq",
+      "https://www.mikrotik-store.eu/en/mikrotik-crs804-ddq",
       expect.anything(),
     );
     fetchMock.mockReset();

@@ -8111,3 +8111,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] `WebViewFetchHost` runs a pool of **2** hidden WebViews instead of one serial renderer: each slot owns its own active request + timeout, FIFO assignment, and the stale-event guard is per-slot (a late event can't settle a request that reused the freed slot). A product's browser-only listings now render in pairs. Queue cap (25) and unmount cleanup unchanged.
 - [x] Rewrote `tests/webview-fetch-host.test.tsx` for concurrency (8 tests: two-at-once, slot reuse, stale event, timeout, nav guard, queue-full, unmount).
 - [x] `pnpm verify` exit 0 — root `3276` / desktop `324` / cargo `82`; APK rebuilt (43.4 MB).
+
+## Phase 1098: On-device (emulator) validation + MikroTik Store cleartext fix
+
+- [x] Installed the signed release APK on an Android 15 (x86_64) emulator, standalone (no backend), and ran the Health dashboard's Test All. **The hidden WebView renderer works on-device**: browser-only distributors **Aerial.net**, **MiRO Distribution** and **Link Technologies** report `working`, and chromium/`RNCWebViewClient` logs show real page loads.
+- [x] **Found + fixed:** MikroTik Store EU failed with `net::ERR_CLEARTEXT_NOT_PERMITTED` — the apex `https://mikrotik-store.eu/...` 302s to `http://www.mikrotik-store.eu/...`, which the Android network security config (Phase 1086) blocks. Switched the parser to the `www` host (no cleartext hop). Re-ran on-device: MikroTik Store EU → `working`; **working 9→10, error 10→9**.
+- [x] Remaining on-device gaps (per-site, not code bugs): 6 distributors still `blocked by site` (Cloudflare challenge not passed within the timeout) and 9 `error` (mostly `no price found` — page rendered but the parser didn't extract). Needs per-site selector/timeout tuning.
+- [x] `pnpm verify` exit 0 — root `3276` / desktop `324` / cargo `82`.
