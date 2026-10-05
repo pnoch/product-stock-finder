@@ -56,7 +56,7 @@ Add `[data-selenium='miniProductPageProduct']` to `CARD_SELECTORS`. It is B&H-sp
 
 ### 3. Winncom price selector — `lib/scrapers/winncom.ts`
 
-Add `td:has(.yourpricediscounted)` to the price selector list. It matches the one price cell (`$209.00Sale Price:Login` → 209) and its enclosing `<tr>` names the model, so the gate passes.
+Add `td:contains('Sale Price')` to the price selector list. It matches the one price cell (`$209.00Sale Price:Login` → 209) and its enclosing `<tr>` names the model, so the gate passes. `:contains()` is used rather than `:has()` because the desktop Rust engine (`scraper` crate) supports `:contains()` but not `:has()`, and `tests/desktop-scraper-parity.test.ts` requires the two selector strings to be identical.
 
 ### 4. GoWiFi search URL — `lib/scrapers/gowifi.ts`
 

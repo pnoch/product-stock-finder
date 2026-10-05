@@ -242,7 +242,7 @@ In `lib/scrapers/winncom.ts`, add the price-cell selector:
 ```ts
   const $price = findPriceElement(
     $,
-    ".product-price, [data-product-price], [data-price-container], .price, td:has(.yourpricediscounted)",
+    ".product-price, [data-product-price], [data-price-container], .price, td:contains('Sale Price')",
     model,
   );
 ```
