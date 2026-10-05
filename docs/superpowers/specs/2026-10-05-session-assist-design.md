@@ -15,7 +15,7 @@ Emulator evidence (Phase 1098): `working 9-10`, `blocked 6-8`, `error (no price)
 
 **Out of scope (YAGNI / follow-ups):**
 - Per-domain cookie clearing (v1 clears *all* cookies because the cookie API clears by domain is more invasive); fallback is to re-open each site.
-- `localStorage`/JS-state auth (cookies only carry between the assist and pooled WebViews); fallback is a per-distributor persistent WebView if a specific site needs it.
+- Exotic in-memory/`sessionStorage`-only auth. Android uses one WebView data directory per app, so non-incognito WebViews share both cookies (CookieManager) and DOM storage (`localStorage`/IndexedDB); only auth held purely in JS memory would not carry (fallback: a per-distributor persistent WebView).
 - Server-side use of the user's session (this is on-device only).
 - Auto-popup on block (manual action only).
 
@@ -89,7 +89,7 @@ testDistributor(parserId: string, onProgress?): Promise<DistributorHealth | null
 ## Risks & Mitigations
 
 - **Cloudflare may still re-challenge** even a real WebView; the action simply reappears. Acceptable.
-- **`localStorage`-based auth** won't carry to the pooled WebViews (cookies only). Mitigation: per-distributor persistent WebView (approach C) if a specific site needs it.
+- **Auth held only in JS memory** (not cookies or DOM storage) won't carry to the pooled WebViews. Mitigation: per-distributor persistent WebView (approach C) if a specific site needs it.
 - **Session lifetime** varies; expiry re-surfaces the action.
 - **Cookie clearing is global in v1** — documented; per-domain clear is a follow-up.
 

@@ -145,6 +145,15 @@ export function WebViewFetchHost() {
             source={{ uri: req.url }}
             originWhitelist={["*"]}
             javaScriptEnabled
+            // Share the assist modal's session. Android uses ONE WebView data
+            // directory per app, so non-incognito WebViews share the
+            // CookieManager (cookies) AND DOM storage (localStorage/IndexedDB);
+            // a distributor that keeps its login in localStorage still works
+            // after the user signs in via the assist. Explicit here so the
+            // sharing can't be lost silently.
+            domStorageEnabled
+            sharedCookiesEnabled
+            thirdPartyCookiesEnabled
             androidLayerType="software"
             injectedJavaScript={buildInjectedJS({
               waitForSelector: req.waitForSelector,

@@ -194,6 +194,19 @@ describe("WebViewFetchHost", () => {
     expect(shouldLoad({ url: "tel:+123456" })).toBe(false);
   });
 
+  it("shares session storage with the assist WebView", async () => {
+    render(<WebViewFetchHost />);
+    const pending = getWebViewHost()!.load("https://session.test");
+    pending.catch(() => {});
+    await act(async () => {});
+    const props = wvFor("https://session.test");
+    // DOM storage (localStorage) + cookies must be enabled so a session warmed
+    // in the visible assist modal is reused by the hidden fetch pool.
+    expect(props.domStorageEnabled).toBe(true);
+    expect(props.sharedCookiesEnabled).toBe(true);
+    expect(props.thirdPartyCookiesEnabled).toBe(true);
+  });
+
   it("rejects with BrowserUnavailableError once the queue is full", async () => {
     render(<WebViewFetchHost />);
     const host = getWebViewHost()!;
