@@ -463,7 +463,7 @@ git commit -m "feat(android): keep SYSTEM_ALERT_WINDOW for the overlay renderer"
 
 ### Task 4: Overlay grant flow in Settings
 
-**Files:** Modify `lib/background-service-toggle.ts` + `app/(tabs)/settings.tsx`; Test `tests/settings-background-service.test.ts` (extend)
+**Files:** Modify `lib/background-service-toggle.ts`; Test `tests/settings-background-service.test.ts` (extend)
 
 - [ ] **Step 1: Extend the test**
 
@@ -521,7 +521,7 @@ Expected: PASS, 0 type errors.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/background-service-toggle.ts "app/(tabs)/settings.tsx" tests/settings-background-service.test.ts
+git add lib/background-service-toggle.ts tests/settings-background-service.test.ts
 git commit -m "feat(settings): request overlay permission for background refresh"
 ```
 
@@ -562,9 +562,12 @@ Disable the toggle; confirm the notification disappears.
 
 **Files:** `todo.md`, `tests/foreground-service-module-guard.test.ts`
 
-- [ ] **Step 1: Extend the module guard**
+- [ ] **Step 1: Create the module guard**
 
-Add assertions that `modules/psf-webview-renderer/android/src/main/AndroidManifest.xml` declares `SYSTEM_ALERT_WINDOW` and `OverlayRenderer.kt` uses `TYPE_APPLICATION_OVERLAY`.
+Create `tests/foreground-service-module-guard.test.ts` asserting:
+- `modules/psf-webview-renderer/android/src/main/AndroidManifest.xml` declares `SYSTEM_ALERT_WINDOW`;
+- `modules/psf-webview-renderer/android/src/main/java/expo/modules/psfwebviewrenderer/OverlayRenderer.kt` uses `TYPE_APPLICATION_OVERLAY`;
+- `modules/psf-foreground-service/android/src/main/AndroidManifest.xml` declares `FOREGROUND_SERVICE_DATA_SYNC`.
 
 - [ ] **Step 2: Gate**
 
