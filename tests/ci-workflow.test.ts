@@ -32,9 +32,9 @@ describe("CI workflow", () => {
     expect(src).toContain("cargo clippy");
   });
 
-  it("installs the playwright browser before the web smoke test", async () => {
+  it("installs the patchright browser before the web smoke test", async () => {
     const src = await readFile(".github/workflows/ci.yml", "utf8");
-    const install = src.indexOf("playwright install");
+    const install = src.indexOf("patchright install");
     const smoke = src.indexOf("pnpm smoke:web");
     expect(install).toBeGreaterThan(-1);
     // The browser must be installed before smoke:web or chromium.launch() fails.
