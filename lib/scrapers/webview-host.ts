@@ -7,7 +7,10 @@ export interface WebViewLoadOptions {
 
 export interface WebViewHost {
   load(url: string, opts?: WebViewLoadOptions): Promise<string>;
+  clearStorage(url: string): Promise<void>;
 }
+
+export const STORAGE_CLEARED_SENTINEL = "__psf_storage_cleared__";
 
 export const WEBVIEW_UNAVAILABLE_MESSAGE =
   "on-device webview renderer unavailable";
@@ -25,6 +28,15 @@ export function getWebViewHost(): WebViewHost | null {
 export function requireWebViewHost(): WebViewHost {
   if (!host) throw new BrowserUnavailableError(WEBVIEW_UNAVAILABLE_MESSAGE);
   return host;
+}
+
+// Runs in the page to sign out of the origin's DOM storage, then posts a
+// sentinel the host resolves on.
+export function buildClearStorageJS(): string {
+  return `(function(){
+  try { localStorage.clear(); sessionStorage.clear(); } catch(e){}
+  window.ReactNativeWebView.postMessage(${JSON.stringify(STORAGE_CLEARED_SENTINEL)});
+})(); true;`;
 }
 
 // Runs in the page after it loads: best-effort dismiss a cookie/consent/age

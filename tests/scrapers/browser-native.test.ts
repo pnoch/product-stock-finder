@@ -14,7 +14,7 @@ describe("browser-native", () => {
 
   it("delegates to the mounted host with options", async () => {
     const load = vi.fn(async () => "<html>ok</html>");
-    setWebViewHost({ load });
+    setWebViewHost({ load, clearStorage: async () => {} });
     await expect(
       native.fetchWithBrowser("https://x", { waitForSelector: ".p", timeoutMs: 5000 }),
     ).resolves.toBe("<html>ok</html>");

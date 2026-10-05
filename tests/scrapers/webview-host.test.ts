@@ -17,7 +17,7 @@ describe("webview-host registry", () => {
 
   it("returns the registered host", async () => {
     const load = vi.fn(async () => "<html></html>");
-    setWebViewHost({ load });
+    setWebViewHost({ load, clearStorage: async () => {} });
     expect(getWebViewHost()).toBe(requireWebViewHost());
     await expect(requireWebViewHost().load("https://x")).resolves.toBe(
       "<html></html>",

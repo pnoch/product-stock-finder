@@ -194,6 +194,19 @@ describe("WebViewFetchHost", () => {
     expect(shouldLoad({ url: "tel:+123456" })).toBe(false);
   });
 
+  it("clears DOM storage via a clear job", async () => {
+    render(<WebViewFetchHost />);
+    const host = getWebViewHost()!;
+    const cleared = host.clearStorage("https://clear.test");
+    await act(async () => {});
+    const props = wvFor("https://clear.test");
+    expect(String(props.injectedJavaScript)).toContain("localStorage.clear()");
+    act(() => {
+      props.onMessage({ nativeEvent: { data: "__psf_storage_cleared__" } });
+    });
+    await expect(cleared).resolves.toBeUndefined();
+  });
+
   it("shares session storage with the assist WebView", async () => {
     render(<WebViewFetchHost />);
     const pending = getWebViewHost()!.load("https://session.test");

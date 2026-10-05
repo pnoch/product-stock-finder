@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { WebView } from "react-native-webview";
 import { BrowserUnavailableError } from "@/lib/scrapers/resilient";
 import {
+  buildClearStorageJS,
   buildInjectedJS,
   setWebViewHost,
   type WebViewHost,
@@ -20,6 +21,7 @@ const POOL_SIZE = 2;
 interface PendingRequest {
   id: number;
   url: string;
+  mode: "html" | "clear";
   waitForSelector?: string;
   timeoutMs: number;
   resolve: (html: string) => void;
@@ -95,24 +97,31 @@ export function WebViewFetchHost() {
     const queue = queueRef.current;
     const slots = slotsRef.current;
     const timers = timersRef.current;
-    const host: WebViewHost = {
-      load(url: string, opts?: WebViewLoadOptions) {
-        return new Promise<string>((resolve, reject) => {
-          if (queue.length >= MAX_QUEUE) {
-            reject(new BrowserUnavailableError("webview queue full"));
-            return;
-          }
-          queue.push({
-            id: nextIdRef.current++,
-            url,
-            waitForSelector: opts?.waitForSelector,
-            timeoutMs: opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-            resolve,
-            reject,
-          });
-          pump();
+    function enqueue(
+      url: string,
+      mode: "html" | "clear",
+      opts?: WebViewLoadOptions,
+    ): Promise<string> {
+      return new Promise<string>((resolve, reject) => {
+        if (queue.length >= MAX_QUEUE) {
+          reject(new BrowserUnavailableError("webview queue full"));
+          return;
+        }
+        queue.push({
+          id: nextIdRef.current++,
+          url,
+          mode,
+          waitForSelector: opts?.waitForSelector,
+          timeoutMs: opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+          resolve,
+          reject,
         });
-      },
+        pump();
+      });
+    }
+    const host: WebViewHost = {
+      load: (url, opts) => enqueue(url, "html", opts),
+      clearStorage: (url) => enqueue(url, "clear").then(() => undefined),
     };
     setWebViewHost(host);
     return () => {
@@ -155,11 +164,15 @@ export function WebViewFetchHost() {
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
             androidLayerType="software"
-            injectedJavaScript={buildInjectedJS({
-              waitForSelector: req.waitForSelector,
-              timeoutMs: req.timeoutMs,
-              settleMs: SETTLE_MS,
-            })}
+            injectedJavaScript={
+              req.mode === "clear"
+                ? buildClearStorageJS()
+                : buildInjectedJS({
+                    waitForSelector: req.waitForSelector,
+                    timeoutMs: req.timeoutMs,
+                    settleMs: SETTLE_MS,
+                  })
+            }
             onMessage={(event) => finish(slot, req, event.nativeEvent.data, null)}
             onError={(event) =>
               finish(

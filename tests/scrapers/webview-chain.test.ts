@@ -32,7 +32,7 @@ describe("native webview chain", () => {
 
   it("renders through the host and parses the price (browser-first parser)", async () => {
     const load = vi.fn(async () => RENDERED_HTML);
-    setWebViewHost({ load });
+    setWebViewHost({ load, clearStorage: async () => {} });
 
     const { result } = await fetchAndParse(
       pbtechParser,
@@ -69,6 +69,7 @@ describe("native webview chain", () => {
       load: vi.fn(
         async () => "<html><title>Just a moment...</title><body>Checking your browser</body></html>",
       ),
+      clearStorage: async () => {},
     });
     // The plain fallback is offline too, so the outcome is a miss not a price.
     vi.stubGlobal(
