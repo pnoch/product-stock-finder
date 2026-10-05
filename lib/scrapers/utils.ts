@@ -238,7 +238,7 @@ export function matchesModel(text: string, model: string): boolean {
 // price. Losing a parser that only marks its cards `.item` now yields a miss
 // rather than a wrong-product price, which is the intended trade-off.
 const CARD_SELECTORS =
-  "article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .product-card, .aerial-card, .ac-item";
+  "article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .product-card, .aerial-card, .ac-item, [data-selenium='miniProductPageProduct']";
 // Generic row containers, used only when no specific card is found (e.g. a
 // table where each product is its own <tr>).
 const ROW_SELECTORS = "tr, li";

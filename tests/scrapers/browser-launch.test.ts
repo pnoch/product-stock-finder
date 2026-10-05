@@ -29,4 +29,34 @@ describe("launchBrowser", () => {
     expect(launch).toHaveBeenCalledTimes(2);
     expect(launch.mock.calls[1][0]).not.toHaveProperty("channel");
   });
+
+  it("launches headed when PSF_BROWSER_HEADED=1", async () => {
+    const prev = process.env.PSF_BROWSER_HEADED;
+    process.env.PSF_BROWSER_HEADED = "1";
+    try {
+      const chrome = { isConnected: () => true };
+      launch.mockResolvedValueOnce(chrome);
+      await expect(launchBrowser()).resolves.toBe(chrome);
+      expect(launch.mock.calls[0][0]).toMatchObject({
+        headless: false,
+        channel: "chrome",
+      });
+    } finally {
+      if (prev === undefined) delete process.env.PSF_BROWSER_HEADED;
+      else process.env.PSF_BROWSER_HEADED = prev;
+    }
+  });
+
+  it("stays headless when PSF_BROWSER_HEADED is unset", async () => {
+    const prev = process.env.PSF_BROWSER_HEADED;
+    delete process.env.PSF_BROWSER_HEADED;
+    try {
+      const chrome = { isConnected: () => true };
+      launch.mockResolvedValueOnce(chrome);
+      await launchBrowser();
+      expect(launch.mock.calls[0][0]).toMatchObject({ headless: true });
+    } finally {
+      if (prev !== undefined) process.env.PSF_BROWSER_HEADED = prev;
+    }
+  });
 });

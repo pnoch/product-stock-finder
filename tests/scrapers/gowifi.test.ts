@@ -14,7 +14,9 @@ describe("Gowifi Parser", () => {
 
   it("should build correct search URL", () => {
     const url = gowifiParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://gowifi.co.nz/search?q=hAP%20ac3");
+    expect(url).toBe(
+      "https://www.gowifi.co.nz/index.php?option=com_virtuemart&view=category&search=true&limitstart=0&lang=en&virtuemart_category_id=0&keyword=hAP%20ac3",
+    );
   });
 
   it("should return null for 404 page fixture", () => {
@@ -68,5 +70,24 @@ describe("model verification", () => {
 
   it("ignores verification when no model is passed", () => {
     expect(gowifiParser.parsePrice(MISMATCH_HTML)?.price).toBe(480);
+  });
+});
+
+describe("GoWiFi VirtueMart search", () => {
+  it("builds the VirtueMart search URL", () => {
+    expect(gowifiParser.buildSearchUrl("CRS326")).toBe(
+      "https://www.gowifi.co.nz/index.php?option=com_virtuemart&view=category&search=true&limitstart=0&lang=en&virtuemart_category_id=0&keyword=CRS326",
+    );
+  });
+
+  it("extracts the price from the VirtueMart product card", () => {
+    const html = fs.readFileSync(
+      path.join(FIXTURES_DIR, "gowifi-nz-price.html"),
+      "utf-8",
+    );
+    const result = gowifiParser.parsePrice(html, "CRS326-24G-2S+RM");
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(419);
+    expect(result!.currency).toBe("NZD");
   });
 });

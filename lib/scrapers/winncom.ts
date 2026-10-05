@@ -22,7 +22,7 @@ function parseHtml(
   // (e.g. "CRS804-4DDQ-hRM" -> 804).
   const $price = findPriceElement(
     $,
-    ".product-price, [data-product-price], [data-price-container], .price",
+    ".product-price, [data-product-price], [data-price-container], .price, td:contains('Sale Price')",
     model,
   );
   if (!$price || $price.length === 0) return null;

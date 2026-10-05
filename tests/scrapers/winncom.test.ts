@@ -84,3 +84,24 @@ describe("model verification", () => {
     expect(result?.price).toBe(480);
   });
 });
+
+describe("Winncom current DOM (price cell)", () => {
+  it("extracts the price from the td holding the sale-price marker", () => {
+    const html = fs.readFileSync(
+      path.join(FIXTURES_DIR, "winncom-us-price.html"),
+      "utf-8",
+    );
+    const result = winncomParser.parsePrice(html, "CRS326-24G-2S+RM");
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(209);
+    expect(result!.currency).toBe("USD");
+  });
+
+  it("rejects the price when the row names a different model", () => {
+    const html = fs.readFileSync(
+      path.join(FIXTURES_DIR, "winncom-us-price.html"),
+      "utf-8",
+    );
+    expect(winncomParser.parsePrice(html, "CRS804-4DDQ-hRM")).toBeNull();
+  });
+});

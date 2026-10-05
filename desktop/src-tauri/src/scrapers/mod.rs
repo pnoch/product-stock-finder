@@ -351,7 +351,7 @@ pub fn text_mentions_model(text: &str, model: &str) -> bool {
 /// Preferred over the generic row selectors below: a single <tr>/<li> can wrap
 /// SEVERAL product cards (Aerial puts its whole results grid in one <tr>), in
 /// which case the row's text names every model and would validate any price.
-const CARD_SELECTOR: &str = "article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .product-card, .aerial-card, .ac-item";
+const CARD_SELECTOR: &str = "article, .product, .product-item, .productitem, .product-item-details, .product-item-info, .product-card, .aerial-card, .ac-item, [data-selenium='miniProductPageProduct']";
 /// Generic row containers, used only when no specific card is found.
 const ROW_SELECTOR: &str = "tr, li";
 
@@ -807,6 +807,52 @@ mod tests {
         .expect("contains selectors must work");
         assert_eq!(result.price, 480.0);
         assert_eq!(result.stock_status, "in_stock");
+    }
+
+    #[test]
+    fn parse_price_page_supports_the_bh_card_and_winncom_price_cell() {
+        // B&H's price sits deep inside `[data-selenium='miniProductPageProduct']`
+        // (beyond the 4-level walk-up), and Winncom's price is a bare `<td>`
+        // marked by `:contains('Sale Price')`. Both selectors must parse in the
+        // Rust engine, not silently fall back to a generic list.
+        let bh = r#"<html><body>
+          <div data-selenium="miniProductPageProduct">
+            <a data-selenium="miniProductPageProductNameLink" href="/c/product/1877198-REG/mikrotik_crs326_24g_2s_rm.html">MikroTik CRS326-24G-2S+RM</a>
+            <div data-selenium="miniProductPagePricingDealZone">
+              <div data-selenium="miniProductPageProductConversion">
+                <div class="pricesContainer_x6DXwdw1Fb">
+                  <div class="priceWrapper_x6DXwdw1Fb">
+                    <span data-selenium="uppedDecimalPriceFirst">$209</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div></body></html>"#;
+        let result = parse_price_page(
+            bh,
+            "https://www.bhphotovideo.com/c/search?q=CRS326",
+            "CRS326-24G-2S+RM",
+            "USD",
+            "[data-selenium='uppedDecimalPriceFirst'], .product-price, .price",
+            ".availability",
+        )
+        .expect("B&H card selector must reach the price");
+        assert_eq!(result.price, 209.0);
+
+        let winn = r#"<html><body><table><tr>
+          <td>CRS326-24G-2S+RM</td>
+          <td><a href="/login">$209.00</a><br><span class="yourpricediscounted">Sale Price:</span></td>
+        </tr></table></body></html>"#;
+        let result = parse_price_page(
+            winn,
+            "https://winncom.com/en/search?q=CRS326",
+            "CRS326-24G-2S+RM",
+            "USD",
+            ".product-price, [data-product-price], [data-price-container], .price, td:contains('Sale Price')",
+            ".stock",
+        )
+        .expect("Winncom price cell must parse");
+        assert_eq!(result.price, 209.0);
     }
 
     #[test]

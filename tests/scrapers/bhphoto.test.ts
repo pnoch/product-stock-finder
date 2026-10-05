@@ -71,3 +71,24 @@ describe("model verification", () => {
     expect(bhphotoParser.parsePrice(MISMATCH_HTML)?.price).toBe(480);
   });
 });
+
+describe("B&H current DOM (data-selenium)", () => {
+  it("extracts the price from the miniProductPage card", () => {
+    const html = fs.readFileSync(
+      path.join(FIXTURES_DIR, "bhphoto-us-price.html"),
+      "utf-8",
+    );
+    const result = bhphotoParser.parsePrice(html, "CRS326-24G-2S+RM");
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(209);
+    expect(result!.currency).toBe("USD");
+  });
+
+  it("rejects the price when the card names a different model", () => {
+    const html = fs.readFileSync(
+      path.join(FIXTURES_DIR, "bhphoto-us-price.html"),
+      "utf-8",
+    );
+    expect(bhphotoParser.parsePrice(html, "CRS804-4DDQ-hRM")).toBeNull();
+  });
+});
