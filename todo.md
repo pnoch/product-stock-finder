@@ -8149,3 +8149,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Not fixable (documented):** Winncom / B&H / GoWiFi are Cloudflare-blocked even for Playwright; ROC-NOC / HellasCom / Neobits are JS-driven with no usable search endpoint (recon found only cart/newsletter forms); MBS I-WAV's search returns no priced CRS326 row; Getic already parses locally (its device miss is anti-bot/timing).
 - [x] On-device: the probe now shows **working 9** (Aerial, Baltic, DuxTel, Inter Projekt, LinkTechs, MikroTik Store, MiRO, Server2U, WISP) with DuxTel/WISP recovering; Linitx remains challenged on the emulator (anti-bot, not a selector bug).
 - [x] `pnpm verify` exit 0 — root `3311` / desktop `324` / cargo `82`; arm APK rebuilt.
+
+## Phase 1103: Patchright + system Chrome for the server browser path
+
+- [x] Researched the 2026 anti-detect landscape (7 tools × 31 Cloudflare targets): the gate keys on **automation-protocol fingerprinting** (Playwright's CDP handshake) and the client's **TLS/JA4 shape**, not `navigator.*` patches. Patchright (a Playwright fork) scored 25/31 vs vanilla 24/31, and **`channel: "chrome"` (system Chrome) mattered more than the patches**.
+- [x] Swapped `playwright` → `patchright@1.63.0` (drop-in API) in `lib/scrapers/browser.ts` + `scripts/smoke-web.ts`; added `launchBrowser()` that tries `channel: "chrome"` and falls back to bundled Chromium (no hard host requirement); updated the web/native stubs for surface parity, the driver guard, and CI (`npx patchright install`).
+- [x] Tests: `browser-launch` (system-Chrome vs bundled fallback), updated driver guard + CI guard. `pnpm verify` exit 0 — root `3313` / desktop `324` / cargo `82`.
+- [x] Note: the live Cloudflare pass-rate gain is only measurable against real targets (not in CI); the hardest Turnstile sites still need a nodriver-class control plane or a managed scraping API.
