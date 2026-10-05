@@ -8164,3 +8164,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Routed the two plain call sites (`resilient.fetchPlain` — foreground branch only — and `utils.fetchWithRateLimit`) through `plainFetch`; the background XHR/browser paths are untouched.
 - [x] Tests: `plain-fetch` (impit on the server path, global fetch under test) + `impit-guard` (pins the import to `lib/scrapers/plain-fetch.ts` across `lib/app/components/hooks/shared`). `pnpm verify` exit 0 — root `3317` / desktop `324` / cargo `82`.
 - [x] Note: like the Phase-1103 browser swap, the TLS-gate gain is only measurable against **real targets** (not in CI); the plain-HTTP client is the cheap first rung before the Playwright/patchright escalation.
+
+## Phase 1105: Managed scraping-provider fallback (server-only)
+
+- [x] Added a `provider` last-resort method to `lib/scrapers/resilient.ts` (`setProviderFetcher`/`getProviderFetcher` injection hook + `attemptProvider`), tried **only after a genuine block** — a plain/browser miss or error never escalates, and the provider's own HTML is re-classified so a blocked provider response isn't accepted.
+- [x] Added `server/scrapers/provider.ts` (`registerScrapingProvider`), configured entirely by env: `SCRAPING_PROVIDER_URL` (template containing `{url}`), optional `SCRAPING_PROVIDER_API_KEY` and `SCRAPING_PROVIDER_KEY_HEADER` (default `Authorization: Bearer`). Unset URL registers nothing, so the method is a no-op.
+- [x] **Spend-gated:** each call consumes the new `scraping.provider` budget (`server/spend-budget.ts`, default 100/hour); over budget returns `null` rather than firing. Registered at boot in `server/_core/index.ts`.
+- [x] The fetcher is **server-only** — mobile/web never register one, and `tests/scrapers/provider-guard.test.ts` pins every `SCRAPING_PROVIDER_*` read to `server/scrapers/provider.ts` across `lib/app/components/hooks/shared/server`.
+- [x] Tests: `provider-fallback`, `server-scraping-provider`, `provider-guard`. `pnpm verify` exit 0 — root `3324` / desktop `324` / cargo `82`.
+- [x] Note: the managed-provider gain is only measurable against **real blocked targets with a provider key** (not in CI); unconfigured it is inert, and it is the last rung after plain HTTP (`impit`) and the patchright/browser escalation.
