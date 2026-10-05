@@ -8156,3 +8156,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Swapped `playwright` → `patchright@1.63.0` (drop-in API) in `lib/scrapers/browser.ts` + `scripts/smoke-web.ts`; added `launchBrowser()` that tries `channel: "chrome"` and falls back to bundled Chromium (no hard host requirement); updated the web/native stubs for surface parity, the driver guard, and CI (`npx patchright install`).
 - [x] Tests: `browser-launch` (system-Chrome vs bundled fallback), updated driver guard + CI guard. `pnpm verify` exit 0 — root `3313` / desktop `324` / cargo `82`.
 - [x] Note: the live Cloudflare pass-rate gain is only measurable against real targets (not in CI); the hardest Turnstile sites still need a nodriver-class control plane or a managed scraping API.
+
+## Phase 1104: `impit` server-only plain-HTTP client
+
+- [x] Added `impit@0.14.5` (native curl-impersonate binding) and `lib/scrapers/plain-fetch.ts`: the server fetches plain HTTP with a **Chrome-shaped TLS/JA4 fingerprint**, lazily importing `impit` so it never enters the mobile/web bundle or the node test transform.
+- [x] **Server/mobile gate:** `plainFetch` uses `impit` only when `typeof window === "undefined"` and neither `NODE_ENV === "test"` nor `VITEST` is set — mobile, web, and tests keep the global `fetch` (the RN path and the fetch-stubbing suite are unchanged), and a missing/unsupported `impit` falls back to `fetch`.
+- [x] Routed the two plain call sites (`resilient.fetchPlain` — foreground branch only — and `utils.fetchWithRateLimit`) through `plainFetch`; the background XHR/browser paths are untouched.
+- [x] Tests: `plain-fetch` (impit on the server path, global fetch under test) + `impit-guard` (pins the import to `lib/scrapers/plain-fetch.ts` across `lib/app/components/hooks/shared`). `pnpm verify` exit 0 — root `3317` / desktop `324` / cargo `82`.
+- [x] Note: like the Phase-1103 browser swap, the TLS-gate gain is only measurable against **real targets** (not in CI); the plain-HTTP client is the cheap first rung before the Playwright/patchright escalation.
