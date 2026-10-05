@@ -43,6 +43,12 @@ export const linitxParser: DistributorParser = {
     `https://linitx.com/search.php?keywords=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) => parseHtml(html, url ?? "https://linitx.com", model),
   rateLimitMs: 3000,
+  // The storefront blocks plain HTTP and its results are JS-rendered; it parses
+  // fine from the rendered DOM (verified), so render it in the browser.
+  useBrowser: true,
+  browserOptions: {
+    waitForSelector: ".price",
+  },
 };
 
 export async function scrapeLinitx(

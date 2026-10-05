@@ -7,13 +7,7 @@ pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, Stri
         urlencoding::encode(model)
     );
     let html = if use_browser {
-        match fetch_with_browser(
-            &url,
-            Some(".product__price, .price--main, .price"),
-            Some(30000),
-        )
-        .await
-        {
+        match fetch_with_browser(&url, Some(".price"), Some(30000)).await {
             Ok(html) => html,
             Err(_) => fetch_html(&url, 3000)
                 .await
