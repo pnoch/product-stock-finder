@@ -3,7 +3,7 @@ use crate::scrapers::browser::fetch_with_browser;
 
 pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, String> {
     let url = format!(
-        "https://gowifi.co.nz/search?q={}",
+        "https://www.gowifi.co.nz/index.php?option=com_virtuemart&view=category&search=true&limitstart=0&lang=en&virtuemart_category_id=0&keyword={}",
         urlencoding::encode(model)
     );
     // Browser-first with a plain fallback (mirrors mobile's resilient.ts
