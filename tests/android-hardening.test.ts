@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 // Guards the Android hardening config plugin (release-only concerns):
-// - RN's dev-overlay SYSTEM_ALERT_WINDOW must not leak into release.
+// - SYSTEM_ALERT_WINDOW must survive for the native overlay renderer.
 // - expo-file-system's legacy storage permissions must be SDK-scoped.
 // - adb/cloud backup must be off.
 import hardeningPlugin from "../plugins/with-android-hardening.js";
@@ -24,7 +24,7 @@ async function runMod(manifest: Manifest) {
 const perm = (name: string): Permission => ({ $: { "android:name": name } });
 
 describe("with-android-hardening", () => {
-  it("removes SYSTEM_ALERT_WINDOW and leaves other permissions", async () => {
+  it("keeps SYSTEM_ALERT_WINDOW (needed by the overlay renderer)", async () => {
     const manifest = await runMod({
       application: [{ $: {} }],
       "uses-permission": [
@@ -33,7 +33,7 @@ describe("with-android-hardening", () => {
       ],
     });
     const names = manifest["uses-permission"]!.map((p) => p.$["android:name"]);
-    expect(names).not.toContain("android.permission.SYSTEM_ALERT_WINDOW");
+    expect(names).toContain("android.permission.SYSTEM_ALERT_WINDOW");
     expect(names).toContain("android.permission.POST_NOTIFICATIONS");
   });
 

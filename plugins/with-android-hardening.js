@@ -3,15 +3,15 @@ const { withAndroidManifest } = require("@expo/config-plugins");
 // Release hardening the libraries don't provide by default. Re-applied on every
 // `expo prebuild` because `android/` is gitignored.
 //
-// - SYSTEM_ALERT_WINDOW ("draw over other apps"): React Native's dev overlay
-//   declares it and it leaks into the merged RELEASE manifest, where Play flags
-//   it as a sensitive permission. Remove it.
+// - SYSTEM_ALERT_WINDOW is now REQUIRED by the native overlay renderer
+//   (modules/psf-webview-renderer) for background price refresh, so it is no
+//   longer removed. The overlay is 1x1, non-focusable, non-touchable.
 // - READ/WRITE_EXTERNAL_STORAGE: legacy permissions pulled in by
 //   expo-file-system. Play wants them scoped to the SDK floor that still uses
 //   them, so set `android:maxSdkVersion` (WRITE is a no-op since Android 11).
 // - allowBackup: off, so adb/cloud backup cannot extract local data or the
 //   keystore-encrypted auth blob from a device.
-const REMOVED_PERMISSIONS = ["android.permission.SYSTEM_ALERT_WINDOW"];
+const REMOVED_PERMISSIONS = [];
 const SCOPED_PERMISSIONS = [
   { name: "android.permission.READ_EXTERNAL_STORAGE", maxSdkVersion: "32" },
   { name: "android.permission.WRITE_EXTERNAL_STORAGE", maxSdkVersion: "28" },
