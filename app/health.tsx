@@ -6,6 +6,7 @@ import {
   Text,
   View,
   TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Platform,
 } from "react-native";
@@ -29,6 +30,9 @@ import { getDistributorById } from "@shared/distributors";
 import { classifyFetchStatus } from "@/lib/scrapers/resilient";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
+import { SessionAssistModal } from "@/components/session-assist-modal";
+import { isAssistCandidate } from "@/lib/scrapers/session-assist";
+import { PARSERS } from "@/lib/scrapers/registry";
 
 const healthService = createHealthService(AsyncStorage);
 
@@ -82,6 +86,7 @@ export default function HealthScreen() {
   const [testing, setTesting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stats, setStats] = useState<Record<string, HealthStats>>({});
+  const [assistParserId, setAssistParserId] = useState<string | null>(null);
   const isMountedRef = useRef(true);
   useEffect(() => {
     return () => {
@@ -139,6 +144,25 @@ export default function HealthScreen() {
       if (isMountedRef.current) setTesting(false);
     }
   }, []);
+
+  const handleAssistDone = useCallback(async () => {
+    const parserId = assistParserId;
+    setAssistParserId(null);
+    if (!parserId) return;
+    try {
+      const result = await healthService.testDistributor(parserId);
+      if (!isMountedRef.current || !result) return;
+      setHealth((prev) => {
+        const next = prev.filter((h) => h.distributorId !== parserId);
+        next.push(result);
+        return next;
+      });
+      const history = await healthService.getHealthHistory();
+      if (isMountedRef.current) setStats(computeHealthStats(history));
+    } catch (e) {
+      log.error("[Health] re-probe after assist failed", e);
+    }
+  }, [assistParserId]);
 
   const counts = {
     working: health.filter((h) => h.status === "working").length,
@@ -351,6 +375,30 @@ export default function HealthScreen() {
                   </Text>
                 )}
               </View>
+              {isAssistCandidate(h.status, h.reason) && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Unlock ${distributor?.name ?? h.distributorId}`}
+                  hitSlop={8}
+                  onPress={() => {
+                    if (Platform.OS !== "web") {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }
+                    setAssistParserId(h.distributorId);
+                  }}
+                  style={{
+                    marginLeft: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 14,
+                    backgroundColor: colors.primary,
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>
+                    Unlock
+                  </Text>
+                </Pressable>
+              )}
             </TouchableOpacity>
           );
         })}
@@ -378,6 +426,16 @@ export default function HealthScreen() {
             />
           ) : null}
         </ScrollView>
+      )}
+
+      {assistParserId && (
+        <SessionAssistModal
+          visible
+          parser={PARSERS.find((p) => p.id === assistParserId)!}
+          title={getDistributorById(assistParserId)?.name ?? assistParserId}
+          onClose={() => setAssistParserId(null)}
+          onDone={() => void handleAssistDone()}
+        />
       )}
     </ScreenContainer>
   );
