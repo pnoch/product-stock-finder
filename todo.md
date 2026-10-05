@@ -8118,3 +8118,10 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Found + fixed:** MikroTik Store EU failed with `net::ERR_CLEARTEXT_NOT_PERMITTED` — the apex `https://mikrotik-store.eu/...` 302s to `http://www.mikrotik-store.eu/...`, which the Android network security config (Phase 1086) blocks. Switched the parser to the `www` host (no cleartext hop). Re-ran on-device: MikroTik Store EU → `working`; **working 9→10, error 10→9**.
 - [x] Remaining on-device gaps (per-site, not code bugs): 6 distributors still `blocked by site` (Cloudflare challenge not passed within the timeout) and 9 `error` (mostly `no price found` — page rendered but the parser didn't extract). Needs per-site selector/timeout tuning.
 - [x] `pnpm verify` exit 0 — root `3276` / desktop `324` / cargo `82`.
+
+## Phase 1099: On-device session assist ("Unlock this site")
+
+- [x] Added a user-driven session assist: a visible `WebView` (`components/session-assist-modal.tsx`, safe-area-inset header) opens a distributor's own site so the user can solve a Cloudflare challenge and/or sign in; `lib/scrapers/session-assist.ts` provides `distributorHost` / `assistUrl` / `isAssistCandidate` / `clearSiteData`; `HealthService.testDistributor` re-probes one distributor after Done; the Health dashboard shows an **Unlock** action on `blocked`/`no-price` rows; Settings → **Site sessions** explains and clears sessions.
+- [x] Session **reuse needs no cookie code** — the assist modal and the hidden fetch pool are both non-incognito, so they share Android's system CookieManager (persists across restarts). **Clearing** adds `@react-native-cookies/cookies` (dynamic import, best-effort).
+- [x] Verified on-device (emulator): Unlock appears on blocked/no-price rows; the modal opens the distributor site; and — after fixing a status-bar overlap that swallowed taps — **Done closes the modal and re-probes**. Full gate green (root `3287` / desktop `324` / cargo `82`); arm APK rebuilt.
+- [x] Limitations (v1): cookies only (not `localStorage` auth); clearing is global; Cloudflare may still re-challenge.
