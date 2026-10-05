@@ -8125,3 +8125,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Session **reuse needs no cookie code** — the assist modal and the hidden fetch pool are both non-incognito, so they share Android's system CookieManager (persists across restarts). **Clearing** adds `@react-native-cookies/cookies` (dynamic import, best-effort).
 - [x] Verified on-device (emulator): Unlock appears on blocked/no-price rows; the modal opens the distributor site; and — after fixing a status-bar overlap that swallowed taps — **Done closes the modal and re-probes**. Full gate green (root `3287` / desktop `324` / cargo `82`); arm APK rebuilt.
 - [x] Limitations (v1): clearing is global; Cloudflare may still re-challenge. (`localStorage` auth **does** carry — Android shares one WebView data dir per app, so the assist and the hidden pool share cookies *and* DOM storage; the host now sets `domStorageEnabled`/`sharedCookiesEnabled` explicitly and a test guards it.)
+
+## Phase 1100: Session manager (per-domain clear + expiry)
+
+- [x] Added a persisted **unlocked set** (`lib/scrapers/session-store.ts`) recording which distributors the user has unlocked (intent, not inferred from cookies).
+- [x] Added **per-domain clear**: `clearDistributorSession(parser)` expires that domain's cookies via `@react-native-cookies/cookies` (its `clearByName` is iOS-only) and clears `localStorage`/`sessionStorage` through a new `clearStorage` job on the hidden WebView host (`WebViewHost.clearStorage` + `buildClearStorageJS`); global `clearSiteData()` now also clears every unlocked origin's DOM storage.
+- [x] Rewrote **Settings → Site sessions** as a manager: relevant distributors (unlocked or blocked/no-price) with an **Active / Expired — unlock again / None** hint, per-row **Unlock** + **Clear**, a **Show all 25** toggle, and **Clear all sessions**. Health and the manager both `markUnlocked` on assist Done.
+- [x] Verified on-device (emulator): the manager lists rows with Unlock/Clear, and unlocking PB Tech re-probes and shows **Expired — unlock again** (its session still fails the probe). Found + fixed a real gap: the manager's Done didn't record the unlock.
+- [x] Full gate green (root `3299` / desktop `324` / cargo `82`); arm APK rebuilt.
+- [x] Remaining limits (separate specs): **background rendering** (foreground service) and **per-site parser coverage**.
