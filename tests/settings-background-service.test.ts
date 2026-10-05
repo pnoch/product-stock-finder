@@ -7,6 +7,13 @@ vi.mock("@/lib/background-service", () => ({
   disableBackgroundService: () => disable(),
 }));
 
+const isOverlayGranted = vi.fn(async () => false);
+const requestOverlay = vi.fn(async () => {});
+vi.mock("@/modules/psf-webview-renderer", () => ({
+  isOverlayGranted: () => isOverlayGranted(),
+  requestOverlay: () => requestOverlay(),
+}));
+
 import { applyBackgroundServiceToggle } from "@/lib/background-service-toggle";
 
 describe("applyBackgroundServiceToggle", () => {
@@ -15,5 +22,12 @@ describe("applyBackgroundServiceToggle", () => {
     expect(enable).toHaveBeenCalledTimes(1);
     await applyBackgroundServiceToggle(false);
     expect(disable).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests the overlay permission when enabling without it", async () => {
+    isOverlayGranted.mockResolvedValueOnce(false);
+    requestOverlay.mockClear();
+    await applyBackgroundServiceToggle(true);
+    expect(requestOverlay).toHaveBeenCalledTimes(1);
   });
 });
