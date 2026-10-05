@@ -8134,3 +8134,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Verified on-device (emulator): the manager lists rows with Unlock/Clear, and unlocking PB Tech re-probes and shows **Expired — unlock again** (its session still fails the probe). Found + fixed a real gap: the manager's Done didn't record the unlock.
 - [x] Full gate green (root `3299` / desktop `324` / cargo `82`); arm APK rebuilt.
 - [x] Remaining limits (separate specs): **background rendering** (foreground service) and **per-site parser coverage**.
+
+## Phase 1101: Background refresh — foreground service + native overlay renderer
+
+- [x] Added a local Expo module `modules/psf-foreground-service/` (a `dataSync` foreground service + persistent notification with a Stop action) and a Settings **Background refresh** toggle. **Spike result:** the FGS keeps the process alive but the RN↔WebView bridge is throttled while backgrounded (`onShouldStartLoadWithRequest` times out), so the React hidden-WebView host cannot extract HTML in the background — coverage was unchanged.
+- [x] Added a second local module `modules/psf-webview-renderer/`: a native Kotlin `WebView` on a 1×1 `TYPE_APPLICATION_OVERLAY` window that extracts `document.documentElement.outerHTML` via native `evaluateJavascript` (no RN bridge), so it survives background throttling. `SYSTEM_ALERT_WINDOW` is restored (the Phase-1086 hardening no longer removes it); Settings requests the permission when enabling.
+- [x] **Hybrid dispatch** in `browser-native.ts`: the React host is used in the foreground; the native overlay renderer is used when `getBackgroundAppState() === "background"` (or no host). **Fixed a real bug found on-device:** dispatching on host presence alone kept using the throttled React host while backgrounded (the React tree stays mounted), so the dispatch now keys on app state. Verified on-device that the app creates its overlay window (`appop=SYSTEM_ALERT_WINDOW`) while backgrounded.
+- [x] Tests: `browser-native-overlay` dispatch (foreground host / backgrounded-with-host overlay / no-host overlay / failure), `foreground-service-module-guard` (permissions + overlay type + native extraction), hardening-plugin update. `pnpm verify` exit 0 — root `3308` / desktop `324` / cargo `82`.
+- [x] Remaining limit: **per-site parser coverage** (the ~9 no-price distributors).
