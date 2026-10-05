@@ -40,7 +40,7 @@ export const gowifiParser: DistributorParser = {
   id: "gowifi-nz",
   baseUrl: "https://gowifi.co.nz",
   buildSearchUrl: (model) =>
-    `https://gowifi.co.nz/search?q=${encodeURIComponent(model)}`,
+    `https://www.gowifi.co.nz/index.php?option=com_virtuemart&view=category&search=true&limitstart=0&lang=en&virtuemart_category_id=0&keyword=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) => parseHtml(html, url ?? "https://gowifi.co.nz", model),
   rateLimitMs: 3000,
   useBrowser: true,
