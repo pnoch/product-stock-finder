@@ -39,6 +39,7 @@ export const BUDGETS = {
   // The URL-scrape branch of products.parse is unauthenticated and unbillable,
   // so it needs a global ceiling of its own.
   "products.parseUrl": { name: "products.parseUrl", limit: envLimit("products.parseUrl", 600), windowMs: 60 * 60 * 1000 },
+  "scraping.provider": { name: "scraping.provider", limit: envLimit("scraping.provider", 100), windowMs: 60 * 60 * 1000 },
 } as const satisfies Record<string, BudgetSpec>;
 
 export type BudgetName = keyof typeof BUDGETS;
