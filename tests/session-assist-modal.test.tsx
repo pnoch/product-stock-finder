@@ -24,6 +24,9 @@ vi.mock("react-native", async () => {
 vi.mock("@/hooks/use-colors", () => ({
   useColors: () => ({ surface: "#fff", foreground: "#111", muted: "#888", border: "#ddd", primary: "#0F52BA" }),
 }));
+vi.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 
 import { SessionAssistModal } from "@/components/session-assist-modal";
 const parser = {

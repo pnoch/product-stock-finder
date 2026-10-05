@@ -145,7 +145,12 @@ describe("native browser module", () => {
     for (const root of roots) {
       for (const file of await listTsFiles(root)) {
         const rel = path.relative(path.resolve(__dirname, "../.."), file);
-        if (rel === "components/webview-fetch-host.tsx") continue;
+        // The two components allowed to use the WebView directly.
+        if (
+          rel === "components/webview-fetch-host.tsx" ||
+          rel === "components/session-assist-modal.tsx"
+        )
+          continue;
         const src = await readFile(file, "utf-8");
         if (/from\s+["']react-native-webview["']/.test(src)) offenders.push(rel);
       }

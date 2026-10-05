@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import type { DistributorParser } from "@/lib/scrapers/types";
 import { assistUrl } from "@/lib/scrapers/session-assist";
@@ -20,6 +21,7 @@ interface Props {
  */
 export function SessionAssistModal({ visible, parser, title, onClose, onDone }: Props) {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
 
   return (
@@ -30,9 +32,16 @@ export function SessionAssistModal({ visible, parser, title, onClose, onDone }: 
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: 12,
+            // Inset below the status bar, or the buttons sit under it and the
+            // system bar swallows taps on Close/Done.
+            paddingTop: insets.top + 12,
+            paddingBottom: 12,
+            paddingHorizontal: 12,
             borderBottomWidth: 1,
             borderBottomColor: colors.border,
+            backgroundColor: colors.surface,
+            zIndex: 1,
+            elevation: 1,
           }}
         >
           <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={12}>
@@ -52,6 +61,7 @@ export function SessionAssistModal({ visible, parser, title, onClose, onDone }: 
           </View>
         )}
         <WebView
+          style={{ flex: 1 }}
           source={{ uri: assistUrl(parser) }}
           originWhitelist={["https://*", "http://*"]}
           javaScriptEnabled
