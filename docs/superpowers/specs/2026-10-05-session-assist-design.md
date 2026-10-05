@@ -14,7 +14,7 @@ Emulator evidence (Phase 1098): `working 9-10`, `blocked 6-8`, `error (no price)
 **In scope:** a user-driven "unlock" flow that opens a visible on-device browser for one distributor, lets the user solve a challenge and/or log in, and reuses that session (cookies) for subsequent automated fetches. Contextual entry from Health; a Settings section to explain and clear.
 
 **Out of scope (YAGNI / follow-ups):**
-- Per-domain cookie clearing (needs `@react-native-cookies/cookies`); v1 clears *all* site data.
+- Per-domain cookie clearing (v1 clears *all* cookies because the cookie API clears by domain is more invasive); fallback is to re-open each site.
 - `localStorage`/JS-state auth (cookies only carry between the assist and pooled WebViews); fallback is a per-distributor persistent WebView if a specific site needs it.
 - Server-side use of the user's session (this is on-device only).
 - Auto-popup on block (manual action only).
@@ -29,8 +29,10 @@ The assist relies on **Android's system CookieManager** being shared between Web
 export function distributorHost(parser: DistributorParser): string;   // hostname of baseUrl
 export function assistUrl(parser: DistributorParser): string;         // parser.baseUrl
 export function isAssistCandidate(status: string | null | undefined, reason?: string | null): boolean; // blocked, or a no-price error
-export function clearSiteData(): Promise<void>;                       // WebView cache + cookies (best-effort)
+export function clearSiteData(): Promise<void>;                       // CookieManager.clearAll() + WebView cache (best-effort)
 ```
+
+Session **reuse** needs no library (the shared CookieManager). Session **clearing** uses `@react-native-cookies/cookies` (`CookieManager.clearAll()`); it is the only new runtime dependency, added for clearing.
 
 `isAssistCandidate` maps the health/probe status (`working | blocked | error`) plus its reason to the unlock action: `true` for `blocked`, and for `error` only when the reason indicates a price miss (`no price found`); `false` for `working`, unknown, or other errors.
 
@@ -95,4 +97,4 @@ testDistributor(parserId: string, onProgress?): Promise<DistributorHealth | null
 
 - On a device, a `blocked`/`no price` distributor can be opened visibly, the user completes the challenge/login, and after Done the distributor re-probes to `working` (or the product row shows a price) — with the session reused automatically on later fetches.
 - No session data leaves the device; Settings can clear it.
-- `pnpm verify` stays green; no new runtime dependency.
+- `pnpm verify` stays green; the only new runtime dependency is `@react-native-cookies/cookies` (for clearing).
