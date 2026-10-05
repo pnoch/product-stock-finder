@@ -32,6 +32,7 @@ import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SessionAssistModal } from "@/components/session-assist-modal";
 import { isAssistCandidate } from "@/lib/scrapers/session-assist";
+import { markUnlocked } from "@/lib/scrapers/session-store";
 import { PARSERS } from "@/lib/scrapers/registry";
 
 const healthService = createHealthService(AsyncStorage);
@@ -149,6 +150,7 @@ export default function HealthScreen() {
     const parserId = assistParserId;
     setAssistParserId(null);
     if (!parserId) return;
+    await markUnlocked(parserId);
     try {
       const result = await healthService.testDistributor(parserId);
       if (!isMountedRef.current || !result) return;

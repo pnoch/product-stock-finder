@@ -10,4 +10,8 @@ describe("health unlock action", () => {
     expect(src).toContain("testDistributor(");
     expect(src).toContain("Unlock ");
   });
+
+  it("marks the distributor unlocked when the assist completes", () => {
+    expect(src).toContain("markUnlocked(");
+  });
 });
