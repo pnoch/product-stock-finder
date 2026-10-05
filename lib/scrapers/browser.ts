@@ -106,11 +106,16 @@ const LAUNCH_ARGS = [
 
 // Prefer the host's real Chrome (its TLS/JA4 and version shape pass more
 // anti-bot gates than bundled Chromium); fall back when Chrome isn't installed.
+// Headed mode is an explicit opt-in: Cloudflare's gate keys on headed-ness, so
+// production sets PSF_BROWSER_HEADED=1 and runs under a virtual display
+// (Xvfb). Default stays headless so dev machines never pop windows.
 export async function launchBrowser(): Promise<Browser> {
+  const headless = process.env.PSF_BROWSER_HEADED !== "1";
+  const opts = { headless, args: LAUNCH_ARGS };
   try {
-    return await chromium.launch({ headless: true, channel: "chrome", args: LAUNCH_ARGS });
+    return await chromium.launch({ ...opts, channel: "chrome" });
   } catch {
-    return await chromium.launch({ headless: true, args: LAUNCH_ARGS });
+    return await chromium.launch(opts);
   }
 }
 
