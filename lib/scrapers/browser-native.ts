@@ -4,6 +4,7 @@
 // (components/webview-fetch-host.tsx); this module only adapts the fetch call
 // to the same surface resilient.ts expects.
 import { BrowserUnavailableError } from "./resilient";
+import { getBackgroundAppState } from "../background-safe-timers";
 import {
   getWebViewHost,
   WEBVIEW_UNAVAILABLE_MESSAGE,
@@ -44,9 +45,14 @@ export async function fetchWithBrowser(
   url: string,
   options?: WebViewLoadOptions,
 ): Promise<string> {
+  // Dispatch on app state, not host presence: when backgrounded the React tree
+  // is still mounted (so the host exists) but its JS bridge is throttled, so we
+  // must use the native overlay renderer instead.
   const host = getWebViewHost();
-  if (host) return host.load(url, options);
-  // Background: the RN bridge is throttled, so use the native overlay renderer.
+  if (getBackgroundAppState() !== "background" && host) {
+    return host.load(url, options);
+  }
+  // Background (or no host): use the native overlay renderer.
   if (!overlay) throw new BrowserUnavailableError(WEBVIEW_UNAVAILABLE_MESSAGE);
   try {
     return await overlay.renderOverlay(url, options);

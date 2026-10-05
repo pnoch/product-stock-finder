@@ -15,6 +15,11 @@ vi.mock("@/modules/psf-webview-renderer", () => ({
   renderOverlay: (...a: unknown[]) => renderOverlay(...(a as [])),
 }));
 
+let appState: "foreground" | "background" = "foreground";
+vi.mock("@/lib/background-safe-timers", () => ({
+  getBackgroundAppState: () => appState,
+}));
+
 import { fetchWithBrowser } from "@/lib/scrapers/browser-native";
 import { BrowserUnavailableError } from "@/lib/scrapers/resilient";
 
@@ -23,12 +28,20 @@ describe("browser-native hybrid dispatch", () => {
     load.mockClear();
     renderOverlay.mockClear();
     hostPresent = true;
+    appState = "foreground";
   });
 
   it("uses the React host when present (foreground)", async () => {
     await expect(fetchWithBrowser("https://x.test")).resolves.toBe("<html>react</html>");
     expect(load).toHaveBeenCalledTimes(1);
     expect(renderOverlay).not.toHaveBeenCalled();
+  });
+
+  it("uses the overlay renderer while backgrounded even though the host exists", async () => {
+    appState = "background";
+    await expect(fetchWithBrowser("https://x.test")).resolves.toBe("<html>overlay</html>");
+    expect(renderOverlay).toHaveBeenCalledTimes(1);
+    expect(load).not.toHaveBeenCalled();
   });
 
   it("uses the overlay renderer when the host is absent (background)", async () => {
