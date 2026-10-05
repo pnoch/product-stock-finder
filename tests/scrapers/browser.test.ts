@@ -22,7 +22,7 @@ const mockBrowser = {
   close: vi.fn(),
 };
 
-vi.mock("playwright", () => ({
+vi.mock("patchright", () => ({
   chromium: {
     launch: vi.fn().mockResolvedValue(mockBrowser),
   },
@@ -146,7 +146,7 @@ describe("BrowserPool launch + release failures", () => {
   });
 
   it("reports a launch failure and frees the reserved slot", async () => {
-    const { chromium } = await import("playwright");
+    const { chromium } = await import("patchright");
     const { browserPool } = await import("@/lib/scrapers/browser");
     // Empty the shared pool so acquire must launch rather than reuse.
     await browserPool.shutdown();

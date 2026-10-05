@@ -1,4 +1,4 @@
-import { chromium, Browser, BrowserContext } from "playwright";
+import { chromium, Browser, BrowserContext } from "patchright";
 import { chmod, mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { USER_AGENTS } from "./utils";

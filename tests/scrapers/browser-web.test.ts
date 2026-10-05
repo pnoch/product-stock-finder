@@ -91,8 +91,8 @@ describe("browser web stub", () => {
   });
 });
 
-describe("playwright web-bundle guard", () => {
-  it("only browser.ts statically imports playwright", async () => {
+describe("browser driver web-bundle guard", () => {
+  it("only browser.ts statically imports a browser driver, and it is patchright", async () => {
     const roots = [
       path.resolve(__dirname, "../../lib"),
       path.resolve(__dirname, "../../app"),
@@ -101,22 +101,24 @@ describe("playwright web-bundle guard", () => {
       path.resolve(__dirname, "../../shared"),
     ];
     const offenders: string[] = [];
+    let playwrightImports = 0;
     for (const root of roots) {
       for (const file of await listTsFiles(root)) {
-        const rel = path.relative(
-          path.resolve(__dirname, "../.."),
-          file,
-        );
-        if (rel === "lib/scrapers/browser.ts") continue;
+        const rel = path.relative(path.resolve(__dirname, "../.."), file);
         const src = await readFile(file, "utf-8");
+        if (/\bfrom\s+["']playwright["']/.test(src) || /\brequire\(\s*["']playwright["']\s*\)/.test(src)) {
+          playwrightImports++;
+        }
+        if (rel === "lib/scrapers/browser.ts") continue;
         if (
-          /\bfrom\s+["']playwright["']/.test(src) ||
-          /\brequire\(\s*["']playwright["']\s*\)/.test(src)
+          /\bfrom\s+["']patchright["']/.test(src) ||
+          /\brequire\(\s*["']patchright["']\s*\)/.test(src)
         ) {
           offenders.push(rel);
         }
       }
     }
+    expect(playwrightImports).toBe(0);
     expect(offenders).toEqual([]);
   });
 

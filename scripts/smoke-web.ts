@@ -5,7 +5,7 @@
 // (manifest link, manifest.json, sw.js, service-worker registration).
 //
 // Run after `pnpm build:web`. Usage: pnpm smoke:web
-import { chromium } from "playwright";
+import { chromium } from "patchright";
 import express from "express";
 import path from "node:path";
 import { existsSync } from "node:fs";
