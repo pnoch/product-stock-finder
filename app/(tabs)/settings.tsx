@@ -11,6 +11,7 @@ import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { useServerConfig } from "@/hooks/use-server-config";
 import { track } from "@/lib/telemetry";
 import {
@@ -738,27 +739,28 @@ export default function SettingsScreen() {
           }}
         >
           <Pressable
-            onPress={!isPro ? openPaywall : undefined}
-            disabled={isPro}
+            onPress={shouldEnforceFreeLimits() && !isPro ? openPaywall : undefined}
+            disabled={shouldEnforceFreeLimits() && !isPro}
             accessibilityLabel={
-              !isPro ? "Background refresh requires Pro. Tap to upgrade." : "Background refresh"
+              shouldEnforceFreeLimits() && !isPro
+                ? "Background refresh requires Pro. Tap to upgrade."
+                : "Background refresh"
             }
-            accessibilityRole={!isPro ? "button" : undefined}
+            accessibilityRole={shouldEnforceFreeLimits() && !isPro ? "button" : undefined}
           >
             <SettingRow
               icon="arrow.clockwise"
               label="Background refresh"
               description={
-                isPro
-                  ? "Keeps checking prices while the app is closed (shows a persistent notification)."
-                  : "Keeps checking prices while the app is closed (shows a persistent notification). (Pro)"
+                "Keeps checking prices while the app is closed (shows a persistent notification)." +
+                (shouldEnforceFreeLimits() && !isPro ? " (Pro)" : "")
               }
               right={
                 <Switch
-                  value={isPro && !!settings.backgroundServiceEnabled}
-                  disabled={!isPro}
+                  value={(!shouldEnforceFreeLimits() || isPro) && !!settings.backgroundServiceEnabled}
+                  disabled={shouldEnforceFreeLimits() && !isPro}
                   onValueChange={(v) => {
-                    if (!isPro) return;
+                    if (shouldEnforceFreeLimits() && !isPro) return;
                     void updateSetting("backgroundServiceEnabled", v);
                     void applyBackgroundServiceToggle(v);
                   }}

@@ -14,7 +14,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { addToWatchlist, getSettings, getWatchlist } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { canAddToWatchlist } from "@/lib/pro-features";
+import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { track } from "@/lib/telemetry";
 import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { normalizeSharedWatchlistProduct } from "@/lib/shared-watchlist";
@@ -128,8 +128,9 @@ export default function SharedWatchlistScreen() {
     let duplicates = 0;
     let limited = false;
     let count = (await getWatchlist()).length;
+    const enforce = shouldEnforceFreeLimits();
     for (const p of rawProducts) {
-      if (!canAddToWatchlist(count, isPro)) {
+      if (enforce && !canAddToWatchlist(count, isPro)) {
         limited = true;
         break;
       }

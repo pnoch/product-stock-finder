@@ -2,6 +2,8 @@
 // useful (5 products, manual refresh, standalone scraping); Pro unlocks the
 // continuous, server-backed experience.
 
+import { getEntitlementProvider } from "./entitlements";
+
 export const FREE_WATCHLIST_LIMIT = 5;
 
 export const PRO_FEATURES = [
@@ -23,4 +25,13 @@ export function isProFeature(feature: string): feature is ProFeature {
 export function canAddToWatchlist(currentCount: number, isPro: boolean): boolean {
   if (isPro) return true;
   return currentCount < FREE_WATCHLIST_LIMIT;
+}
+
+/**
+ * Whether the free-tier limits should be enforced at all. Without a billing
+ * provider there is nothing to upgrade to, so blocking users would be hostile;
+ * limits apply only once a provider can actually sell Pro.
+ */
+export function shouldEnforceFreeLimits(): boolean {
+  return getEntitlementProvider()?.purchase != null;
 }

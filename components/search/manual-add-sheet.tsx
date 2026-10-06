@@ -13,9 +13,13 @@ import {
 import * as Haptics from "expo-haptics";
 
 import { useColors } from "@/hooks/use-colors";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { showAlert } from "@/lib/alert";
-import { addToWatchlist, updateProductListings } from "@/lib/storage";
+import { addToWatchlist, getWatchlist, updateProductListings } from "@/lib/storage";
+import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
+import { track } from "@/lib/telemetry";
 import { DISCOVER_TIMEOUT_MS, manualAddProduct } from "@/lib/manual-add";
 import { fetchParsedProduct } from "@/lib/server-product-parse";
 import {
@@ -67,6 +71,8 @@ export function ManualAddSheet({
   onAdded?: () => void;
 }) {
   const colors = useColors();
+  const { isPro } = useEntitlements();
+  const [paywallVisible, setPaywallVisible] = useState(false);
   const [raw, setRaw] = useState(initialText ?? "");
   const [urlInput, setUrlInput] = useState("");
   const [urlParsing, setUrlParsing] = useState(false);
@@ -187,6 +193,14 @@ export function ManualAddSheet({
       );
       return;
     }
+    if (shouldEnforceFreeLimits()) {
+      const count = (await getWatchlist().catch(() => [])).length;
+      if (!canAddToWatchlist(count, isPro)) {
+        track("paywall_shown");
+        setPaywallVisible(true);
+        return;
+      }
+    }
 
     setAdding(true);
     let active = true;
@@ -246,6 +260,7 @@ export function ManualAddSheet({
     draft.modelNumber.trim().length > 0;
 
   return (
+    <>
     <Modal
       visible={visible}
       transparent
@@ -546,5 +561,10 @@ export function ManualAddSheet({
       </View>
       </KeyboardAvoidingView>
     </Modal>
+    <PaywallScreen
+      visible={paywallVisible}
+      onClose={() => setPaywallVisible(false)}
+    />
+    </>
   );
 }

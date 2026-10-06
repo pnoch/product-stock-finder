@@ -22,7 +22,7 @@ import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { canAddToWatchlist } from "@/lib/pro-features";
+import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { track } from "@/lib/telemetry";
 import { searchCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
 import { PREVIEW_LIMIT, sortPreviewByStock } from "@/lib/search-preview";
@@ -219,7 +219,7 @@ export default function SearchScreen() {
         // "Added to watchlist" and then showed "Product not found" (desktop
         // already adds explicitly).
         const discoverCount = (await getWatchlist()).length;
-        if (!canAddToWatchlist(discoverCount, isPro)) {
+        if (shouldEnforceFreeLimits() && !canAddToWatchlist(discoverCount, isPro)) {
           track("paywall_shown");
           setPaywallVisible(true);
           return;
@@ -397,7 +397,7 @@ export default function SearchScreen() {
         return;
       }
       const count = (await getWatchlist()).length;
-      if (!canAddToWatchlist(count, isPro)) {
+      if (shouldEnforceFreeLimits() && !canAddToWatchlist(count, isPro)) {
         track("paywall_shown");
         setPaywallVisible(true);
         return;

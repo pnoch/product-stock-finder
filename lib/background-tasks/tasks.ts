@@ -3,6 +3,7 @@ import * as BackgroundTask from "expo-background-task";
 import { Platform } from "react-native";
 import { getSettings, getBackgroundTaskInterval, saveBackgroundTaskInterval } from "../storage";
 import { getEntitlementState } from "@/lib/entitlements";
+import { shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { healthService } from "./instances";
 import { checkHealthAlerts } from "./health-alerts";
 import { runPriceCheckCore } from "./price-check";
@@ -37,9 +38,10 @@ export async function registerPriceCheckTask() {
     const isRegistered =
       await TaskManager.isTaskRegisteredAsync(PRICE_CHECK_TASK);
     const { isPro } = await getEntitlementState();
+    const enforce = shouldEnforceFreeLimits();
 
-    if (!isPro || settings.checkInterval === "manual") {
-      // Manual mode or free tier — no background monitoring.
+    if ((enforce && !isPro) || settings.checkInterval === "manual") {
+      // Manual mode, or an enforced free tier — no background monitoring.
       if (isRegistered) {
         await BackgroundTask.unregisterTaskAsync(PRICE_CHECK_TASK);
       }
@@ -73,8 +75,10 @@ export async function registerHealthProbeTask() {
     const settings = await getSettings();
     const isRegistered =
       await TaskManager.isTaskRegisteredAsync(HEALTH_PROBE_TASK);
+    const { isPro } = await getEntitlementState();
+    const enforce = shouldEnforceFreeLimits();
 
-    if (settings.checkInterval === "manual") {
+    if ((enforce && !isPro) || settings.checkInterval === "manual") {
       if (isRegistered) {
         await BackgroundTask.unregisterTaskAsync(HEALTH_PROBE_TASK);
       }

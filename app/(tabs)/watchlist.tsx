@@ -21,6 +21,10 @@ import { showAlert } from "@/lib/alert";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { PaywallScreen } from "@/components/paywall/paywall-screen";
+import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
+import { track } from "@/lib/telemetry";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
 import { useConnection } from "@/hooks/use-connection";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -32,6 +36,7 @@ import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
   getSettings,
   updateSettings,
+  getWatchlist,
   getAlerts,
   getTagDefinitions,
   addToWatchlist,
@@ -102,6 +107,8 @@ export default function WatchlistScreen() {
     refreshAll,
   } = useLiveWatchlist();
   const { isAuthenticated } = useAuth();
+  const { isPro } = useEntitlements();
+  const [paywallVisible, setPaywallVisible] = useState(false);
   const createShareLink = trpc.sharedWatchlists.create.useMutation();
   const [sortMode, setSortMode] = useState<WatchlistSort>("recent");
   const [groupMode, setGroupMode] = useState<WatchlistGroup>("off");
@@ -603,6 +610,9 @@ export default function WatchlistScreen() {
       let added = 0;
       let skipped = 0;
       let duplicates = 0;
+      let limited = false;
+      const enforce = shouldEnforceFreeLimits();
+      const currentCount = (await getWatchlist()).length;
       // Track which products already have an active alert so re-importing the
       // same CSV doesn't accumulate duplicate alerts (addAlert has no dedup).
       const existingAlertProductIds = new Set(
@@ -612,6 +622,10 @@ export default function WatchlistScreen() {
       for (let i = 0; i < rows.length; i += 50) {
         const chunk = rows.slice(i, i + 50);
         for (const row of chunk) {
+          if (enforce && !canAddToWatchlist(currentCount + added, isPro)) {
+            limited = true;
+            break;
+          }
           const catalogHit = byModel.get(row.model.toLowerCase());
           const product = catalogHit
             ? { ...catalogHit, tags: row.tags.length > 0 ? row.tags : catalogHit.tags, isWatched: true, addedAt: new Date().toISOString() } as unknown as Product
@@ -654,6 +668,15 @@ export default function WatchlistScreen() {
       }
       await reload();
       await loadData();
+      if (limited) {
+        track("paywall_shown");
+        setPaywallVisible(true);
+        showAlert(
+          "Import limited",
+          `Added ${added} product${added === 1 ? "" : "s"} — upgrade to Pro to import the rest.`,
+        );
+        return;
+      }
       const notes = [
         duplicates > 0 ? `${duplicates} already tracked` : "",
         skipped > 0 ? `${skipped} skipped` : "",
@@ -663,7 +686,7 @@ export default function WatchlistScreen() {
       LOG_ERROR("[Watchlist] import failed", e);
       showAlert("Import failed", e instanceof Error ? e.message : String(e));
     }
-  }, [reload, loadData]);
+  }, [reload, loadData, isPro]);
 
   const handleFindPrices = useCallback(
     async (product: Product) => {
@@ -1095,6 +1118,10 @@ export default function WatchlistScreen() {
           </TouchableOpacity>
         </View>
       )}
+      <PaywallScreen
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+      />
     </ScreenContainer>
   );
 }
