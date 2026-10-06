@@ -18,7 +18,7 @@ function parseHtml(
 
   const $price = findPriceElement(
     $,
-    ".ty-grid-list__price, .ty-product-block__price-actual",
+    ".ty-grid-list__price, .ty-product-block__price-actual, .product-price, .price",
     model,
   );
   if (!$price || $price.length === 0) return null;

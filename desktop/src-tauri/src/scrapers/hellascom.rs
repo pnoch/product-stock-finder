@@ -63,7 +63,7 @@ fn parse_html(html: &str, url: &str, model: &str) -> Result<ScrapeResult, String
         url,
         model,
         "EUR",
-        ".ty-grid-list__price, .ty-product-block__price-actual",
+        ".ty-grid-list__price, .ty-product-block__price-actual, .product-price, .price",
         ".stock-status, .availability, .product-stock",
     )?;
     if let Some(status) = card_stock_status(html, model) {
