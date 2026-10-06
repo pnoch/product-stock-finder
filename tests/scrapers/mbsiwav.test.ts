@@ -14,7 +14,7 @@ describe("Mbsiwav Parser", () => {
 
   it("should build correct search URL", () => {
     const url = mbsiwavParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://mbsiwav.com/search?q=hAP%20ac3");
+    expect(url).toBe("https://www.mbsiwav.com/search?keywords=hAP%20ac3");
   });
 
   it("should return null for 404 page fixture", () => {
