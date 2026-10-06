@@ -498,7 +498,9 @@ export function DistributorListingSection({
                         fontWeight: "700",
                       }}
                     >
-                      {formatPrice(bestDeal.total, bestDeal.currency)}
+                      {destination
+                        ? formatEstimate(bestDeal.total, bestDeal.currency)
+                        : formatPrice(bestDeal.total, bestDeal.currency)}
                     </Text>
                   </View>
                 );

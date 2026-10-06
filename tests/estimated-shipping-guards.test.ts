@@ -10,6 +10,10 @@ describe("estimated shipping labelling", () => {
     // The destination breakdown must use formatEstimate for the shipping and
     // total terms so they read as estimates, not quotes.
     expect(src).toContain("formatEstimate");
+    // The headline best-deal total must stay a firm quote on the region path
+    // and become an estimate on the destination path — both branches must exist.
+    expect(src).toContain("formatEstimate(bestDeal.total");
+    expect(src).toContain("formatPrice(bestDeal.total");
     expect(src).toContain("Check exact rates at checkout");
     expect(src).toContain("hasDestination={destination != null}");
   });
