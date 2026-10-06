@@ -279,7 +279,7 @@ export default function HomeScreen() {
               Product Stock Finder
             </Text>
             <Text className="text-muted text-sm">
-              Global availability monitor
+              Find it anywhere. Landed to your door.
             </Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -471,10 +471,10 @@ export default function HomeScreen() {
                 />
               </View>
               <Text className="text-foreground font-semibold mt-4 text-base">
-                No products tracked yet
+                Nothing on the radar yet
               </Text>
               <Text className="text-muted text-sm text-center mt-1 px-2">
-                Tap + to add a product to your watchlist and track prices across 25 distributors
+                Tap + and paste a model number — we&apos;ll check all 25 distributors and alert you the moment it&apos;s in stock.
               </Text>
               <View
                 style={{
