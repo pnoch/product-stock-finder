@@ -161,6 +161,18 @@ describe("discovery storage", () => {
     expect(distributors[0]!.id).toBe("d1");
     expect(distributors.at(-1)!.id).toBe("d200");
   });
+
+  it("defaults taxMode for a distributor persisted without it", async () => {
+    await saveDiscoveredDistributors([
+      {
+        ...mockDistributor,
+        id: "legacy-no-taxmode",
+        taxMode: undefined as unknown as Distributor["taxMode"],
+      },
+    ]);
+    const distributors = await getDiscoveredDistributors();
+    expect(distributors[0]!.taxMode).toBe("origin");
+  });
 });
 
 describe("background task interval markers", () => {

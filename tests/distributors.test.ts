@@ -51,4 +51,9 @@ describe("distributor taxMode", () => {
   it("at least one distributor is export-exempt", () => {
     expect(DISTRIBUTORS.some((d) => d.taxMode === "export-exempt")).toBe(true);
   });
+
+  it("classifies a known exporter and a zero-VAT entry correctly", () => {
+    expect(getDistributorById("getic-gr")?.taxMode).toBe("export-exempt");
+    expect(getDistributorById("server2u-my")?.taxMode).toBe("none");
+  });
 });

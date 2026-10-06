@@ -145,7 +145,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "gearup-ae",
     name: "Gear-Up.me",
-    taxMode: "none", // UAE — no VAT
+    taxMode: "export-exempt", // UAE — 5% VAT, zero-rated for export
     currency: "AED",
     country: "UAE",
     countryCode: "AE",
