@@ -99,6 +99,35 @@ describe("parseDetailedCsv edge cases", () => {
     );
     expect(row!.product).toBe('a"b');
   });
+
+  it("keeps a data row whose product column is empty but the model is set", () => {
+    // A blank product name is valid: detailedCsvToProducts falls back to the
+    // model (`name: r.product || r.model`). The row must not be mistaken for a
+    // blank/comment line and dropped.
+    const rows = parseDetailedCsv(
+      "product,model,brand,category,distributor,price,currency,stockStatus,url\n,CRS326,MikroTik,Switch,mikrotikstore,209,USD,in_stock,https://x/p",
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.model).toBe("CRS326");
+    expect(rows[0]!.product).toBe("");
+  });
+
+  it("round-trips a product with an empty name through the detailed CSV", () => {
+    const p = {
+      id: "CRS326",
+      name: "",
+      modelNumber: "CRS326-24G-2S+RM",
+      brand: "MikroTik",
+      category: "Switch",
+      description: "",
+      isWatched: true,
+      addedAt: new Date().toISOString(),
+      listings: [listing({ distributorId: "mikrotikstore", price: 209 })],
+    } as unknown as Product;
+    const parsed = parseWatchlistCsv(watchlistToDetailedCsv([p]));
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]!.modelNumber).toBe("CRS326-24G-2S+RM");
+  });
 });
 
 describe("detailedCsvToProducts edge cases", () => {

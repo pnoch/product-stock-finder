@@ -206,7 +206,11 @@ function stripBom(s: string): string {
 
 function isShareDeepLinkLine(line: string): boolean {
   const t = line.trim();
-  if (!t) return true;
+  // An empty first field is NOT a comment: a detailed row may legitimately
+  // leave the product column blank (detailedCsvToProducts falls back to the
+  // model). Truly blank rows are already dropped by the caller's `isBlank`
+  // check, so only non-empty markers are matched here.
+  if (!t) return false;
   // The deep-link header watchlistToDetailedCsv emits is exactly
   // "# Share: <url>". Matching any "#"-prefixed line dropped a legitimate
   // product whose name starts with "#" (e.g. "#1 Router") on re-import.
