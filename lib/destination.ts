@@ -1,21 +1,23 @@
-import type { AppSettings } from "./types";
 import type { Destination, LandedCostOptions } from "./landed-cost";
 
 /**
  * The user's shipping destination, or null when they have not chosen one (the
  * caller then falls back to the region-based path).
  */
-export function resolveDestination(settings: AppSettings): Destination | null {
-  if (!settings.shipToCountry) return null;
-  return {
-    countryCode: settings.shipToCountry,
-    currency: settings.displayCurrency || "USD",
-  };
+export function resolveDestination(
+  shipToCountry: string | undefined,
+  displayCurrency: string | undefined,
+): Destination | null {
+  if (!shipToCountry) return null;
+  return { countryCode: shipToCountry, currency: displayCurrency || "USD" };
 }
 
-export function landedCostOptions(settings: AppSettings): LandedCostOptions {
+export function landedCostOptions(
+  taxExempt: boolean | undefined,
+  includeImportEstimate: boolean | undefined,
+): LandedCostOptions {
   return {
-    taxExempt: settings.taxExempt === true,
-    includeImportEstimate: settings.includeImportEstimate === true,
+    taxExempt: taxExempt === true,
+    includeImportEstimate: includeImportEstimate === true,
   };
 }

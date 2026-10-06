@@ -522,8 +522,11 @@ export function DistributorListingSection({
                 <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
                   {formatPrice(bestDeal.price, bestDeal.currency)} +{" "}
                   {formatPrice(bestDeal.shipping ?? 0, bestDeal.currency)} +{" "}
-                  {formatPrice(bestDeal.tax, bestDeal.currency)} ={" "}
-                  {formatPrice(bestDeal.total, bestDeal.currency)}
+                  {formatPrice(bestDeal.tax, bestDeal.currency)}
+                  {bestDeal.importEstimate && bestDeal.importEstimate > 0
+                    ? ` + ${formatPrice(bestDeal.importEstimate, bestDeal.currency)}`
+                    : ""}{" "}
+                  = {formatPrice(bestDeal.total, bestDeal.currency)}
                 </Text>
               )}
             </View>

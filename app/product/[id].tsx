@@ -24,7 +24,8 @@ import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { computePriceVsAverage } from "@/lib/price-average";
 import { computeDealScore, dealBandLabel } from "@/lib/deal-score";
 import { findBestDeal } from "@/lib/best-deal";
-import { rankByLandedCost, type Destination, type LandedCostOptions } from "@/lib/landed-cost";
+import { rankByLandedCost } from "@/lib/landed-cost";
+import { resolveDestination, landedCostOptions } from "@/lib/destination";
 import { suggestAlertPrices } from "@/lib/alert-suggestions";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
@@ -160,15 +161,13 @@ export default function ProductDetailScreen() {
     return () => { signal.cancelled = true; };
   }, [loadData]);
 
-  const destination = useMemo<Destination | null>(
+  const destination = useMemo(
     () =>
-      shipToCountry
-        ? { countryCode: shipToCountry, currency: displayCurrency ?? "USD" }
-        : null,
+      resolveDestination(shipToCountry ?? undefined, displayCurrency ?? undefined),
     [shipToCountry, displayCurrency],
   );
-  const landedOptions = useMemo<LandedCostOptions>(
-    () => ({ taxExempt, includeImportEstimate }),
+  const landedOptions = useMemo(
+    () => landedCostOptions(taxExempt, includeImportEstimate),
     [taxExempt, includeImportEstimate],
   );
   const bestDeal = useMemo(() => {
@@ -181,6 +180,7 @@ export default function ProductDetailScreen() {
         price: top.price,
         tax: top.storeTax,
         shipping: top.shipping,
+        importEstimate: top.importEstimate,
         total: top.total,
         currency: top.currency,
       };
@@ -271,7 +271,6 @@ export default function ProductDetailScreen() {
   }, []);
 
   const handleSelectCountry = useCallback((code: string) => {
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShipToCountry(code);
     void updateSettings({ shipToCountry: code });
   }, []);
