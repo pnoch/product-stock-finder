@@ -1,6 +1,6 @@
 import { log } from "@shared/log";
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View, Platform, ActivityIndicator, TouchableOpacity, TextInput, Switch } from "react-native";
+import { ScrollView, Text, View, Platform, ActivityIndicator, TouchableOpacity, TextInput, Switch, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -40,6 +40,10 @@ import { PillPicker } from "@/components/settings/pill-picker";
 import { RadioPicker } from "@/components/settings/radio-picker";
 import { SectionHeader } from "@/components/settings/section-header";
 import { SettingRow } from "@/components/settings/setting-row";
+import { CountryPicker } from "@/components/ui/country-picker";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { getCountry } from "@shared/countries";
+import { CURRENCIES } from "@shared/currency";
 
 function SharedLinksList() {
   const colors = useColors();
@@ -463,6 +467,7 @@ export default function SettingsScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [reenabling, setReenabling] = useState(false);
+  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -634,20 +639,6 @@ export default function SettingsScreen() {
     [reenabling],
   );
 
-  const currencies = [
-    "USD",
-    "EUR",
-    "GBP",
-    "MYR",
-    "AUD",
-    "NZD",
-    "CAD",
-    "ZAR",
-    "THB",
-    "SGD",
-    "HKD",
-    "AED",
-  ];
   const regions = [
     "Asia-Pacific",
     "Europe",
@@ -777,11 +768,106 @@ export default function SettingsScreen() {
           <PillPicker
             icon="dollarsign.circle.fill"
             label="Display Currency"
-            options={currencies}
+            options={CURRENCIES}
             value={settings.displayCurrency}
             onSelect={(c) => updateSetting("displayCurrency", c)}
           />
         </View>
+
+        <SectionHeader title="Ship to" />
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: "hidden",
+          }}
+        >
+          <Pressable
+            onPress={() => setCountryPickerVisible(true)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingVertical: 14,
+              paddingHorizontal: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
+            }}
+            accessibilityLabel="Choose shipping country"
+            accessibilityRole="button"
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: colors.primary + "22",
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 12,
+              }}
+            >
+              <IconSymbol name="location.fill" size={18} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{ color: colors.foreground, fontWeight: "600", fontSize: 15 }}
+              >
+                Ship to
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
+                {getCountry(settings.shipToCountry ?? "")?.name ?? "Choose country"}
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+          </Pressable>
+          <SettingRow
+            icon="dollarsign.circle.fill"
+            label="I'm tax-exempt (VAT/EORI)"
+            description="Omit tax and duty from landed-cost totals."
+            right={
+              <Switch
+                value={!!settings.taxExempt}
+                onValueChange={(v) => void updateSetting("taxExempt", v)}
+                trackColor={{ false: colors.border, true: colors.primary + "88" }}
+                thumbColor={settings.taxExempt ? colors.primary : colors.muted}
+                accessibilityLabel="I'm tax-exempt"
+                accessibilityRole="switch"
+              />
+            }
+          />
+          <SettingRow
+            icon="cart.fill"
+            label="Include import estimate"
+            description="Add the destination duty/VAT estimate to the displayed total."
+            right={
+              <Switch
+                value={!!settings.includeImportEstimate}
+                onValueChange={(v) =>
+                  void updateSetting("includeImportEstimate", v)
+                }
+                trackColor={{ false: colors.border, true: colors.primary + "88" }}
+                thumbColor={
+                  settings.includeImportEstimate ? colors.primary : colors.muted
+                }
+                accessibilityLabel="Include import estimate"
+                accessibilityRole="switch"
+              />
+            }
+          />
+        </View>
+
+        <CountryPicker
+          visible={countryPickerVisible}
+          value={settings.shipToCountry}
+          onSelect={(code) => {
+            void updateSetting("shipToCountry", code);
+            setCountryPickerVisible(false);
+          }}
+          onClose={() => setCountryPickerVisible(false)}
+        />
 
         <SectionHeader title="Shipping Region" />
         <View

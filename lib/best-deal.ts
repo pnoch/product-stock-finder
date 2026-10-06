@@ -7,6 +7,7 @@ export interface BestDeal {
   price: number;
   tax: number;
   shipping: number | null;
+  importEstimate?: number;
   total: number;
   currency: string;
 }

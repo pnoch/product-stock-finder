@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Switch,
   Text,
   View,
   TouchableOpacity,
@@ -13,6 +14,10 @@ import { getDistributorById } from "@shared/distributors";
 import { BestDistributorCard } from "@/components/best-distributor-card";
 import type { Product } from "@/lib/types";
 import type { BestDeal } from "@/lib/best-deal";
+import type { Destination } from "@/lib/landed-cost";
+import { CountryPicker } from "@/components/ui/country-picker";
+import { getCountry } from "@shared/countries";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { DistributorListingCard } from "./distributor-listing-card";
 
 interface DistributorListingSectionProps {
@@ -29,6 +34,12 @@ interface DistributorListingSectionProps {
   stockWatches: Record<string, boolean>;
   id: string;
   displayCurrency: string;
+  destination: Destination | null;
+  taxExempt: boolean;
+  includeImportEstimate: boolean;
+  onSelectCountry: (code: string) => void;
+  onToggleTaxExempt: (value: boolean) => void;
+  onToggleImportEstimate: (value: boolean) => void;
   onSetRegionFilter: (region: string) => void;
   onSetBestAlert: (listing: DistributorListing, targetPrice: number) => void;
   onToggleStockWatch: (listing: DistributorListing) => void;
@@ -124,6 +135,12 @@ export function DistributorListingSection({
   stockWatches,
   id,
   displayCurrency,
+  destination,
+  taxExempt,
+  includeImportEstimate,
+  onSelectCountry,
+  onToggleTaxExempt,
+  onToggleImportEstimate,
   onSetRegionFilter,
   onSetBestAlert,
   onToggleStockWatch,
@@ -133,6 +150,8 @@ export function DistributorListingSection({
   findingPrices,
 }: DistributorListingSectionProps) {
   const colors = useColors();
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const selectedCountry = destination ? getCountry(destination.countryCode) : undefined;
   // The Best Price card must never crown an `unknown`/`out_of_stock` listing
   // (lib/currency.ts also excludes those). Prefer the region-filtered listing the
   // screen already computed; otherwise take the cheapest in-stock/back-order
@@ -282,6 +301,90 @@ export function DistributorListingSection({
               </Text>
             </View>
           ) : null}
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 16,
+              padding: 14,
+              marginBottom: 12,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <TouchableOpacity activeOpacity={0.85}
+              onPress={() => setPickerVisible(true)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                minHeight: 44,
+              }}
+              accessibilityLabel="Choose shipping country"
+              accessibilityRole="button"
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                <IconSymbol name="globe" size={18} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600", letterSpacing: 0.5 }}>
+                    SHIP TO
+                  </Text>
+                  <Text
+                    style={{
+                      color: selectedCountry ? colors.foreground : colors.muted,
+                      fontSize: 15,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {selectedCountry ? selectedCountry.name : "Choose country"}
+                  </Text>
+                </View>
+              </View>
+              <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+            </TouchableOpacity>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 8,
+                paddingTop: 8,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontSize: 13, flex: 1, marginRight: 12 }}>
+                Tax-exempt (VAT/EORI)
+              </Text>
+              <Switch
+                value={taxExempt}
+                onValueChange={onToggleTaxExempt}
+                trackColor={{ false: colors.border, true: colors.primary + "88" }}
+                thumbColor={taxExempt ? colors.primary : colors.muted}
+                accessibilityLabel="Tax-exempt"
+                accessibilityRole="switch"
+              />
+            </View>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 4,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontSize: 13, flex: 1, marginRight: 12 }}>
+                Include import estimate
+              </Text>
+              <Switch
+                value={includeImportEstimate}
+                onValueChange={onToggleImportEstimate}
+                trackColor={{ false: colors.border, true: colors.primary + "88" }}
+                thumbColor={includeImportEstimate ? colors.primary : colors.muted}
+                accessibilityLabel="Include import estimate"
+                accessibilityRole="switch"
+              />
+            </View>
+          </View>
           {visibleListings.length > 0 && (
             <Text
               style={{
@@ -362,7 +465,9 @@ export function DistributorListingSection({
                   letterSpacing: 0.5,
                 }}
               >
-                BEST DEAL (incl. shipping to {shippingRegion})
+                {destination
+                  ? `BEST DEAL (to ${selectedCountry?.name ?? destination.countryCode})`
+                  : `BEST DEAL (incl. shipping to ${shippingRegion})`}
               </Text>
               {(() => {
                 const distrib = getDistributorById(bestDeal.distributorId);
@@ -413,6 +518,17 @@ export function DistributorListingSection({
                   Ship: {bestDeal.shipping === null ? "N/A" : formatPrice(bestDeal.shipping, bestDeal.currency)}
                 </Text>
               </View>
+              {destination && (
+                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
+                  {formatPrice(bestDeal.price, bestDeal.currency)} +{" "}
+                  {formatPrice(bestDeal.shipping ?? 0, bestDeal.currency)} +{" "}
+                  {formatPrice(bestDeal.tax, bestDeal.currency)}
+                  {bestDeal.importEstimate && bestDeal.importEstimate > 0
+                    ? ` + ${formatPrice(bestDeal.importEstimate, bestDeal.currency)}`
+                    : ""}{" "}
+                  = {formatPrice(bestDeal.total, bestDeal.currency)}
+                </Text>
+              )}
             </View>
           )}
           {visibleListings.map((listing) => (
@@ -428,6 +544,15 @@ export function DistributorListingSection({
           ))}
         </>
       )}
+      <CountryPicker
+        visible={pickerVisible}
+        value={destination?.countryCode}
+        onSelect={(code) => {
+          onSelectCountry(code);
+          setPickerVisible(false);
+        }}
+        onClose={() => setPickerVisible(false)}
+      />
     </View>
   );
 }

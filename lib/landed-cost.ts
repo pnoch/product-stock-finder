@@ -2,37 +2,10 @@ import type { Distributor, DistributorListing } from "./types";
 import { convertPrice } from "./currency";
 import { estimateImportDuty } from "@shared/duty";
 import { getDistributorById } from "@shared/distributors";
-
-// Country → region, so a country without an explicit shipping rate falls back
-// to its distributor region. Covers the countries the app's distributors ship
-// to; unknown countries fall through to null.
-const COUNTRY_REGION: Record<string, string> = {
-  TH: "Asia-Pacific",
-  SG: "Asia-Pacific",
-  MY: "Asia-Pacific",
-  AU: "Asia-Pacific",
-  NZ: "Asia-Pacific",
-  JP: "Asia-Pacific",
-  KR: "Asia-Pacific",
-  IN: "Asia-Pacific",
-  GB: "Europe",
-  DE: "Europe",
-  FR: "Europe",
-  GR: "Europe",
-  PL: "Europe",
-  CZ: "Europe",
-  US: "North America",
-  CA: "North America",
-  AE: "Middle East",
-  ZA: "Africa",
-};
+import { getCountry } from "@shared/countries";
 
 export function regionForCountry(countryCode: string): string | null {
-  // Own-property check: a prototype key like "constructor" must not resolve
-  // to an inherited value.
-  return Object.prototype.hasOwnProperty.call(COUNTRY_REGION, countryCode)
-    ? COUNTRY_REGION[countryCode]!
-    : null;
+  return getCountry(countryCode)?.region ?? null;
 }
 
 /**
@@ -176,6 +149,8 @@ export function rankByLandedCost(
     ) {
       continue;
     }
+    // Matches findBestDeal/getBestPrice: a zero or unusable price is not a deal.
+    if (!(listing.price > 0)) continue;
     const distributor = getDistributorById(listing.distributorId);
     if (!distributor) continue;
     const cost = computeLandedCost(listing, distributor, destination, options);

@@ -217,6 +217,14 @@ describe("rankByLandedCost", () => {
     expect(ranked[0]!.price).toBe(100);
   });
 
+  it("excludes a zero-price in-stock listing", () => {
+    const free = listing({ distributorId: "server2u-my", price: 0 });
+    const paid = listing({ distributorId: "server2u-my", price: 100 });
+    const ranked = rankByLandedCost([free, paid], dest, {});
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0]!.price).toBe(100);
+  });
+
   it("is deterministic across runs", () => {
     const a = listing({ distributorId: "server2u-my", price: 100 });
     const b = listing({ distributorId: "linitx-uk", price: 100 });
