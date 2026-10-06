@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
+import * as fs from "fs";
+import * as path from "path";
 import { rocnocParser } from "../../lib/scrapers/rocnoc";
+
+const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 
 describe("Rocnoc Parser", () => {
   it("should have correct parser config", () => {
@@ -10,7 +14,9 @@ describe("Rocnoc Parser", () => {
 
   it("should build correct search URL", () => {
     const url = rocnocParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://www.roc-noc.com/search.php?keywords=hAP%20ac3");
+    expect(url).toBe(
+      "https://www.roc-noc.com/search.php?mode=search&substring=hAP%20ac3",
+    );
   });
 
   it("should return null for invalid HTML", () => {
@@ -56,5 +62,29 @@ describe("model verification", () => {
 
   it("ignores verification when no model is passed", () => {
     expect(rocnocParser.parsePrice(MISMATCH_HTML)?.price).toBe(480);
+  });
+});
+
+describe("ROC-NOC matrix table", () => {
+  const html = () =>
+    fs.readFileSync(path.join(FIXTURES_DIR, "rocnoc-us-search.html"), "utf-8");
+
+  it("reads the price from the model's column", () => {
+    const result = rocnocParser.parsePrice(html(), "CRS326-24G-2S+RM");
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(209);
+    expect(result!.currency).toBe("USD");
+    expect(result!.stockStatus).toBe("in_stock");
+  });
+
+  it("reads the out-of-stock quantity in a different column", () => {
+    const result = rocnocParser.parsePrice(html(), "CRS326-24S+2Q+RM");
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(599);
+    expect(result!.stockStatus).toBe("out_of_stock");
+  });
+
+  it("returns null when no column names the model", () => {
+    expect(rocnocParser.parsePrice(html(), "CRS804-4DDQ-hRM")).toBeNull();
   });
 });

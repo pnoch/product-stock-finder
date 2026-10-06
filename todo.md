@@ -8192,3 +8192,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Both mirrored in the Rust desktop parsers (`neobits.rs`, `mbsiwav.rs`); `desktop-scraper-parity` green.
 - [x] Tests: `neobits`/`mbsiwav` URL assertions updated. `pnpm verify` exit 0 — root `3332` / desktop `324` / cargo `83`.
 - [x] Remaining (separate): ROC-NOC (POST search works but prices are JS/AJAX-populated) and HellasCom (search mechanism undiscovered). Both load unblocked under the headed path.
+
+## Phase 1108: ROC-NOC matrix-table parser
+
+- [x] **ROC-NOC's search results are a matrix table** (each product is a *column*, each attribute — title, SKU, price — is a *row*), so the shared card-based `findPriceElement`/`modelMismatch` could never correlate a price with a product name: the price cell's walk-up never reaches the title (a different `<tr>`). Added a bespoke `parseMatrixTable` (mobile) / `parse_matrix_table` (Rust) that finds the column whose `a.product-title` names the model, then reads the `td.product-cell-price` in that column.
+- [x] Corrected the search URL: `search.php?keywords=` returns 0 results; the real GET form is `search.php?mode=search&substring=`. Both platforms.
+- [x] Stock status comes from the cell's `products_data[<id>].quantity = N` script (`>0` → in_stock, `0` → out_of_stock), falling back to `inferStockStatus`. The Rust path prefers the `.price` element so the script's numeric id is not read as the price.
+- [x] The card-based path is kept as a fallback (product-detail pages, and the no-model case).
+- [x] Tests: 3 mobile matrix cases (model column price, out-of-stock column, no-match → null) + 3 Rust cases; a minimal two-column fixture. Verified live: `$209.00` USD for CRS326-24G-2S+RM. `pnpm verify` exit 0 — root `3335` / desktop `324` / cargo `86`.
+- [x] Remaining: HellasCom (search mechanism still undiscovered) — the last distributor from the Phase-1102 "not fixable" list.
