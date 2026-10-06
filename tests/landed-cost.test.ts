@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeLandedCost,
+  rankByLandedCost,
   regionForCountry,
   resolveShipping,
 } from "../lib/landed-cost";
@@ -162,5 +163,15 @@ describe("computeLandedCost", () => {
     expect(r!.shipping).toBeCloseTo(41.3043, 3);
     expect(r!.shipping).not.toBe(38);
     expect(r!.total).toBeCloseTo(150, 3);
+  });
+});
+
+describe("rankByLandedCost", () => {
+  it("sorts by total landed cost ascending and drops unknown-shipping rows", () => {
+    const cheap = listing({ distributorId: "server2u-my", price: 100 });
+    const dear = listing({ distributorId: "server2u-my", price: 300 });
+    const ranked = rankByLandedCost([dear, cheap], dest, {});
+    expect(ranked).toHaveLength(2);
+    expect(ranked[0]!.price).toBeLessThan(ranked[1]!.price);
   });
 });

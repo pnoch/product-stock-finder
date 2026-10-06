@@ -1,6 +1,7 @@
 import type { Distributor, DistributorListing } from "./types";
 import { convertPrice } from "./currency";
 import { estimateImportDuty } from "@shared/duty";
+import { getDistributorById } from "@shared/distributors";
 
 // Country → region, so a country without an explicit shipping rate falls back
 // to its distributor region. Covers the countries the app's distributors ship
@@ -147,4 +148,27 @@ export function computeLandedCost(
     currency: destination.currency,
     isEstimate: true,
   };
+}
+
+/**
+ * Landed-cost-ranked listings for a destination. Listings whose distributor is
+ * unknown or whose shipping is unknown are dropped (they cannot be ranked
+ * fairly). Ties break by distributor id for determinism.
+ */
+export function rankByLandedCost(
+  listings: DistributorListing[],
+  destination: Destination,
+  options: LandedCostOptions,
+): LandedCost[] {
+  const out: LandedCost[] = [];
+  for (const listing of listings) {
+    const distributor = getDistributorById(listing.distributorId);
+    if (!distributor) continue;
+    const cost = computeLandedCost(listing, distributor, destination, options);
+    if (cost) out.push(cost);
+  }
+  return out.sort(
+    (a, b) =>
+      a.total - b.total || a.distributorId.localeCompare(b.distributorId),
+  );
 }
