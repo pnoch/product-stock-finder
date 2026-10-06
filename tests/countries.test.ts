@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { COUNTRIES, getCountry, searchCountries } from "../shared/src/countries";
+import { EXCHANGE_RATES } from "../shared/src/currency";
 import { regionForCountry } from "../lib/landed-cost";
 import { estimateImportDuty } from "../shared/src/duty";
 
@@ -13,6 +14,15 @@ describe("countries", () => {
       expect(c.region.length).toBeGreaterThan(0);
       expect(codes.has(c.code), `duplicate ${c.code}`).toBe(false);
       codes.add(c.code);
+    }
+  });
+
+  it("every country currency has an exchange rate", () => {
+    for (const c of COUNTRIES) {
+      expect(
+        Object.prototype.hasOwnProperty.call(EXCHANGE_RATES, c.currency),
+        `${c.code} currency ${c.currency} missing from EXCHANGE_RATES`,
+      ).toBe(true);
     }
   });
 

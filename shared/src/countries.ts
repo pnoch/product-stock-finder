@@ -48,7 +48,7 @@ export const COUNTRIES: Country[] = [
   { code: "TR", name: "Turkey", currency: "TRY", region: "Europe" },
   { code: "UA", name: "Ukraine", currency: "UAH", region: "Europe" },
   { code: "RS", name: "Serbia", currency: "RSD", region: "Europe" },
-  { code: "BG", name: "Bulgaria", currency: "BGN", region: "Europe" },
+  { code: "BG", name: "Bulgaria", currency: "EUR", region: "Europe" },
   { code: "HR", name: "Croatia", currency: "EUR", region: "Europe" },
   { code: "SK", name: "Slovakia", currency: "EUR", region: "Europe" },
   { code: "SI", name: "Slovenia", currency: "EUR", region: "Europe" },
