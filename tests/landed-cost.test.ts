@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveShipping } from "../lib/landed-cost";
+import { regionForCountry, resolveShipping } from "../lib/landed-cost";
 import type { Distributor } from "../lib/types";
 
 function dist(overrides: Partial<Distributor> = {}): Distributor {
@@ -34,5 +34,15 @@ describe("resolveShipping", () => {
 
   it("returns null when the distributor has no shipping table", () => {
     expect(resolveShipping(dist({ shippingCosts: undefined }), "TH")).toBeNull();
+  });
+
+  it("returns null for a country absent from the region map", () => {
+    expect(regionForCountry("XX")).toBeNull();
+    expect(resolveShipping(dist(), "XX")).toBeNull();
+  });
+
+  it("is prototype-safe for a country code like toString", () => {
+    expect(regionForCountry("toString")).toBeNull();
+    expect(resolveShipping(dist(), "toString")).toBeNull();
   });
 });
