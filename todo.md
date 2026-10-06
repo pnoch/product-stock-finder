@@ -8282,3 +8282,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Desktop (`OnboardingModal`, `Home`) mirrors the mobile copy; the desktop parity guards updated.
 - [x] Tests: `repositioned-copy` (6, mutation-verified to catch partial reverts). `pnpm verify` exit 0 — root `3414` / desktop `324` / cargo `90`.
 - [x] **Remaining:** catalog expansion (homelab/SBC), billing/signing/telemetry.
+
+## Phase 1118: Catalog expansion (homelab / SBC beachhead)
+
+- [x] Grew `shared/src/catalog.ts` from 42 → **121** real products across the homelab/SBC/NAS/networking beachhead: Raspberry Pi 5/4/Zero 2W/CM4 + Orange Pi/Radxa/ODROID/Khadas/BeagleBone (15 SBC), Synology/QNAP/TerraMaster/UGREEN NAS + WD/Seagate drives (14 Storage), MikroTik/Ubiquiti/TP-Link/Aruba/Cisco/FS switches (25 Networking Switch), UniFi/TP-Link/GL.iNet gateways (11 Network Gateway), UniFi/TP-Link APs (9 Wireless Bridge), Intel/Mellanox NICs (9 Network Card), Intel/ASUS/Minisforum/Beelink mini-PCs (10 Desktop), APC/CyberPower UPS, Noctua/Arctic cooling.
+- [x] All entries use one of the 17 existing categories — no new category, so `shared/src/duty.ts` is untouched and beachhead gear stays ITA-zero-rated.
+- [x] Trending fallback (`shared/src/trending.ts`) gains 3 homelab items (Pi 5, Synology DS923+, UniFi U7 Pro) so the empty-state hint reflects the audience.
+- [x] Guard test `tests/catalog-expansion.test.ts` (7): unique slug ids, non-empty fields, valid categories, per-category minimums, ≥120 total, searchability, no duplicate names, no duplicate model numbers.
+- [x] Review caught + fixed real data errors: a duplicate UniFi Dream Router entry, Aruba 1930 24G model (`JL681A`→`JL682A`), the CRS310 port description, EAP653/USW-Pro-24/UXG-Pro descriptions, and the BeagleBone Black part number.
+- [x] `pnpm verify` exit 0 — root `3422` / desktop `324` / cargo `90`.
+- [x] **Remaining:** billing/signing/telemetry (the monetization layer).
