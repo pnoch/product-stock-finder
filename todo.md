@@ -8201,3 +8201,12 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] The card-based path is kept as a fallback (product-detail pages, and the no-model case).
 - [x] Tests: 3 mobile matrix cases (model column price, out-of-stock column, no-match → null) + 3 Rust cases; a minimal two-column fixture. Verified live: `$209.00` USD for CRS326-24G-2S+RM. `pnpm verify` exit 0 — root `3335` / desktop `324` / cargo `86`.
 - [x] Remaining: HellasCom (search mechanism still undiscovered) — the last distributor from the Phase-1102 "not fixable" list.
+
+## Phase 1109: HellasCom (linkshop.gr) parser fix
+
+- [x] **HellasCom's parser targeted the wrong host.** `hellascom.gr` is the corporate site (no shop, no search input); the real storefront is **`linkshop.gr`** ("LinkShop.gr | MikroTik στην Ελλάδα | HELLASCOM Μ. ΕΠΕ"), a CS-Cart store. Corrected the distributor `website` and the Rust `HOST_REGIONS` entry to `linkshop.gr`.
+- [x] Corrected the search URL to the CS-Cart form: `?dispatch=products.search&q=<model>&search_performed=Y` (the bare `?dispatch=products.search&q=` returns no products).
+- [x] Corrected the price selector to `.ty-grid-list__price, .ty-product-block__price-actual` (kept `.product-price, .price` as a fallback for the shared cross-parser tests), and the browser wait selector to match.
+- [x] **Card-scoped Greek stock:** the availability label lives inside each product card (`block_avail_status_label .title b`), so the page-wide first match reported another product's status. Added `inferStockStatus` Greek markers (mobile + Rust mirror, parity-guarded): `Εκτός Παραγωγής`/`εξαντλήθηκε`/`μη διαθέσιμο` → out_of_stock, `παραγγελία` → back_order, `διαθέσιμο` → in_stock.
+- [x] Tests: 3 mobile grid cases + 2 Rust cases + Greek `inferStockStatus` cases; a two-card CS-Cart fixture. Verified live: `177.42` EUR (back_order) for CRS326-24G-2S+RM. `pnpm verify` exit 0 — root `3338` / desktop `324` / cargo `88`.
+- [x] **This closes the Phase-1102 "not fixable" list** (Winncom/B&H/GoWiFi → Phase 1106; Neobits/MBS I-WAV → Phase 1107; ROC-NOC → Phase 1108; HellasCom → here). All 25 registered parsers now have a working path.
