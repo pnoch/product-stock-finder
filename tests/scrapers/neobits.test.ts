@@ -11,7 +11,7 @@ describe("Neobits Parser", () => {
 
   it("should build correct search URL", () => {
     const url = neobitsParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://www.neobits.com/search?search_param=all&main_search_field=hAP%20ac3");
+    expect(url).toBe("https://www.neobits.com/search?keywords=hAP%20ac3");
   });
 
   it("should return null for invalid HTML", () => {
