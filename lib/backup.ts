@@ -32,6 +32,8 @@ const SETTING_DEFAULTS: Record<string, unknown> = {
   backgroundServiceEnabled: false,
   watchlistSort: "recent",
   watchlistGroup: "off",
+  taxExempt: false,
+  includeImportEstimate: false,
 };
 
 export interface BackupInput {
