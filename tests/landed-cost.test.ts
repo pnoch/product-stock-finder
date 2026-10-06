@@ -111,6 +111,24 @@ describe("computeLandedCost", () => {
     expect(r!.total).toBe(138);
   });
 
+  it("suppresses the import estimate for a tax-exempt buyer even when opted in", () => {
+    const d = dist({ taxMode: "export-exempt" });
+    const r = computeLandedCost(listing(), d, dest, {
+      taxExempt: true,
+      includeImportEstimate: true,
+    });
+    expect(r!.importEstimate).toBe(0);
+    expect(r!.total).toBe(138);
+  });
+
+  it("treats a missing or non-finite taxRate as zero for an origin store", () => {
+    const d = dist({ taxMode: "origin" });
+    expect(computeLandedCost(listing(), d, dest, {})!.storeTax).toBe(0);
+    expect(
+      computeLandedCost(listing({ taxRate: Number.NaN }), d, dest, {})!.storeTax,
+    ).toBe(0);
+  });
+
   it("includes the import estimate only when opted in", () => {
     const d = dist({ taxMode: "export-exempt" });
     const off = computeLandedCost(listing(), d, dest, {});
@@ -138,6 +156,11 @@ describe("computeLandedCost", () => {
     );
     expect(r).not.toBeNull();
     expect(r!.currency).toBe("USD");
-    expect(r!.price).toBeGreaterThan(0);
+    // EUR→USD: (100 / 0.92) * 1 = 108.69565…
+    expect(r!.price).toBeCloseTo(108.6957, 3);
+    // Shipping is the distributor's EUR 38 converted to USD, not the raw 38.
+    expect(r!.shipping).toBeCloseTo(41.3043, 3);
+    expect(r!.shipping).not.toBe(38);
+    expect(r!.total).toBeCloseTo(150, 3);
   });
 });
