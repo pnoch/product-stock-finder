@@ -10,7 +10,7 @@ describe("estimated shipping labelling", () => {
     // The destination breakdown must use formatEstimate for the shipping and
     // total terms so they read as estimates, not quotes.
     expect(src).toContain("formatEstimate");
-    expect(src).toContain("check exact rates at checkout");
+    expect(src).toContain("Check exact rates at checkout");
   });
 
   it("the listing card relabels Visit when a destination is active", () => {

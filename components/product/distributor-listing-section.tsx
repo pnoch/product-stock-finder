@@ -533,7 +533,7 @@ export function DistributorListingSection({
                     = {formatEstimate(bestDeal.total, bestDeal.currency)}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-                    Shipping is estimated — check exact rates at checkout.
+                    Shipping is estimated. Check exact rates at checkout.
                   </Text>
                 </>
               )}
