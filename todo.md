@@ -8234,3 +8234,10 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Asymmetric apostrophe escaping:** `escapeCsv` prefixed a value only when its *first* char was a formula char (`=+-@\t\r`), but `unescapeCsv` stripped a leading apostrophe whenever the *second* char was one. A value that genuinely started with `'=` or `'@` (e.g. `'=SUM(A1)`, `'@home`) was never escaped on export yet was unescaped on import, silently losing the leading apostrophe. Fixed by also escaping a leading apostrophe and unescaping `'` before a formula char or another `'`, making the two symmetric.
 - [x] **Whitespace-only model dropped the row:** `detailedCsvToProducts` used `(r.model || r.product).trim()`. A whitespace-only model is truthy, so it was chosen, trimmed to `""`, and the row was dropped even though the product name was valid. Fixed to `r.model.trim() || r.product.trim()`.
 - [x] Tests: 2 new cases (apostrophe-before-formula round-trips; whitespace-model row kept). Fuzz re-run: 0 real violations (only `//`-prefixed names, the documented legacy comment marker, are skipped). `pnpm verify` exit 0 — root `3344` / desktop `324` / cargo `88`.
+
+## Phase 1113: CSV round-trip property test
+
+- [x] The CSV module produced 3 real bugs across Phases 1111–1112, all of which slipped past the example-based tests. Added `tests/csv-roundtrip-property.test.ts`: a deterministic (seeded mulberry32, no new dependency) property test generating 20k products over a wide character set (`" , \n \r = + - @ \t ' space # / é 😀 zero-width`) and asserting `parse(export(x))` preserves name/model/url, plus a dedicated empty-product-column case and a formula-prefix round-trip.
+- [x] Documented exclusions: names starting with `//` (legacy comment marker) and rows with neither name nor model (no identity).
+- [x] **Verified non-vacuous:** reverting each of the three historical fixes (empty-first-field drop, asymmetric apostrophe escaping, whitespace-only model) makes the property test fail.
+- [x] `pnpm verify` exit 0 — root `3347` / desktop `324` / cargo `88`.
