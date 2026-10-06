@@ -56,6 +56,11 @@ describe("Scraping Integration", () => {
       expect(inferStockStatus("Pre-order")).toBe("back_order");
       expect(inferStockStatus("Sold Out")).toBe("out_of_stock");
       expect(inferStockStatus("Available")).toBe("in_stock");
+      expect(inferStockStatus("Εκτός Παραγωγής")).toBe("out_of_stock");
+      expect(inferStockStatus("Μη διαθέσιμο")).toBe("out_of_stock");
+      expect(inferStockStatus("Διαθέσιμο με παραγγελία")).toBe("back_order");
+      expect(inferStockStatus("Διαθέσιμο για παραγγελία")).toBe("back_order");
+      expect(inferStockStatus("Διαθέσιμο")).toBe("in_stock");
     });
 
     it("inferStockStatus should not treat unavailable text as in stock", () => {

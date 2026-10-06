@@ -180,6 +180,9 @@ pub fn infer_stock_status(text: &str) -> String {
         || lower.contains("unavailable")
         || lower.contains("not available")
         || lower.contains("sold out")
+        || lower.contains("εκτός παραγωγής")
+        || lower.contains("εξαντλήθηκε")
+        || lower.contains("μη διαθέσιμο")
     {
         return "out_of_stock".to_string();
     }
@@ -190,10 +193,15 @@ pub fn infer_stock_status(text: &str) -> String {
         // "Expected 15 Sept" is a back-order signal on mobile; omitting it made
         // desktop report unknown/in_stock for the same listing.
         || lower.contains("expected")
+        || lower.contains("παραγγελία")
     {
         return "back_order".to_string();
     }
-    if lower.contains("in stock") || lower.contains("available") || lower.contains("add to cart") {
+    if lower.contains("in stock")
+        || lower.contains("available")
+        || lower.contains("add to cart")
+        || lower.contains("διαθέσιμο")
+    {
         return "in_stock".to_string();
     }
     "unknown".to_string()
