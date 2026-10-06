@@ -15,7 +15,7 @@ import { useColors } from "@/hooks/use-colors";
 import { setOnboardingSeen } from "@/lib/onboarding";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CountryPicker } from "@/components/ui/country-picker";
-import { getSettings, saveSettings } from "@/lib/storage";
+import { updateSettings } from "@/lib/storage";
 import { getCountry } from "@shared/countries";
 
 function localeRegion(): string | null {
@@ -70,14 +70,11 @@ export function OnboardingScreen({
   };
 
   const finishDestination = async () => {
-    const current = await getSettings();
-    await saveSettings({
-      ...current,
+    await updateSettings({
       ...(country
         ? {
             shipToCountry: country,
-            displayCurrency:
-              getCountry(country)?.currency ?? current.displayCurrency,
+            displayCurrency: getCountry(country)?.currency ?? undefined,
           }
         : {}),
       taxExempt,
