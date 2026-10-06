@@ -150,6 +150,8 @@ app.config.ts         Expo config (branding, plugins, intent filters)
 Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-level. Do not edit unless explicitly extending infrastructure. The app's own code lives in `lib/`, `app/`, `components/`, `hooks/`.
 `lib/price-source.ts` is the sole foreground price entry point — do not add new direct `fetchServerPrice` call sites.
 
+**Monetization seams:** `lib/entitlements.ts` (`setEntitlementProvider`) and `lib/telemetry.ts` (`setTelemetrySink`) are provider-agnostic drop-in points. Everything is free until a provider registers (default `FREE_STATE`, fail-closed). Gate Pro features via `lib/pro-features.ts` + `hooks/use-entitlements.ts`; never call a billing/analytics SDK directly from a screen.
+
 ## Domain Model (lib/types.ts)
 
 - `StockStatus`: `"in_stock" | "back_order" | "out_of_stock" | "unknown"`

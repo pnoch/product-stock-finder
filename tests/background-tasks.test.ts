@@ -23,6 +23,8 @@ const state = vi.hoisted(() => ({
   }),
   lastRegister: undefined as unknown,
   lastUnregister: undefined as unknown,
+  isPro: true,
+  hasProvider: true,
 }));
 
 vi.mock("react-native", () => ({
@@ -68,6 +70,18 @@ vi.mock("../lib/background-tasks/price-check", () => ({
   runPriceCheckCore: state.priceCore,
 }));
 
+vi.mock("@/lib/entitlements", () => ({
+  getEntitlementState: vi.fn(async () => ({
+    tier: state.isPro ? "pro" : "free",
+    isPro: state.isPro,
+  })),
+  getEntitlementProvider: vi.fn(() =>
+    state.hasProvider
+      ? { getState: async () => ({ tier: "free", isPro: false }), purchase: async () => ({ tier: "pro", isPro: true }) }
+      : null,
+  ),
+}));
+
 import {
   HEALTH_PROBE_TASK,
   PRICE_CHECK_TASK,
@@ -85,6 +99,8 @@ beforeEach(() => {
   state.intervals = {};
   state.lastRegister = undefined;
   state.lastUnregister = undefined;
+  state.isPro = true;
+  state.hasProvider = true;
   state.priceCore.mockResolvedValue(undefined);
   state.testAll.mockResolvedValue(undefined);
   state.checkAlerts.mockResolvedValue(undefined);
@@ -135,6 +151,30 @@ describe("registerPriceCheckTask", () => {
     await registerPriceCheckTask();
     expect(state.unregisterTaskAsync).not.toHaveBeenCalled();
     expect(state.intervals[PRICE_CHECK_TASK]).toBeNull();
+  });
+
+  it("does not register background monitoring for a free user when limits are enforced", async () => {
+    state.hasProvider = true;
+    state.isPro = false;
+    state.settings = { checkInterval: "hourly" };
+    state.registered[PRICE_CHECK_TASK] = true;
+    await registerPriceCheckTask();
+    expect(state.registerTaskAsync).not.toHaveBeenCalled();
+    expect(state.lastUnregister).toBe(PRICE_CHECK_TASK);
+    expect(state.intervals[PRICE_CHECK_TASK]).toBeNull();
+  });
+
+  it("still registers a free user's hourly task when no billing provider exists", async () => {
+    state.hasProvider = false;
+    state.isPro = false;
+    state.settings = { checkInterval: "hourly" };
+    await registerPriceCheckTask();
+    expect(state.lastUnregister).toBeUndefined();
+    expect(state.lastRegister).toEqual({
+      name: PRICE_CHECK_TASK,
+      opts: { minimumInterval: 60 },
+    });
+    expect(state.intervals[PRICE_CHECK_TASK]).toBe(60);
   });
 
   it("registers a missing hourly task with a 60-minute interval", async () => {

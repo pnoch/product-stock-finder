@@ -16,10 +16,14 @@ import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { useColors } from "@/hooks/use-colors";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
+import { track } from "@/lib/telemetry";
 import { searchCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
 import { PREVIEW_LIMIT, sortPreviewByStock } from "@/lib/search-preview";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
@@ -34,6 +38,7 @@ import { SearchEmptyState } from "@/components/search/search-empty-state";
 import { CatalogProductCard } from "@/components/search/catalog-product-card";
 import {
   addToWatchlist,
+  getWatchlist,
   getDiscoveredProducts,
   updateProductListings,
 } from "@/lib/storage";
@@ -151,6 +156,8 @@ export default function SearchScreen() {
   const router = useRouter();
   const colors = useColors();
   const { showToast } = useToast();
+  const { isPro } = useEntitlements();
+  const [paywallVisible, setPaywallVisible] = useState(false);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
   const [discovering, setDiscovering] = useState(false);
@@ -211,6 +218,12 @@ export default function SearchScreen() {
         // detail screen reads the watchlist, so without this the toast claimed
         // "Added to watchlist" and then showed "Product not found" (desktop
         // already adds explicitly).
+        const discoverCount = (await getWatchlist()).length;
+        if (shouldEnforceFreeLimits() && !canAddToWatchlist(discoverCount, isPro)) {
+          track("paywall_shown");
+          setPaywallVisible(true);
+          return;
+        }
         const added = await addToWatchlist({
           ...result.product,
           addedAt: new Date().toISOString(),
@@ -225,6 +238,7 @@ export default function SearchScreen() {
           router.push(`/product/${result.product.id}`);
           return;
         }
+        track("product_added", { productId: result.product.id });
         // The AI product has no listings either, and without this it opened with
         // zero distributor rows and no price (the catalog-add path discovers
         // before navigating; the empty-listing backfill is best-effort and was
@@ -273,7 +287,7 @@ export default function SearchScreen() {
     } finally {
       setDiscovering(false);
     }
-  }, [query, discovering, loadData, router, showToast, watchlist]);
+  }, [query, discovering, loadData, router, showToast, watchlist, isPro]);
 
   const deferredQuery = useDeferredValue(query);
   const [discoveredProducts, setDiscoveredProducts] = useState<
@@ -382,6 +396,12 @@ export default function SearchScreen() {
         );
         return;
       }
+      const count = (await getWatchlist()).length;
+      if (shouldEnforceFreeLimits() && !canAddToWatchlist(count, isPro)) {
+        track("paywall_shown");
+        setPaywallVisible(true);
+        return;
+      }
       setAdding(item.id);
       Keyboard.dismiss();
       const pending = pendingTags[item.id] ?? [];
@@ -400,6 +420,7 @@ export default function SearchScreen() {
           showAlert("Already tracked", `"${item.name}" is already in your watchlist.`);
           return;
         }
+        track("product_added", { productId: item.id });
         // The catalog carries no listings and nothing discovered them for this
         // path, so the product never showed a price. Discover before the tag
         // sheet can open so the two writes cannot race.
@@ -440,7 +461,7 @@ export default function SearchScreen() {
         setAdding(null);
       }
     },
-    [router, trackedIds, adding, pendingTags, loadData, showToast],
+    [router, trackedIds, adding, pendingTags, loadData, showToast, isPro],
   );
 
   const handleTagPress = useCallback((p: Product) => {
@@ -498,6 +519,11 @@ export default function SearchScreen() {
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (shouldEnforceFreeLimits() && !isPro) {
+              track("paywall_shown");
+              setPaywallVisible(true);
+              return;
+            }
             setBulkVisible(true);
           }}
           style={{ padding: 4 }}
@@ -741,6 +767,11 @@ export default function SearchScreen() {
         initialText={query}
         trackedIds={trackedIds}
         onAdded={handleManualAdded}
+      />
+
+      <PaywallScreen
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
       />
     </ScreenContainer>
   );

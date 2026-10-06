@@ -104,6 +104,11 @@ vi.mock("expo-background-task", () => ({
 }));
 vi.mock("react-native", () => ({ Platform: { OS: "ios" } }));
 
+vi.mock("@/lib/entitlements", () => ({
+  getEntitlementState: vi.fn(async () => ({ tier: "pro", isPro: true })),
+  getEntitlementProvider: vi.fn(() => null),
+}));
+
 const webPush = vi.hoisted(() => ({ display: true }));
 vi.mock("../lib/web-notifications", () => ({
   displayWebNotification: vi.fn(() => webPush.display),

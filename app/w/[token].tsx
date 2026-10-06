@@ -11,8 +11,12 @@ import { getBestPrice } from "@/lib/currency";
 import { StockBadge } from "@/components/stock-badge";
 import { getDistributorById } from "@shared/distributors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { addToWatchlist, getSettings } from "@/lib/storage";
+import { addToWatchlist, getSettings, getWatchlist } from "@/lib/storage";
 import { useAuth } from "@/hooks/use-auth";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
+import { track } from "@/lib/telemetry";
+import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { normalizeSharedWatchlistProduct } from "@/lib/shared-watchlist";
 import { showAlert } from "@/lib/alert";
 import { productHistoryToCsv, watchlistToDetailedCsv } from "@/lib/csv";
@@ -22,6 +26,8 @@ import type { Product } from "@/lib/types";
 export default function SharedWatchlistScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const colors = useColors();
+  const { isPro } = useEntitlements();
+  const [paywallVisible, setPaywallVisible] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   useEffect(() => {
     getSettings()
@@ -120,16 +126,36 @@ export default function SharedWatchlistScreen() {
     let added = 0;
     let failed = 0;
     let duplicates = 0;
+    let limited = false;
+    let count = (await getWatchlist()).length;
+    const enforce = shouldEnforceFreeLimits();
     for (const p of rawProducts) {
+      if (enforce && !canAddToWatchlist(count, isPro)) {
+        limited = true;
+        break;
+      }
       try {
         // addToWatchlist returns false for an already-tracked product, so a
         // second tap on "Add all" reports "already on your watchlist" instead
         // of claiming to have added products that were already there.
-        if (await addToWatchlist(normalizeSharedWatchlistProduct(p))) added += 1;
-        else duplicates += 1;
+        if (await addToWatchlist(normalizeSharedWatchlistProduct(p))) {
+          added += 1;
+          count += 1;
+        } else duplicates += 1;
       } catch {
         failed += 1;
       }
+    }
+    if (limited) {
+      if (added > 0) {
+        showAlert(
+          "Added to watchlist",
+          `Added ${added} product${added === 1 ? "" : "s"} — upgrade to Pro to add the rest.`,
+        );
+      }
+      track("paywall_shown");
+      setPaywallVisible(true);
+      return;
     }
     const skipped = failed + duplicates;
     if (added > 0 && skipped === 0) {
@@ -259,6 +285,11 @@ export default function SharedWatchlistScreen() {
           })}
         </View>
       </ScrollView>
+
+      <PaywallScreen
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+      />
     </ScreenContainer>
   );
 }

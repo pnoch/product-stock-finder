@@ -13,7 +13,11 @@ import { useQuery } from "@tanstack/react-query";
 import { TrendingProduct, type DistributorListing } from "@/lib/types";
 import { fetchTrending } from "@shared/trending";
 import { useColors } from "@/hooks/use-colors";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { addToWatchlist, getWatchlist } from "@/lib/storage";
+import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
+import { track } from "@/lib/telemetry";
+import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import { formatPrice } from "@shared/currency";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -199,6 +203,8 @@ export const TrendingSection = memo(function TrendingSection() {
   const colors = useColors();
   const router = useRouter();
   const { showToast } = useToast();
+  const { isPro } = useEntitlements();
+  const [paywallVisible, setPaywallVisible] = React.useState(false);
   const [pickerProduct, setPickerProduct] = React.useState<TrendingProduct | null>(null);
   const { data: products, isLoading, isError, refetch } = useQuery({
     queryKey: ["trending"],
@@ -258,6 +264,14 @@ export const TrendingSection = memo(function TrendingSection() {
         showToast("Not yet available", "info");
         return false;
       }
+      if (!watchlistIds.has(product.id)) {
+        const count = (await getWatchlist().catch(() => [])).length;
+        if (shouldEnforceFreeLimits() && !canAddToWatchlist(count, isPro)) {
+          track("paywall_shown");
+          setPaywallVisible(true);
+          return false;
+        }
+      }
       const fallbackListings: DistributorListing[] = SAMPLE_LISTINGS[product.id] ?? [];
       const newProduct = {
         id: product.id,
@@ -280,7 +294,7 @@ export const TrendingSection = memo(function TrendingSection() {
       setWatchlistIds((prev) => new Set([...prev, product.id]));
       return true;
     },
-    [showToast],
+    [showToast, watchlistIds, isPro],
   );
 
   const handleAdd = useCallback(
@@ -464,6 +478,10 @@ export const TrendingSection = memo(function TrendingSection() {
           onChanged={() => {}}
         />
       )}
+      <PaywallScreen
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+      />
     </View>
   );
 });

@@ -7,9 +7,13 @@ import * as Haptics from "expo-haptics";
 import { trpc } from "@/lib/trpc";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { useServerConfig } from "@/hooks/use-server-config";
+import { track } from "@/lib/telemetry";
 import {
   getSettings,
   updateSettings,
@@ -468,6 +472,13 @@ export default function SettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [reenabling, setReenabling] = useState(false);
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
+  const { isPro } = useEntitlements();
+  const [paywallVisible, setPaywallVisible] = useState(false);
+
+  const openPaywall = useCallback(() => {
+    track("paywall_shown");
+    setPaywallVisible(true);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -727,31 +738,47 @@ export default function SettingsScreen() {
             overflow: "hidden",
           }}
         >
-          <SettingRow
-            icon="arrow.clockwise"
-            label="Background refresh"
-            description="Keeps checking prices while the app is closed (shows a persistent notification)."
-            right={
-              <Switch
-                value={!!settings.backgroundServiceEnabled}
-                onValueChange={(v) => {
-                  void updateSetting("backgroundServiceEnabled", v);
-                  void applyBackgroundServiceToggle(v);
-                }}
-                trackColor={{
-                  false: colors.border,
-                  true: colors.primary + "88",
-                }}
-                thumbColor={
-                  settings.backgroundServiceEnabled
-                    ? colors.primary
-                    : colors.muted
-                }
-                accessibilityLabel="Enable background refresh"
-                accessibilityRole="switch"
-              />
+          <Pressable
+            onPress={shouldEnforceFreeLimits() && !isPro ? openPaywall : undefined}
+            disabled={shouldEnforceFreeLimits() && !isPro}
+            accessibilityLabel={
+              shouldEnforceFreeLimits() && !isPro
+                ? "Background refresh requires Pro. Tap to upgrade."
+                : "Background refresh"
             }
-          />
+            accessibilityRole={shouldEnforceFreeLimits() && !isPro ? "button" : undefined}
+          >
+            <SettingRow
+              icon="arrow.clockwise"
+              label="Background refresh"
+              description={
+                "Keeps checking prices while the app is closed (shows a persistent notification)." +
+                (shouldEnforceFreeLimits() && !isPro ? " (Pro)" : "")
+              }
+              right={
+                <Switch
+                  value={(!shouldEnforceFreeLimits() || isPro) && !!settings.backgroundServiceEnabled}
+                  disabled={shouldEnforceFreeLimits() && !isPro}
+                  onValueChange={(v) => {
+                    if (shouldEnforceFreeLimits() && !isPro) return;
+                    void updateSetting("backgroundServiceEnabled", v);
+                    void applyBackgroundServiceToggle(v);
+                  }}
+                  trackColor={{
+                    false: colors.border,
+                    true: colors.primary + "88",
+                  }}
+                  thumbColor={
+                    settings.backgroundServiceEnabled
+                      ? colors.primary
+                      : colors.muted
+                  }
+                  accessibilityLabel="Enable background refresh"
+                  accessibilityRole="switch"
+                />
+              }
+            />
+          </Pressable>
         </View>
 
         <SectionHeader title="Display" />
@@ -944,9 +971,45 @@ export default function SettingsScreen() {
           {isAuthenticated && <JoinedSharedList />}
         </View>
 
+        <SectionHeader title="Pro" />
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            marginHorizontal: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: "hidden",
+          }}
+        >
+          <Pressable
+            onPress={openPaywall}
+            accessibilityLabel="Upgrade to Pro"
+            accessibilityRole="button"
+          >
+            <SettingRow
+              icon="crown.fill"
+              label="Upgrade to Pro"
+              description="Unlock unlimited tracking, background monitoring, and sync."
+              right={
+                <IconSymbol
+                  name="chevron.right"
+                  size={16}
+                  color={colors.primary}
+                />
+              }
+            />
+          </Pressable>
+        </View>
+
         <AboutSection onDataCleared={reloadData} />
         <SiteSessionsSection />
       </ScrollView>
+
+      <PaywallScreen
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+      />
 
       <LoginModal
         visible={showLoginModal}
