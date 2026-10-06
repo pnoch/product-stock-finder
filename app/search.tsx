@@ -519,6 +519,11 @@ export default function SearchScreen() {
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (shouldEnforceFreeLimits() && !isPro) {
+              track("paywall_shown");
+              setPaywallVisible(true);
+              return;
+            }
             setBulkVisible(true);
           }}
           style={{ padding: 4 }}
