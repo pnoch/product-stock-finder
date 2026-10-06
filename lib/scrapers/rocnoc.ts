@@ -40,7 +40,7 @@ export const rocnocParser: DistributorParser = {
   id: "rocnoc-us",
   baseUrl: "https://www.roc-noc.com",
   buildSearchUrl: (model) =>
-    `https://www.roc-noc.com/search.php?keywords=${encodeURIComponent(model)}`,
+    `https://www.roc-noc.com/search.php?mode=search&substring=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) =>
     parseHtml(html, url ?? "https://www.roc-noc.com", model),
   // The storefront's search is JS-driven; plain HTML returns no results.

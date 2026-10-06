@@ -10,7 +10,9 @@ describe("Rocnoc Parser", () => {
 
   it("should build correct search URL", () => {
     const url = rocnocParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://www.roc-noc.com/search.php?keywords=hAP%20ac3");
+    expect(url).toBe(
+      "https://www.roc-noc.com/search.php?mode=search&substring=hAP%20ac3",
+    );
   });
 
   it("should return null for invalid HTML", () => {
