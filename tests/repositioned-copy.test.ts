@@ -50,4 +50,9 @@ describe("repositioned copy", () => {
     const notifications = read("lib/notifications.ts");
     expect(notifications).toContain("Alerts when a watched part restocks");
   });
+
+  it("pins the watchlist empty state on both platforms", () => {
+    expect(read("components/watchlist/empty-state.tsx")).toContain("alerting you the moment it's in stock or cheaper");
+    expect(read("desktop/src/pages/Watchlist.tsx")).toContain("alerting you the moment it's in stock or cheaper");
+  });
 });

@@ -83,7 +83,7 @@ export function EmptyState({
       >
         {hasFilters
           ? "Try adjusting your filters or search — or add a new product to track."
-          : "Add products to track their availability and prices globally across 25 distributors."}
+          : "Add a part and we'll watch all 25 distributors — alerting you the moment it's in stock or cheaper."}
       </Text>
       {!hasFilters && (
         <View

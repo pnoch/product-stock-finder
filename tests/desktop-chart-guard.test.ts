@@ -559,12 +559,12 @@ describe("desktop chart guard", () => {
   });
 
   // QA round 213: mobile's watchlist no-products state is "No products yet"
-  // with the "track … across 25 distributors" description, a tip, and a
+  // with the "watch all 25 distributors" description, a tip, and a
   // Browse Products action; desktop's said "No products in watchlist".
   it("matches mobile's watchlist empty state on desktop", async () => {
     const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
     expect(text).toContain('title="No products yet"');
-    expect(text).toContain("track their availability and prices globally across 25 distributors.");
+    expect(text).toContain("alerting you the moment it's in stock or cheaper.");
     expect(text).toContain("Tip: Search for MikroTik CRS, Ubiquiti U7, RTX 4090, Pi 5, etc.");
   });
 
@@ -620,8 +620,8 @@ describe("desktop chart guard", () => {
   });
 
   // QA round 206: mobile's Home header shows "Product Stock Finder" /
-  // "Global availability monitor"; desktop's said "Dashboard". (Round 255
-  // repositioned the tagline to "Find it anywhere. Landed to your door.")
+  // "Find it anywhere. Landed to your door."; desktop's said "Dashboard".
+  // (Round 255 repositioned the tagline to "Find it anywhere. Landed to your door.")
   it("matches mobile's Home header on desktop", async () => {
     const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
     expect(text).toContain("Product Stock Finder");
@@ -733,7 +733,7 @@ describe("desktop chart guard", () => {
     expect(home).not.toContain("Add Products");
   });
 
-  // QA round 193: mobile's Home empty state says "No products tracked yet" and
+  // QA round 193: mobile's Home empty state says "Nothing on the radar yet" and
   // shows a "Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max" hint; desktop's said
   // "No products tracked" with no hint. (Round 255 repositioned it to
   // "Nothing on the radar yet".)
@@ -749,7 +749,7 @@ describe("desktop chart guard", () => {
   it("matches mobile's alerts empty-state copy on desktop", async () => {
     const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     expect(text).toContain('title="No alerts set"');
-    expect(text).toContain('Open a product and click "Set Alert" to get notified when the price drops.');
+    expect(text).toContain('Open a product and click "Set Alert" to get notified when it restocks or the price drops.');
   });
 
   // QA round 294: Compare's MultiLineChart hardcoded light-mode greys with no
@@ -1530,7 +1530,7 @@ describe("desktop chart guard", () => {
   // exist; desktop's AlertsTab had none.
   it("shows the active-alerts info banner on desktop", async () => {
     const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
-    expect(text).toContain("You&apos;ll be notified when a product&apos;s price drops below your target.");
+    expect(text).toContain("You&apos;ll be notified when a product restocks or drops below your target.");
   });
 
   // QA round 158: mobile's digestPlaceholder returns null when the watchlist is

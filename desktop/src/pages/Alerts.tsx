@@ -673,7 +673,7 @@ function AlertsTab({
         <EmptyState
           icon={<Bell className="w-12 h-12" />}
           title="No alerts set"
-          description='Open a product and click "Set Alert" to get notified when the price drops.'
+          description='Open a product and click "Set Alert" to get notified when it restocks or the price drops.'
         />
         <button
           onClick={() => navigate("/search")}
@@ -692,7 +692,7 @@ function AlertsTab({
         <div className="flex items-center gap-2 p-3 bg-brand-600/10 border border-brand-600/20 rounded-xl">
           <Info className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0" />
           <p className="text-sm text-brand-600 dark:text-brand-400">
-            You&apos;ll be notified when a product&apos;s price drops below your target.
+            You&apos;ll be notified when a product restocks or drops below your target.
           </p>
         </div>
       )}
