@@ -196,8 +196,8 @@ export function Home() {
         )}
         <EmptyState
           icon={<Package className="w-8 h-8" />}
-          title="No products tracked yet"
-          description="Click Add Product to add a product to your watchlist and track prices across 25 distributors"
+          title="Nothing on the radar yet"
+          description="Click Add Product and paste a model number — we'll check all 25 distributors and alert you the moment it's in stock."
         />
         <div className="flex justify-center mt-3">
           <p className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-amber-300/40 bg-amber-50 dark:bg-amber-900/20 text-xs text-gray-500 dark:text-gray-400">
@@ -228,7 +228,7 @@ export function Home() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Product Stock Finder</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Global availability monitor</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Find it anywhere. Landed to your door.</p>
         </div>
         <div className="flex items-center gap-2">
           <button

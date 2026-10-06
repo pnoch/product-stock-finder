@@ -8,18 +8,18 @@ import { hasSeenOnboarding, setOnboardingSeen } from "../../../lib/onboarding";
 const SLIDES = [
   {
     icon: ShoppingCart,
-    title: "Track Prices Everywhere",
-    body: "Monitor products across 25 global distributors in one watchlist.",
+    title: "Find It Anywhere",
+    body: "One search across 25 global distributors — see who actually has it in stock.",
   },
   {
     icon: Sparkles,
-    title: "Add Anything",
-    body: "Search the catalog, paste a list of model numbers, or add any product manually with AI.",
+    title: "Know the Real Price",
+    body: "Landed cost to your country: price + shipping + tax, ranked. No surprises at checkout.",
   },
   {
     icon: Bell,
-    title: "Never Miss a Drop",
-    body: "Price alerts, restock watches, and weekly digests keep you ahead.",
+    title: "Never Miss a Restock",
+    body: "Price alerts, restock watches, and digests tell you the second it's back or cheaper.",
   },
 ];
 
