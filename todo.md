@@ -8184,3 +8184,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Desktop parity:** synced the Rust parsers (`winncom.rs`, `gowifi.rs`, `mod.rs` `CARD_SELECTOR`) and added a Rust test proving the new B&H card + Winncom `:contains` selectors parse in the `scraper` crate (not silently skipped).
 - [x] Tests: `browser-launch` (+2), `bhphoto`/`winncom`/`gowifi` (+2 each), `desktop-scraper-parity` (green), Rust +1. `pnpm verify` exit 0 — root `3332` / desktop `324` / cargo `83`.
 - [x] Note: the live pass-rate gain is only measurable against real targets (not in CI); headed needs a display, so the server must run under Xvfb.
+
+## Phase 1107: Neobits + MBS I-WAV search-URL fixes
+
+- [x] **Neobits:** `buildSearchUrl` used `/search?search_param=all&main_search_field=` (returned the homepage, 0 model hits). Corrected to `/search?keywords=` — the storefront search box's real target. Verified live: `$215.95` USD for CRS326-24G-2S+RM, model gate passing.
+- [x] **MBS I-WAV:** `buildSearchUrl` used `/search?q=`, which does not filter (returned generic products). The site's typeahead submits to `/search?keywords=`. Verified live: `$291.78` CAD, model gate passing.
+- [x] Both mirrored in the Rust desktop parsers (`neobits.rs`, `mbsiwav.rs`); `desktop-scraper-parity` green.
+- [x] Tests: `neobits`/`mbsiwav` URL assertions updated. `pnpm verify` exit 0 — root `3332` / desktop `324` / cargo `83`.
+- [x] Remaining (separate): ROC-NOC (POST search works but prices are JS/AJAX-populated) and HellasCom (search mechanism undiscovered). Both load unblocked under the headed path.
