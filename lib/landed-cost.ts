@@ -1,4 +1,6 @@
-import type { Distributor } from "./types";
+import type { Distributor, DistributorListing } from "./types";
+import { convertPrice } from "./currency";
+import { estimateImportDuty } from "@shared/duty";
 
 // Country → region, so a country without an explicit shipping rate falls back
 // to its distributor region. Covers the countries the app's distributors ship
@@ -50,4 +52,99 @@ export function resolveShipping(
     return table[region]!;
   }
   return null;
+}
+
+export interface LandedCost {
+  distributorId: string;
+  price: number;
+  shipping: number;
+  storeTax: number;
+  importEstimate: number;
+  total: number;
+  currency: string;
+  isEstimate: boolean;
+}
+
+export interface Destination {
+  countryCode: string;
+  currency: string;
+}
+
+export interface LandedCostOptions {
+  taxExempt?: boolean;
+  includeImportEstimate?: boolean;
+  category?: string;
+}
+
+/**
+ * True cost to the buyer's door: converted price + shipping + the store's tax
+ * (per its taxMode) + an optional destination import estimate. Returns null when
+ * shipping is unknown, so the UI can show "shipping unknown" rather than a wrong
+ * number.
+ */
+export function computeLandedCost(
+  listing: DistributorListing,
+  distributor: Distributor,
+  destination: Destination,
+  options: LandedCostOptions,
+): LandedCost | null {
+  const shippingNative = resolveShipping(distributor, destination.countryCode);
+  if (shippingNative === null) return null;
+
+  const price = convertPrice(
+    listing.price,
+    listing.currency,
+    destination.currency,
+  );
+  if (price === null) return null;
+  const shipping = convertPrice(
+    shippingNative,
+    distributor.currency,
+    destination.currency,
+  );
+  if (shipping === null) return null;
+
+  const taxExempt = options.taxExempt === true;
+
+  let storeTax = 0;
+  if (!taxExempt) {
+    if (distributor.taxMode === "origin") {
+      const rate =
+        typeof listing.taxRate === "number" && Number.isFinite(listing.taxRate)
+          ? listing.taxRate
+          : 0;
+      storeTax = price * rate;
+    } else if (distributor.taxMode === "destination") {
+      const est = estimateImportDuty(
+        price,
+        options.category ?? "",
+        destination.countryCode,
+      );
+      storeTax = est ? price * est.vatRate : 0;
+    }
+  }
+
+  let importEstimate = 0;
+  if (!taxExempt && options.includeImportEstimate === true) {
+    const est = estimateImportDuty(
+      price,
+      options.category ?? "",
+      destination.countryCode,
+    );
+    if (est) {
+      const base = price + shipping;
+      importEstimate = base * (est.vatRate + est.dutyRate);
+    }
+  }
+
+  return {
+    distributorId: distributor.id,
+    price,
+    shipping,
+    storeTax,
+    importEstimate,
+    total: price + shipping + storeTax + importEstimate,
+    currency: destination.currency,
+    isEstimate: true,
+  };
 }
