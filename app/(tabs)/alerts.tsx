@@ -247,7 +247,7 @@ export default function AlertsScreen() {
                     color={colors.primary}
                   />
                   <Text style={{ color: colors.primary, fontSize: 13, flex: 1 }}>
-                    You&apos;ll be notified when a product&apos;s price drops
+                    You&apos;ll be notified when a product restocks or drops
                     below your target.
                   </Text>
                 </View>
@@ -259,7 +259,7 @@ export default function AlertsScreen() {
               <EmptyStateView
                 icon="bell.fill"
                 title="No alerts set"
-                subtitle='Open a product and tap "Set Alert" to get notified when the price drops.'
+                subtitle='Open a product and tap "Set Alert" to get notified when it restocks or the price drops.'
                 ctaLabel="Browse Products"
                 onCtaPress={() => router.push("/search")}
               />

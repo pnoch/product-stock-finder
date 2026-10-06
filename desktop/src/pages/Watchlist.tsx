@@ -759,7 +759,7 @@ export function Watchlist() {
         <EmptyState
           icon={<Package className="w-8 h-8" />}
           title="No products yet"
-          description="Add products to track their availability and prices globally across 25 distributors."
+          description="Add a part and we'll watch all 25 distributors — alerting you the moment it's in stock or cheaper."
           action={{ label: "Browse Products", to: "/search" }}
         />
         <div className="flex justify-center">

@@ -8271,3 +8271,14 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Listing card: the existing **Visit** button (opens `listing.url`) relabels to **"Visit · exact shipping"** when a destination is active — the store page is where the user selects their country and sees the real rate. Behaviour unchanged.
 - [x] Tests: `estimate-format` (7), `estimated-shipping-guards` (2). `pnpm verify` exit 0 — root `3408` / desktop `324` / cargo `90`.
 - [x] **Deferred:** crowd-sourced exact-rate correction (record the real quote per distributor+country) and per-distributor shipping-calculator scraping.
+
+## Phase 1117: Repositioned copy
+
+- [x] Aligned every user-facing string with the "global stock & price radar for hard-to-find hardware" positioning (availability-first, landed cost) — mobile + desktop. App name/slug/bundle ID unchanged (`Product Stock Finder` / `product-stock-finder` / `com.app.stocktrackerpro`).
+- [x] Onboarding: "Track Prices Everywhere"/"Add Anything"/"Never Miss a Drop" → **"Find It Anywhere" / "Know the Real Price" / "Never Miss a Restock"** (bodies rewritten to lead with availability + landed cost).
+- [x] Home: subtitle "Global availability monitor" → **"Find it anywhere. Landed to your door."**; empty state → **"Nothing on the radar yet"** + paste-a-model body.
+- [x] About: tagline → the same line, plus the origin line **"Built because I couldn't find a CRS804 during a global shortage."**
+- [x] `app.config.ts`: repositioned `NSUserNotificationsUsageDescription` + a top-level store `description`; `lib/notifications.ts` permission description.
+- [x] Desktop (`OnboardingModal`, `Home`) mirrors the mobile copy; the desktop parity guards updated.
+- [x] Tests: `repositioned-copy` (6, mutation-verified to catch partial reverts). `pnpm verify` exit 0 — root `3414` / desktop `324` / cargo `90`.
+- [x] **Remaining:** catalog expansion (homelab/SBC), billing/signing/telemetry.

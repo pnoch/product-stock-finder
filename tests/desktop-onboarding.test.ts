@@ -4,9 +4,9 @@ import { readFile } from "node:fs/promises";
 describe("desktop onboarding", () => {
   it("has a 3-slide welcome modal", async () => {
     const text = await readFile("desktop/src/components/OnboardingModal.tsx", "utf8");
-    expect(text).toContain("Track Prices Everywhere");
-    expect(text).toContain("Add Anything");
-    expect(text).toContain("Never Miss a Drop");
+    expect(text).toContain("Find It Anywhere");
+    expect(text).toContain("Know the Real Price");
+    expect(text).toContain("Never Miss a Restock");
   });
 
   it("shows once via shared seen-flag helpers", async () => {

@@ -297,7 +297,10 @@ export function AboutSection({ onDataCleared }: { onDataCleared?: () => void } =
           Product Stock Finder · v{Constants.expoConfig?.version ?? "dev"}
         </Text>
         <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
-          Track smarter. Buy better.
+          Find it anywhere. Landed to your door.
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+          Built because I couldn&apos;t find a CRS804 during a global shortage.
         </Text>
       </View>
     </>

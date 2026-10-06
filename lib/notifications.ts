@@ -79,7 +79,7 @@ export async function setupAndroidNotificationChannel(): Promise<void> {
   });
   await Notifications.setNotificationChannelAsync("price-alerts", {
     name: "Price Alerts",
-    description: "Notifications when a product drops below your target price",
+    description: "Alerts when a watched part restocks or drops below your target price.",
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: "#10B981",
