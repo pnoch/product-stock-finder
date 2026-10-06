@@ -13,8 +13,11 @@ const VALID_STOCK: Set<string> = new Set(["in_stock", "back_order", "out_of_stoc
 function escapeCsv(value: string): string {
   // Neutralize spreadsheet formula injection: a cell starting with =, +, -, @,
   // tab, or CR is executed as a formula by Excel/Sheets. Prefix with a single
-  // quote (the standard mitigation) before quoting.
-  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  // quote (the standard mitigation) before quoting. A value that already starts
+  // with an apostrophe is prefixed too, so unescapeCsv can strip exactly one
+  // layer and round-trip a genuine leading apostrophe (see unescapeCsv).
+  const safe =
+    /^[=+\-@\t\r]/.test(value) || value.startsWith("'") ? `'${value}` : value;
   // Quote on CR too: the tokenizer treats a bare CR as a row break, so an
   // unquoted value containing one was split into two rows on re-import.
   if (/[",\n\r]/.test(safe)) {
@@ -24,11 +27,12 @@ function escapeCsv(value: string): string {
 }
 
 // Reverse escapeCsv's formula-injection prefix. A leading apostrophe before a
-// formula character is a spreadsheet text-marker, not part of the value, so a
-// round-trip of our own export must strip it (`=-` was re-imported as `'=-`).
-// A genuine apostrophe not followed by a formula character is preserved.
+// formula character (or another apostrophe) is a spreadsheet text-marker, not
+// part of the value, so a round-trip of our own export must strip it (`=-` was
+// re-imported as `'=-`). A genuine apostrophe not followed by a formula
+// character is preserved.
 function unescapeCsv(value: string): string {
-  return /^'[=+\-@\t\r]/.test(value) ? value.slice(1) : value;
+  return /^'([=+\-@\t\r'])/.test(value) ? value.slice(1) : value;
 }
 
 function resolveStockStatus(product: Product): string {
@@ -325,7 +329,10 @@ export function detailedCsvToProducts(rows: DetailedCsvRow[]): Product[] {
   // per-distributor dedup: product + distributor collision (invite/ACL collision) — last-write-wins
   const listingSeen = new Map<string, number>();
   for (const r of rows) {
-    const key = (r.model || r.product).trim();
+    // Trim each before falling back: a whitespace-only model is truthy, so
+    // `(r.model || r.product).trim()` picked it, trimmed to "", and dropped a
+    // row whose product name was valid.
+    const key = r.model.trim() || r.product.trim();
     if (!key) continue;
     let product = map.get(key);
     if (!product) {

@@ -128,6 +128,16 @@ describe("parseDetailedCsv edge cases", () => {
     expect(parsed).toHaveLength(1);
     expect(parsed[0]!.modelNumber).toBe("CRS326-24G-2S+RM");
   });
+
+  it("keeps a row whose model is whitespace-only but the product name is set", () => {
+    // `(r.model || r.product).trim()` picked the truthy-but-blank model, trimmed
+    // it to "", and dropped the row even though the product name was valid.
+    const parsed = parseWatchlistCsv(
+      "product,model,brand,category,distributor,price,currency,stockStatus,url\nRouter A,\t,,,d1,1,USD,in_stock,",
+    );
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0]!.name).toBe("Router A");
+  });
 });
 
 describe("detailedCsvToProducts edge cases", () => {

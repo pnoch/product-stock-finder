@@ -56,4 +56,16 @@ describe("CSV export/import round-trip", () => {
     const back = parseWatchlistCsv(watchlistToCsv([product("'quoted")], "USD"));
     expect(back[0]?.name).toBe("'quoted");
   });
+
+  it("preserves a genuine apostrophe followed by a formula character", () => {
+    // escapeCsv only prefixed values whose FIRST char was a formula character,
+    // while unescapeCsv stripped a leading apostrophe whenever the SECOND char
+    // was one — so a value that genuinely starts with "'=" or "'@" was never
+    // escaped on export but was unescaped on import, silently losing the
+    // apostrophe. Escaping a leading apostrophe too makes the two symmetric.
+    for (const value of ["'=SUM(A1)", "'@home", "'-x", "'\tq"]) {
+      const back = parseWatchlistCsv(watchlistToCsv([product(value)], "USD"));
+      expect(back[0]?.name, value).toBe(value);
+    }
+  });
 });
