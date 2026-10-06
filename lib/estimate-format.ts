@@ -6,8 +6,9 @@ import { CURRENCY_SYMBOLS } from "@shared/currency";
  * a firm quote — the exact rate is only known at the store's checkout.
  */
 export function formatEstimate(amount: number, currency: string): string {
+  if (!Number.isFinite(amount)) return "N/A";
   const rounded = Math.round(amount);
   const symbol = CURRENCY_SYMBOLS[currency] ?? currency;
-  const gap = symbol.length > 1 && /^[A-Z]{3}$/.test(symbol) ? " " : "";
+  const gap = /^[A-Z]{3}$/.test(symbol) ? " " : "";
   return `~${symbol}${gap}${rounded} est.`;
 }

@@ -22,4 +22,14 @@ describe("formatEstimate", () => {
   it("falls back to the code for an unknown currency", () => {
     expect(formatEstimate(38, "ZZZ")).toBe("~ZZZ 38 est.");
   });
+
+  it("returns N/A for a non-finite amount", () => {
+    expect(formatEstimate(Number.NaN, "USD")).toBe("N/A");
+    expect(formatEstimate(Number.POSITIVE_INFINITY, "USD")).toBe("N/A");
+  });
+
+  it("does not add a space for a multi-char non-code symbol", () => {
+    // MYR is "RM" (a real symbol, not a 3-letter code) — no space.
+    expect(formatEstimate(38, "MYR")).toBe("~RM38 est.");
+  });
 });
