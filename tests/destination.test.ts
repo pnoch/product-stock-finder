@@ -35,4 +35,16 @@ describe("landedCostOptions", () => {
       includeImportEstimate: false,
     });
   });
+
+  it("passes the category through when provided", () => {
+    expect(landedCostOptions(false, false, "Router")).toEqual({
+      taxExempt: false,
+      includeImportEstimate: false,
+      category: "Router",
+    });
+  });
+
+  it("omits the category key when not provided", () => {
+    expect(landedCostOptions(false, false)).not.toHaveProperty("category");
+  });
 });

@@ -4,8 +4,8 @@ import { estimateImportDuty } from "@shared/duty";
 import { getDistributorById } from "@shared/distributors";
 
 // Country → region, so a country without an explicit shipping rate falls back
-// to its distributor region. Covers the countries the app's distributors ship
-// to; unknown countries fall through to null.
+// to its distributor region. Covers every country in shared/src/countries.ts
+// (guarded by tests/countries.test.ts); unknown countries fall through to null.
 const COUNTRY_REGION: Record<string, string> = {
   TH: "Asia-Pacific",
   SG: "Asia-Pacific",
@@ -15,16 +15,59 @@ const COUNTRY_REGION: Record<string, string> = {
   JP: "Asia-Pacific",
   KR: "Asia-Pacific",
   IN: "Asia-Pacific",
+  HK: "Asia-Pacific",
+  PH: "Asia-Pacific",
+  ID: "Asia-Pacific",
+  VN: "Asia-Pacific",
+  TW: "Asia-Pacific",
+  CN: "Asia-Pacific",
+  PK: "Asia-Pacific",
+  BD: "Asia-Pacific",
+  LK: "Asia-Pacific",
+  NP: "Asia-Pacific",
+  KH: "Asia-Pacific",
   GB: "Europe",
   DE: "Europe",
   FR: "Europe",
   GR: "Europe",
   PL: "Europe",
   CZ: "Europe",
+  ES: "Europe",
+  IT: "Europe",
+  NL: "Europe",
+  SE: "Europe",
+  NO: "Europe",
+  DK: "Europe",
+  FI: "Europe",
+  IE: "Europe",
+  PT: "Europe",
+  AT: "Europe",
+  BE: "Europe",
+  CH: "Europe",
+  RO: "Europe",
+  HU: "Europe",
+  TR: "Europe",
+  UA: "Europe",
+  RS: "Europe",
+  BG: "Europe",
+  HR: "Europe",
+  SK: "Europe",
+  SI: "Europe",
+  LT: "Europe",
+  LV: "Europe",
+  EE: "Europe",
   US: "North America",
   CA: "North America",
+  MX: "North America",
   AE: "Middle East",
+  SA: "Middle East",
+  IL: "Middle East",
+  QA: "Middle East",
+  KW: "Middle East",
   ZA: "Africa",
+  EG: "Africa",
+  KE: "Africa",
+  NG: "Africa",
 };
 
 export function regionForCountry(countryCode: string): string | null {
@@ -176,6 +219,8 @@ export function rankByLandedCost(
     ) {
       continue;
     }
+    // Matches findBestDeal/getBestPrice: a zero or unusable price is not a deal.
+    if (!(listing.price > 0)) continue;
     const distributor = getDistributorById(listing.distributorId);
     if (!distributor) continue;
     const cost = computeLandedCost(listing, distributor, destination, options);

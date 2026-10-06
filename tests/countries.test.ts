@@ -37,10 +37,9 @@ describe("countries", () => {
     expect(searchCountries("zzzz")).toHaveLength(0);
   });
 
-  it("covers every country in the landed-cost region map", () => {
-    for (const code of ["TH", "SG", "MY", "AU", "NZ", "JP", "KR", "IN", "GB", "DE", "FR", "GR", "PL", "CZ", "US", "CA", "AE", "ZA"]) {
-      expect(regionForCountry(code), `${code} missing from COUNTRY_REGION`).not.toBeNull();
-      expect(getCountry(code), `${code} missing from COUNTRIES`).toBeDefined();
+  it("every offered country is rankable (has a region)", () => {
+    for (const c of COUNTRIES) {
+      expect(regionForCountry(c.code), `${c.code} has no region`).not.toBeNull();
     }
   });
 

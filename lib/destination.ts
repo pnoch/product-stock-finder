@@ -15,9 +15,11 @@ export function resolveDestination(
 export function landedCostOptions(
   taxExempt: boolean | undefined,
   includeImportEstimate: boolean | undefined,
+  category?: string,
 ): LandedCostOptions {
   return {
     taxExempt: taxExempt === true,
     includeImportEstimate: includeImportEstimate === true,
+    ...(category ? { category } : {}),
   };
 }

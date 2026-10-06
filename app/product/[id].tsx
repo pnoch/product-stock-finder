@@ -167,8 +167,8 @@ export default function ProductDetailScreen() {
     [shipToCountry, displayCurrency],
   );
   const landedOptions = useMemo(
-    () => landedCostOptions(taxExempt, includeImportEstimate),
-    [taxExempt, includeImportEstimate],
+    () => landedCostOptions(taxExempt, includeImportEstimate, product?.category),
+    [taxExempt, includeImportEstimate, product?.category],
   );
   const bestDeal = useMemo(() => {
     if (destination) {

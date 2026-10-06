@@ -481,10 +481,15 @@ fn validate_import_schema(data: &ExportData) -> Result<(), String> {
         }
     }
 
-    // settings: if displayCurrency present, validate against known currencies
+    // settings: if displayCurrency present, validate against known currencies.
+    // Must match EXCHANGE_RATES in shared/src/currency.ts (the 44 currencies the
+    // mobile/web pickers offer), else a valid export fails to import here.
     if let Some(cur) = settings.get("displayCurrency").and_then(|v| v.as_str()) {
         const ALLOWED: &[&str] = &[
             "USD", "EUR", "GBP", "MYR", "AUD", "NZD", "CAD", "ZAR", "THB", "SGD", "HKD", "AED",
+            "BDT", "CHF", "CNY", "CZK", "DKK", "EGP", "HUF", "IDR", "ILS", "INR", "JPY", "KES",
+            "KHR", "KRW", "KWD", "LKR", "MXN", "NGN", "NOK", "NPR", "PHP", "PKR", "PLN", "QAR",
+            "RON", "RSD", "SAR", "SEK", "TRY", "TWD", "UAH", "VND",
         ];
         if !ALLOWED.contains(&cur) {
             return Err(format!("settings.displayCurrency invalid: {}", cur));
@@ -2628,6 +2633,50 @@ mod tests {
         assert_eq!(out["exportedAt"], "2026-01-01T00:00:00.000Z");
         assert!(out.get("stockWatches").is_some());
         assert_eq!(out["format"], "product-stock-finder-backup");
+    }
+
+    #[test]
+    fn validate_import_schema_accepts_every_shared_currency() {
+        // shared/src/currency.ts offers 44 currencies; the validator must not
+        // reject an export that uses any of them (regression: only 12 allowed).
+        for cur in [
+            "USD", "EUR", "GBP", "MYR", "AUD", "NZD", "CAD", "ZAR", "THB", "SGD", "HKD", "AED",
+            "BDT", "CHF", "CNY", "CZK", "DKK", "EGP", "HUF", "IDR", "ILS", "INR", "JPY", "KES",
+            "KHR", "KRW", "KWD", "LKR", "MXN", "NGN", "NOK", "NPR", "PHP", "PKR", "PLN", "QAR",
+            "RON", "RSD", "SAR", "SEK", "TRY", "TWD", "UAH", "VND",
+        ] {
+            let value = serde_json::json!({
+                "format": "product-stock-finder-backup",
+                "version": 1,
+                "exportedAt": "2026-01-01T00:00:00.000Z",
+                "watchlist": [],
+                "alerts": [],
+                "reminders": [],
+                "stockWatches": [],
+                "settings": { "displayCurrency": cur }
+            });
+            let parsed: ExportData = serde_json::from_value(value).unwrap();
+            assert!(
+                validate_import_schema(&parsed).is_ok(),
+                "{cur} rejected by displayCurrency validator"
+            );
+        }
+    }
+
+    #[test]
+    fn validate_import_schema_rejects_unknown_currency() {
+        let value = serde_json::json!({
+            "format": "product-stock-finder-backup",
+            "version": 1,
+            "exportedAt": "2026-01-01T00:00:00.000Z",
+            "watchlist": [],
+            "alerts": [],
+            "reminders": [],
+            "stockWatches": [],
+            "settings": { "displayCurrency": "ZZZ" }
+        });
+        let parsed: ExportData = serde_json::from_value(value).unwrap();
+        assert!(validate_import_schema(&parsed).is_err());
     }
 
     #[test]

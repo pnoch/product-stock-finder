@@ -43,6 +43,7 @@ import { SettingRow } from "@/components/settings/setting-row";
 import { CountryPicker } from "@/components/ui/country-picker";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getCountry } from "@shared/countries";
+import { CURRENCIES } from "@shared/currency";
 
 function SharedLinksList() {
   const colors = useColors();
@@ -638,20 +639,6 @@ export default function SettingsScreen() {
     [reenabling],
   );
 
-  const currencies = [
-    "USD",
-    "EUR",
-    "GBP",
-    "MYR",
-    "AUD",
-    "NZD",
-    "CAD",
-    "ZAR",
-    "THB",
-    "SGD",
-    "HKD",
-    "AED",
-  ];
   const regions = [
     "Asia-Pacific",
     "Europe",
@@ -781,7 +768,7 @@ export default function SettingsScreen() {
           <PillPicker
             icon="dollarsign.circle.fill"
             label="Display Currency"
-            options={currencies}
+            options={CURRENCIES}
             value={settings.displayCurrency}
             onSelect={(c) => updateSetting("displayCurrency", c)}
           />
