@@ -8292,3 +8292,14 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Review caught + fixed real data errors: a duplicate UniFi Dream Router entry, Aruba 1930 24G model (`JL681A`→`JL682A`), the CRS310 port description, EAP653/USW-Pro-24/UXG-Pro descriptions, and the BeagleBone Black part number.
 - [x] `pnpm verify` exit 0 — root `3422` / desktop `324` / cargo `90`.
 - [x] **Remaining:** billing/signing/telemetry (the monetization layer).
+
+## Phase 1119: Monetization foundation (entitlements + telemetry + paywall)
+
+- [x] **Provider-agnostic seams** (mirroring the Phase-1105 scraping-provider pattern): `lib/entitlements.ts` (`setEntitlementProvider`/`getEntitlementState`, defaults free, **fails closed** on provider error, observable via `subscribeEntitlements`) and `lib/telemetry.ts` (`setTelemetrySink`/`track`, no-op default, never throws — including a rejecting async sink).
+- [x] **Free/Pro split** (`lib/pro-features.ts`): free = 5 products, manual refresh, standalone; Pro = unlimited watchlist, background monitoring, digests, server sync, bulk import, landed-cost sourcing. `canAddToWatchlist(count, isPro)`.
+- [x] **`useEntitlements()`** hook re-reads when a provider registers after mount (RevenueCat's `configure` is async).
+- [x] **Paywall** (`components/paywall/paywall-screen.tsx`): benefits list + CTA that is genuinely disabled and reads "Pro is coming soon" without a provider; backdrop-close; purchase-failure feedback.
+- [x] **Gating wired:** watchlist-add limit (`app/search.tsx` ×2, `app/w/[token].tsx`; undo path deliberately ungated), Settings "Upgrade to Pro" row, Background Refresh toggle, and — critically — `registerPriceCheckTask` now unregisters for non-Pro users (the toggle alone was cosmetic).
+- [x] **Telemetry call sites:** `product_added`, `paywall_shown`; a guard forbids PII/keys in props.
+- [x] Tests: `entitlements` (5), `pro-features` (3), `telemetry` (5), `use-entitlements` (3), `paywall-guard` (2), `background-tasks` (+1 free-tier, non-vacuous). `pnpm verify` exit 0 — root `3440` / desktop `324` / cargo `90`.
+- [x] **Deferred (needs external accounts):** the RevenueCat SDK + Play Billing wiring + product IDs, and the Sentry/PostHog SDK wiring. The seams are drop-in points; **everything is free until a provider registers** (no behavior change).
