@@ -6,6 +6,7 @@ import React from "react";
 vi.mock("react-native", async () => {
   const React = await import("react");
   return {
+    Platform: { OS: "ios" },
     View: ({ children, ...r }: any) => React.createElement("div", r, children),
     Text: ({ children, ...r }: any) => React.createElement("span", r, children),
     TextInput: (r: any) => React.createElement("input", r),

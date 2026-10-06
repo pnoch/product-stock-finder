@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -31,6 +32,10 @@ export function CountryPicker({
 
   const results = useMemo(() => searchCountries(query), [query]);
 
+  useEffect(() => {
+    if (visible) setQuery("");
+  }, [visible]);
+
   const handleQueryChange = (
     e: NativeSyntheticEvent<TextInputChangeEventData>,
   ) => {
@@ -39,7 +44,9 @@ export function CountryPicker({
   };
 
   const handleSelect = (code: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== "web") {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     onSelect(code);
   };
 
@@ -137,49 +144,64 @@ export function CountryPicker({
             keyboardShouldPersistTaps="handled"
             style={{ marginTop: 4 }}
           >
-            {results.map((country) => {
-              const selected = country.code === value;
-              return (
-                <Pressable
-                  key={country.code}
-                  onPress={() => handleSelect(country.code)}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    paddingVertical: 12,
-                    paddingHorizontal: 14,
-                    borderRadius: 12,
-                    marginBottom: 6,
-                    backgroundColor: selected ? colors.primary : colors.surface,
-                    borderWidth: 1,
-                    borderColor: selected ? colors.primary : colors.border,
-                  }}
-                  accessibilityLabel={`Select ${country.name}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                >
-                  <Text
+            {results.length === 0 ? (
+              <Text
+                style={{
+                  color: colors.muted,
+                  fontSize: 14,
+                  textAlign: "center",
+                  paddingVertical: 24,
+                }}
+              >
+                No countries found
+              </Text>
+            ) : (
+              results.map((country) => {
+                const selected = country.code === value;
+                return (
+                  <Pressable
+                    key={country.code}
+                    onPress={() => handleSelect(country.code)}
                     style={{
-                      color: selected ? "#fff" : colors.foreground,
-                      fontSize: 15,
-                      fontWeight: "600",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingVertical: 12,
+                      paddingHorizontal: 14,
+                      borderRadius: 12,
+                      marginBottom: 6,
+                      backgroundColor: selected
+                        ? colors.primary
+                        : colors.surface,
+                      borderWidth: 1,
+                      borderColor: selected ? colors.primary : colors.border,
                     }}
+                    accessibilityLabel={`Select ${country.name}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
                   >
-                    {country.name}
-                  </Text>
-                  <Text
-                    style={{
-                      color: selected ? "#fff" : colors.muted,
-                      fontSize: 13,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {country.code}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={{
+                        color: selected ? "#fff" : colors.foreground,
+                        fontSize: 15,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {country.name}
+                    </Text>
+                    <Text
+                      style={{
+                        color: selected ? "#fff" : colors.muted,
+                        fontSize: 13,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {country.code}
+                    </Text>
+                  </Pressable>
+                );
+              })
+            )}
           </ScrollView>
         </View>
       </View>
