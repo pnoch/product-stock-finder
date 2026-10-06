@@ -41,10 +41,10 @@ function parseHtml(
 export const neobitsParser: DistributorParser = {
   id: "neobits-us",
   baseUrl: "https://neobits.com",
-  // The site's search is a JS-driven POST form; the GET path redirects to the
-  // homepage, so browser escalation is required to reach real results.
+  // The storefront search box submits to `/search?keywords=`; the old
+  // `search_param=all&main_search_field=` form returned the homepage.
   buildSearchUrl: (model) =>
-    `https://www.neobits.com/search?search_param=all&main_search_field=${encodeURIComponent(model)}`,
+    `https://www.neobits.com/search?keywords=${encodeURIComponent(model)}`,
   parsePrice: (html, model, url) =>
     parseHtml(html, url ?? "https://www.neobits.com", model),
   useBrowser: true,
