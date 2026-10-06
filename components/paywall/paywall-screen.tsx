@@ -79,6 +79,7 @@ export function PaywallScreen({
       >
         <Pressable
           onPress={() => {}}
+          accessibilityLabel="Pro benefits"
           style={{
             backgroundColor: colors.background,
             borderTopLeftRadius: 24,
