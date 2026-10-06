@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -33,12 +34,15 @@ export function PaywallScreen({
 }): JSX.Element {
   const colors = useColors();
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const provider = getEntitlementProvider();
   const purchasable = typeof provider?.purchase === "function";
 
   const handleUpgrade = async () => {
-    if (!purchasable || busy) return;
+    setError(null);
+    if (!purchasable) return;
+    if (busy) return;
     if (Platform.OS !== "web")
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setBusy(true);
@@ -49,6 +53,7 @@ export function PaywallScreen({
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch {
+      setError("Purchase failed. Please try again.");
       if (Platform.OS !== "web")
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -63,15 +68,17 @@ export function PaywallScreen({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View
+      <Pressable
         style={{
           flex: 1,
           justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
         }}
-        accessibilityViewIsModal
+        onPress={onClose}
+        accessibilityLabel="Close"
       >
-        <View
+        <Pressable
+          onPress={() => {}}
           style={{
             backgroundColor: colors.background,
             borderTopLeftRadius: 24,
@@ -170,6 +177,19 @@ export function PaywallScreen({
               ))}
             </View>
 
+            {error ? (
+              <Text
+                style={{
+                  color: colors.error,
+                  fontSize: 13,
+                  marginBottom: 12,
+                  textAlign: "center",
+                }}
+              >
+                {error}
+              </Text>
+            ) : null}
+
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleUpgrade}
@@ -223,8 +243,8 @@ export function PaywallScreen({
               <Text style={{ color: colors.muted, fontSize: 13 }}>Not now</Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
