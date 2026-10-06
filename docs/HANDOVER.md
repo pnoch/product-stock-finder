@@ -54,7 +54,7 @@ Project and environment IDs are in the Railway dashboard (not recorded here).
 
 | Service | Notes |
 | --- | --- |
-| `app` | Nixpacks, `pnpm build` → `dist/index.js`; public URL is the Railway-generated `app-production-*.up.railway.app` domain |
+| `app` | Builds from the repo `Dockerfile` (headed browser runtime: Chromium + Xvfb + `scripts/start-production.sh`); public URL is the Railway-generated `app-production-*.up.railway.app` domain. (Was Nixpacks before Phase 1110.) |
 | `MySQL-NtCC` | the real DB; reached over a Railway TCP proxy (host/port in the dashboard) |
 
 `app` env vars set: `DATABASE_URL=${{MySQL-NtCC.MYSQL_URL}}`, `JWT_SECRET` (32-byte hex),

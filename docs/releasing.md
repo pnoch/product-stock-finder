@@ -184,6 +184,16 @@ builds are `output: "single"` (SPA); don't switch to `static` (NativeWind
 hydration mismatch). Web push needs `VAPID_*` (server) +
 `EXPO_PUBLIC_VAPID_PUBLIC_KEY` (client).
 
+### Container deploy (Railway)
+
+The repo ships a `Dockerfile`; Railway builds it in preference to Nixpacks.
+The image installs Chromium + Xvfb and starts the server via
+`scripts/start-production.sh`, which runs Xvfb on `:99` and sets
+`PSF_BROWSER_HEADED=1`. Headed Chromium is required: Cloudflare's gate keys on
+headed-ness, so headless returns 403 for Winncom/B&H (see Phase 1106). Ensure
+the Railway service is connected to the GitHub repo (not a bare image) so the
+Dockerfile is built on deploy.
+
 ---
 
 ## 6. Post-release checklist
