@@ -27,6 +27,7 @@ interface DistributorListingCardProps {
   onToggleStockWatch: (listing: DistributorListing) => void;
   onOpenChart: (listing: DistributorListing) => void;
   onRemind?: (listing: DistributorListing) => void;
+  hasDestination?: boolean;
 }
 
 export const DistributorListingCard = memo(function DistributorListingCard({
@@ -36,6 +37,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
   onToggleStockWatch,
   onOpenChart,
   onRemind,
+  hasDestination = false,
 }: DistributorListingCardProps) {
   const colors = useColors();
   const distributor = useMemo(
@@ -194,7 +196,11 @@ export const DistributorListingCard = memo(function DistributorListingCard({
               minHeight: 44,
               justifyContent: "center",
             })}
-            accessibilityLabel="Visit distributor website"
+            accessibilityLabel={
+              hasDestination
+                ? "Visit distributor website for exact shipping"
+                : "Visit distributor website"
+            }
             accessibilityRole="button"
           >
             <Text
@@ -204,7 +210,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
                 fontSize: 13,
               }}
             >
-              Visit
+              {hasDestination ? "Visit · exact shipping" : "Visit"}
             </Text>
             <IconSymbol
               name="arrow.up.right.square"

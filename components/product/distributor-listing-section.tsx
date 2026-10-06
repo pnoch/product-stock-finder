@@ -9,6 +9,7 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
+import { formatEstimate } from "@/lib/estimate-format";
 import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
 import { BestDistributorCard } from "@/components/best-distributor-card";
@@ -497,7 +498,9 @@ export function DistributorListingSection({
                         fontWeight: "700",
                       }}
                     >
-                      {formatPrice(bestDeal.total, bestDeal.currency)}
+                      {destination
+                        ? formatEstimate(bestDeal.total, bestDeal.currency)
+                        : formatPrice(bestDeal.total, bestDeal.currency)}
                     </Text>
                   </View>
                 );
@@ -515,19 +518,31 @@ export function DistributorListingSection({
                     : "Tax-free"}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  Ship: {bestDeal.shipping === null ? "N/A" : formatPrice(bestDeal.shipping, bestDeal.currency)}
+                  Ship:{" "}
+                  {bestDeal.shipping === null
+                    ? "N/A"
+                    : destination
+                      ? formatEstimate(bestDeal.shipping, bestDeal.currency)
+                      : formatPrice(bestDeal.shipping, bestDeal.currency)}
                 </Text>
               </View>
               {destination && (
-                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
-                  {formatPrice(bestDeal.price, bestDeal.currency)} +{" "}
-                  {formatPrice(bestDeal.shipping ?? 0, bestDeal.currency)} +{" "}
-                  {formatPrice(bestDeal.tax, bestDeal.currency)}
-                  {bestDeal.importEstimate && bestDeal.importEstimate > 0
-                    ? ` + ${formatPrice(bestDeal.importEstimate, bestDeal.currency)}`
-                    : ""}{" "}
-                  = {formatPrice(bestDeal.total, bestDeal.currency)}
-                </Text>
+                <>
+                  <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
+                    {formatPrice(bestDeal.price, bestDeal.currency)} +{" "}
+                    {formatEstimate(bestDeal.shipping ?? 0, bestDeal.currency)}
+                    {bestDeal.tax > 0
+                      ? ` + ${formatPrice(bestDeal.tax, bestDeal.currency)}`
+                      : ""}
+                    {bestDeal.importEstimate && bestDeal.importEstimate > 0
+                      ? ` + ${formatEstimate(bestDeal.importEstimate, bestDeal.currency)}`
+                      : ""}{" "}
+                    = {formatEstimate(bestDeal.total, bestDeal.currency)}
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+                    Shipping is estimated. Check exact rates at checkout.
+                  </Text>
+                </>
               )}
             </View>
           )}
@@ -540,6 +555,7 @@ export function DistributorListingSection({
               onToggleStockWatch={onToggleStockWatch}
               onOpenChart={onOpenChart}
               onRemind={onRemind}
+              hasDestination={destination != null}
             />
           ))}
         </>

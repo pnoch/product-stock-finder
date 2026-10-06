@@ -8262,3 +8262,12 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Settings**: "Ship to" row + tax-exempt + include-import-estimate toggles (region picker retained for the fallback).
 - [x] Tests: `countries` (6), `destination` (5), `country-picker` (2), `onboarding-destination` (2). `pnpm verify` exit 0 — root `3396` / desktop `324` / cargo `88`.
 - [x] **Follow-on (not this phase):** per-country shipping *rates* (data task), repositioned copy/app name, catalog expansion, billing/signing/telemetry.
+
+## Phase 1116: Estimated shipping + exact-rate CTA
+
+- [x] **Honest shipping model:** each distributor computes shipping at checkout after the destination is chosen, so a static per-country rate would be fiction. The app now ranks by an **estimated** landed cost and points the user to the store for the **exact** rate.
+- [x] `lib/estimate-format.ts` — `formatEstimate(amount, currency)` → `~$38 est.` (whole-unit rounding, `N/A` for non-finite, 3-letter-code spacing), so the `~`/`est.` convention is consistent.
+- [x] Best-deal card (destination active): the `Ship:` row, the breakdown equation's shipping/import/total terms, and the total all use `formatEstimate`; added the note "Shipping is estimated. Check exact rates at checkout." The region path is unchanged.
+- [x] Listing card: the existing **Visit** button (opens `listing.url`) relabels to **"Visit · exact shipping"** when a destination is active — the store page is where the user selects their country and sees the real rate. Behaviour unchanged.
+- [x] Tests: `estimate-format` (7), `estimated-shipping-guards` (2). `pnpm verify` exit 0 — root `3408` / desktop `324` / cargo `90`.
+- [x] **Deferred:** crowd-sourced exact-rate correction (record the real quote per distributor+country) and per-distributor shipping-calculator scraping.
