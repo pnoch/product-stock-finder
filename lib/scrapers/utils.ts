@@ -29,7 +29,10 @@ export function inferStockStatus(text: string): StockStatus {
     lower.includes("not in stock") ||
     lower.includes("unavailable") ||
     lower.includes("not available") ||
-    lower.includes("sold out")
+    lower.includes("sold out") ||
+    lower.includes("εκτός παραγωγής") ||
+    lower.includes("εξαντλήθηκε") ||
+    lower.includes("μη διαθέσιμο")
   ) {
     return "out_of_stock";
   }
@@ -40,14 +43,16 @@ export function inferStockStatus(text: string): StockStatus {
     // Stores spell it without the hyphen too; missing it classified a preorder
     // as in_stock (a false in-stock / restock signal).
     lower.includes("preorder") ||
-    lower.includes("expected")
+    lower.includes("expected") ||
+    lower.includes("παραγγελία")
   ) {
     return "back_order";
   }
   if (
     lower.includes("in stock") ||
     lower.includes("available") ||
-    lower.includes("add to cart")
+    lower.includes("add to cart") ||
+    lower.includes("διαθέσιμο")
   ) {
     return "in_stock";
   }
