@@ -516,7 +516,12 @@ export function DistributorListingSection({
                     : "Tax-free"}
                 </Text>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  Ship: {bestDeal.shipping === null ? "N/A" : formatPrice(bestDeal.shipping, bestDeal.currency)}
+                  Ship:{" "}
+                  {bestDeal.shipping === null
+                    ? "N/A"
+                    : destination
+                      ? formatEstimate(bestDeal.shipping, bestDeal.currency)
+                      : formatPrice(bestDeal.shipping, bestDeal.currency)}
                 </Text>
               </View>
               {destination && (
