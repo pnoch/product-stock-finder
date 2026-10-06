@@ -70,7 +70,10 @@ export function createDiscoveryStorage(ctx: StorageContext) {
   // ─── Discovered Distributors ────────────────────────────────────────────────
 
   async function getDiscoveredDistributors(): Promise<Distributor[]> {
-    return readList<Distributor>(KEYS.DISCOVERED_DISTRIBUTORS);
+    const stored = await readList<Distributor>(KEYS.DISCOVERED_DISTRIBUTORS);
+    // Rows persisted before taxMode became required have it absent; default
+    // here so a legacy row never surfaces as undefined.
+    return stored.map((d) => ({ ...d, taxMode: d.taxMode ?? "origin" }));
   }
 
   async function persistDiscoveredDistributors(

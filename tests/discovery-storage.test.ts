@@ -51,6 +51,7 @@ const mockDistributor: Distributor = {
   countryCode: "US",
   paymentMethods: ["Credit Card"],
   shippingCosts: { "North America": 5 },
+  taxMode: "origin",
 };
 
 beforeEach(() => {
@@ -159,6 +160,18 @@ describe("discovery storage", () => {
     expect(distributors).toHaveLength(200);
     expect(distributors[0]!.id).toBe("d1");
     expect(distributors.at(-1)!.id).toBe("d200");
+  });
+
+  it("defaults taxMode for a distributor persisted without it", async () => {
+    await saveDiscoveredDistributors([
+      {
+        ...mockDistributor,
+        id: "legacy-no-taxmode",
+        taxMode: undefined as unknown as Distributor["taxMode"],
+      },
+    ]);
+    const distributors = await getDiscoveredDistributors();
+    expect(distributors[0]!.taxMode).toBe("origin");
   });
 });
 

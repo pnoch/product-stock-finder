@@ -33,6 +33,8 @@ export function createSettingsStorage(
     webNotificationsEnabled: false,
     watchlistSort: "recent",
     watchlistGroup: "off",
+    taxExempt: false,
+    includeImportEstimate: false,
   };
 
   // ─── Settings ───────────────────────────────────────────────────────────────

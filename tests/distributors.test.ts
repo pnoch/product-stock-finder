@@ -39,3 +39,21 @@ describe("getDistributorById", () => {
     expect(getDistributorById("zzz-nonexistent")).toBeUndefined();
   });
 });
+
+describe("distributor taxMode", () => {
+  it("every distributor declares a valid taxMode", () => {
+    const valid = new Set(["export-exempt", "origin", "destination", "none"]);
+    for (const d of DISTRIBUTORS) {
+      expect(valid.has(d.taxMode), `${d.id} taxMode=${d.taxMode}`).toBe(true);
+    }
+  });
+
+  it("at least one distributor is export-exempt", () => {
+    expect(DISTRIBUTORS.some((d) => d.taxMode === "export-exempt")).toBe(true);
+  });
+
+  it("classifies a known exporter and a zero-VAT entry correctly", () => {
+    expect(getDistributorById("getic-gr")?.taxMode).toBe("export-exempt");
+    expect(getDistributorById("server2u-my")?.taxMode).toBe("none");
+  });
+});

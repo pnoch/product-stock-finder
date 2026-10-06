@@ -168,6 +168,7 @@ export async function discoverProduct(
     ...r,
     paymentMethods: r.paymentMethods ?? [],
     shippingCosts: r.shippingCosts ?? {},
+    taxMode: r.taxMode ?? "origin",
   }));
 
   // Use the canonical stored product: a re-discovery returns the existing id
