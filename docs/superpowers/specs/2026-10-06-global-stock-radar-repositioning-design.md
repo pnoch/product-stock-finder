@@ -92,9 +92,11 @@ asks "Where do you ship to?" once.
 
 **Tax exemption.** When `taxExempt` is true (a business/reseller with a VAT/EORI
 number, or a jurisdiction where the import is duty-free), `computeLandedCost`
-omits the duty and VAT components, so the ranking reflects the true cost the
-buyer pays. The exemption is a user-declared setting, not verified — the UI
-labels the result "tax-exempt estimate" so it is never mistaken for a firm quote.
+omits every tax component, so the ranking reflects the true cost the buyer pays.
+The exemption is a user-declared setting, not verified — the UI labels the result
+"tax-exempt estimate" so it is never mistaken for a firm quote. Note the store's
+own `taxMode` still governs the base price: an `export-exempt` store already
+quotes ex-VAT, so exemption changes nothing for it.
 
 ### 1a. Destination + tax filters — results screen
 
@@ -105,8 +107,10 @@ without leaving the results:
 - **Ship-to country** — a picker (searchable, ~200 countries) that re-ranks the
   same results by landed cost to the selected country. Changing it updates the
   breakdown in place; no re-scrape is needed (only the cost math changes).
-- **Tax exempt** — a toggle next to the country picker that includes/excludes
-  duty + VAT in every row and in the ranking.
+- **Tax exempt** — a toggle next to the country picker that omits all tax
+  (store tax and import estimate) from every row and the ranking.
+- **Include import estimate** — an optional toggle (off by default) that adds the
+  destination duty/VAT estimate to the displayed total for non-exempt buyers.
 - Both persist back to `AppSettings` as the new default for the next visit.
 
 This is a pure presentation-layer re-rank over already-fetched listings, so it is
@@ -131,17 +135,44 @@ without explicit data.
 
 ### 3. Import duty + VAT estimate — `lib/landed-cost.ts` (new)
 
-`estimateDuty(price, category, countryCode)` using a curated table
-(`shared/src/duty.ts`): destination VAT/GST rate + a coarse duty rate by product
-category. Clearly labelled an **estimate**; accuracy is not the goal, ranking is.
+Tax is **not** a blanket destination VAT. Stores differ in how they tax an
+international order, so the model is **per-distributor**:
+
+- **`taxMode: "export-exempt"`** — the store sells internationally *without*
+  tax (price is ex-VAT; e.g. many EU stores exporting outside the EU). The
+  landed cost adds **no** store tax. Any import duty/VAT is the buyer's
+  responsibility on arrival and is shown only as an optional estimate.
+- **`taxMode: "origin"`** — the store charges its own country's VAT
+  (the existing `listing.taxRate`, e.g. Greece 24%). Added to the landed cost.
+- **`taxMode: "destination"`** — the store collects destination VAT/GST at
+  checkout (e.g. IOSS-style). Added to the landed cost.
+- **`taxMode: "none"`** — no tax anywhere (e.g. a zero-VAT jurisdiction).
+
+`Distributor` gains `taxMode` (default `"origin"` when a `taxRate` exists, else
+`"none"`). `estimateDuty(price, category, countryCode)` in `shared/src/duty.ts`
+provides the *optional* destination import estimate, shown separately and
+clearly labelled — it is not added to the store total unless the user opts in.
+
+### 3a. User tax overrides
+
+The user's own status overrides the store default:
+
+- **Tax-exempt toggle** — a business/reseller with a VAT/EORI number sets
+  `taxExempt: true`; `computeLandedCost` then omits any store tax and the
+  destination estimate, and labels the row "tax-exempt."
+- **Include import estimate toggle** — for a non-exempt buyer who wants to see
+  the likely duty/VAT on arrival, an optional toggle adds the estimate to the
+  displayed total (off by default, since the store does not charge it).
 
 ### 4. Landed cost — `lib/landed-cost.ts`
 
-`computeLandedCost(listing, distributor, destination)` →
-`{ price, shipping, duty, vat, total, currency, isEstimate }`, all converted to
-the destination currency. When `destination.taxExempt` is true, `duty` and `vat`
-are `0` and the result is flagged tax-exempt. Extends the existing `findBestDeal`
-rather than replacing it (keep `findBestDeal` for the region-level path).
+`computeLandedCost(listing, distributor, destination, options)` →
+`{ price, shipping, storeTax, importEstimate, total, currency, isEstimate }`,
+all converted to the destination currency. `storeTax` follows the distributor's
+`taxMode`; `importEstimate` is included in `total` only when
+`options.includeImportEstimate` is set and the buyer is not `taxExempt`. Extends
+the existing `findBestDeal` rather than replacing it (keep `findBestDeal` for the
+region-level path).
 
 ### 5. Hero screen — `app/search.tsx` + `app/product/[id].tsx`
 
@@ -196,11 +227,14 @@ catalog expansion are separate follow-on specs (they are prerequisites for
 ## Testing
 
 - `lib/landed-cost` unit tests: country→region fallback, missing data → null,
-  currency conversion, estimate labelling, **tax-exempt zeroes duty+VAT**.
+  currency conversion, estimate labelling, **each `taxMode`** (export-exempt adds
+  no store tax, origin adds the listing rate, destination adds destination VAT,
+  none adds nothing), **tax-exempt zeroes all tax**, and **import estimate only
+  included when opted in**.
 - `resolveShipping` tests across explicit/region/absent cases.
 - Hero ranking test: results sorted by landed cost, not raw price.
-- Filter test: changing ship-to country / tax-exempt re-ranks without a network
-  call and persists to `AppSettings`.
+- Filter test: changing ship-to country / tax-exempt / import-estimate re-ranks
+  without a network call and persists to `AppSettings`.
 - Existing `findBestDeal` tests stay green (unchanged path).
 
 ## Success Criteria
