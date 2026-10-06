@@ -445,7 +445,7 @@ export const PRODUCT_CATALOG: Omit<
 
   // ─── Network Gateways ───
   { id: "ubiquiti-udm-se", name: "Ubiquiti UniFi Dream Machine SE", modelNumber: "UDM-SE", brand: "Ubiquiti", category: "Network Gateway", description: "All-in-one gateway, controller, and 8-port PoE switch with 10G SFP+." },
-  { id: "ubiquiti-udr", name: "Ubiquiti UniFi Dream Router", modelNumber: "UDR", brand: "Ubiquiti", category: "Network Gateway", description: "Wi-Fi 6 gateway with built-in controller and PoE ports." },
+  { id: "ubiquiti-uxg-pro", name: "Ubiquiti UniFi Next-Gen Gateway Pro", modelNumber: "UXG-Pro", brand: "Ubiquiti", category: "Network Gateway", description: "Rackmount UniFi gateway with dual 10G SFP+ and 2.5GbE WAN." },
   { id: "ubiquiti-ucg-ultra", name: "Ubiquiti UniFi Cloud Gateway Ultra", modelNumber: "UCG-Ultra", brand: "Ubiquiti", category: "Network Gateway", description: "Compact UniFi gateway with 2.5GbE WAN and multi-WAN failover." },
   { id: "ubiquiti-uxg-lite", name: "Ubiquiti UniFi Gateway Lite", modelNumber: "UXG-Lite", brand: "Ubiquiti", category: "Network Gateway", description: "Entry UniFi gateway for small networks, 1GbE." },
   { id: "tp-link-er605", name: "TP-Link ER605", modelNumber: "ER605", brand: "TP-Link", category: "Network Gateway", description: "Omada multi-WAN Gigabit VPN router." },
