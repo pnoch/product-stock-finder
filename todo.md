@@ -8251,3 +8251,14 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Tests: `tests/duty.test.ts` (8), `tests/landed-cost.test.ts` (20), `tests/distributors.test.ts` (+3), `tests/discovery-storage.test.ts` (+1). Non-vacuity spot-checked (reverting the tax-exempt guard fails a test).
 - [x] `pnpm verify` exit 0 — root `3379` / desktop `324` / cargo `88`.
 - [x] **Follow-on plans (not this phase):** onboarding "Where do you ship to?", the results ship-to/tax-exempt filter bar, repositioned copy, catalog expansion, billing/signing/telemetry.
+
+## Phase 1115: Destination onboarding + landed-cost filter bar
+
+- [x] **Country list** (`shared/src/countries.ts`): 61 curated countries (`code`, `name`, `currency`, `region`), `getCountry`/`searchCountries`. Added 32 missing currencies to `EXCHANGE_RATES`/`CURRENCY_SYMBOLS` (34 country currencies were unconvertible, silently breaking landed cost); a guard test asserts every country currency has a rate.
+- [x] **Destination resolver** (`lib/destination.ts`): `resolveDestination(shipToCountry, displayCurrency)` → `Destination | null` (null when unset → region fallback), `landedCostOptions(taxExempt, includeImportEstimate)`.
+- [x] **CountryPicker** (`components/ui/country-picker.tsx`): searchable modal sheet, web-safe haptics, query reset on open, empty state. jsdom component test.
+- [x] **Onboarding 4th step**: "Where do you ship to?" (defaults from device locale), tax-exempt toggle; persists via the serialized `updateSettings`; skippable. Component test drives the real flow.
+- [x] **Product detail**: ranks by `rankByLandedCost` when a country is set (else the unchanged `findBestDeal` region path), with a landed-cost filter bar (ship-to picker + tax-exempt + include-import-estimate) and a `price + shipping + tax (+ import) = total` breakdown.
+- [x] **Settings**: "Ship to" row + tax-exempt + include-import-estimate toggles (region picker retained for the fallback).
+- [x] Tests: `countries` (6), `destination` (5), `country-picker` (2), `onboarding-destination` (2). `pnpm verify` exit 0 — root `3396` / desktop `324` / cargo `88`.
+- [x] **Follow-on (not this phase):** per-country shipping *rates* (data task), repositioned copy/app name, catalog expansion, billing/signing/telemetry.
