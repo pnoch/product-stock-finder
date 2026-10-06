@@ -404,7 +404,7 @@ export const PRODUCT_CATALOG: Omit<
   { id: "raspberry-pi-cm4-8gb", name: "Raspberry Pi Compute Module 4 (8GB)", modelNumber: "CM4008000", brand: "Raspberry Pi", category: "Single-Board Computer", description: "Industrial compute module with 8GB RAM and optional eMMC, for custom carrier boards." },
   { id: "orange-pi-5", name: "Orange Pi 5", modelNumber: "Orange Pi 5", brand: "Orange Pi", category: "Single-Board Computer", description: "Rockchip RK3588S SBC with 8K decode and PCIe, a Pi alternative with more I/O." },
   { id: "radxa-rock-5b", name: "Radxa Rock 5B", modelNumber: "Rock 5B", brand: "Radxa", category: "Single-Board Computer", description: "RK3588 SBC with 2.5GbE, PCIe 3.0, and up to 16GB RAM." },
-  { id: "beaglebone-black", name: "BeagleBone Black", modelNumber: "BBBBLK", brand: "BeagleBoard", category: "Single-Board Computer", description: "AM335x SBC with real-time PRUs, a long-standing embedded workhorse." },
+  { id: "beaglebone-black", name: "BeagleBone Black", modelNumber: "BB-BBLK-000", brand: "BeagleBoard", category: "Single-Board Computer", description: "AM335x SBC with real-time PRUs, a long-standing embedded workhorse." },
   { id: "banana-pi-m5", name: "Banana Pi BPI-M5", modelNumber: "BPI-M5", brand: "Banana Pi", category: "Single-Board Computer", description: "Amlogic S905X3 SBC with 4GB RAM and Gigabit Ethernet." },
   { id: "khadas-vim4", name: "Khadas VIM4", modelNumber: "VIM4", brand: "Khadas", category: "Single-Board Computer", description: "Amlogic A311D2 SBC with 8GB RAM, HDMI in/out, and M.2." },
   { id: "odroid-n2-plus", name: "ODROID-N2+", modelNumber: "ODROID-N2+", brand: "ODROID", category: "Single-Board Computer", description: "Amlogic S922X SBC with 4GB RAM, a media/NAS favorite." },
@@ -427,25 +427,25 @@ export const PRODUCT_CATALOG: Omit<
   { id: "ugreen-nasync-dxp4800", name: "UGREEN NASync DXP4800 Plus", modelNumber: "DXP4800 Plus", brand: "UGREEN", category: "Storage", description: "4-bay NAS with Intel Pentium Gold 8505 and 10GbE." },
 
   // ─── Networking Switches ───
-  { id: "mikrotik-crs310", name: "MikroTik CRS310-1G-5S-4S+IN", modelNumber: "CRS310-1G-5S-4S+IN", brand: "MikroTik", category: "Networking Switch", description: "5x Gigabit, 5x SFP+ 10G switch with RouterOS, compact and fanless." },
+  { id: "mikrotik-crs310", name: "MikroTik CRS310-1G-5S-4S+IN", modelNumber: "CRS310-1G-5S-4S+IN", brand: "MikroTik", category: "Networking Switch", description: "1x Gigabit Ethernet, 5x 1G SFP, 4x 10G SFP+ switch with RouterOS." },
   { id: "mikrotik-crs328", name: "MikroTik CRS328-24P-4S+RM", modelNumber: "CRS328-24P-4S+RM", brand: "MikroTik", category: "Networking Switch", description: "24x Gigabit PoE+ ports plus 4x SFP+ 10G, rackmount." },
   { id: "mikrotik-css326", name: "MikroTik CSS326-24G-2S+RM", modelNumber: "CSS326-24G-2S+RM", brand: "MikroTik", category: "Networking Switch", description: "24x Gigabit with 2x SFP+ 10G, SwOS, rackmount." },
   { id: "mikrotik-crs305", name: "MikroTik CRS305-1G-4S+IN", modelNumber: "CRS305-1G-4S+IN", brand: "MikroTik", category: "Networking Switch", description: "4x SFP+ 10G switch with one Gigabit port, fanless." },
   { id: "mikrotik-crs309", name: "MikroTik CRS309-1G-8S+IN", modelNumber: "CRS309-1G-8S+IN", brand: "MikroTik", category: "Networking Switch", description: "8x SFP+ 10G switch with one Gigabit port." },
   { id: "ubiquiti-usw-flex", name: "Ubiquiti UniFi Switch Flex", modelNumber: "USW-Flex", brand: "Ubiquiti", category: "Networking Switch", description: "5-port Gigabit PoE switch, weatherproof, powered by PoE++." },
-  { id: "ubiquiti-usw-pro-24", name: "Ubiquiti UniFi Switch Pro 24", modelNumber: "USW-Pro-24", brand: "Ubiquiti", category: "Networking Switch", description: "24x Gigabit PoE+ with 2x SFP+ 10G, managed by UniFi." },
+  { id: "ubiquiti-usw-pro-24", name: "Ubiquiti UniFi Switch Pro 24", modelNumber: "USW-Pro-24", brand: "Ubiquiti", category: "Networking Switch", description: "24x Gigabit with 2x SFP+ 10G, managed by UniFi." },
   { id: "ubiquiti-usw-lite-16", name: "Ubiquiti UniFi Switch Lite 16 PoE", modelNumber: "USW-Lite-16-PoE", brand: "Ubiquiti", category: "Networking Switch", description: "16x Gigabit PoE with 2x SFP, fanless, compact." },
   { id: "ubiquiti-usw-aggregation", name: "Ubiquiti UniFi Switch Aggregation", modelNumber: "USW-Aggregation", brand: "Ubiquiti", category: "Networking Switch", description: "8x SFP+ 10G aggregation switch for backbone links." },
   { id: "tp-link-sg108", name: "TP-Link TL-SG108", modelNumber: "TL-SG108", brand: "TP-Link", category: "Networking Switch", description: "8-port unmanaged Gigabit switch, fanless metal case." },
   { id: "tp-link-sg3428", name: "TP-Link TL-SG3428", modelNumber: "TL-SG3428", brand: "TP-Link", category: "Networking Switch", description: "24x Gigabit L2 managed switch with 4x SFP." },
-  { id: "aruba-instant-on-1930-24g", name: "Aruba Instant On 1930 24G", modelNumber: "JL681A", brand: "Aruba (HPE)", category: "Networking Switch", description: "24x Gigabit smart-managed switch with 4x SFP+." },
+  { id: "aruba-instant-on-1930-24g", name: "Aruba Instant On 1930 24G", modelNumber: "JL682A", brand: "Aruba (HPE)", category: "Networking Switch", description: "24x Gigabit smart-managed switch with 4x SFP+." },
   { id: "netgear-gs308", name: "NETGEAR GS308", modelNumber: "GS308", brand: "NETGEAR", category: "Networking Switch", description: "8-port unmanaged Gigabit switch, fanless." },
   { id: "cisco-cbs350-24t-4g", name: "Cisco CBS350-24T-4G", modelNumber: "CBS350-24T-4G", brand: "Cisco", category: "Networking Switch", description: "24x Gigabit managed switch with 4x SFP." },
   { id: "fs-s3900-24t4s", name: "FS S3900-24T4S", modelNumber: "S3900-24T4S", brand: "FS.com", category: "Networking Switch", description: "24x Gigabit L2+ managed switch with 4x SFP." },
 
   // ─── Network Gateways ───
   { id: "ubiquiti-udm-se", name: "Ubiquiti UniFi Dream Machine SE", modelNumber: "UDM-SE", brand: "Ubiquiti", category: "Network Gateway", description: "All-in-one gateway, controller, and 8-port PoE switch with 10G SFP+." },
-  { id: "ubiquiti-uxg-pro", name: "Ubiquiti UniFi Next-Gen Gateway Pro", modelNumber: "UXG-Pro", brand: "Ubiquiti", category: "Network Gateway", description: "Rackmount UniFi gateway with dual 10G SFP+ and 2.5GbE WAN." },
+  { id: "ubiquiti-uxg-pro", name: "Ubiquiti UniFi Next-Gen Gateway Pro", modelNumber: "UXG-Pro", brand: "Ubiquiti", category: "Network Gateway", description: "Rackmount UniFi gateway with dual 10G SFP+ and Gigabit WAN." },
   { id: "ubiquiti-ucg-ultra", name: "Ubiquiti UniFi Cloud Gateway Ultra", modelNumber: "UCG-Ultra", brand: "Ubiquiti", category: "Network Gateway", description: "Compact UniFi gateway with 2.5GbE WAN and multi-WAN failover." },
   { id: "ubiquiti-uxg-lite", name: "Ubiquiti UniFi Gateway Lite", modelNumber: "UXG-Lite", brand: "Ubiquiti", category: "Network Gateway", description: "Entry UniFi gateway for small networks, 1GbE." },
   { id: "tp-link-er605", name: "TP-Link ER605", modelNumber: "ER605", brand: "TP-Link", category: "Network Gateway", description: "Omada multi-WAN Gigabit VPN router." },
@@ -461,7 +461,7 @@ export const PRODUCT_CATALOG: Omit<
   { id: "ubiquiti-u6-enterprise", name: "Ubiquiti UniFi U6 Enterprise", modelNumber: "U6-Enterprise", brand: "Ubiquiti", category: "Wireless Bridge", description: "Tri-band Wi-Fi 6E access point with 2.5GbE." },
   { id: "ubiquiti-u6-mesh", name: "Ubiquiti UniFi U6 Mesh", modelNumber: "U6-Mesh", brand: "Ubiquiti", category: "Wireless Bridge", description: "Outdoor-rated Wi-Fi 6 mesh access point." },
   { id: "tp-link-eap610", name: "TP-Link EAP610", modelNumber: "EAP610", brand: "TP-Link", category: "Wireless Bridge", description: "Omada Wi-Fi 6 ceiling access point with Gigabit uplink." },
-  { id: "tp-link-eap653", name: "TP-Link EAP653", modelNumber: "EAP653", brand: "TP-Link", category: "Wireless Bridge", description: "Omada Wi-Fi 6 access point with 2.5GbE uplink." },
+  { id: "tp-link-eap653", name: "TP-Link EAP653", modelNumber: "EAP653", brand: "TP-Link", category: "Wireless Bridge", description: "Omada Wi-Fi 6 access point with Gigabit uplink." },
 
   // ─── Network Cards ───
   { id: "intel-x520-da2", name: "Intel X520-DA2", modelNumber: "X520-DA2", brand: "Intel", category: "Network Card", description: "Dual-port SFP+ 10G PCIe NIC, a homelab staple." },

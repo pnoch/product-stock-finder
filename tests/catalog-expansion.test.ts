@@ -49,4 +49,25 @@ describe("catalog expansion", () => {
     expect(searchCatalog("connectx").length).toBeGreaterThan(0);
     expect(searchCatalog("u7 pro").length).toBeGreaterThan(0);
   });
+
+  it("has no duplicate product names", () => {
+    const names = new Set<string>();
+    for (const p of PRODUCT_CATALOG) {
+      expect(names.has(p.name), `duplicate name ${p.name}`).toBe(false);
+      names.add(p.name);
+    }
+  });
+
+  it("has no duplicate model numbers except the Pi 5 board code", () => {
+    const ALLOWED_DUPES = new Set(["SC1112"]); // Pi 5 4GB/16GB share the board code
+    const models = new Map<string, string>();
+    for (const p of PRODUCT_CATALOG) {
+      if (ALLOWED_DUPES.has(p.modelNumber)) continue;
+      expect(
+        models.has(p.modelNumber),
+        `duplicate modelNumber ${p.modelNumber} (${p.id} vs ${models.get(p.modelNumber)})`,
+      ).toBe(false);
+      models.set(p.modelNumber, p.id);
+    }
+  });
 });
