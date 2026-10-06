@@ -8220,3 +8220,9 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] Guard test `tests/production-docker.test.ts` pins the Dockerfile/script invariants. Docs: `docs/releasing.md` (container deploy) + `docs/HANDOVER.md` §3 (the `app` service now builds from the Dockerfile).
 - [x] `pnpm verify` exit 0 — root `3340` / desktop `324` / cargo `88`.
 - [x] **Honest limit:** the live Railway switch (service connected to the repo, Dockerfile built on deploy) needs dashboard access and is documented, not automated; the local container is the verification.
+
+## Phase 1111: CSV round-trip fix — empty product column
+
+- [x] **Bug (found by adversarial audit):** `parseCsvRows`'s `isShareDeepLinkLine("")` returned `true` for an empty first field, so any detailed CSV row with a blank `product` column was dropped as if it were a blank/comment line. `detailedCsvToProducts` explicitly supports that case (`name: r.product || r.model`), and our own `watchlistToDetailedCsv` export of a product with an empty name therefore failed to round-trip (data loss on export→import).
+- [x] Fix: `isShareDeepLinkLine` no longer treats an empty string as a comment — truly blank rows are already dropped by the caller's `isBlank` check, so the `!t` short-circuit was redundant and harmful. `//`, `# Share:`, and `shareUrl` markers still skip.
+- [x] Tests: 2 new cases (empty-product data row kept; empty-name product round-trips). `pnpm verify` exit 0 — root `3342` / desktop `324` / cargo `88`.
