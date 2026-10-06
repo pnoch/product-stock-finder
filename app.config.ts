@@ -73,6 +73,8 @@ const webHost = getWebLinkHost(env.webUrl);
 const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
+  description:
+    "Global stock & price radar for hard-to-find hardware. Find who has it worldwide, at the best landed price, and get told the second it restocks.",
   version: "5.17.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -88,7 +90,7 @@ const config: ExpoConfig = {
       // Shown in the iOS permission prompt. Without it the OS rejects the
       // notification request on a release build.
       NSUserNotificationsUsageDescription:
-        "Product Stock Finder notifies you when a watched product drops below your target price, comes back in stock, or a reminder is due.",
+        "Product Stock Finder alerts you the moment a watched part is back in stock or drops below your target price, anywhere in the world.",
     },
   },
   android: {
