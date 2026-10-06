@@ -44,7 +44,7 @@ describe("catalog expansion", () => {
   });
 
   it("finds new products by model and brand", () => {
-    expect(searchCatalog("SC1112").some((p) => p.id === "raspberry-pi-5-16gb")).toBe(true);
+    expect(searchCatalog("SC1113").some((p) => p.id === "raspberry-pi-5-16gb")).toBe(true);
     expect(searchCatalog("synology").some((p) => p.brand === "Synology")).toBe(true);
     expect(searchCatalog("connectx").length).toBeGreaterThan(0);
     expect(searchCatalog("u7 pro").length).toBeGreaterThan(0);
@@ -58,11 +58,9 @@ describe("catalog expansion", () => {
     }
   });
 
-  it("has no duplicate model numbers except the Pi 5 board code", () => {
-    const ALLOWED_DUPES = new Set(["SC1112"]); // Pi 5 4GB/16GB share the board code
+  it("has no duplicate model numbers", () => {
     const models = new Map<string, string>();
     for (const p of PRODUCT_CATALOG) {
-      if (ALLOWED_DUPES.has(p.modelNumber)) continue;
       expect(
         models.has(p.modelNumber),
         `duplicate modelNumber ${p.modelNumber} (${p.id} vs ${models.get(p.modelNumber)})`,

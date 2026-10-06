@@ -153,7 +153,7 @@ export const PRODUCT_CATALOG: Omit<
   {
     id: "raspberry-pi-5-8gb",
     name: "Raspberry Pi 5 8GB",
-    modelNumber: "RPI5-8GB",
+    modelNumber: "SC1112",
     brand: "Raspberry Pi",
     category: "Single-Board Computer",
     description:
@@ -397,8 +397,8 @@ export const PRODUCT_CATALOG: Omit<
   },
 
   // ─── Single-Board Computers ───
-  { id: "raspberry-pi-5-4gb", name: "Raspberry Pi 5 (4GB)", modelNumber: "SC1112", brand: "Raspberry Pi", category: "Single-Board Computer", description: "Quad-core 2.4GHz SBC with 4GB RAM, PCIe 2.0, dual 4K output. Frequently out of stock." },
-  { id: "raspberry-pi-5-16gb", name: "Raspberry Pi 5 (16GB)", modelNumber: "SC1112", brand: "Raspberry Pi", category: "Single-Board Computer", description: "16GB variant of the Pi 5 for memory-heavy workloads; chronically back-ordered." },
+  { id: "raspberry-pi-5-4gb", name: "Raspberry Pi 5 (4GB)", modelNumber: "SC1111", brand: "Raspberry Pi", category: "Single-Board Computer", description: "Quad-core 2.4GHz SBC with 4GB RAM, PCIe 2.0, dual 4K output. Frequently out of stock." },
+  { id: "raspberry-pi-5-16gb", name: "Raspberry Pi 5 (16GB)", modelNumber: "SC1113", brand: "Raspberry Pi", category: "Single-Board Computer", description: "16GB variant of the Pi 5 for memory-heavy workloads; chronically back-ordered." },
   { id: "raspberry-pi-4-4gb", name: "Raspberry Pi 4 Model B (4GB)", modelNumber: "SC0194", brand: "Raspberry Pi", category: "Single-Board Computer", description: "Quad-core 1.5GHz SBC with 4GB RAM, dual micro-HDMI, Gigabit Ethernet." },
   { id: "raspberry-pi-zero-2-w", name: "Raspberry Pi Zero 2 W", modelNumber: "SC0510", brand: "Raspberry Pi", category: "Single-Board Computer", description: "Compact quad-core Wi-Fi SBC for lightweight always-on services." },
   { id: "raspberry-pi-cm4-8gb", name: "Raspberry Pi Compute Module 4 (8GB)", modelNumber: "CM4008000", brand: "Raspberry Pi", category: "Single-Board Computer", description: "Industrial compute module with 8GB RAM and optional eMMC, for custom carrier boards." },
@@ -475,7 +475,7 @@ export const PRODUCT_CATALOG: Omit<
   // ─── Mini-PCs (Desktop) ───
   { id: "intel-nuc-13-pro", name: "Intel NUC 13 Pro", modelNumber: "NUC13ANHi7", brand: "Intel", category: "Desktop", description: "Compact mini-PC with Core i7-1360P, dual Thunderbolt 4." },
   { id: "intel-nuc-12-pro", name: "Intel NUC 12 Pro", modelNumber: "NUC12WSHi7", brand: "Intel", category: "Desktop", description: "Mini-PC with Core i7-1260P and 2.5GbE." },
-  { id: "asus-nuc-14-pro", name: "ASUS NUC 14 Pro", modelNumber: "NUC14RVH", brand: "ASUS", category: "Desktop", description: "Mini-PC with Core Ultra 7 and dual 2.5GbE." },
+  { id: "asus-nuc-14-pro", name: "ASUS NUC 14 Pro", modelNumber: "NUC14RVH", brand: "ASUS", category: "Desktop", description: "Mini-PC with Core Ultra 7 and 2.5GbE LAN." },
   { id: "minisforum-um790-pro", name: "Minisforum UM790 Pro", modelNumber: "UM790 Pro", brand: "Minisforum", category: "Desktop", description: "Ryzen 9 7940HS mini-PC with dual 2.5GbE and USB4." },
   { id: "minisforum-ms-01", name: "Minisforum MS-01", modelNumber: "MS-01", brand: "Minisforum", category: "Desktop", description: "Homelab mini-PC with dual 10G SFP+, dual 2.5GbE, and PCIe slot." },
   { id: "beelink-ser7", name: "Beelink SER7", modelNumber: "SER7", brand: "Beelink", category: "Desktop", description: "Ryzen 7 7840HS mini-PC with dual 2.5GbE." },
