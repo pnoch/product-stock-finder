@@ -4,6 +4,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "server2u-my",
     name: "Server2U",
+    taxMode: "none", // Malaysia — no VAT
     currency: "MYR",
     country: "Malaysia",
     countryCode: "MY",
@@ -22,6 +23,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "linitx-uk",
     name: "Linitx",
+    taxMode: "origin",
     currency: "GBP",
     country: "United Kingdom",
     countryCode: "GB",
@@ -45,6 +47,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "interprojekt-pl",
     name: "Inter Projekt",
+    taxMode: "export-exempt",
     currency: "EUR",
     country: "Poland",
     countryCode: "PL",
@@ -63,6 +66,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "nasstore-eu",
     name: "NAS Store EU",
+    taxMode: "export-exempt",
     currency: "EUR",
     country: "European Union",
     countryCode: "EU",
@@ -86,6 +90,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "aerial-gr",
     name: "Aerial.net",
+    taxMode: "export-exempt",
     currency: "EUR",
     country: "Greece",
     countryCode: "GR",
@@ -103,6 +108,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "mikrotikstore-de",
     name: "MikroTik Store EU",
+    taxMode: "export-exempt",
     currency: "EUR",
     country: "Germany",
     countryCode: "DE",
@@ -121,6 +127,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "miro-za",
     name: "MiRO Distribution",
+    taxMode: "origin",
     currency: "ZAR",
     country: "South Africa",
     countryCode: "ZA",
@@ -138,6 +145,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "gearup-ae",
     name: "Gear-Up.me",
+    taxMode: "none", // UAE — no VAT
     currency: "AED",
     country: "UAE",
     countryCode: "AE",
@@ -156,6 +164,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "balticnetworks-us",
     name: "Baltic Networks",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -174,6 +183,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "linktechs-us",
     name: "Link Technologies",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -192,6 +202,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "winncom-us",
     name: "Winncom",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -209,6 +220,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "bhphoto-us",
     name: "B&H Photo Video",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -226,6 +238,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "duxtel-au",
     name: "DuxTel",
+    taxMode: "origin",
     currency: "AUD",
     country: "Australia",
     countryCode: "AU",
@@ -243,6 +256,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "wisp-au",
     name: "WISP",
+    taxMode: "origin",
     currency: "AUD",
     country: "Australia",
     countryCode: "AU",
@@ -260,6 +274,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "pbtech-nz",
     name: "PB Tech",
+    taxMode: "origin",
     currency: "NZD",
     country: "New Zealand",
     countryCode: "NZ",
@@ -277,6 +292,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "gowifi-nz",
     name: "GoWiFi",
+    taxMode: "origin",
     currency: "NZD",
     country: "New Zealand",
     countryCode: "NZ",
@@ -294,6 +310,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "getic-gr",
     name: "Getic",
+    taxMode: "export-exempt",
     currency: "EUR",
     country: "Greece",
     countryCode: "GR",
@@ -311,6 +328,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "100mega-cz",
     name: "100MEGA Distribution",
+    taxMode: "export-exempt",
     currency: "EUR",
     country: "Czech Republic",
     countryCode: "CZ",
@@ -328,6 +346,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "hellascom-gr",
     name: "HellasCom",
+    taxMode: "export-exempt",
     currency: "EUR",
     country: "Greece",
     countryCode: "GR",
@@ -346,6 +365,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "rocnoc-us",
     name: "ROC-NOC",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -363,6 +383,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "networkdevices-us",
     name: "Network Devices Inc",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -380,6 +401,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "flytec-us",
     name: "Flytec Computers",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -397,6 +419,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "mbsiwav-ca",
     name: "MBS I-WAV",
+    taxMode: "origin",
     currency: "CAD",
     country: "Canada",
     countryCode: "CA",
@@ -414,6 +437,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "multilink-us",
     name: "Multilink",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -431,6 +455,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "neobits-us",
     name: "Neobits",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -448,6 +473,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "newegg-us",
     name: "Newegg",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -465,6 +491,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "apple-us",
     name: "Apple Store",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",
@@ -482,6 +509,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "pimoroni-uk",
     name: "Pimoroni",
+    taxMode: "export-exempt", // UK exports ex-VAT
     currency: "GBP",
     country: "United Kingdom",
     countryCode: "GB",
@@ -499,6 +527,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "allasch-uk",
     name: "Allied Electronics",
+    taxMode: "origin",
     currency: "GBP",
     country: "United Kingdom",
     countryCode: "GB",
@@ -516,6 +545,7 @@ export const DISTRIBUTORS: Distributor[] = [
   {
     id: "valve-us",
     name: "Steam",
+    taxMode: "origin",
     currency: "USD",
     country: "United States",
     countryCode: "US",

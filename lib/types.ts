@@ -42,6 +42,14 @@ export interface Distributor {
   notes?: string;
   currency: string; // native currency for shipping costs
   shippingCosts?: Record<string, number>; // destination region → shipping cost in distributor's currency
+  /**
+   * How the store taxes an international order:
+   * - "export-exempt": sells internationally without tax (price is ex-VAT).
+   * - "origin": charges its own country's VAT (uses the listing's taxRate).
+   * - "destination": collects destination VAT/GST at checkout.
+   * - "none": no tax anywhere.
+   */
+  taxMode: "export-exempt" | "origin" | "destination" | "none";
 }
 
 export interface DistributorListing {
@@ -172,6 +180,12 @@ export interface AppSettings {
   webhookAlerts?: boolean;
   /** Discord/Slack incoming webhook URL. */
   alertWebhookUrl?: string;
+  /** ISO-3166 alpha-2 country the user ships to (landed-cost destination). */
+  shipToCountry?: string;
+  /** Business/reseller with a VAT/EORI number: omit all tax from landed cost. */
+  taxExempt?: boolean;
+  /** Add the destination duty/VAT estimate to the displayed total (default off). */
+  includeImportEstimate?: boolean;
 }
 
 export type Collection = "watchlist" | "alerts" | "reminders" | "settings";

@@ -51,6 +51,7 @@ const mockDistributor: Distributor = {
   countryCode: "US",
   paymentMethods: ["Credit Card"],
   shippingCosts: { "North America": 5 },
+  taxMode: "origin",
 };
 
 beforeEach(() => {
