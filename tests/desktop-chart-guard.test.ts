@@ -349,7 +349,7 @@ describe("desktop chart guard", () => {
     const home = await readFile("desktop/src/pages/Home.tsx", "utf8");
     const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     expect(health).toContain('Click &quot;Test All Distributors&quot; to run a check.');
-    expect(home).toContain("Click Add Product to add a product to your watchlist");
+    expect(home).toContain("Click Add Product and paste a model number");
     expect(alerts).toContain('Open a product and click "Set Alert"');
     expect(alerts).toContain(
       'Open a back-order product listing and click "Remind me" or "Watch for Restock"',
@@ -620,11 +620,12 @@ describe("desktop chart guard", () => {
   });
 
   // QA round 206: mobile's Home header shows "Product Stock Finder" /
-  // "Global availability monitor"; desktop's said "Dashboard".
+  // "Global availability monitor"; desktop's said "Dashboard". (Round 255
+  // repositioned the tagline to "Find it anywhere. Landed to your door.")
   it("matches mobile's Home header on desktop", async () => {
     const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
     expect(text).toContain("Product Stock Finder");
-    expect(text).toContain("Global availability monitor");
+    expect(text).toContain("Find it anywhere. Landed to your door.");
     expect(text).not.toContain(">Dashboard</h1>");
   });
 
@@ -734,10 +735,11 @@ describe("desktop chart guard", () => {
 
   // QA round 193: mobile's Home empty state says "No products tracked yet" and
   // shows a "Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max" hint; desktop's said
-  // "No products tracked" with no hint.
+  // "No products tracked" with no hint. (Round 255 repositioned it to
+  // "Nothing on the radar yet".)
   it("matches mobile's Home empty state on desktop", async () => {
     const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
-    expect(text).toContain('title="No products tracked yet"');
+    expect(text).toContain('title="Nothing on the radar yet"');
     expect(text).toContain("Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max");
   });
 
