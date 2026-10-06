@@ -16,15 +16,25 @@ function parseHtml(
 ): ScrapeResult | null {
   const $ = cheerio.load(html);
 
-  const $price = findPriceElement($, ".product-price, .price, [data-product-price]", model);
+  const $price = findPriceElement(
+    $,
+    ".ty-grid-list__price, .ty-product-block__price-actual",
+    model,
+  );
   if (!$price || $price.length === 0) return null;
   const price = parsePriceFromText($price.text());
   if (!price) return null;
   if (modelMismatch($price, model)) return null;
 
-  const stockText = $(".stock-status, .availability, .product-stock")
-    .first()
-    .text();
+  const card = $price.closest(".ty-grid-list__item, .ty-product-block");
+  const stockText =
+    card
+      .find(
+        ".block_avail_status_label .title b, .product_availability_status .title b",
+      )
+      .first()
+      .text() ||
+    $(".stock-status, .availability, .product-stock").first().text();
   const stockStatus = inferStockStatus(stockText);
 
   return {
@@ -38,14 +48,15 @@ function parseHtml(
 
 export const hellascomParser: DistributorParser = {
   id: "hellascom-gr",
-  baseUrl: "https://hellascom.gr",
+  baseUrl: "https://www.linkshop.gr",
   buildSearchUrl: (model) =>
-    `https://hellascom.gr/search?q=${encodeURIComponent(model)}`,
-  parsePrice: (html, model, url) => parseHtml(html, url ?? "https://hellascom.gr", model),
+    `https://www.linkshop.gr/?dispatch=products.search&q=${encodeURIComponent(model)}&search_performed=Y`,
+  parsePrice: (html, model, url) =>
+    parseHtml(html, url ?? "https://www.linkshop.gr", model),
   rateLimitMs: 3000,
   useBrowser: true,
   browserOptions: {
-    waitForSelector: ".product-price, .price",
+    waitForSelector: ".ty-grid-list__price, .ty-product-block__price-actual",
   },
 };
 

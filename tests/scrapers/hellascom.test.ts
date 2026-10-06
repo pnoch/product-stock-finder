@@ -8,13 +8,15 @@ const FIXTURES_DIR = path.join(__dirname, "../fixtures/scrapers");
 describe("Hellascom Parser", () => {
   it("should have correct parser config", () => {
     expect(hellascomParser.id).toBe("hellascom-gr");
-    expect(hellascomParser.baseUrl).toBe("https://hellascom.gr");
+    expect(hellascomParser.baseUrl).toBe("https://www.linkshop.gr");
     expect(hellascomParser.rateLimitMs).toBe(3000);
   });
 
   it("should build correct search URL", () => {
     const url = hellascomParser.buildSearchUrl("hAP ac3");
-    expect(url).toBe("https://hellascom.gr/search?q=hAP%20ac3");
+    expect(url).toBe(
+      "https://www.linkshop.gr/?dispatch=products.search&q=hAP%20ac3&search_performed=Y",
+    );
   });
 
   it("should return null for 404 page fixture", () => {
@@ -34,7 +36,7 @@ describe("Hellascom Parser", () => {
   });
 
   it("should extract price, stock status, and currency from valid HTML", () => {
-    const html = `<div><span class="price">€279.00</span><span class="stock-status">In Stock</span></div>`;
+    const html = `<div><span class="ty-grid-list__price">€279.00</span><span class="stock-status">In Stock</span></div>`;
     const result = hellascomParser.parsePrice(html);
     expect(result).not.toBeNull();
     expect(result!.price).toBe(279.0);
@@ -46,7 +48,7 @@ describe("Hellascom Parser", () => {
 describe("model verification", () => {
   const MODEL = "CRS804-4DDQ-hRM";
   const MATCH_HTML = `<html><body><table><tr class="product">
-    <td><span class="price nobr product-price" data-product-price data-price-container>$480.00</span>
+    <td><span class="ty-grid-list__price">$480.00</span>
     <a class="product-link" href="/p/crs804-4ddq-hrm">MikroTik CRS804-4DDQ-hRM</a></td>
     <td><span class="stock-status availability stock">In Stock</span></td>
   </tr></table></body></html>`;
@@ -68,5 +70,29 @@ describe("model verification", () => {
 
   it("ignores verification when no model is passed", () => {
     expect(hellascomParser.parsePrice(MISMATCH_HTML)?.price).toBe(480);
+  });
+});
+
+describe("HellasCom linkshop.gr grid", () => {
+  const html = () =>
+    fs.readFileSync(path.join(FIXTURES_DIR, "hellascom-gr-search.html"), "utf-8");
+
+  it("extracts the model's grid price and card-scoped stock", () => {
+    const result = hellascomParser.parsePrice(html(), "CRS326-24G-2S+RM");
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(177.42);
+    expect(result!.currency).toBe("EUR");
+    expect(result!.stockStatus).toBe("back_order");
+  });
+
+  it("reads the out-of-production status in another card", () => {
+    const result = hellascomParser.parsePrice(html(), "CRS326-24S+2Q+RM");
+    expect(result).not.toBeNull();
+    expect(result!.price).toBe(483.87);
+    expect(result!.stockStatus).toBe("out_of_stock");
+  });
+
+  it("returns null when no card names the model", () => {
+    expect(hellascomParser.parsePrice(html(), "CRS804-4DDQ-hRM")).toBeNull();
   });
 });
