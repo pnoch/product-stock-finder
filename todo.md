@@ -8210,3 +8210,13 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Card-scoped Greek stock:** the availability label lives inside each product card (`block_avail_status_label .title b`), so the page-wide first match reported another product's status. Added `inferStockStatus` Greek markers (mobile + Rust mirror, parity-guarded): `Εκτός Παραγωγής`/`εξαντλήθηκε`/`μη διαθέσιμο` → out_of_stock, `παραγγελία` → back_order, `διαθέσιμο` → in_stock.
 - [x] Tests: 3 mobile grid cases + 2 Rust cases + Greek `inferStockStatus` cases; a two-card CS-Cart fixture. Verified live: `177.42` EUR (back_order) for CRS326-24G-2S+RM. `pnpm verify` exit 0 — root `3338` / desktop `324` / cargo `88`.
 - [x] **This closes the Phase-1102 "not fixable" list** (Winncom/B&H/GoWiFi → Phase 1106; Neobits/MBS I-WAV → Phase 1107; ROC-NOC → Phase 1108; HellasCom → here). All 25 registered parsers now have a working path.
+
+## Phase 1110: Production browser runtime (headed + Xvfb)
+
+- [x] **The Phase 1106–1109 parser fixes were inert in production:** the Railway (Nixpacks) runtime installed no browser (`patchright install` ran only in CI) and had no display, so every browser-required distributor fell back to plain HTTP → blocked. Added a repo `Dockerfile` (Railway builds it in preference to Nixpacks) that installs Chromium + Xvfb and runs `scripts/start-production.sh`.
+- [x] `scripts/start-production.sh` starts Xvfb on `:99`, waits for the display socket, exports `DISPLAY=:99` + `PSF_BROWSER_HEADED=1`, then `exec node dist/index.js`. **`xvfb-run -a` hangs in `node:20-bookworm-slim`** (verified), so the script starts Xvfb directly.
+- [x] `.dockerignore` keeps the build context small; the Dockerfile installs deps, `npx patchright install --with-deps chromium`, then `pnpm build`.
+- [x] **Verified locally end-to-end:** `docker build` succeeds; the container serves `/api/health` 200; a headed scrape **inside the container passes Winncom (200, unblocked)** — the full production path works.
+- [x] Guard test `tests/production-docker.test.ts` pins the Dockerfile/script invariants. Docs: `docs/releasing.md` (container deploy) + `docs/HANDOVER.md` §3 (the `app` service now builds from the Dockerfile).
+- [x] `pnpm verify` exit 0 — root `3340` / desktop `324` / cargo `88`.
+- [x] **Honest limit:** the live Railway switch (service connected to the repo, Dockerfile built on deploy) needs dashboard access and is documented, not automated; the local container is the verification.
