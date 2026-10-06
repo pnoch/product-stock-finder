@@ -14,7 +14,7 @@ import { buildShareText } from "@/lib/price-share";
 import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
 import * as Linking from "expo-linking";
 import { captureAndShareImage } from "@/lib/share-image";
-import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings } from "@/lib/storage";
+import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings, updateSettings } from "@/lib/storage";
 import { rediscoverProduct } from "@/lib/manual-add";
 import { discoverListings } from "@/lib/listing-discovery";
 import { formatPrice } from "@shared/currency";
@@ -24,6 +24,7 @@ import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { computePriceVsAverage } from "@/lib/price-average";
 import { computeDealScore, dealBandLabel } from "@/lib/deal-score";
 import { findBestDeal } from "@/lib/best-deal";
+import { rankByLandedCost, type Destination, type LandedCostOptions } from "@/lib/landed-cost";
 import { suggestAlertPrices } from "@/lib/alert-suggestions";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
@@ -82,6 +83,9 @@ export default function ProductDetailScreen() {
   const [productImage, setProductImage] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
   const [shippingRegion, setShippingRegion] = useState<string | null>(null);
+  const [shipToCountry, setShipToCountry] = useState<string | null>(null);
+  const [taxExempt, setTaxExempt] = useState(false);
+  const [includeImportEstimate, setIncludeImportEstimate] = useState(false);
   // Explicit flag: gating the skeleton on the settings *values* meant a failed
   // settings read (or a missing id) hung the screen forever.
   const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -131,6 +135,9 @@ export default function ProductDetailScreen() {
     if (signal?.cancelled) return;
     if (settingsData?.displayCurrency) setDisplayCurrency(settingsData.displayCurrency);
     if (settingsData?.shippingRegion) setShippingRegion(settingsData.shippingRegion);
+    setShipToCountry(settingsData?.shipToCountry ?? null);
+    setTaxExempt(settingsData?.taxExempt === true);
+    setIncludeImportEstimate(settingsData?.includeImportEstimate === true);
     if (settingsData?.displayCurrency) setAlertCurrency(settingsData.displayCurrency);
     setSettingsLoaded(true);
     setAlerts(alertsData);
@@ -153,10 +160,34 @@ export default function ProductDetailScreen() {
     return () => { signal.cancelled = true; };
   }, [loadData]);
 
+  const destination = useMemo<Destination | null>(
+    () =>
+      shipToCountry
+        ? { countryCode: shipToCountry, currency: displayCurrency ?? "USD" }
+        : null,
+    [shipToCountry, displayCurrency],
+  );
+  const landedOptions = useMemo<LandedCostOptions>(
+    () => ({ taxExempt, includeImportEstimate }),
+    [taxExempt, includeImportEstimate],
+  );
   const bestDeal = useMemo(() => {
+    if (destination) {
+      const ranked = rankByLandedCost(listings, destination, landedOptions);
+      const top = ranked[0];
+      if (!top) return null;
+      return {
+        distributorId: top.distributorId,
+        price: top.price,
+        tax: top.storeTax,
+        shipping: top.shipping,
+        total: top.total,
+        currency: top.currency,
+      };
+    }
     if (!shippingRegion || !displayCurrency) return null;
     return findBestDeal(listings, shippingRegion, displayCurrency);
-  }, [listings, shippingRegion, displayCurrency]);
+  }, [listings, destination, landedOptions, shippingRegion, displayCurrency]);
   const sortedListings = useMemo(
     () =>
       [...listings].sort((a, b) => {
@@ -237,6 +268,24 @@ export default function ProductDetailScreen() {
     setAlertDirection("drop");
     setAlertPrice("");
     setAlertModalVisible(true);
+  }, []);
+
+  const handleSelectCountry = useCallback((code: string) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShipToCountry(code);
+    void updateSettings({ shipToCountry: code });
+  }, []);
+
+  const handleToggleTaxExempt = useCallback((value: boolean) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTaxExempt(value);
+    void updateSettings({ taxExempt: value });
+  }, []);
+
+  const handleToggleImportEstimate = useCallback((value: boolean) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIncludeImportEstimate(value);
+    void updateSettings({ includeImportEstimate: value });
   }, []);
 
   const handleSetAlert = useCallback(async () => {
@@ -582,7 +631,7 @@ export default function ProductDetailScreen() {
             </View>
           )}
           {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={effectiveCurrency} />}
-          <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)} onRemind={setReminderListing} onFindPrices={handleFindPrices} findingPrices={findingPrices} />
+          <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} destination={destination} taxExempt={taxExempt} includeImportEstimate={includeImportEstimate} onSelectCountry={handleSelectCountry} onToggleTaxExempt={handleToggleTaxExempt} onToggleImportEstimate={handleToggleImportEstimate} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)} onRemind={setReminderListing} onFindPrices={handleFindPrices} findingPrices={findingPrices} />
         </View>
         {/* Notes and distributor targets sit outside the shareRef capture: notes
             are device-private and targets are personal, so neither belongs in a
