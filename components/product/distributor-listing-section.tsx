@@ -548,6 +548,7 @@ export function DistributorListingSection({
               onToggleStockWatch={onToggleStockWatch}
               onOpenChart={onOpenChart}
               onRemind={onRemind}
+              hasDestination={destination != null}
             />
           ))}
         </>
