@@ -332,7 +332,7 @@ export const DISTRIBUTORS: Distributor[] = [
     country: "Greece",
     countryCode: "GR",
     region: "Europe",
-    website: "https://hellascom.gr",
+    website: "https://www.linkshop.gr",
     paymentMethods: ["Credit Card", "Bank Transfer"],
     notes: "MikroTik distributor since 2001, ISO 9001:2015",
     shippingCosts: {

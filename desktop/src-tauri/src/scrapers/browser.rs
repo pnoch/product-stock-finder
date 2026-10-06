@@ -88,7 +88,7 @@ const HOST_REGIONS: [(&str, RegionSignals); 25] = [
     ("gowifi.co.nz", ASIA_PACIFIC),
     ("getic.com", EUROPE),
     ("b2b.100mega.com", EUROPE),
-    ("hellascom.gr", EUROPE),
+    ("linkshop.gr", EUROPE),
     ("roc-noc.com", NORTH_AMERICA),
     ("networkdevicesinc.com", NORTH_AMERICA),
     ("flyteccomputers.com", NORTH_AMERICA),
