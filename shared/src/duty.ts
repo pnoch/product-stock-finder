@@ -26,10 +26,13 @@ const COUNTRY_VAT: Record<string, number> = {
 const CATEGORY_DUTY: Record<string, number> = {
   "Networking Switch": 0,
   Router: 0,
-  "Network Switch": 0,
-  Server: 0,
+  "Single-Board Computer": 0,
   Storage: 0,
-  "Single Board Computer": 0,
+  "Network Card": 0,
+  "Network Gateway": 0,
+  "Wireless Bridge": 0,
+  UPS: 0,
+  Cooling: 0,
   default: 0.05,
 };
 
@@ -47,6 +50,8 @@ export function estimateImportDuty(
     return null;
   }
   const vatRate = COUNTRY_VAT[countryCode]!;
-  const dutyRate = CATEGORY_DUTY[category] ?? CATEGORY_DUTY.default!;
+  const dutyRate = Object.prototype.hasOwnProperty.call(CATEGORY_DUTY, category)
+    ? CATEGORY_DUTY[category]!
+    : CATEGORY_DUTY.default!;
   return { vatRate, dutyRate };
 }

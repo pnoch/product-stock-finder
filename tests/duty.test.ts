@@ -27,4 +27,21 @@ describe("estimateImportDuty", () => {
       }
     }
   });
+
+  it("pins the country VAT rate", () => {
+    expect(estimateImportDuty(100, "Router", "TH")!.vatRate).toBe(0.07);
+    expect(estimateImportDuty(100, "Router", "DE")!.vatRate).toBe(0.19);
+  });
+
+  it("falls back to the default duty rate for unlisted categories", () => {
+    expect(estimateImportDuty(100, "Laptop", "TH")!.dutyRate).toBe(0.05);
+  });
+
+  it("zeros duty for ITA-rated electronics categories", () => {
+    expect(estimateImportDuty(100, "Single-Board Computer", "TH")!.dutyRate).toBe(0);
+  });
+
+  it("does not walk the prototype chain when looking up a category", () => {
+    expect(estimateImportDuty(100, "constructor", "TH")!.dutyRate).toBe(0.05);
+  });
 });
