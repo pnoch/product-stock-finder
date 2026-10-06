@@ -134,7 +134,13 @@ export function computeLandedCost(
     );
     if (est) {
       const base = price + shipping;
-      importEstimate = base * (est.vatRate + est.dutyRate);
+      // A destination-tax store already collected VAT in storeTax, so the
+      // import estimate must not charge it a second time.
+      const rate =
+        distributor.taxMode === "destination"
+          ? est.dutyRate
+          : est.vatRate + est.dutyRate;
+      importEstimate = base * rate;
     }
   }
 
@@ -162,6 +168,14 @@ export function rankByLandedCost(
 ): LandedCost[] {
   const out: LandedCost[] = [];
   for (const listing of listings) {
+    // Only purchasable listings can be ranked (matches getBestPrice): an
+    // out-of-stock or unknown-availability row must not top the list.
+    if (
+      listing.stockStatus !== "in_stock" &&
+      listing.stockStatus !== "back_order"
+    ) {
+      continue;
+    }
     const distributor = getDistributorById(listing.distributorId);
     if (!distributor) continue;
     const cost = computeLandedCost(listing, distributor, destination, options);

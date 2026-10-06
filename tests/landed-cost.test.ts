@@ -143,6 +143,17 @@ describe("computeLandedCost", () => {
     expect(on!.total).toBeCloseTo(154.56, 2);
   });
 
+  it("does not double-count destination VAT in the import estimate", () => {
+    const d = dist({ taxMode: "destination" });
+    const r = computeLandedCost(listing(), d, dest, {
+      includeImportEstimate: true,
+    });
+    // storeTax = TH VAT 7% on 100 = 7; importEstimate = duty 5% on (100+38) = 6.9
+    expect(r!.storeTax).toBeCloseTo(7, 5);
+    expect(r!.importEstimate).toBeCloseTo(6.9, 2);
+    expect(r!.total).toBeCloseTo(151.9, 2);
+  });
+
   it("returns null when shipping is unknown", () => {
     const d = dist({ shippingCosts: {} });
     expect(computeLandedCost(listing(), d, dest, {})).toBeNull();
@@ -192,6 +203,18 @@ describe("rankByLandedCost", () => {
       {},
     );
     expect(ranked).toHaveLength(0);
+  });
+
+  it("excludes out-of-stock listings", () => {
+    const inStock = listing({ distributorId: "server2u-my", price: 100 });
+    const out = listing({
+      distributorId: "server2u-my",
+      price: 50,
+      stockStatus: "out_of_stock",
+    });
+    const ranked = rankByLandedCost([out, inStock], dest, {});
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0]!.price).toBe(100);
   });
 
   it("is deterministic across runs", () => {
