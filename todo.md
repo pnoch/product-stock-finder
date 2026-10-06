@@ -8226,3 +8226,11 @@ Ran the exact CI sequence end to end, including the two steps not exercised sinc
 - [x] **Bug (found by adversarial audit):** `parseCsvRows`'s `isShareDeepLinkLine("")` returned `true` for an empty first field, so any detailed CSV row with a blank `product` column was dropped as if it were a blank/comment line. `detailedCsvToProducts` explicitly supports that case (`name: r.product || r.model`), and our own `watchlistToDetailedCsv` export of a product with an empty name therefore failed to round-trip (data loss on export→import).
 - [x] Fix: `isShareDeepLinkLine` no longer treats an empty string as a comment — truly blank rows are already dropped by the caller's `isBlank` check, so the `!t` short-circuit was redundant and harmful. `//`, `# Share:`, and `shareUrl` markers still skip.
 - [x] Tests: 2 new cases (empty-product data row kept; empty-name product round-trips). `pnpm verify` exit 0 — root `3342` / desktop `324` / cargo `88`.
+
+## Phase 1112: CSV round-trip — apostrophe escaping + whitespace-only model
+
+Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
+
+- [x] **Asymmetric apostrophe escaping:** `escapeCsv` prefixed a value only when its *first* char was a formula char (`=+-@\t\r`), but `unescapeCsv` stripped a leading apostrophe whenever the *second* char was one. A value that genuinely started with `'=` or `'@` (e.g. `'=SUM(A1)`, `'@home`) was never escaped on export yet was unescaped on import, silently losing the leading apostrophe. Fixed by also escaping a leading apostrophe and unescaping `'` before a formula char or another `'`, making the two symmetric.
+- [x] **Whitespace-only model dropped the row:** `detailedCsvToProducts` used `(r.model || r.product).trim()`. A whitespace-only model is truthy, so it was chosen, trimmed to `""`, and the row was dropped even though the product name was valid. Fixed to `r.model.trim() || r.product.trim()`.
+- [x] Tests: 2 new cases (apostrophe-before-formula round-trips; whitespace-model row kept). Fuzz re-run: 0 real violations (only `//`-prefixed names, the documented legacy comment marker, are skipped). `pnpm verify` exit 0 — root `3344` / desktop `324` / cargo `88`.
