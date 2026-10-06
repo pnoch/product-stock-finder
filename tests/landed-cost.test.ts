@@ -126,7 +126,8 @@ describe("computeLandedCost", () => {
     const d = dist({ taxMode: "origin" });
     expect(computeLandedCost(listing(), d, dest, {})!.storeTax).toBe(0);
     expect(
-      computeLandedCost(listing({ taxRate: Number.NaN }), d, dest, {})!.storeTax,
+      computeLandedCost(listing({ taxRate: Number.NaN }), d, dest, {})!
+        .storeTax,
     ).toBe(0);
   });
 
@@ -167,11 +168,41 @@ describe("computeLandedCost", () => {
 });
 
 describe("rankByLandedCost", () => {
-  it("sorts by total landed cost ascending and drops unknown-shipping rows", () => {
+  it("sorts by total landed cost ascending", () => {
     const cheap = listing({ distributorId: "server2u-my", price: 100 });
     const dear = listing({ distributorId: "server2u-my", price: 300 });
     const ranked = rankByLandedCost([dear, cheap], dest, {});
     expect(ranked).toHaveLength(2);
     expect(ranked[0]!.price).toBeLessThan(ranked[1]!.price);
+  });
+
+  it("drops a listing whose distributor is unknown", () => {
+    const known = listing({ distributorId: "server2u-my", price: 100 });
+    const unknown = listing({ distributorId: "does-not-exist", price: 50 });
+    const ranked = rankByLandedCost([unknown, known], dest, {});
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0]!.distributorId).toBe("server2u-my");
+  });
+
+  it("drops listings whose shipping to the destination is unknown", () => {
+    const a = listing({ distributorId: "server2u-my", price: 100 });
+    const ranked = rankByLandedCost(
+      [a],
+      { countryCode: "ZZ", currency: "USD" },
+      {},
+    );
+    expect(ranked).toHaveLength(0);
+  });
+
+  it("is deterministic across runs", () => {
+    const a = listing({ distributorId: "server2u-my", price: 100 });
+    const b = listing({ distributorId: "linitx-uk", price: 100 });
+    const first = rankByLandedCost([a, b], dest, {}).map(
+      (r) => r.distributorId,
+    );
+    const second = rankByLandedCost([b, a], dest, {}).map(
+      (r) => r.distributorId,
+    );
+    expect(first).toEqual(second);
   });
 });
