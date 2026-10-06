@@ -56,8 +56,10 @@ not a rewrite.
 2. App fans out across all 25 global distributors.
 3. Results ranked by **landed cost to the user's country**:
    "Getic (Latvia) — $209 + $38 FedEx = **$247 to Thailand**."
-4. **"Watch this"** → restock + price-drop alerts, forever.
-5. Optional: bulk-paste 20 models for a whole build.
+4. A **filter bar** (ship-to country + tax-exempt toggle) re-ranks the same
+   results instantly — "what if I ship to Singapore?" / "I'm VAT-exempt."
+5. **"Watch this"** → restock + price-drop alerts, forever.
+6. Optional: bulk-paste 20 models for a whole build.
 
 ## What Exists vs. What's New
 
@@ -82,10 +84,33 @@ The engine is done. This is positioning + UX + a landed-cost upgrade.
 
 ### 1. Destination profile — `lib/destination.ts` (new)
 
-A user's shipping destination: `{ countryCode, currency }`, persisted in
-`AppSettings` (`shipToCountry`, `displayCurrency` already exists). Defaults:
-country from device locale, currency from country. Onboarding asks "Where do you
-ship to?" once.
+A user's shipping destination and tax status:
+`{ countryCode, currency, taxExempt }`, persisted in `AppSettings`
+(`shipToCountry`, `displayCurrency` already exists; add `taxExempt`). Defaults:
+country from device locale, currency from country, `taxExempt: false`. Onboarding
+asks "Where do you ship to?" once.
+
+**Tax exemption.** When `taxExempt` is true (a business/reseller with a VAT/EORI
+number, or a jurisdiction where the import is duty-free), `computeLandedCost`
+omits the duty and VAT components, so the ranking reflects the true cost the
+buyer pays. The exemption is a user-declared setting, not verified — the UI
+labels the result "tax-exempt estimate" so it is never mistaken for a firm quote.
+
+### 1a. Destination + tax filters — results screen
+
+The destination is not only an onboarding default: the hero results screen
+exposes it as a **live filter bar** so a user can answer "what if I ship to X?"
+without leaving the results:
+
+- **Ship-to country** — a picker (searchable, ~200 countries) that re-ranks the
+  same results by landed cost to the selected country. Changing it updates the
+  breakdown in place; no re-scrape is needed (only the cost math changes).
+- **Tax exempt** — a toggle next to the country picker that includes/excludes
+  duty + VAT in every row and in the ranking.
+- Both persist back to `AppSettings` as the new default for the next visit.
+
+This is a pure presentation-layer re-rank over already-fetched listings, so it is
+instant and offline-safe.
 
 ### 2. Per-country shipping — `shared/src/distributors.ts`
 
@@ -114,22 +139,26 @@ category. Clearly labelled an **estimate**; accuracy is not the goal, ranking is
 
 `computeLandedCost(listing, distributor, destination)` →
 `{ price, shipping, duty, vat, total, currency, isEstimate }`, all converted to
-the destination currency. Extends the existing `findBestDeal` rather than
-replacing it (keep `findBestDeal` for the region-level path).
+the destination currency. When `destination.taxExempt` is true, `duty` and `vat`
+are `0` and the result is flagged tax-exempt. Extends the existing `findBestDeal`
+rather than replacing it (keep `findBestDeal` for the region-level path).
 
 ### 5. Hero screen — `app/search.tsx` + `app/product/[id].tsx`
 
 The paste-model flow already exists (`ManualAddSheet` → `discoverListings`).
 Change the results presentation to rank by landed cost and show the
-breakdown; add a prominent "Watch this" CTA.
+breakdown; add the **ship-to country + tax-exempt filter bar** and a prominent
+"Watch this" CTA.
 
 ## Data Flow
 
-1. Onboarding sets `shipToCountry` + `displayCurrency`.
+1. Onboarding sets `shipToCountry` + `displayCurrency` + `taxExempt`.
 2. Paste model → `discoverListings` across all parsers (server-first, device
    fallback).
 3. `computeLandedCost` per hit → sort ascending → render.
-4. "Watch this" → existing `addToWatchlist` + restock/price alert.
+4. Filter bar changes (country, tax-exempt) → re-run `computeLandedCost` over the
+   already-fetched listings → re-sort → render (no network).
+5. "Watch this" → existing `addToWatchlist` + restock/price alert.
 
 ## Error Handling
 
@@ -153,9 +182,10 @@ Billing via RevenueCat (Play Billing + entitlements).
 This spec covers the **repositioning + landed-cost core**. It is large; the
 implementation plan should sequence it as:
 
-1. Destination profile + onboarding ("Where do you ship to?").
+1. Destination profile + onboarding ("Where do you ship to?" + tax-exempt).
 2. Per-country shipping + duty estimate + `computeLandedCost`.
-3. Hero results ranked by landed cost + "Watch this" CTA.
+3. Hero results ranked by landed cost + **ship-to/tax-exempt filter bar** +
+   "Watch this" CTA.
 4. Repositioned copy (name, onboarding, store listing).
 5. Catalog expansion beyond MikroTik.
 
@@ -166,15 +196,19 @@ catalog expansion are separate follow-on specs (they are prerequisites for
 ## Testing
 
 - `lib/landed-cost` unit tests: country→region fallback, missing data → null,
-  currency conversion, estimate labelling.
+  currency conversion, estimate labelling, **tax-exempt zeroes duty+VAT**.
 - `resolveShipping` tests across explicit/region/absent cases.
 - Hero ranking test: results sorted by landed cost, not raw price.
+- Filter test: changing ship-to country / tax-exempt re-ranks without a network
+  call and persists to `AppSettings`.
 - Existing `findBestDeal` tests stay green (unchanged path).
 
 ## Success Criteria
 
 - A user in Thailand pastes `CRS804-4DDQ-hRM` and sees distributors ranked by
   landed cost to Thailand, with a shipping/duty breakdown and a "Watch this" CTA.
+- The ship-to country picker and tax-exempt toggle re-rank the results instantly
+  and persist as the new default.
 - Countries without explicit shipping data fall back to the region estimate.
 - `pnpm verify` stays green.
 
