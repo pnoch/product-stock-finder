@@ -19,12 +19,27 @@ export interface EntitlementProvider {
   restore?(): Promise<EntitlementState>;
 }
 
-export const FREE_STATE: EntitlementState = { tier: "free", isPro: false };
+export const FREE_STATE: EntitlementState = Object.freeze({ tier: "free", isPro: false });
+
+type EntitlementListener = () => void;
+const listeners = new Set<EntitlementListener>();
+
+export function subscribeEntitlements(listener: EntitlementListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
 
 let provider: EntitlementProvider | null = null;
 
 export function setEntitlementProvider(p: EntitlementProvider | null): void {
   provider = p;
+  for (const l of listeners) {
+    try {
+      l();
+    } catch {
+      // A listener must never break the seam.
+    }
+  }
 }
 
 export function getEntitlementProvider(): EntitlementProvider | null {

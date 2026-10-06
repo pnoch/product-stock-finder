@@ -26,5 +26,6 @@ describe("pro features", () => {
     expect(isProFeature("server_sync")).toBe(true);
     expect(isProFeature("bulk_import")).toBe(true);
     expect(isProFeature("landed_cost_sourcing")).toBe(true);
+    expect(isProFeature("not_a_feature")).toBe(false);
   });
 });

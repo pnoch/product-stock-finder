@@ -15,7 +15,10 @@ export function setTelemetrySink(s: TelemetrySink | null): void {
 export function track(event: string, props?: Record<string, unknown>): void {
   if (!sink) return;
   try {
-    sink.track(event, props);
+    const result = sink.track(event, props) as unknown;
+    if (result && typeof (result as Promise<unknown>).catch === "function") {
+      (result as Promise<unknown>).catch(() => {});
+    }
   } catch {
     // Telemetry must never break the app.
   }

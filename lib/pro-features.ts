@@ -4,25 +4,19 @@
 
 export const FREE_WATCHLIST_LIMIT = 5;
 
-export type ProFeature =
-  | "unlimited_watchlist"
-  | "background_monitoring"
-  | "digests"
-  | "server_sync"
-  | "bulk_import"
-  | "landed_cost_sourcing";
-
-const PRO_FEATURES: ReadonlySet<ProFeature> = new Set<ProFeature>([
+export const PRO_FEATURES = [
   "unlimited_watchlist",
   "background_monitoring",
   "digests",
   "server_sync",
   "bulk_import",
   "landed_cost_sourcing",
-]);
+] as const;
 
-export function isProFeature(feature: ProFeature): boolean {
-  return PRO_FEATURES.has(feature);
+export type ProFeature = (typeof PRO_FEATURES)[number];
+
+export function isProFeature(feature: string): feature is ProFeature {
+  return (PRO_FEATURES as readonly string[]).includes(feature);
 }
 
 /** Whether a free user may add another product at the given watchlist size. */

@@ -26,6 +26,14 @@ describe("telemetry", () => {
     expect(() => track("app_open")).not.toThrow();
   });
 
+  it("swallows a rejecting async sink", async () => {
+    setTelemetrySink({
+      track: (() => Promise.reject(new Error("async sink down"))) as never,
+    });
+    expect(() => track("app_open")).not.toThrow();
+    await Promise.resolve();
+  });
+
   it("call sites pass no PII or secrets", () => {
     const files = [
       "app/search.tsx",

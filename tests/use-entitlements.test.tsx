@@ -17,4 +17,11 @@ describe("useEntitlements", () => {
     const { result } = renderHook(() => useEntitlements());
     await waitFor(() => expect(result.current.isPro).toBe(true));
   });
+
+  it("re-reads when a provider registers after mount", async () => {
+    const { result } = renderHook(() => useEntitlements());
+    await waitFor(() => expect(result.current.isPro).toBe(false));
+    setEntitlementProvider({ getState: async () => ({ tier: "pro", isPro: true }) });
+    await waitFor(() => expect(result.current.isPro).toBe(true));
+  });
 });
