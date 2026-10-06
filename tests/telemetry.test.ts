@@ -39,6 +39,7 @@ describe("telemetry", () => {
       "app/search.tsx",
       "app/(tabs)/watchlist.tsx",
       "app/(tabs)/settings.tsx",
+      "app/w/[token].tsx",
     ];
     for (const f of files) {
       const src = readFileSync(join(__dirname, "..", f), "utf8");

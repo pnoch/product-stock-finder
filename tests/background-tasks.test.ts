@@ -23,6 +23,7 @@ const state = vi.hoisted(() => ({
   }),
   lastRegister: undefined as unknown,
   lastUnregister: undefined as unknown,
+  isPro: true,
 }));
 
 vi.mock("react-native", () => ({
@@ -68,6 +69,13 @@ vi.mock("../lib/background-tasks/price-check", () => ({
   runPriceCheckCore: state.priceCore,
 }));
 
+vi.mock("@/lib/entitlements", () => ({
+  getEntitlementState: vi.fn(async () => ({
+    tier: state.isPro ? "pro" : "free",
+    isPro: state.isPro,
+  })),
+}));
+
 import {
   HEALTH_PROBE_TASK,
   PRICE_CHECK_TASK,
@@ -85,6 +93,7 @@ beforeEach(() => {
   state.intervals = {};
   state.lastRegister = undefined;
   state.lastUnregister = undefined;
+  state.isPro = true;
   state.priceCore.mockResolvedValue(undefined);
   state.testAll.mockResolvedValue(undefined);
   state.checkAlerts.mockResolvedValue(undefined);
@@ -134,6 +143,16 @@ describe("registerPriceCheckTask", () => {
     state.settings = { checkInterval: "manual" };
     await registerPriceCheckTask();
     expect(state.unregisterTaskAsync).not.toHaveBeenCalled();
+    expect(state.intervals[PRICE_CHECK_TASK]).toBeNull();
+  });
+
+  it("does not register background monitoring for a free user", async () => {
+    state.isPro = false;
+    state.settings = { checkInterval: "hourly" };
+    state.registered[PRICE_CHECK_TASK] = true;
+    await registerPriceCheckTask();
+    expect(state.registerTaskAsync).not.toHaveBeenCalled();
+    expect(state.lastUnregister).toBe(PRICE_CHECK_TASK);
     expect(state.intervals[PRICE_CHECK_TASK]).toBeNull();
   });
 

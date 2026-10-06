@@ -146,6 +146,12 @@ export default function SharedWatchlistScreen() {
       }
     }
     if (limited) {
+      if (added > 0) {
+        showAlert(
+          "Added to watchlist",
+          `Added ${added} product${added === 1 ? "" : "s"} — upgrade to Pro to add the rest.`,
+        );
+      }
       track("paywall_shown");
       setPaywallVisible(true);
       return;

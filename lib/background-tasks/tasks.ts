@@ -2,6 +2,7 @@ import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { Platform } from "react-native";
 import { getSettings, getBackgroundTaskInterval, saveBackgroundTaskInterval } from "../storage";
+import { getEntitlementState } from "@/lib/entitlements";
 import { healthService } from "./instances";
 import { checkHealthAlerts } from "./health-alerts";
 import { runPriceCheckCore } from "./price-check";
@@ -35,9 +36,10 @@ export async function registerPriceCheckTask() {
     const settings = await getSettings();
     const isRegistered =
       await TaskManager.isTaskRegisteredAsync(PRICE_CHECK_TASK);
+    const { isPro } = await getEntitlementState();
 
-    if (settings.checkInterval === "manual") {
-      // Manual mode — unregister if previously registered
+    if (!isPro || settings.checkInterval === "manual") {
+      // Manual mode or free tier — no background monitoring.
       if (isRegistered) {
         await BackgroundTask.unregisterTaskAsync(PRICE_CHECK_TASK);
       }
