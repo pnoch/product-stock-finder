@@ -61,8 +61,9 @@ describe("computeAvailability", () => {
   });
 
   it("computes the longest outage", () => {
+    // In stock 9d-ago and today; the outage spans those 9 calendar days.
     const a = computeAvailability([listing(10, [0, 9])], NOW)!;
-    expect(a.longestOutageDays).toBe(8);
+    expect(a.longestOutageDays).toBe(9);
   });
 
   it("computes the median restock gap", () => {
@@ -127,5 +128,26 @@ describe("computeAvailability", () => {
     const l = listing(30, [29]);
     expect(computeAvailability([l], NOW)!.sampleDays).toBe(30);
     expect(computeAvailability([l], NOW, 10)!.sampleDays).toBe(11);
+  });
+
+  it("measures outage and cadence in calendar days on sparse samples", () => {
+    const sparse = (outDays: number[]) => ({
+      distributorId: "d1", productId: "p1", price: 1, currency: "USD",
+      stockStatus: "in_stock", url: "", lastChecked: new Date(NOW).toISOString(),
+      priceHistory: [90, 75, 60, 45, 30, 21, 14, 7, 3, 0].map((d) => ({
+        date: new Date(NOW - d * DAY).toISOString(), price: 1, currency: "USD",
+        stockStatus: outDays.includes(d) ? "out_of_stock" : "in_stock",
+      })),
+    }) as DistributorListing;
+    // day 45 out -> outage spans 60d-ago to 30d-ago = 30 calendar days
+    const a = computeAvailability([sparse([45])], NOW)!;
+    expect(a.longestOutageDays).toBe(30);
+    expect(a.typicalRestockDays).toBe(30);
+  });
+
+  it("ignores unknown-only history", () => {
+    const l = listing(10, []);
+    for (const p of l.priceHistory) p.stockStatus = "unknown";
+    expect(computeAvailability([l], NOW)).toBeNull();
   });
 });

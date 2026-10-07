@@ -49,6 +49,9 @@ export function computeAvailability(
     for (const point of listing.priceHistory ?? []) {
       const t = Date.parse(point.date);
       if (!Number.isFinite(t) || t < cutoff) continue;
+      // A day with only "unknown" observations carries no availability signal;
+      // counting it as out-of-stock would render a false "Rare".
+      if (point.stockStatus === "unknown") continue;
       const key = point.date.slice(0, 10);
       const inStock = point.stockStatus === "in_stock";
       byDay.set(key, (byDay.get(key) ?? false) || inStock);
@@ -68,26 +71,32 @@ export function computeAvailability(
   const inStockRate = inStockDays / sampleDays;
 
   let longestOutageDays = 0;
-  let run = 0;
-  for (const d of days) {
-    if (d.inStock) {
-      run = 0;
-    } else {
-      run += 1;
-      if (run > longestOutageDays) longestOutageDays = run;
-    }
+  for (let i = 0; i < days.length; i++) {
+    if (days[i]!.inStock) continue;
+    // Start of a non-in-stock run.
+    let j = i;
+    while (j + 1 < days.length && !days[j + 1]!.inStock) j++;
+    const before = i > 0 ? days[i - 1]!.t : days[i]!.t;
+    const after = j + 1 < days.length ? days[j + 1]!.t : days[j]!.t;
+    const span = Math.round((after - before) / DAY_MS);
+    if (span > longestOutageDays) longestOutageDays = span;
+    i = j;
   }
 
-  // Gaps between successive in-stock days that had an outage between them (a
-  // run of consecutive in-stock days is one availability window, not a
-  // restock). Median of those gaps is the observed restock cadence.
+  // Gaps between successive in-stock days that had an outage between them
+  // (a run of consecutive in-stock days is one availability window, not a
+  // restock). Measured in calendar days, so sparse samples report the real
+  // elapsed span; only gaps with an intervening non-in-stock day count.
   const inStockDayIndices = days
     .map((d, i) => (d.inStock ? i : -1))
     .filter((i) => i >= 0);
   const gaps: number[] = [];
   for (let i = 1; i < inStockDayIndices.length; i++) {
-    const gap = inStockDayIndices[i]! - inStockDayIndices[i - 1]!;
-    if (gap > 1) gaps.push(gap);
+    const prev = inStockDayIndices[i - 1]!;
+    const curr = inStockDayIndices[i]!;
+    if (curr - prev > 1) {
+      gaps.push(Math.round((days[curr]!.t - days[prev]!.t) / DAY_MS));
+    }
   }
   const typicalRestockDays = gaps.length > 0 ? median(gaps) : null;
 

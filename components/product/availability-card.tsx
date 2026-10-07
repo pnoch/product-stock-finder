@@ -9,6 +9,8 @@ import {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// Not formatRelativeTime(): it switches to "Nd ago" then an absolute date at
+// >=7d, but the "Last seen ..." clause wants the readable long form ("8 days ago").
 function relativeDays(timestamp: number): string {
   const days = Math.floor((Date.now() - timestamp) / DAY_MS);
   if (days < 1) return "today";
