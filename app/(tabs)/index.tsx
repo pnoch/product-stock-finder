@@ -117,7 +117,7 @@ export default function HomeScreen() {
   const colors = useColors();
   const connection = useConnection();
   const queryClient = useQueryClient();
-  const monitoring = useMonitoringHealth();
+  const { health: monitoring } = useMonitoringHealth();
   const [monitoringDismissed, setMonitoringDismissed] = useState(false);
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [alertCount, setAlertCount] = useState(0);

@@ -476,7 +476,7 @@ export default function SettingsScreen() {
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const { isPro } = useEntitlements();
   const [paywallVisible, setPaywallVisible] = useState(false);
-  const monitoring = useMonitoringHealth();
+  const { health: monitoring, refresh: refreshMonitoring } = useMonitoringHealth();
 
   const openPaywall = useCallback(() => {
     track("paywall_shown");
@@ -658,11 +658,12 @@ export default function SettingsScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       await registerPriceCheckTask();
+      await refreshMonitoring();
     } catch (e) {
       log.error("[Settings] handleReenableMonitoring failed", e);
       showAlert("Failed", "Could not re-enable background monitoring. Please try again.");
     }
-  }, []);
+  }, [refreshMonitoring]);
 
   const regions = [
     "Asia-Pacific",

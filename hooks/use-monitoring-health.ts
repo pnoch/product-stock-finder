@@ -9,7 +9,10 @@ import { assessMonitoringHealth, type MonitoringHealth } from "@/lib/monitoring-
 
 const OFF: MonitoringHealth = { status: "off" };
 
-export function useMonitoringHealth(): MonitoringHealth {
+export function useMonitoringHealth(): {
+  health: MonitoringHealth;
+  refresh: () => Promise<void>;
+} {
   const [health, setHealth] = useState<MonitoringHealth>(OFF);
 
   const assess = useCallback(async () => {
@@ -52,5 +55,5 @@ export function useMonitoringHealth(): MonitoringHealth {
     return () => sub.remove();
   }, [assess]);
 
-  return health;
+  return { health, refresh: assess };
 }
