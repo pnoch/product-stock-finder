@@ -48,6 +48,8 @@ interface DistributorListingSectionProps {
   onRemind?: (listing: DistributorListing) => void;
   onFindPrices?: () => void;
   findingPrices?: boolean;
+  onWatchAny?: () => void;
+  watchingAny?: boolean;
 }
 
 function InsightSkeleton() {
@@ -149,6 +151,8 @@ export function DistributorListingSection({
   onRemind,
   onFindPrices,
   findingPrices,
+  onWatchAny,
+  watchingAny,
 }: DistributorListingSectionProps) {
   const colors = useColors();
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -219,6 +223,25 @@ export function DistributorListingSection({
             >
               <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
                 {findingPrices ? "Finding prices…" : "Find prices"}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {onWatchAny && (
+            <TouchableOpacity activeOpacity={0.85}
+              onPress={onWatchAny}
+              style={{
+                marginTop: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: watchingAny ? colors.success : colors.primary,
+              }}
+              accessibilityLabel={watchingAny ? "Stop watching all distributors" : "Watch for restock across all distributors"}
+              accessibilityRole="button"
+            >
+              <Text style={{ color: watchingAny ? colors.success : colors.primary, fontWeight: "600", fontSize: 13 }}>
+                {watchingAny ? "Watching — tap to stop" : "Watch anyway"}
               </Text>
             </TouchableOpacity>
           )}
