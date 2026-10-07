@@ -50,6 +50,18 @@ export async function getHistory(
   return rows.map(rowToPoint);
 }
 
+/** Concatenate the per-distributor history for a model (for anomaly checks). */
+export async function getPooledHistory(
+  distributorIds: string[],
+  modelNumber: string,
+): Promise<PricePoint[]> {
+  const out: PricePoint[] = [];
+  for (const id of distributorIds) {
+    out.push(...(await getHistory(id, modelNumber)));
+  }
+  return out;
+}
+
 export async function mergeHistory(
   distributorId: string,
   modelNumber: string,

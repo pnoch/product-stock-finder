@@ -4,6 +4,9 @@ import { getAllParserIds } from "../../lib/scrapers/registry";
 import { getCachedPrice } from "../price-cache";
 import { formatPrice } from "../../shared/src/currency.js";
 import { convertPrice } from "../../lib/currency";
+import { checkPriceAnomaly } from "../../lib/alert-integrity";
+import { getPooledHistory } from "../price-history";
+import type { PricePoint } from "../../lib/types";
 import type {
   EventDraft,
   NotificationConfig,
@@ -94,10 +97,30 @@ export function createPriceLookup(): PriceLookup {
   };
 }
 
+export type HistoryLookup = (
+  distributorIds: string[],
+  modelNumber: string,
+) => Promise<PricePoint[]>;
+
+// Same rationale as createPriceLookup: one tick evaluates every device, and the
+// anomaly guard reads the same (distributors, model) history per alert. Cache
+// per tick so the DB is hit once per distinct key, not once per device.
+export function createHistoryLookup(): HistoryLookup {
+  const cache = new Map<string, PricePoint[]>();
+  return async (distributorIds, modelNumber) => {
+    const key = `${distributorIds.join(",")}:${modelNumber}`;
+    if (cache.has(key)) return cache.get(key)!;
+    const value = await getPooledHistory(distributorIds, modelNumber);
+    cache.set(key, value);
+    return value;
+  };
+}
+
 export async function buildEvents(
   config: NotificationConfig,
   now: number,
   getPrice: PriceLookup = getCachedPrice,
+  getHistory: HistoryLookup = getPooledHistory,
 ): Promise<EventDraft[]> {
   const events: EventDraft[] = [];
 
@@ -129,11 +152,20 @@ export async function buildEvents(
         bestDistributor = distributorId;
       }
     }
+    if (bestPrice === null) continue;
     const isRise = alert.direction === "rise";
-    if (isRise) {
-      if (bestPrice === null || bestPrice < alert.targetPrice) continue;
-    } else {
-      if (bestPrice === null || bestPrice > alert.targetPrice) continue;
+    const triggered = isRise
+      ? bestPrice >= alert.targetPrice
+      : bestPrice <= alert.targetPrice;
+    if (!triggered) continue;
+    // Only guard a price that would actually fire. Scope the history to the
+    // alert's distributors, matching the client's `listingsForAlert` scope.
+    const historyPoints = await getHistory(distributorIds, modelNumber);
+    const history = historyPoints
+      .map((p) => convertPrice(p.price, p.currency, alert.currency))
+      .filter((v): v is number => v !== null);
+    if (checkPriceAnomaly(bestPrice, history).suspicious) {
+      continue; // likely a misparse; skip the event (the client owns deactivation)
     }
     events.push({
       id: newEventId(),

@@ -8379,3 +8379,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Standalone fallback:** the board falls back to the local watchlist's in-stock listings when the server is unconfigured, so it still works offline instead of showing nothing.
 - [x] **Freshness is cache-cadence, not live.** Rows carry `fetchedAt` (the price-cache timestamp) and render "as of …" — the board reflects however fresh the last background scrape left the cache, not a live on-open fetch.
 - [x] Tests: `available-group` (grouping/currency/dedup/sort), `available-screen` (server rows + standalone fallback). `pnpm verify` exit 0 — root `3515` / desktop `324` / cargo `92` + both bundles.
+
+## Phase 1129: Alert integrity (anomaly guard)
+
+- [x] **The core promise, made trustworthy.** The alert fired purely on `bestPrice <= targetPrice`, guarded only by `isPlausiblePrice` (`> 0 && <= 1e7`), so a misparsed price (a SKU, shipping figure, or accessory read as the product price) fired a false "CRS804 dropped to $326!". Added `lib/alert-integrity.ts` (`checkPriceAnomaly`): suspicious when the price is `< 0.3×` or `> 5×` the product's recent in-stock median; **never** suspicious with `< 3` history points, a non-positive median, or a non-finite price — so a genuine new low still fires on thin data.
+- [x] Shared `median` extracted to `lib/stats.ts` (was duplicated in `availability.ts`).
+- [x] **Client** (`lib/background-tasks/price-check.ts`): before firing, the guard compares against `mergedPoints`; a suspicious price does **not** fire, does **not** deactivate (the alert stays armed), records a `suspicious_price` history row (deduped per alert per day), and `track("alert_suppressed")`.
+- [x] **Server** (`server/notifications/build-events.ts`): the server also evaluates price alerts, so it gets the same guard via `getPooledHistory`, with a per-tick memoized `createHistoryLookup` (mirroring `createPriceLookup`) to avoid an N+1 history read per alert per tick.
+- [x] `NotificationHistoryEntry.type` gains `suspicious_price`; the mobile + desktop notification centers map its icon.
+- [x] Tests: `stats` (2), `alert-integrity` (7, incl. the exclusive-threshold boundary), `price-check-anomaly` (2), `build-events-anomaly` (2), `history-lookup` (1). Non-vacuity spot-checked (removing the guard fires the misparse; tightening it suppresses a real drop). `pnpm verify` exit 0 — root `3537` / desktop `324` / cargo `92` + both bundles.
+- [x] **Deferred:** surfacing the suppression count in the Alerts tab beyond the history row.

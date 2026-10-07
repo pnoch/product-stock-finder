@@ -19,6 +19,9 @@ import { checkRestocks } from "../restock";
 import { maybeSendDigest } from "../price-digest";
 import { syncServerNotifications } from "../server-notifications";
 import { listingsForAlert } from "../alert-scope";
+import { checkPriceAnomaly } from "../alert-integrity";
+import { mergedPoints } from "../product-insights";
+import { track } from "../telemetry";
 import type { DistributorListing, Product } from "../types";
 import { createHealthCollector, type HealthCollector } from "./health-collector";
 import { refreshListing } from "./refresh-listing";
@@ -236,6 +239,35 @@ async function runPriceCheckCoreInner(opts?: {
       ? bestPrice >= alert.targetPrice
       : bestPrice <= alert.targetPrice;
     if (triggered) {
+      // Only guard a price that would actually fire: a far-outlier that never
+      // crossed target is not a "suppressed alert" and must not write a history
+      // row. Scope the history to the alert's own listings so the client and the
+      // server (which reads the alert's distributors) judge the same band.
+      const history = mergedPoints(eligibleListings, alert.currency).map((p) => p.v);
+      const anomaly = checkPriceAnomaly(bestPrice, history);
+      if (anomaly.suspicious) {
+        // A likely misparse: do NOT fire, do NOT deactivate — leave the alert
+        // armed so a transient bad scrape doesn't kill a real alert. Record it so
+        // the suppression is observable.
+        try {
+          const { recordNotificationEvent } = await import("../storage");
+          await recordNotificationEvent({
+            id: `local-suspicious-${alert.id}-${new Date().toISOString().slice(0, 10)}`,
+            type: "suspicious_price",
+            title: "Suspicious price ignored",
+            body: `${product.name} showed ${formatPrice(bestPrice, alert.currency)} — far from its usual price. Alert kept armed.`,
+            alertId: alert.id,
+            productId: alert.productId,
+            triggeredPrice: bestPrice,
+            currency: alert.currency,
+            createdAt: Date.now(),
+          });
+        } catch {
+          // history recording never breaks the check
+        }
+        track("alert_suppressed", { reason: anomaly.reason });
+        continue;
+      }
       // Re-read alerts to avoid duplicate fire
       const currentAlerts = await getAlerts();
       const current = currentAlerts.find((a) => a.id === alert.id);

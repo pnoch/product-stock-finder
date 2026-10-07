@@ -1,3 +1,4 @@
+import { median } from "./stats";
 import type { DistributorListing } from "./types";
 
 export type Scarcity = "rare" | "occasional" | "common";
@@ -28,14 +29,6 @@ export interface Availability {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_SAMPLE_DAYS = 7;
-
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1]! + sorted[mid]!) / 2
-    : sorted[mid]!;
-}
 
 export function computeAvailability(
   listings: DistributorListing[],
