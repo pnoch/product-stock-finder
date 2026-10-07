@@ -233,4 +233,25 @@ describe("checkPriceDropsNow price-anomaly guard", () => {
     expect(state.scheduledNotifications).toHaveLength(1);
     expect(state.alertsStore[0]!.isActive).toBe(false);
   });
+
+  it("does not record a suppression for an outlier that never crossed target", async () => {
+    // Target 1: the $3 misparse is above target, so it never crosses and must
+    // not be recorded as a suppressed alert (the guard runs only after the
+    // target check).
+    state.alertsStore.push(makeAlert({ targetPrice: 1 }));
+    state.watchlistStore = [
+      {
+        id: "p1",
+        name: "Test Product",
+        listings: [makeListing(3, "USD", "in_stock", normalHistory)],
+      } as unknown as Product,
+    ];
+
+    await checkPriceDropsNow();
+
+    expect(deactivateAlert).not.toHaveBeenCalled();
+    expect(
+      state.recordedNotifications.filter((e) => e.type === "suspicious_price"),
+    ).toHaveLength(0);
+  });
 });

@@ -153,18 +153,19 @@ export async function buildEvents(
       }
     }
     if (bestPrice === null) continue;
+    const isRise = alert.direction === "rise";
+    const triggered = isRise
+      ? bestPrice >= alert.targetPrice
+      : bestPrice <= alert.targetPrice;
+    if (!triggered) continue;
+    // Only guard a price that would actually fire. Scope the history to the
+    // alert's distributors, matching the client's `listingsForAlert` scope.
     const historyPoints = await getHistory(distributorIds, modelNumber);
     const history = historyPoints
       .map((p) => convertPrice(p.price, p.currency, alert.currency))
       .filter((v): v is number => v !== null);
     if (checkPriceAnomaly(bestPrice, history).suspicious) {
       continue; // likely a misparse; skip the event (the client owns deactivation)
-    }
-    const isRise = alert.direction === "rise";
-    if (isRise) {
-      if (bestPrice === null || bestPrice < alert.targetPrice) continue;
-    } else {
-      if (bestPrice === null || bestPrice > alert.targetPrice) continue;
     }
     events.push({
       id: newEventId(),
