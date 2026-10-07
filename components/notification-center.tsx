@@ -46,6 +46,7 @@ const TYPE_ICONS: Record<HistoryType, TypeIconName> = {
   reminder: "clock.fill",
   health: "exclamationmark.triangle.fill",
   digest: "chart.bar.fill",
+  suspicious_price: "exclamationmark.triangle.fill",
 };
 
 export function NotificationCenter({

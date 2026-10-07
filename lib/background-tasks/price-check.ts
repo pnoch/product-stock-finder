@@ -19,6 +19,9 @@ import { checkRestocks } from "../restock";
 import { maybeSendDigest } from "../price-digest";
 import { syncServerNotifications } from "../server-notifications";
 import { listingsForAlert } from "../alert-scope";
+import { checkPriceAnomaly } from "../alert-integrity";
+import { mergedPoints } from "../product-insights";
+import { track } from "../telemetry";
 import type { DistributorListing, Product } from "../types";
 import { createHealthCollector, type HealthCollector } from "./health-collector";
 import { refreshListing } from "./refresh-listing";
@@ -230,6 +233,32 @@ async function runPriceCheckCoreInner(opts?: {
       return converted < best ? converted : best;
     }, Infinity);
     if (!Number.isFinite(bestPrice)) continue;
+
+    const history = mergedPoints(product.listings, alert.currency).map((p) => p.v);
+    const anomaly = checkPriceAnomaly(bestPrice, history);
+    if (anomaly.suspicious) {
+      // A likely misparse: do NOT fire, do NOT deactivate — leave the alert
+      // armed so a transient bad scrape doesn't kill a real alert. Record it so
+      // the suppression is observable.
+      try {
+        const { recordNotificationEvent } = await import("../storage");
+        await recordNotificationEvent({
+          id: `local-suspicious-${alert.id}-${Date.now()}`,
+          type: "suspicious_price",
+          title: "Suspicious price ignored",
+          body: `${product.name} showed ${formatPrice(bestPrice, alert.currency)} — far from its usual price. Alert kept armed.`,
+          alertId: alert.id,
+          productId: alert.productId,
+          triggeredPrice: bestPrice,
+          currency: alert.currency,
+          createdAt: Date.now(),
+        });
+      } catch {
+        // history recording never breaks the check
+      }
+      track("alert_suppressed", { reason: anomaly.reason });
+      continue;
+    }
 
     const isRise = alert.direction === "rise";
     const triggered = isRise
