@@ -17,6 +17,7 @@ export interface NotificationConfig {
     productId: string;
     modelNumber?: string;
     distributorId: string;
+    scope?: "distributor" | "any";
     lastKnownStatus?: string;
   }[];
   dateReminders: {

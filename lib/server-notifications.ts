@@ -170,6 +170,7 @@ async function runSyncServerNotifications(): Promise<void> {
           productId: w.productId,
           modelNumber: modelByProductId.get(w.productId),
           distributorId: w.distributorId,
+          scope: w.scope,
           lastKnownStatus: w.lastKnownStatus,
         }))
       : [];

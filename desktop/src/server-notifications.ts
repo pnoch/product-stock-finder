@@ -28,6 +28,7 @@ interface PushConfig {
     productId: string;
     modelNumber?: string;
     distributorId: string;
+    scope?: "distributor" | "any";
     lastKnownStatus?: string;
   }[];
   dateReminders: {
@@ -171,6 +172,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
           productId: w.productId,
           modelNumber: modelByProductId.get(w.productId),
           distributorId: w.distributorId,
+          scope: w.scope,
           lastKnownStatus: w.lastKnownStatus,
         }))
       : [];

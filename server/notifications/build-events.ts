@@ -162,6 +162,34 @@ export async function buildEvents(
     const modelNumber = watch.modelNumber ?? product?.modelNumber;
     if (!modelNumber) continue;
     if (watch.lastKnownStatus === "in_stock") continue;
+
+    if (watch.scope === "any" || watch.distributorId === "*") {
+      const ids = getAllParserIds();
+      const inStock: string[] = [];
+      for (const id of ids) {
+        const snap = await getPrice(id, modelNumber);
+        if (snap?.stockStatus === "in_stock") inStock.push(id);
+      }
+      if (inStock.length === 0) continue;
+      const names = inStock
+        .map((id) => getDistributorById(id)?.name ?? id)
+        .join(", ");
+      events.push({
+        id: newEventId(),
+        type: "restock",
+        dedupKey: clampDedupKey(`restock:${watch.productId}:any`),
+        title: "Back In Stock!",
+        body: `${product?.name ?? watch.productId} is now available at ${names}.`,
+        payload: {
+          watchId: watch.id,
+          productId: watch.productId,
+          distributorId: inStock[0]!,
+        },
+        createdAt: now,
+      });
+      continue;
+    }
+
     const snapshot = await getPrice(watch.distributorId, modelNumber);
     if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
     const distributorName =
