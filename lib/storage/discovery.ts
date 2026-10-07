@@ -187,5 +187,31 @@ export function createBackgroundTaskStorage(ctx: StorageContext) {
     });
   }
 
-  return { getBackgroundTaskInterval, saveBackgroundTaskInterval };
+  async function getLastBackgroundRun(): Promise<number | null> {
+    try {
+      const raw = await adapter.getItem(KEYS.LAST_BACKGROUND_RUN);
+      if (!raw) return null;
+      const value = Number(raw);
+      return Number.isFinite(value) && value > 0 ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function setLastBackgroundRun(ts: number): Promise<void> {
+    await enqueue(KEYS.LAST_BACKGROUND_RUN, async () => {
+      try {
+        await adapter.setItem(KEYS.LAST_BACKGROUND_RUN, String(ts));
+      } catch {
+        // best effort
+      }
+    });
+  }
+
+  return {
+    getBackgroundTaskInterval,
+    saveBackgroundTaskInterval,
+    getLastBackgroundRun,
+    setLastBackgroundRun,
+  };
 }

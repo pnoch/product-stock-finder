@@ -156,6 +156,7 @@ export function createStorage(
       // Background-task interval marker: leaving it behind made a wiped app
       // skip a needed re-registration.
       STORAGE_KEYS.BACKGROUND_TASK_INTERVAL,
+      STORAGE_KEYS.LAST_BACKGROUND_RUN,
       // Quarantined corrupt payloads hold raw user data.
       ...(await ctx.listQuarantinedKeys()),
       QUARANTINE_INDEX_KEY,
@@ -372,4 +373,6 @@ export const {
 export const {
   getBackgroundTaskInterval,
   saveBackgroundTaskInterval,
+  getLastBackgroundRun,
+  setLastBackgroundRun,
 } = defaultStorage;
