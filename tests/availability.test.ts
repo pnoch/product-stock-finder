@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { computeAvailability } from "../lib/availability";
+import {
+  computeAvailability,
+  scarcityColorToken,
+  scarcityLabel,
+} from "../lib/availability";
 import type { DistributorListing } from "../lib/types";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -22,6 +26,19 @@ function listing(days: number, inStockDays: number[]): DistributorListing {
     })),
   } as DistributorListing;
 }
+
+describe("scarcity helpers", () => {
+  it("maps labels", () => {
+    expect(scarcityLabel("rare")).toBe("Rare");
+    expect(scarcityLabel("occasional")).toBe("Occasional");
+    expect(scarcityLabel("common")).toBe("Usually available");
+  });
+  it("maps color tokens", () => {
+    expect(scarcityColorToken("rare")).toBe("error");
+    expect(scarcityColorToken("occasional")).toBe("warning");
+    expect(scarcityColorToken("common")).toBe("success");
+  });
+});
 
 describe("computeAvailability", () => {
   it("returns null below 7 sample days", () => {

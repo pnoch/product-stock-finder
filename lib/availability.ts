@@ -2,6 +2,21 @@ import type { DistributorListing } from "./types";
 
 export type Scarcity = "rare" | "occasional" | "common";
 
+export function scarcityLabel(scarcity: Scarcity): string {
+  return scarcity === "rare"
+    ? "Rare"
+    : scarcity === "occasional"
+      ? "Occasional"
+      : "Usually available";
+}
+
+/** Theme color token key for a scarcity level (resolved by the caller's useColors()). */
+export function scarcityColorToken(
+  scarcity: Scarcity,
+): "error" | "warning" | "success" {
+  return scarcity === "rare" ? "error" : scarcity === "occasional" ? "warning" : "success";
+}
+
 export interface Availability {
   inStockRate: number;
   lastInStockAt: number | null;

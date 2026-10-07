@@ -1,13 +1,11 @@
 import type { JSX } from "react";
 import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import type { Availability, Scarcity } from "@/lib/availability";
-
-const SCARCITY_COPY: Record<Scarcity, string> = {
-  rare: "Rare",
-  occasional: "Occasional",
-  common: "Usually available",
-};
+import {
+  scarcityColorToken,
+  scarcityLabel,
+  type Availability,
+} from "@/lib/availability";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -19,12 +17,7 @@ function relativeDays(timestamp: number): string {
 
 export function AvailabilityCard({ data }: { data: Availability }): JSX.Element {
   const colors = useColors();
-  const scarcityColor =
-    data.scarcity === "rare"
-      ? colors.error
-      : data.scarcity === "occasional"
-        ? colors.warning
-        : colors.success;
+  const scarcityColor = colors[scarcityColorToken(data.scarcity)];
 
   const clauses = [
     `In stock ${Math.round(data.inStockRate * 100)}% of the time`,
@@ -34,7 +27,7 @@ export function AvailabilityCard({ data }: { data: Availability }): JSX.Element 
       : null,
   ].filter((clause): clause is string => clause !== null);
 
-  const a11yLabel = `${SCARCITY_COPY[data.scarcity]} — ${clauses.join(". ")}`;
+  const a11yLabel = `${scarcityLabel(data.scarcity)} — ${clauses.join(". ")}`;
 
   return (
     <View
@@ -51,7 +44,7 @@ export function AvailabilityCard({ data }: { data: Availability }): JSX.Element 
       accessibilityLabel={a11yLabel}
     >
       <Text style={{ color: scarcityColor, fontSize: 16, fontWeight: "700" }}>
-        {SCARCITY_COPY[data.scarcity]}
+        {scarcityLabel(data.scarcity)}
       </Text>
       <Text style={{ color: colors.foreground, fontSize: 13 }}>
         In stock {Math.round(data.inStockRate * 100)}% of the time

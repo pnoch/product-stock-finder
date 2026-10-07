@@ -1,13 +1,7 @@
 import type { JSX } from "react";
 import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import type { Scarcity } from "@/lib/availability";
-
-const SCARCITY_LABEL: Record<Scarcity, string> = {
-  rare: "Rare",
-  occasional: "Occasional",
-  common: "Usually available",
-};
+import { scarcityColorToken, scarcityLabel, type Scarcity } from "@/lib/availability";
 
 export function ScarcityBadge({
   scarcity,
@@ -15,13 +9,8 @@ export function ScarcityBadge({
   scarcity: Scarcity;
 }): JSX.Element {
   const colors = useColors();
-  const color =
-    scarcity === "rare"
-      ? colors.error
-      : scarcity === "occasional"
-        ? colors.warning
-        : colors.success;
-  const label = SCARCITY_LABEL[scarcity];
+  const color = colors[scarcityColorToken(scarcity)];
+  const label = scarcityLabel(scarcity);
 
   return (
     <View
@@ -30,10 +19,16 @@ export function ScarcityBadge({
         borderRadius: 12,
         paddingHorizontal: 10,
         paddingVertical: 4,
+        maxWidth: 120,
       }}
       accessibilityLabel={`Availability: ${label}`}
     >
-      <Text style={{ color, fontSize: 12, fontWeight: "600" }}>{label}</Text>
+      <Text
+        style={{ color, fontSize: 12, fontWeight: "600" }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
