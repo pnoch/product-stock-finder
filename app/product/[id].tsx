@@ -29,6 +29,7 @@ import { findBestDeal } from "@/lib/best-deal";
 import { rankByLandedCost } from "@/lib/landed-cost";
 import { resolveDestination, landedCostOptions } from "@/lib/destination";
 import { suggestAlertPrices } from "@/lib/alert-suggestions";
+import { toggleAnyWatchRecord } from "@/lib/any-watch";
 import { fetchPriceInsight } from "@/lib/server-insights";
 import { fetchProductImage } from "@/lib/server-images";
 import { schedulePriceAlert, scheduleStockWatchConfirmation, scheduleBackOrderReminder, cancelNotification, ensureNotificationPermission } from "@/lib/notifications";
@@ -370,19 +371,13 @@ export default function ProductDetailScreen() {
       );
       return;
     }
-    await addStockWatch({
-      id: `${id}-any`,
+    await toggleAnyWatchRecord({
+      isWatching: false,
       productId: id,
       productName: product?.name ?? "",
-      distributorId: "*",
-      distributorName: "Any distributor",
-      reminderDate: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      reminderType: "back_in_stock",
-      scope: "any",
-      lastKnownStatusByDistributor: Object.fromEntries(
-        listings.map((l) => [l.distributorId, l.stockStatus]),
-      ),
+      listings,
+      addStockWatch,
+      removeAnyWatch: async () => {},
     });
     setStockWatches((prev) => ({ ...prev, "*": true }));
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -393,28 +388,39 @@ export default function ProductDetailScreen() {
     if (!id || togglingWatch) return;
     setTogglingWatch(true);
     try {
-      if (stockWatches["*"]) {
-        const watches = await getStockWatches();
-        const watch = watches.find(
-          (w) => w.productId === id && w.distributorId === "*",
-        );
-        if (watch) {
-          if (watch.notificationId) await cancelNotification(watch.notificationId);
-          await removeStockWatch(watch.id);
-        }
-        setStockWatches((prev) => ({ ...prev, "*": false }));
-        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        showToast("Stopped watching all distributors", "info");
-      } else {
-        await createAnyWatchRecord();
+      const action = await toggleAnyWatchRecord({
+        isWatching: !!stockWatches["*"],
+        productId: id,
+        productName: product?.name ?? "",
+        listings,
+        addStockWatch,
+        removeAnyWatch: async () => {
+          const watches = await getStockWatches();
+          const watch = watches.find((w) => w.productId === id && w.distributorId === "*");
+          if (watch) {
+            if (watch.notificationId) await cancelNotification(watch.notificationId);
+            await removeStockWatch(watch.id);
+          }
+        },
+      });
+      setStockWatches((prev) => ({ ...prev, "*": action === "created" }));
+      if (Platform.OS !== "web") {
+        if (action === "created") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
+      showToast(
+        action === "created"
+          ? "Watching all distributors — you'll be notified when it's back in stock"
+          : "Stopped watching all distributors",
+        action === "created" ? "success" : "info",
+      );
     } catch {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't update watch", "Please try again.");
     } finally {
       setTogglingWatch(false);
     }
-  }, [id, stockWatches, togglingWatch, createAnyWatchRecord, showToast]);
+  }, [id, product, listings, stockWatches, togglingWatch, showToast]);
 
   const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
     if (!id || togglingWatch) return;
