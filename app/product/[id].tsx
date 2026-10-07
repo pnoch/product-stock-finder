@@ -422,7 +422,7 @@ export default function ProductDetailScreen() {
               reminderType: "back_in_stock",
               scope: "any",
               lastKnownStatusByDistributor: Object.fromEntries(
-                (product?.listings ?? []).map((l) => [l.distributorId, l.stockStatus]),
+                listings.map((l) => [l.distributorId, l.stockStatus]),
               ),
             });
             setStockWatches((prev) => ({ ...prev, "*": true }));
@@ -449,7 +449,7 @@ export default function ProductDetailScreen() {
     } finally {
       setTogglingWatch(false);
     }
-  }, [id, product, stockWatches, showToast, togglingWatch]);
+  }, [id, product, listings, stockWatches, showToast, togglingWatch]);
 
   const handleSetReminder = useCallback(async () => {
     const listing = reminderListing;
