@@ -89,6 +89,26 @@ describe("checkRestocks — any scope", () => {
     expect((s as any).updateStockWatchStatuses).not.toHaveBeenCalled();
   });
 
+  it("does not fire for a distributor already known in stock (seed guard)", async () => {
+    const seeded = { ...anyWatch, lastKnownStatusByDistributor: { d2: "in_stock" } };
+    const s = storage([seeded], [
+      { distributorId: "d2", stockStatus: "in_stock", price: 2, currency: "USD" },
+    ]);
+    const notify = vi.fn(async () => true);
+    await checkRestocks(s, notify);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("treats a '*' sentinel without scope as an any-watch", async () => {
+    const legacy = { ...anyWatch, scope: undefined, distributorId: "*" };
+    const s = storage([legacy], [
+      { distributorId: "d2", stockStatus: "in_stock", price: 2, currency: "USD" },
+    ]);
+    const notify = vi.fn(async () => true);
+    await checkRestocks(s, notify);
+    expect(notify).toHaveBeenCalledTimes(1);
+  });
+
   it("names a single store for one hit and counts distributors for many", async () => {
     const one = storage([anyWatch], [
       { distributorId: "d2", stockStatus: "in_stock", price: 2, currency: "USD" },

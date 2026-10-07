@@ -148,7 +148,7 @@ export default function RestockWatchesScreen() {
                       {watch.productName}
                     </Text>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      {watch.scope === "any"
+                      {watch.scope === "any" || watch.distributorId === "*"
                         ? "Any distributor"
                         : `${distrib?.countryCode ?? ""} ${distrib?.name ?? watch.distributorName}`.trim()}
                     </Text>
@@ -159,7 +159,7 @@ export default function RestockWatchesScreen() {
                         marginTop: 2,
                       }}
                     >
-                      {watch.scope === "any"
+                      {watch.scope === "any" || watch.distributorId === "*"
                         ? "Watching all distributors"
                         : (STATUS_LABELS[watch.lastKnownStatus ?? "unknown"] ??
                           "Unknown")}

@@ -81,7 +81,7 @@ export const StockWatchCard = memo(function StockWatchCard({
               }}
             />
             <Text style={{ color: colors.muted, fontSize: 12 }}>
-              {watch.scope === "any"
+              {watch.scope === "any" || watch.distributorId === "*"
                 ? "Watching all distributors"
                 : watch.lastKnownStatus === "back_order"
                   ? "Back Order"

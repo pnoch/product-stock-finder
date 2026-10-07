@@ -97,7 +97,7 @@ async function runCheckRestocks(
     const product = watchlist.find((p) => p.id === watch.productId);
     if (!product?.listings?.length) continue;
 
-    if (watch.scope === "any") {
+    if (watch.scope === "any" || watch.distributorId === "*") {
       const prev = watch.lastKnownStatusByDistributor ?? {};
       const inStockNow = product.listings.filter(
         (l) => l.stockStatus === "in_stock",
