@@ -8334,3 +8334,10 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Fix: convert at the router boundary (`typeof row.estimatedPrice === "string" ? Number.parseFloat(...) : ...`), matching `server/price-cache.ts`'s `rowToSnapshot`.
 - [x] Test: `tests/trending-db.test.ts` now asserts `estimatedPrice === 2000` and `typeof === "number"` (non-vacuous: reverting the fix fails it).
 - [x] `pnpm verify` exit 0 — root `3454` / desktop `324` / cargo `91` + both bundles.
+
+## Phase 1124: Desktop plausibility guard parity
+
+- [x] **Real divergence found auditing the price-history/price-cache/scraper parity.** Mobile (`lib/price-source.ts`, `lib/background-tasks/refresh-listing.ts`) and the server (`server/price-cache.ts`) both reject an implausible price via `isPlausiblePrice` (`> 0 && <= 1e7`) before storing. The **desktop Rust `parse_price_page` had no bound** — a misparsed barcode/SKU/shipping figure read as the price (e.g. a long digit run) was stored and displayed on desktop while mobile/server rejected it.
+- [x] Added `MAX_PLAUSIBLE_PRICE` + `is_plausible_price` to `desktop/src-tauri/src/scrapers/mod.rs` and a guard in `parse_price_page` before returning the price.
+- [x] Tests: a Rust test pins the boundary (`> 0`, `<= 1e7`, rejects non-finite); a TS parity guard (`tests/plausible-price.test.ts`) reads the Rust source and asserts the const, the fn, and the call site. Both non-vacuous.
+- [x] `pnpm verify` exit 0 — root `3455` / desktop `324` / cargo `92` + both bundles.
