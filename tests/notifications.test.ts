@@ -34,6 +34,7 @@ import {
   notificationEvents,
   notificationEventDeliveries,
   priceCache,
+  priceHistory,
 } from "../drizzle/schema";
 
 const mockedGetDb = vi.mocked(getDb);
@@ -178,6 +179,11 @@ describe("evaluateNotifications", () => {
               where: vi.fn(() => ({
                 limit: vi.fn(async () => storedSnapshots),
               })),
+            };
+          }
+          if (table === priceHistory) {
+            return {
+              where: vi.fn(() => ({ orderBy: vi.fn(async () => []) })),
             };
           }
           return { where: vi.fn(() => []) };
@@ -728,6 +734,11 @@ describe("user-scoped notifications (database)", () => {
               where: vi.fn(() => ({
                 limit: vi.fn(async () => storedSnapshots),
               })),
+            };
+          }
+          if (table === priceHistory) {
+            return {
+              where: vi.fn(() => ({ orderBy: vi.fn(async () => []) })),
             };
           }
           return { where: vi.fn(() => []) };
