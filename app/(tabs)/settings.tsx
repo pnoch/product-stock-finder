@@ -27,8 +27,10 @@ import { AppSettings, Product, DistributorListing, SyncMeta } from "@/lib/types"
 import { showAlert } from "@/lib/alert";
 import { shareText } from "@/lib/share-text";
 import { sendTestNotification } from "@/lib/notifications";
-import { syncBackgroundTasks } from "@/lib/background-price-check";
+import { registerPriceCheckTask, syncBackgroundTasks } from "@/lib/background-price-check";
 import { applyBackgroundServiceToggle } from "@/lib/background-service-toggle";
+import { useMonitoringHealth } from "@/hooks/use-monitoring-health";
+import { formatLastRefreshed } from "@/lib/last-refreshed";
 
 import { ConnectionSection } from "@/components/settings/connection-section";
 import { AccountSection } from "@/components/settings/account-section";
@@ -474,6 +476,7 @@ export default function SettingsScreen() {
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const { isPro } = useEntitlements();
   const [paywallVisible, setPaywallVisible] = useState(false);
+  const monitoring = useMonitoringHealth();
 
   const openPaywall = useCallback(() => {
     track("paywall_shown");
@@ -650,6 +653,17 @@ export default function SettingsScreen() {
     [reenabling],
   );
 
+  const handleReenableMonitoring = useCallback(async () => {
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await registerPriceCheckTask();
+    } catch (e) {
+      log.error("[Settings] handleReenableMonitoring failed", e);
+      showAlert("Failed", "Could not re-enable background monitoring. Please try again.");
+    }
+  }, []);
+
   const regions = [
     "Asia-Pacific",
     "Europe",
@@ -779,6 +793,59 @@ export default function SettingsScreen() {
               }
             />
           </Pressable>
+          {monitoring.status === "ok" && (
+            <View
+              style={{
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+              }}
+            >
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                {monitoring.lastRunAt != null
+                  ? `Last checked: ${formatLastRefreshed(new Date(monitoring.lastRunAt).toISOString())}`
+                  : "Not yet run"}
+              </Text>
+            </View>
+          )}
+          {(monitoring.status === "stopped" || monitoring.status === "stale") && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+              }}
+            >
+              <IconSymbol
+                name="exclamationmark.triangle.fill"
+                size={18}
+                color={colors.warning}
+              />
+              <Text style={{ flex: 1, color: colors.foreground, fontSize: 13 }}>
+                Background monitoring may have stopped
+              </Text>
+              <Pressable
+                onPress={handleReenableMonitoring}
+                accessibilityLabel="Re-enable background monitoring"
+                accessibilityRole="button"
+                style={{
+                  backgroundColor: colors.warning + "22",
+                  borderRadius: 10,
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <Text style={{ color: colors.warning, fontSize: 13, fontWeight: "600" }}>
+                  Re-enable
+                </Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         <SectionHeader title="Display" />
