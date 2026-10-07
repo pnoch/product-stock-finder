@@ -144,7 +144,7 @@ function AvailableRow({ row, onPress }: { row: Row; onPress: () => void }) {
             {formatPrice(row.price, row.currency)} · in stock at {row.storeCount}{" "}
             {row.storeCount === 1 ? "store" : "stores"}
           </Text>
-          {row.fetchedAt != null && (
+          {row.fetchedAt != null && Number.isFinite(row.fetchedAt) && (
             <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
               as of {formatLastRefreshed(new Date(row.fetchedAt).toISOString())}
             </Text>
@@ -164,14 +164,32 @@ export default function AvailableScreen() {
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [brand, setBrand] = useState<string | undefined>(undefined);
   const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
+  const [currency, setCurrency] = useState("USD");
   const [fallbackRows, setFallbackRows] = useState<Row[]>([]);
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const settings = await getSettings();
+      if (active) setCurrency(settings?.displayCurrency ?? "USD");
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const query = useQuery<AvailableProduct[]>({
-    queryKey: ["available", category ?? null, brand ?? null, maxPrice ?? null],
-    queryFn: () => fetchAvailable({ category, brand, maxPrice }),
+    queryKey: [
+      "available",
+      currency,
+      category ?? null,
+      brand ?? null,
+      maxPrice ?? null,
+    ],
+    queryFn: () => fetchAvailable({ currency, category, brand, maxPrice }),
     staleTime: 60_000,
     enabled: configured,
   });
@@ -180,23 +198,20 @@ export default function AvailableScreen() {
     if (configured) return;
     let active = true;
     (async () => {
-      const [watchlist, settings] = await Promise.all([
-        getWatchlist(),
-        getSettings(),
-      ]);
-      const currency = settings?.displayCurrency ?? "USD";
+      const watchlist = await getWatchlist();
       const rows: Row[] = [];
       for (const product of watchlist as Product[]) {
-        const best = getBestPrice(product.listings, currency);
+        const listings = product.listings ?? [];
+        const inStock = listings.filter((l) => l.stockStatus === "in_stock");
+        if (inStock.length === 0) continue;
+        const best = getBestPrice(inStock, currency);
         if (!best) continue;
         rows.push({
           id: product.id,
           name: product.name,
           price: best.price,
           currency: best.currency,
-          storeCount: product.listings.filter(
-            (l) => l.stockStatus === "in_stock",
-          ).length,
+          storeCount: inStock.length,
         });
       }
       if (active) setFallbackRows(rows);
@@ -204,7 +219,7 @@ export default function AvailableScreen() {
     return () => {
       active = false;
     };
-  }, [configured]);
+  }, [configured, currency]);
 
   const serverRows = useMemo<Row[]>(
     () =>
@@ -340,7 +355,7 @@ export default function AvailableScreen() {
           {PRICE_CAPS.map((cap) => (
             <Chip
               key={cap}
-              label={`Under ${formatPrice(cap, "USD")}`}
+              label={`Under ${formatPrice(cap, currency)}`}
               active={maxPrice === cap}
               onPress={() => setMaxPrice(maxPrice === cap ? undefined : cap)}
             />
