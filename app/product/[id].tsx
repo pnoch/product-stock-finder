@@ -355,6 +355,60 @@ export default function ProductDetailScreen() {
     return [...seen.values()];
   }, [visibleListings]);
 
+  const toggleAnyWatch = useCallback(async () => {
+    if (!id || togglingWatch) return;
+    setTogglingWatch(true);
+    try {
+      if (stockWatches["*"]) {
+        const watches = await getStockWatches();
+        const watch = watches.find(
+          (w) => w.productId === id && w.distributorId === "*",
+        );
+        if (watch) {
+          if (watch.notificationId) await cancelNotification(watch.notificationId);
+          await removeStockWatch(watch.id);
+        }
+        setStockWatches((prev) => ({ ...prev, "*": false }));
+        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        showToast("Stopped watching all distributors", "info");
+      } else {
+        const granted = await ensureNotificationPermission();
+        if (!granted) {
+          if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          showAlert(
+            "Permission Denied",
+            Platform.OS === "web"
+              ? "Please allow notifications in your browser to watch for restocks."
+              : "Please enable notifications to watch for restocks.",
+          );
+          return;
+        }
+        await addStockWatch({
+          id: `${id}-any`,
+          productId: id,
+          productName: product?.name ?? "",
+          distributorId: "*",
+          distributorName: "Any distributor",
+          reminderDate: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          reminderType: "back_in_stock",
+          scope: "any",
+          lastKnownStatusByDistributor: Object.fromEntries(
+            listings.map((l) => [l.distributorId, l.stockStatus]),
+          ),
+        });
+        setStockWatches((prev) => ({ ...prev, "*": true }));
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast("Watching all distributors — you'll be notified when it's back in stock", "success");
+      }
+    } catch {
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showAlert("Couldn't update watch", "Please try again.");
+    } finally {
+      setTogglingWatch(false);
+    }
+  }, [id, product, listings, stockWatches, togglingWatch, showToast]);
+
   const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
     if (!id || togglingWatch) return;
     const isWatched = stockWatches[listing.distributorId];
@@ -415,34 +469,6 @@ export default function ProductDetailScreen() {
       }
     };
 
-    const createAnyWatch = async () => {
-      setTogglingWatch(true);
-      try {
-        await addStockWatch({
-          id: `${id}-any`,
-          productId: id,
-          productName: product?.name ?? "",
-          distributorId: "*",
-          distributorName: "Any distributor",
-          reminderDate: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          reminderType: "back_in_stock",
-          scope: "any",
-          lastKnownStatusByDistributor: Object.fromEntries(
-            listings.map((l) => [l.distributorId, l.stockStatus]),
-          ),
-        });
-        setStockWatches((prev) => ({ ...prev, "*": true }));
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast("Watching all distributors — you'll be notified when it's back in stock", "success");
-      } catch {
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert("Couldn't set watch", "We couldn't save that restock watch. Please try again.");
-      } finally {
-        setTogglingWatch(false);
-      }
-    };
-
     // Hold the double-open guard while the non-blocking dialog is up; each
     // create closure and the Cancel button release it.
     showAlert(
@@ -451,7 +477,7 @@ export default function ProductDetailScreen() {
       [
         { text: "Cancel", style: "cancel", onPress: () => setTogglingWatch(false) },
         { text: "This distributor", onPress: () => void createDistributorWatch() },
-        { text: "Any distributor", onPress: () => void createAnyWatch() },
+        { text: "Any distributor", onPress: () => { setTogglingWatch(false); void toggleAnyWatch(); } },
       ],
     );
   }, [id, product, listings, stockWatches, showToast, togglingWatch]);
