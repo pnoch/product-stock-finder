@@ -8327,3 +8327,10 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Extended the Rust static table to all 44 currencies and rewrote `format_price` to mirror shared `formatPrice` (all symbols, leading minus for negatives, `N/A` for non-finite).
 - [x] Tests: a Rust test asserts every offered currency has a static rate, a same-currency conversion succeeds, and `format_price` carries a symbol; a TS parity guard (`tests/desktop-parity-shared-helpers.test.ts`) reads the Rust source and asserts its table covers every `EXCHANGE_RATES` key. Both non-vacuous.
 - [x] `pnpm verify` exit 0 — root `3454` / desktop `324` / cargo `91` + both bundles.
+
+## Phase 1123: Trending estimatedPrice decimal bug
+
+- [x] **Real bug found by auditing the least-covered server router** (`server/routers/trending.ts`, 57% covered). The `estimatedPrice` column is `decimal(10,2)`, which Drizzle returns as a **string** (`"2000.00"`), but the client type is `number` and `formatPrice` renders `"N/A"` for a non-finite value. So **every server-backed trending price showed "N/A"** on Home (mobile + desktop). The existing DB test even *pinned the bug* (`expect(...).toBe("2000.00")`).
+- [x] Fix: convert at the router boundary (`typeof row.estimatedPrice === "string" ? Number.parseFloat(...) : ...`), matching `server/price-cache.ts`'s `rowToSnapshot`.
+- [x] Test: `tests/trending-db.test.ts` now asserts `estimatedPrice === 2000` and `typeof === "number"` (non-vacuous: reverting the fix fails it).
+- [x] `pnpm verify` exit 0 — root `3454` / desktop `324` / cargo `91` + both bundles.
