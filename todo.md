@@ -8351,3 +8351,12 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Server parity (`server/notifications/build-events.ts` + `uploadConfig`): an `"any"` watch iterates all parser ids, honors the uploaded seed map (no false positive for an already-in-stock product), and dedups once per window (`restock:<productId>:any`). Fixed a memory-path bug where `draftToEvent` dropped `dedupKey`, re-firing every tick.
 - [x] Watch-list UI shows "Any distributor" / "Watching all distributors".
 - [x] Tests: `restock-any-scope` (8), `server-restock-any` (3), `notification-memory-dedup` (1), `reminders-storage` (+2). Non-vacuity spot-checked (reverting the client seed guard, the server seed guard, the dedupKey, or the no-transition persist each fails a test). `pnpm verify` exit 0 — root `3469` / desktop `324` / cargo `92` + both bundles.
+
+## Phase 1126: Availability intelligence
+
+- [x] **The scarcity signal the app already recorded, finally surfaced.** `PricePoint.stockStatus` was captured on every scrape, synced, and stored — but no screen derived anything from it. Added `lib/availability.ts` (`computeAvailability`): product-level, day-bucketed, returns `null` below **7 sample days** (no false confidence). Derives `inStockRate`, `lastInStockAt`, `longestOutageDays`, `typicalRestockDays` (median gap between in-stock days separated by an outage), and a `scarcity` label (`rare` < 0.15 / `occasional` < 0.5 / `common`).
+- [x] **Product detail** — an "Availability" card: *"Rare · In stock 12% of the time · Last seen 8 days ago · Typically restocks ~every 21 days"*; each clause omitted when unavailable.
+- [x] **Watchlist** — a scarcity badge ("Rare" / "Occasional" / "Usually available") so the list reads as a scarcity board.
+- [x] Shared `scarcityLabel`/`scarcityColorToken` helpers (no duplicated label/color maps); currency-independent (counts days, not prices — sidesteps the FX caveat).
+- [x] Tests: `availability` (15), `availability-card` (4), `scarcity-badge` (1). Non-vacuity spot-checked (reverting the window filter or the cadence `gap > 1` guard fails a test). `pnpm verify` exit 0 — root `3489` / desktop `324` / cargo `92` + both bundles.
+- [x] **Deferred:** per-distributor availability; restock *prediction* (we show observed cadence, not a forecast).
