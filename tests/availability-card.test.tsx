@@ -37,4 +37,23 @@ describe("AvailabilityCard", () => {
     );
     expect(screen.queryByText(/restocks/i)).toBeNull();
   });
+
+  it("renders the last-seen clause when available", () => {
+    render(
+      <AvailabilityCard
+        data={{ inStockRate: 0.12, lastInStockAt: Date.now() - 8 * 86400000, longestOutageDays: 30, typicalRestockDays: 21, sampleDays: 90, scarcity: "rare" }}
+      />,
+    );
+    expect(screen.getByText(/Last seen/i)).toBeTruthy();
+    expect(screen.getByText(/8 days ago/)).toBeTruthy();
+  });
+
+  it("maps common to Usually available", () => {
+    render(
+      <AvailabilityCard
+        data={{ inStockRate: 0.8, lastInStockAt: Date.now(), longestOutageDays: 0, typicalRestockDays: null, sampleDays: 30, scarcity: "common" }}
+      />,
+    );
+    expect(screen.getByText(/Usually available/i)).toBeTruthy();
+  });
 });
