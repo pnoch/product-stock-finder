@@ -17,7 +17,10 @@ export interface NotificationConfig {
     productId: string;
     modelNumber?: string;
     distributorId: string;
+    scope?: "distributor" | "any";
     lastKnownStatus?: string;
+    /** Per-distributor last-known status, for "any" watches. */
+    lastKnownStatusByDistributor?: Record<string, string>;
   }[];
   dateReminders: {
     id: string;

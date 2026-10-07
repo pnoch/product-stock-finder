@@ -48,7 +48,11 @@ export const notificationsRouter = router({
               productId: z.string().min(1).max(191),
               modelNumber: z.string().max(191).optional(),
               distributorId: z.string().min(1).max(64),
+              scope: z.enum(["distributor", "any"]).optional(),
               lastKnownStatus: z.string().max(32).optional(),
+              lastKnownStatusByDistributor: z
+                .record(z.string().max(64), z.string().max(32))
+                .optional(),
             }),
           )
           .max(MAX_UPLOAD_STOCK_WATCHES),

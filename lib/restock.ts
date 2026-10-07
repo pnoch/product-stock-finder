@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import * as defaultStorageModule from "./storage";
 import { ensureNotificationPermission, scheduleStockAlert } from "./notifications";
 import { getDistributorById } from "@shared/distributors";
+import type { BackOrderReminder } from "./types";
 
 // The subset of the storage API this module needs. Injectable so the desktop
 // build can pass its own store: the module-level `defaultStorage` uses
@@ -15,6 +16,7 @@ export interface RestockStorage {
   getSettings: typeof defaultStorageModule.getSettings;
   removeStockWatch: typeof defaultStorageModule.removeStockWatch;
   updateStockWatchStatus: typeof defaultStorageModule.updateStockWatchStatus;
+  updateStockWatchStatuses: typeof defaultStorageModule.updateStockWatchStatuses;
   recordNotificationEvent: typeof defaultStorageModule.recordNotificationEvent;
 }
 
@@ -60,9 +62,99 @@ async function runCheckRestocks(
   const settings = await storage.getSettings();
   const watchlist = await storage.getWatchlist();
 
+  async function deliverRestock(
+    watch: BackOrderReminder,
+    body: string,
+    names: string,
+    price: number,
+    currency: string,
+  ): Promise<boolean> {
+    const notificationsEnabled =
+      settings.notificationsEnabled !== false && settings.stockAlerts !== false;
+    if (!notificationsEnabled) return true; // nothing to deliver; consume is fine
+    try {
+      if (notify) return await notify("Back In Stock!", body);
+      if (Platform.OS === "web") {
+        const { displayWebNotification } = await import("./web-notifications");
+        return displayWebNotification("Back In Stock!", body);
+      }
+      const granted = await ensureNotificationPermission();
+      if (!granted) return false;
+      const id = await scheduleStockAlert(
+        watch.productName,
+        names,
+        price,
+        currency,
+        watch.productId,
+      );
+      return id !== null;
+    } catch {
+      return false;
+    }
+  }
+
   for (const watch of watches) {
     const product = watchlist.find((p) => p.id === watch.productId);
     if (!product?.listings?.length) continue;
+
+    if (watch.scope === "any" || watch.distributorId === "*") {
+      const prev = watch.lastKnownStatusByDistributor ?? {};
+      const inStockNow = product.listings.filter(
+        (l) => l.stockStatus === "in_stock",
+      );
+      const newlyInStock = inStockNow.filter(
+        (l) => (prev[l.distributorId] ?? "back_order") !== "in_stock",
+      );
+      const statuses = Object.fromEntries(
+        product.listings.map((l) => [l.distributorId, l.stockStatus]),
+      );
+      if (newlyInStock.length === 0) {
+        try {
+          await storage.updateStockWatchStatuses(watch.id, statuses);
+        } catch {
+          // Status caching is best-effort.
+        }
+        continue;
+      }
+      const names = newlyInStock
+        .map((l) => getDistributorById(l.distributorId)?.name ?? l.distributorId)
+        .join(", ");
+      const body =
+        newlyInStock.length === 1
+          ? `${watch.productName} is now in stock at ${names}.`
+          : `${watch.productName} is now in stock at ${newlyInStock.length} distributors: ${names}.`;
+      const first = newlyInStock[0]!;
+      if (
+        !(await deliverRestock(
+          watch,
+          body,
+          names,
+          first.price,
+          first.currency,
+        ))
+      ) {
+        continue;
+      }
+      try {
+        await storage.updateStockWatchStatuses(watch.id, statuses);
+        await storage.removeStockWatch(watch.id);
+      } catch {
+        // Ignore persist failures — the watch stays for the next cycle.
+      }
+      try {
+        await storage.recordNotificationEvent({
+          id: `local-restock-${watch.id}-${Date.now()}`,
+          type: "restock",
+          title: "Back In Stock!",
+          body,
+          productId: watch.productId,
+          createdAt: Date.now(),
+        });
+      } catch {
+        // History is best-effort.
+      }
+      continue;
+    }
 
     const currentListing = product.listings.find(
       (l) => l.distributorId === watch.distributorId,
@@ -76,47 +168,18 @@ async function runCheckRestocks(
       // Back in stock — notify, then remove the watch. The watch is only
       // removed once the notification actually fired: deleting it on a failed
       // send would silently lose the restock alert forever.
-      const notificationsEnabled =
-        settings.notificationsEnabled !== false &&
-        settings.stockAlerts !== false;
-      let notified = false;
-      if (notificationsEnabled) {
-        try {
-          const distrib = getDistributorById(watch.distributorId);
-          const body = `${watch.productName} is now available at ${distrib?.name ?? watch.distributorName}.`;
-          if (notify) {
-            // Caller-provided channel (desktop → Tauri notification).
-            notified = await notify("Back In Stock!", body);
-          } else if (Platform.OS === "web") {
-            // No local scheduling on web; show a foreground web notification
-            // so the watch isn't consumed without any user-visible alert.
-            const { displayWebNotification } = await import("./web-notifications");
-            notified = displayWebNotification("Back In Stock!", body);
-          } else {
-            // `scheduleNotificationAsync` resolves even when the OS permission
-            // has since been revoked (the alert is scheduled but never shown),
-            // which would consume the watch silently. Gate like the price-drop
-            // path: without permission, keep the watch and retry next cycle.
-            const granted = await ensureNotificationPermission();
-            if (granted) {
-              const id = await scheduleStockAlert(
-                watch.productName,
-                distrib?.name ?? watch.distributorName,
-                currentListing.price,
-                currentListing.currency,
-                watch.productId,
-              );
-              notified = id !== null;
-            }
-          }
-        } catch {
-          notified = false;
-        }
-      } else {
-        // Alerts disabled: nothing to deliver, so consuming the watch is fine.
-        notified = true;
-      }
-      if (!notified) {
+      const distrib = getDistributorById(watch.distributorId);
+      const names = distrib?.name ?? watch.distributorName;
+      const body = `${watch.productName} is now available at ${names}.`;
+      if (
+        !(await deliverRestock(
+          watch,
+          body,
+          names,
+          currentListing.price,
+          currentListing.currency,
+        ))
+      ) {
         // Keep the watch so the next cycle retries the notification.
         continue;
       }

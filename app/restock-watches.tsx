@@ -148,8 +148,9 @@ export default function RestockWatchesScreen() {
                       {watch.productName}
                     </Text>
                     <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      {distrib?.countryCode}{" "}
-                      {distrib?.name ?? watch.distributorName}
+                      {watch.scope === "any" || watch.distributorId === "*"
+                        ? "Any distributor"
+                        : `${distrib?.countryCode ?? ""} ${distrib?.name ?? watch.distributorName}`.trim()}
                     </Text>
                     <Text
                       style={{
@@ -158,8 +159,10 @@ export default function RestockWatchesScreen() {
                         marginTop: 2,
                       }}
                     >
-                      {STATUS_LABELS[watch.lastKnownStatus ?? "unknown"] ??
-                        "Unknown"}
+                      {watch.scope === "any" || watch.distributorId === "*"
+                        ? "Watching all distributors"
+                        : (STATUS_LABELS[watch.lastKnownStatus ?? "unknown"] ??
+                          "Unknown")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity activeOpacity={0.7}

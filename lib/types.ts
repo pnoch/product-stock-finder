@@ -128,6 +128,10 @@ export interface BackOrderReminder {
   createdAt: string;
   reminderType?: "date" | "back_in_stock";
   lastKnownStatus?: string;
+  /** "distributor" (default, legacy) watches one store; "any" watches all. */
+  scope?: "distributor" | "any";
+  /** Per-distributor last-known status, for "any" watches. */
+  lastKnownStatusByDistributor?: Record<string, string>;
 }
 
 export interface NotificationHistoryEntry {

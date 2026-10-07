@@ -8341,3 +8341,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Added `MAX_PLAUSIBLE_PRICE` + `is_plausible_price` to `desktop/src-tauri/src/scrapers/mod.rs` and a guard in `parse_price_page` before returning the price.
 - [x] Tests: a Rust test pins the boundary (`> 0`, `<= 1e7`, rejects non-finite); a TS parity guard (`tests/plausible-price.test.ts`) reads the Rust source and asserts the const, the fn, and the call site. Both non-vacuous.
 - [x] `pnpm verify` exit 0 — root `3455` / desktop `324` / cargo `92` + both bundles.
+
+## Phase 1125: Watch anywhere + new-source detection
+
+- [x] **The core promise, delivered:** a restock watch was bound to **one** distributor, so "find who has it worldwide" wasn't served by the watch and a **new** distributor starting to carry a part was never detected. Added a product-level watch scope.
+- [x] `BackOrderReminder.scope: "distributor" | "any"` (default `"distributor"` → backward compatible) + `lastKnownStatusByDistributor`; `updateStockWatchStatuses` storage helper (deliberately no `notify` — the map is a device-local dedup cache, not synced state).
+- [x] Client (`lib/restock.ts`): the `"any"` branch scans all listings, fires on a transition to `in_stock` (a distributor absent from the map counts as not-in-stock → **new source**), names the store(s), consumes on delivery. Shared `deliverRestock` helper removes the duplication with the per-distributor branch.
+- [x] Creation UI (`app/product/[id].tsx`): "Watch for restock" now offers **Any distributor** (default) / **This distributor**; the any-watch seeds `lastKnownStatusByDistributor` from the **live** listings (not the stale snapshot).
+- [x] Server parity (`server/notifications/build-events.ts` + `uploadConfig`): an `"any"` watch iterates all parser ids, honors the uploaded seed map (no false positive for an already-in-stock product), and dedups once per window (`restock:<productId>:any`). Fixed a memory-path bug where `draftToEvent` dropped `dedupKey`, re-firing every tick.
+- [x] Watch-list UI shows "Any distributor" / "Watching all distributors".
+- [x] Tests: `restock-any-scope` (8), `server-restock-any` (3), `notification-memory-dedup` (1), `reminders-storage` (+2). Non-vacuity spot-checked (reverting the client seed guard, the server seed guard, the dedupKey, or the no-transition persist each fails a test). `pnpm verify` exit 0 — root `3469` / desktop `324` / cargo `92` + both bundles.

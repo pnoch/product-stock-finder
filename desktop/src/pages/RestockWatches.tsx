@@ -112,15 +112,24 @@ export function RestockWatches() {
                     {watch.productName}
                   </Link>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {distrib?.countryCode}{" "}
-                    {distrib?.name ?? watch.distributorName}
+                    {watch.scope === "any" || watch.distributorId === "*"
+                      ? "Any distributor"
+                      : `${distrib?.countryCode ?? ""} ${
+                          distrib?.name ?? watch.distributorName
+                        }`.trim()}
                   </p>
                   <div className="mt-1">
-                    <StockBadge
-                      status={
-                        (watch.lastKnownStatus ?? "unknown") as StockStatus
-                      }
-                    />
+                    {watch.scope === "any" || watch.distributorId === "*" ? (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Watching all distributors
+                      </span>
+                    ) : (
+                      <StockBadge
+                        status={
+                          (watch.lastKnownStatus ?? "unknown") as StockStatus
+                        }
+                      />
+                    )}
                   </div>
                 </div>
                 <button

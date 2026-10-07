@@ -162,6 +162,40 @@ export async function buildEvents(
     const modelNumber = watch.modelNumber ?? product?.modelNumber;
     if (!modelNumber) continue;
     if (watch.lastKnownStatus === "in_stock") continue;
+
+    if (watch.scope === "any" || watch.distributorId === "*") {
+      const ids = getAllParserIds();
+      // A distributor the watch already knew was in stock at creation is not a
+      // restock; absent entries are treated as not-previously-in-stock, matching
+      // the client's seeded map.
+      const prev = watch.lastKnownStatusByDistributor ?? {};
+      const inStock: string[] = [];
+      for (const id of ids) {
+        const snap = await getPrice(id, modelNumber);
+        if (snap?.stockStatus === "in_stock" && prev[id] !== "in_stock") {
+          inStock.push(id);
+        }
+      }
+      if (inStock.length === 0) continue;
+      const names = inStock
+        .map((id) => getDistributorById(id)?.name ?? id)
+        .join(", ");
+      events.push({
+        id: newEventId(),
+        type: "restock",
+        dedupKey: clampDedupKey(`restock:${watch.productId}:any`),
+        title: "Back In Stock!",
+        body: `${product?.name ?? watch.productId} is now available at ${names}.`,
+        payload: {
+          watchId: watch.id,
+          productId: watch.productId,
+          distributorId: inStock[0]!,
+        },
+        createdAt: now,
+      });
+      continue;
+    }
+
     const snapshot = await getPrice(watch.distributorId, modelNumber);
     if (!snapshot || snapshot.stockStatus !== "in_stock") continue;
     const distributorName =
