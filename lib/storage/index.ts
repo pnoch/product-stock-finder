@@ -317,6 +317,7 @@ export const {
   addStockWatch,
   removeStockWatch,
   updateStockWatchStatus,
+  updateStockWatchStatuses,
 } = defaultStorage;
 // ─── Settings / Meta ─────────────────────────────────────────────────────
 export const {

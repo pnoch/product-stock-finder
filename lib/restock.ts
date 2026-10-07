@@ -15,6 +15,7 @@ export interface RestockStorage {
   getSettings: typeof defaultStorageModule.getSettings;
   removeStockWatch: typeof defaultStorageModule.removeStockWatch;
   updateStockWatchStatus: typeof defaultStorageModule.updateStockWatchStatus;
+  updateStockWatchStatuses: typeof defaultStorageModule.updateStockWatchStatuses;
   recordNotificationEvent: typeof defaultStorageModule.recordNotificationEvent;
 }
 
@@ -63,6 +64,76 @@ async function runCheckRestocks(
   for (const watch of watches) {
     const product = watchlist.find((p) => p.id === watch.productId);
     if (!product?.listings?.length) continue;
+
+    if (watch.scope === "any") {
+      const prev = watch.lastKnownStatusByDistributor ?? {};
+      const inStockNow = product.listings.filter(
+        (l) => l.stockStatus === "in_stock",
+      );
+      const newlyInStock = inStockNow.filter(
+        (l) => (prev[l.distributorId] ?? "back_order") !== "in_stock",
+      );
+      const statuses = Object.fromEntries(
+        product.listings.map((l) => [l.distributorId, l.stockStatus]),
+      );
+      if (newlyInStock.length === 0) {
+        await storage.updateStockWatchStatuses(watch.id, statuses);
+        continue;
+      }
+      const names = newlyInStock
+        .map((l) => getDistributorById(l.distributorId)?.name ?? l.distributorId)
+        .join(", ");
+      const body =
+        newlyInStock.length === 1
+          ? `${watch.productName} is now in stock at ${names}.`
+          : `${watch.productName} is now in stock at ${newlyInStock.length} distributors: ${names}.`;
+      const notificationsEnabled =
+        settings.notificationsEnabled !== false && settings.stockAlerts !== false;
+      let notified = false;
+      if (notificationsEnabled) {
+        try {
+          if (notify) {
+            notified = await notify("Back In Stock!", body);
+          } else if (Platform.OS === "web") {
+            const { displayWebNotification } = await import("./web-notifications");
+            notified = displayWebNotification("Back In Stock!", body);
+          } else {
+            const granted = await ensureNotificationPermission();
+            if (granted) {
+              const first = newlyInStock[0]!;
+              const id = await scheduleStockAlert(
+                watch.productName,
+                names,
+                first.price,
+                first.currency,
+                watch.productId,
+              );
+              notified = id !== null;
+            }
+          }
+        } catch {
+          notified = false;
+        }
+      } else {
+        notified = true;
+      }
+      if (!notified) continue;
+      await storage.updateStockWatchStatuses(watch.id, statuses);
+      await storage.removeStockWatch(watch.id);
+      try {
+        await storage.recordNotificationEvent({
+          id: `local-restock-${watch.id}-${Date.now()}`,
+          type: "restock",
+          title: "Back In Stock!",
+          body,
+          productId: watch.productId,
+          createdAt: Date.now(),
+        });
+      } catch {
+        // History is best-effort.
+      }
+      continue;
+    }
 
     const currentListing = product.listings.find(
       (l) => l.distributorId === watch.distributorId,
