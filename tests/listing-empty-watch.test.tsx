@@ -52,4 +52,9 @@ describe("listing empty state", () => {
     fireEvent.click(screen.getByText(/Watch anyway/i));
     expect(onWatchAny).toHaveBeenCalledTimes(1);
   });
+
+  it("omits Watch anyway when onWatchAny is not provided", () => {
+    render(<DistributorListingSection {...(baseProps as any)} />);
+    expect(screen.queryByText(/Watch anyway/i)).toBeNull();
+  });
 });

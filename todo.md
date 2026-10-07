@@ -8360,3 +8360,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Shared `scarcityLabel`/`scarcityColorToken` helpers (no duplicated label/color maps); currency-independent (counts days, not prices — sidesteps the FX caveat).
 - [x] Tests: `availability` (17), `availability-card` (4), `scarcity-badge` (1). Non-vacuity spot-checked (reverting the window filter, the calendar-day cadence, or the unknown-only guard each fails a test). **The final review caught a critical bug:** outage/cadence counted sample *indices*, not calendar days, so the app's own sparse seed (90/75/…/0 days) reported a 30-day outage as "1 day" — fixed to measure elapsed days. Also fixed: an all-`unknown` history rendered a false "Rare". `pnpm verify` exit 0 — root `3491` / desktop `324` / cargo `92` + both bundles.
 - [x] **Deferred:** per-distributor availability; restock *prediction* (we show observed cadence, not a forecast).
+
+## Phase 1127: Watch-anyway when out of stock
+
+- [x] **The scarcity radar's hole, closed.** The any-watch lived behind a per-listing dialog, so a product out of stock at all 25 distributors — the exact CRS804 scenario — had no listing to tap and no way to watch it. Added a product-level watch action.
+- [x] **Header button** (`components/product/detail-header.tsx`): an always-visible "Watch for restock" / "Watching — tap to stop" button below the model line, reflecting `stockWatches["*"]`.
+- [x] **Actionable empty state** (`components/product/distributor-listing-section.tsx`): beside "Find prices", a "Watch anyway" button (optional `onWatchAny` prop), so the dead-end becomes an action.
+- [x] **`toggleAnyWatch` refactor** (`app/product/[id].tsx`): extracted the any-watch create body into `createAnyWatchRecord` (idempotent `${id}-any` create, never removes); `toggleAnyWatch` keeps its remove branch and delegates its create branch to the helper.
+- [x] **Fixed a review-caught regression:** the per-listing dialog's "Any distributor" called `toggleAnyWatch`, so picking it while a watch already existed **silently removed** the watch. The dialog path now always calls `createAnyWatchRecord` (create), while the header/empty-state path toggles.
+- [x] Tests: `detail-header-watch` (2), `listing-empty-watch` (+1 negative: Watch anyway absent without `onWatchAny`), `toggle-any-watch` (4 source guards: helper extracted, toggle delegates, dialog creates, single record builder). `pnpm verify` exit 0.
+- [x] **Deferred:** desktop parity (desktop cannot create any-watches yet — separate plan).
