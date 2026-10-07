@@ -4,6 +4,8 @@ import { getAllParserIds } from "../../lib/scrapers/registry";
 import { getCachedPrice } from "../price-cache";
 import { formatPrice } from "../../shared/src/currency.js";
 import { convertPrice } from "../../lib/currency";
+import { checkPriceAnomaly } from "../../lib/alert-integrity";
+import { getPooledHistory } from "../price-history";
 import type {
   EventDraft,
   NotificationConfig,
@@ -128,6 +130,13 @@ export async function buildEvents(
         bestPrice = converted;
         bestDistributor = distributorId;
       }
+    }
+    const historyPoints = await getPooledHistory(distributorIds, modelNumber);
+    const history = historyPoints
+      .map((p) => convertPrice(p.price, p.currency, alert.currency))
+      .filter((v): v is number => v !== null);
+    if (bestPrice !== null && checkPriceAnomaly(bestPrice, history).suspicious) {
+      continue; // likely a misparse; skip the event (the client owns deactivation)
     }
     const isRise = alert.direction === "rise";
     if (isRise) {
