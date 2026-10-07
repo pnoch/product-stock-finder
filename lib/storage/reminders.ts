@@ -160,6 +160,10 @@ export function createRemindersStorage(ctx: StorageContext) {
         w.id === watchId ? { ...w, lastKnownStatusByDistributor: statuses } : w,
       );
       await persistStockWatches(updated);
+      // Deliberately no notify(): the per-distributor map is a device-local
+      // dedup cache for "any" watches, not user-visible state, and each device
+      // tracks its own transitions. Notifying would push the map into the
+      // synced reminder and let one device's statuses suppress another's alert.
     });
   }
 
