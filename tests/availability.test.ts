@@ -87,4 +87,28 @@ describe("computeAvailability", () => {
     expect(a.sampleDays).toBe(10);
     expect(a.inStockRate).toBeCloseTo(0.2, 5);
   });
+
+  it("excludes points older than the window", () => {
+    // 10 in-window days + 5 very old in-stock days; the old ones must not count.
+    const l = listing(10, [9]);
+    for (let i = 0; i < 5; i++) {
+      l.priceHistory.push({
+        date: new Date(NOW - (200 + i) * DAY).toISOString(),
+        price: 100,
+        currency: "USD",
+        stockStatus: "in_stock",
+      });
+    }
+    const a = computeAvailability([l], NOW)!;
+    expect(a.sampleDays).toBe(10);
+    expect(a.inStockRate).toBeCloseTo(0.1, 5);
+  });
+
+  it("honors a custom windowDays", () => {
+    // 30 days of history; the default window keeps all, a 10-day window keeps
+    // only the newest 11 (cutoff is inclusive).
+    const l = listing(30, [29]);
+    expect(computeAvailability([l], NOW)!.sampleDays).toBe(30);
+    expect(computeAvailability([l], NOW, 10)!.sampleDays).toBe(11);
+  });
 });
