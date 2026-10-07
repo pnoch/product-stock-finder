@@ -19,8 +19,10 @@ import {
 import { draftToEvent, rowToConfig } from "./mappers";
 import {
   buildEvents,
+  createHistoryLookup,
   createPriceLookup,
   dedupKeyFor,
+  type HistoryLookup,
   type PriceLookup,
 } from "./build-events";
 import {
@@ -58,9 +60,12 @@ export async function evaluateNotifications(now: number): Promise<void> {
   // One memoized price lookup per tick: every device evaluation shares it, so
   // the same (distributor, model) row is read at most once per tick.
   const getPrice = createPriceLookup();
+  // Same for pooled history: the anomaly guard reads the same (distributors,
+  // model) history per alert, so cache it per tick too.
+  const getHistory = createHistoryLookup();
   const db = await getDb();
   if (!db) {
-    await evaluateMemory(now, getPrice);
+    await evaluateMemory(now, getPrice, getHistory);
     return;
   }
   // Paged: device rows are unbounded while a tick must stay short. New rows
@@ -75,7 +80,7 @@ export async function evaluateNotifications(now: number): Promise<void> {
       .limit(PAGE_SIZE)
       .offset(offset);
     if (rows.length === 0) break;
-    await evaluateConfigPage(db, rows, now, getPrice);
+    await evaluateConfigPage(db, rows, now, getPrice, getHistory);
     if (rows.length < PAGE_SIZE) break;
     offset += rows.length;
   }
@@ -93,6 +98,7 @@ async function evaluateConfigPage(
   }[],
   now: number,
   getPrice: PriceLookup,
+  getHistory: HistoryLookup,
 ): Promise<void> {
   const anonDevices: { deviceId: string; config: NotificationConfig }[] =
     [];
@@ -114,13 +120,20 @@ async function evaluateConfigPage(
   // the whole tick (which would also skip every purge job the warmer runs after
   // this, causing unbounded table growth).
   for (const { deviceId, config } of anonDevices) {
-    await evaluateConfigDb(db, deviceId, config, now, getPrice).catch((e) =>
+    await evaluateConfigDb(
+      db,
+      deviceId,
+      config,
+      now,
+      getPrice,
+      getHistory,
+    ).catch((e) =>
       console.error(`[notifications] device ${deviceId} evaluation failed`, e),
     );
   }
   for (const [userId, devices] of userDevices) {
-    await evaluateUserDb(db, userId, devices, now, getPrice).catch((e) =>
-      console.error(`[notifications] user ${userId} evaluation failed`, e),
+    await evaluateUserDb(db, userId, devices, now, getPrice, getHistory).catch(
+      (e) => console.error(`[notifications] user ${userId} evaluation failed`, e),
     );
   }
 }
@@ -128,6 +141,7 @@ async function evaluateConfigPage(
 async function evaluateMemory(
   now: number,
   getPrice: PriceLookup,
+  getHistory: HistoryLookup,
 ): Promise<void> {
   const anonDevices: { deviceId: string; config: NotificationConfig }[] =
     [];
@@ -145,10 +159,10 @@ async function evaluateMemory(
     }
   }
   for (const { deviceId, config } of anonDevices) {
-    await evaluateAnonMemory(deviceId, config, now, getPrice);
+    await evaluateAnonMemory(deviceId, config, now, getPrice, getHistory);
   }
   for (const [userId, devices] of userDevices) {
-    await evaluateUserMemory(userId, devices, now, getPrice);
+    await evaluateUserMemory(userId, devices, now, getPrice, getHistory);
   }
 }
 
@@ -157,6 +171,7 @@ async function evaluateAnonMemory(
   config: NotificationConfig,
   now: number,
   getPrice: PriceLookup,
+  getHistory: HistoryLookup,
 ): Promise<void> {
   const delivered = memoryDeliveries.get(deviceId) ?? new Set<string>();
   const blocked = new Set(
@@ -172,7 +187,7 @@ async function evaluateAnonMemory(
       )
       .map((e) => dedupKeyFor(e)),
   );
-  const drafts = await buildEvents(config, now, getPrice);
+  const drafts = await buildEvents(config, now, getPrice, getHistory);
   const scopeKey = scopeKeyForDevice(deviceId);
   const holdable = drafts.filter((d) => !blocked.has(d.dedupKey));
   if (holdForDigest(scopeKey, [config], holdable, now)) return;
@@ -215,6 +230,7 @@ async function evaluateUserMemory(
   devices: { deviceId: string; config: NotificationConfig }[],
   now: number,
   getPrice: PriceLookup,
+  getHistory: HistoryLookup,
 ): Promise<void> {
   const boundCount = devices.length;
   const config = aggregateConfigs(devices.map((d) => d.config));
@@ -226,7 +242,7 @@ async function evaluateUserMemory(
       )
       .map((e) => dedupKeyFor(e)),
   );
-  const drafts = await buildEvents(config, now, getPrice);
+  const drafts = await buildEvents(config, now, getPrice, getHistory);
   const scopeKey = scopeKeyForUser(userId);
   const holdable = drafts.filter((d) => !blocked.has(d.dedupKey));
   if (
@@ -312,6 +328,7 @@ async function evaluateConfigDb(
   config: NotificationConfig,
   now: number,
   getPrice: PriceLookup,
+  getHistory: HistoryLookup,
 ): Promise<void> {
   // Only events within the blocking window can suppress a new draft
   // (isEventBlocking returns false past DELIVERY_GRACE_MS), so bound the read
@@ -347,7 +364,7 @@ async function evaluateConfigDb(
       )
       .map((e) => e.dedupKey),
   );
-  const drafts = await buildEvents(config, now, getPrice);
+  const drafts = await buildEvents(config, now, getPrice, getHistory);
   const scopeKey = scopeKeyForDevice(deviceId);
   // Only hold conditions that are not already delivered/blocked: buffering them
   // made the morning digest repeat an alert the user already received.
@@ -416,6 +433,7 @@ async function evaluateUserDb(
   devices: { deviceId: string; config: NotificationConfig }[],
   now: number,
   getPrice: PriceLookup,
+  getHistory: HistoryLookup,
 ): Promise<void> {
   const boundCount = devices.length;
   const config = aggregateConfigs(devices.map((d) => d.config));
@@ -458,7 +476,7 @@ async function evaluateUserDb(
       )
       .map((e) => e.dedupKey),
   );
-  const drafts = await buildEvents(config, now, getPrice);
+  const drafts = await buildEvents(config, now, getPrice, getHistory);
   const scopeKey = scopeKeyForUser(userId);
   const holdable = drafts.filter((d) => !pending.has(d.dedupKey));
   if (

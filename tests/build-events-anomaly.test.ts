@@ -1,18 +1,13 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildEvents, type PriceLookup } from "../server/notifications/build-events";
+import { describe, expect, it } from "vitest";
+import {
+  buildEvents,
+  type HistoryLookup,
+  type PriceLookup,
+} from "../server/notifications/build-events";
 import type { NotificationConfig } from "../server/notifications/types";
 import type { PricePoint } from "../lib/types";
 
 const NOW = Date.parse("2026-06-15T12:00:00Z");
-
-const { getPooledHistory } = vi.hoisted(() => ({
-  getPooledHistory: vi.fn(),
-}));
-
-vi.mock("../server/price-history", () => ({
-  getPooledHistory,
-  getHistory: vi.fn(async () => []),
-}));
 
 type Snapshot = Awaited<ReturnType<PriceLookup>>;
 
@@ -58,29 +53,27 @@ function dropAlert() {
   };
 }
 
-afterEach(() => {
-  vi.clearAllMocks();
-});
+const historyOf = (points: PricePoint[]): HistoryLookup => async () => points;
 
 describe("buildEvents price anomaly guard", () => {
   it("skips a misparsed price far below history", async () => {
-    getPooledHistory.mockResolvedValue(around100());
     const getPrice: PriceLookup = async () => snapshot(3);
     const events = await buildEvents(
       config({ alerts: [dropAlert()] }),
       NOW,
       getPrice,
+      historyOf(around100()),
     );
     expect(events.filter((e) => e.type === "price_drop")).toHaveLength(0);
   });
 
   it("still fires a real drop within normal range", async () => {
-    getPooledHistory.mockResolvedValue(around100());
     const getPrice: PriceLookup = async () => snapshot(40);
     const events = await buildEvents(
       config({ alerts: [dropAlert()] }),
       NOW,
       getPrice,
+      historyOf(around100()),
     );
     expect(events.filter((e) => e.type === "price_drop")).toHaveLength(1);
   });
