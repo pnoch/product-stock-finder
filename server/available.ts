@@ -1,4 +1,4 @@
-import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
+import type { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { convertPrice } from "../shared/src/currency.js";
 
 export interface AvailableProduct {

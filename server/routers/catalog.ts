@@ -4,6 +4,7 @@ import { PRICE_SNAPSHOT_TTL_MS } from "../../shared/const";
 import { PRODUCT_CATALOG } from "../../shared/src/catalog.js";
 import { listCachedInStock } from "../price-cache";
 import { groupAvailable } from "../available";
+import { checkRateLimit } from "../rate-limit";
 
 export const catalogRouter = router({
   available: publicProcedure
@@ -17,7 +18,8 @@ export const catalogRouter = router({
         })
         .default({ currency: "USD" }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      checkRateLimit(ctx, "catalog.available", 30, 60_000);
       const rows = await listCachedInStock(Date.now(), PRICE_SNAPSHOT_TTL_MS);
       let out = groupAvailable(rows, PRODUCT_CATALOG, input.currency);
       if (input.category) out = out.filter((r) => r.category === input.category);

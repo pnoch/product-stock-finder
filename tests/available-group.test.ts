@@ -7,8 +7,14 @@ const catalog = [
   { id: "p3", name: "NAS C", brand: "Synology", category: "Storage", modelNumber: "M3" },
 ] as never;
 
-function row(modelNumber: string, distributorId: string, price: number, stockStatus = "in_stock") {
-  return { distributorId, modelNumber, price, currency: "USD", stockStatus, url: "", fetchedAt: 1000 } as never;
+function row(
+  modelNumber: string,
+  distributorId: string,
+  price: number,
+  stockStatus = "in_stock",
+  currency = "USD",
+) {
+  return { distributorId, modelNumber, price, currency, stockStatus, url: "", fetchedAt: 1000 } as never;
 }
 
 describe("groupAvailable", () => {
@@ -32,5 +38,11 @@ describe("groupAvailable", () => {
   it("drops rows whose model is not in the catalog", () => {
     const out = groupAvailable([row("ZZZ", "d1", 1)], catalog, "USD");
     expect(out).toHaveLength(0);
+  });
+
+  it("converts a foreign-currency row into the target currency", () => {
+    const out = groupAvailable([row("M1", "d1", 92, "in_stock", "EUR")], catalog, "USD");
+    expect(out[0]!.bestPrice).toBeCloseTo(100, 6);
+    expect(out[0]!.bestCurrency).toBe("USD");
   });
 });
