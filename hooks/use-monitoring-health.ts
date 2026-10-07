@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import { AppState, Platform } from "react-native";
 import * as TaskManager from "expo-task-manager";
 import { getSettings, getLastBackgroundRun } from "@/lib/storage";
@@ -54,6 +55,15 @@ export function useMonitoringHealth(): {
     });
     return () => sub.remove();
   }, [assess]);
+
+  // Home and Settings each hold their own hook instance, and the AppState
+  // listener only fires on background→active transitions. Re-assess on focus
+  // so returning to Home after a Settings fix drops the stale banner.
+  useFocusEffect(
+    useCallback(() => {
+      void assess();
+    }, [assess]),
+  );
 
   return { health, refresh: assess };
 }

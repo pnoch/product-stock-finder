@@ -1,7 +1,7 @@
 export type MonitoringHealth =
   | { status: "off" }
   | { status: "ok"; lastRunAt: number | null }
-  | { status: "stale"; lastRunAt: number; expectedMs: number }
+  | { status: "stale"; lastRunAt: number }
   | { status: "stopped"; lastRunAt: number | null };
 
 export function assessMonitoringHealth(input: {
@@ -16,6 +16,6 @@ export function assessMonitoringHealth(input: {
   if (!registered) return { status: "stopped", lastRunAt };
   if (lastRunAt === null) return { status: "ok", lastRunAt: null };
   const expectedMs = intervalMs * 2;
-  if (now - lastRunAt > expectedMs) return { status: "stale", lastRunAt, expectedMs };
+  if (now - lastRunAt > expectedMs) return { status: "stale", lastRunAt };
   return { status: "ok", lastRunAt };
 }

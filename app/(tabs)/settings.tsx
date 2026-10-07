@@ -27,7 +27,11 @@ import { AppSettings, Product, DistributorListing, SyncMeta } from "@/lib/types"
 import { showAlert } from "@/lib/alert";
 import { shareText } from "@/lib/share-text";
 import { sendTestNotification } from "@/lib/notifications";
-import { registerPriceCheckTask, syncBackgroundTasks } from "@/lib/background-price-check";
+import {
+  checkPriceDropsNow,
+  registerPriceCheckTask,
+  syncBackgroundTasks,
+} from "@/lib/background-price-check";
 import { applyBackgroundServiceToggle } from "@/lib/background-service-toggle";
 import { useMonitoringHealth } from "@/hooks/use-monitoring-health";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
@@ -658,12 +662,17 @@ export default function SettingsScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       await registerPriceCheckTask();
+      // A stale task is already registered; re-registering won't refresh the
+      // last-run timestamp, so run a foreground check to clear `stale`.
+      if (monitoring.status === "stale") {
+        await checkPriceDropsNow();
+      }
       await refreshMonitoring();
     } catch (e) {
       log.error("[Settings] handleReenableMonitoring failed", e);
       showAlert("Failed", "Could not re-enable background monitoring. Please try again.");
     }
-  }, [refreshMonitoring]);
+  }, [refreshMonitoring, monitoring.status]);
 
   const regions = [
     "Asia-Pacific",
