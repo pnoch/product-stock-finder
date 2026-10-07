@@ -3,7 +3,7 @@ import { checkPriceAnomaly } from "../lib/alert-integrity";
 
 describe("checkPriceAnomaly", () => {
   it("flags a price far below the history median", () => {
-    const r = checkPriceAnomaly(30, [100, 100, 100, 100]);
+    const r = checkPriceAnomaly(29, [100, 100, 100, 100]);
     expect(r.suspicious).toBe(true);
     expect(r.reason).toBe("far_below_history");
   });

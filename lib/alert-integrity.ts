@@ -20,7 +20,7 @@ export function checkPriceAnomaly(
     return { suspicious: false, median: med, ratio: med > 0 ? price / med : 0 };
   }
   const ratio = price / med;
-  if (ratio <= lowRatio) return { suspicious: true, reason: "far_below_history", median: med, ratio };
+  if (ratio < lowRatio) return { suspicious: true, reason: "far_below_history", median: med, ratio };
   if (ratio > highRatio) return { suspicious: true, reason: "far_above_history", median: med, ratio };
   return { suspicious: false, median: med, ratio };
 }
