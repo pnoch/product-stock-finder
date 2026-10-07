@@ -51,7 +51,7 @@ export const notificationsRouter = router({
               scope: z.enum(["distributor", "any"]).optional(),
               lastKnownStatus: z.string().max(32).optional(),
               lastKnownStatusByDistributor: z
-                .record(z.string(), z.string().max(32))
+                .record(z.string().max(64), z.string().max(32))
                 .optional(),
             }),
           )
