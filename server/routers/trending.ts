@@ -178,7 +178,17 @@ export const trendingRouter = router({
       .where(gte(trendingProducts.expiresAt, now))
       .orderBy(desc(trendingProducts.fetchedAt))
       .limit(10);
-    return rows;
+    // Drizzle returns a decimal column as a string ("80.00"), but the client
+    // type is `number` and `formatPrice` renders "N/A" for a non-finite value —
+    // so every server-backed trending price showed "N/A". Convert at the
+    // boundary (same as server/price-cache.ts rowToSnapshot).
+    return rows.map((row) => ({
+      ...row,
+      estimatedPrice:
+        typeof row.estimatedPrice === "string"
+          ? Number.parseFloat(row.estimatedPrice)
+          : row.estimatedPrice,
+    }));
   }),
 
   refresh: adminProcedure.mutation(async ({ ctx }) => {
