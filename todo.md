@@ -8370,3 +8370,12 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Fixed a review-caught regression:** the per-listing dialog's "Any distributor" called `toggleAnyWatch`, so picking it while a watch already existed **silently removed** the watch. The dialog path now always calls `createAnyWatchRecord` (create), while the header/empty-state path toggles.
 - [x] Tests: `detail-header-watch` (2), `listing-empty-watch` (+1 negative: Watch anyway absent without `onWatchAny`), `toggle-any-watch` (4 source guards: helper extracted, toggle delegates, dialog creates, single record builder). `pnpm verify` exit 0.
 - [x] **Deferred:** desktop parity (desktop cannot create any-watches yet — separate plan).
+
+## Phase 1128: Available Now board + Home section
+
+- [x] **The whole catalog, ranked by price, one tap from Home.** A full "Available Now" board (`app/available.tsx`): every catalog product with an `in_stock` listing, cheapest first, with category/brand/price-cap filter chips and a `StockBadge`. Rows show `formatPrice` + "in stock at N stores" and open the product detail.
+- [x] **Endpoint** (`server/routers/catalog.available` → `server/available.ts` `groupAvailable`): scans the price cache only for catalog `modelNumber`s, keeps `stockStatus === "in_stock"` rows, converts each to the requested display currency, dedups stores, and returns `{ id, name, brand, category, modelNumber, bestPrice, bestCurrency, bestDistributorId, storeCount, fetchedAt }` sorted ascending by price. Client wrapper `lib/server-catalog.ts` `fetchAvailable` returns `[]` when the server is unconfigured.
+- [x] **Home section** (`components/home/available-section.tsx`): compact top-5 list ("Available Now" header + "See all" → `/available`), `useQuery(["available","home"])` gated on `isServerConfigured()`. Returns `null` while loading, on error, or when the list is empty — so it self-hides on standalone.
+- [x] **Standalone fallback:** the board falls back to the local watchlist's in-stock listings when the server is unconfigured, so it still works offline instead of showing nothing.
+- [x] **Freshness is cache-cadence, not live.** Rows carry `fetchedAt` (the price-cache timestamp) and render "as of …" — the board reflects however fresh the last background scrape left the cache, not a live on-open fetch.
+- [x] Tests: `available-group` (grouping/currency/dedup/sort), `available-screen` (server rows + standalone fallback). `pnpm verify` exit 0 — root `3515` / desktop `324` / cargo `92` + both bundles.

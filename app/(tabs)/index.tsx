@@ -29,6 +29,7 @@ import { StockBadge } from "@/components/stock-badge";
 import { IconSymbol, type IconSymbolName } from "@/components/ui/icon-symbol";
 import { ConnectionBadge } from "@/components/connection-badge";
 import { TrendingSection } from "@/components/home/trending-section";
+import { AvailableSection } from "@/components/home/available-section";
 import { useConnection } from "@/hooks/use-connection";
 import { fetchProductImage } from "@/lib/server-images";
 
@@ -624,6 +625,11 @@ export default function HomeScreen() {
               );
             })
           )}
+        </View>
+
+        {/* Available Now */}
+        <View style={{ paddingHorizontal: 16 }}>
+          <AvailableSection />
         </View>
 
         {/* Trending */}
