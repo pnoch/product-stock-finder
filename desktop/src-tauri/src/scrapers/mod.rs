@@ -207,6 +207,18 @@ pub fn infer_stock_status(text: &str) -> String {
     "unknown".to_string()
 }
 
+/// Upper bound on a plausible product price, mirroring `MAX_PLAUSIBLE_PRICE`
+/// in shared/const.ts. A misparsed page (a barcode, SKU, or shipping figure
+/// read as the price) must not be stored.
+pub const MAX_PLAUSIBLE_PRICE: f64 = 1e7;
+
+/// Mirrors the shared `isPlausiblePrice`: finite, positive, and within the
+/// plausible bound. The mobile and server paths both reject an implausible
+/// price before storing it; the desktop must agree.
+pub fn is_plausible_price(price: f64) -> bool {
+    price.is_finite() && price > 0.0 && price <= MAX_PLAUSIBLE_PRICE
+}
+
 pub fn parse_price_from_text(text: &str) -> Option<f64> {
     // Mirror lib/scrapers/utils.ts: take only the FIRST number run, not every
     // digit in the element. Concatenating them turned "Was $100 Now $80" into
@@ -561,6 +573,14 @@ pub fn parse_price_page(
     let price_text: String = price_el.text().collect();
     let price = parse_price_from_text(&price_text)
         .ok_or_else(|| format!("Could not parse price: {}", price_text))?;
+    // Mirror the shared `isPlausiblePrice` guard (lib/price-source.ts,
+    // server/price-cache.ts): a misparsed barcode/SKU/shipping figure read as
+    // the price must not be stored. Without this the desktop accepted any
+    // finite value, so a page whose first number run was a long SKU stored an
+    // absurd price the mobile/server paths would have rejected.
+    if !is_plausible_price(price) {
+        return Err(format!("Implausible price: {price}"));
+    }
 
     let stock_els = select_selector_list(&document, stock_selector);
     let stock_text = stock_els
@@ -723,6 +743,18 @@ mod tests {
     #[test]
     fn parse_price_from_text_rejects_non_finite_digit_runs() {
         assert_eq!(parse_price_from_text(&"9".repeat(400)), None);
+    }
+
+    #[test]
+    fn is_plausible_price_matches_the_shared_bound() {
+        // Mirrors shared/const.ts isPlausiblePrice: > 0 and <= 1e7.
+        assert!(is_plausible_price(0.01));
+        assert!(is_plausible_price(1e7));
+        assert!(!is_plausible_price(0.0));
+        assert!(!is_plausible_price(-5.0));
+        assert!(!is_plausible_price(1e7 + 1.0));
+        assert!(!is_plausible_price(f64::INFINITY));
+        assert!(!is_plausible_price(f64::NAN));
     }
 
     /// The shared parser's `matchesModel` test corpus (tests/scrapers/utils.test.ts).
