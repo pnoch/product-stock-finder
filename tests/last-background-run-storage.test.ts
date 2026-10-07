@@ -16,7 +16,7 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
   },
 }));
 
-import { getLastBackgroundRun, setLastBackgroundRun } from "../lib/storage";
+import { getLastBackgroundRun, setLastBackgroundRun, clearAllData } from "../lib/storage";
 
 beforeEach(() => {
   store.clear();
@@ -29,6 +29,19 @@ describe("last background run", () => {
   });
 
   it("returns null when never set", async () => {
+    expect(await getLastBackgroundRun()).toBeNull();
+  });
+
+  it("returns null for a corrupt value", async () => {
+    store.set("last_background_run", "not-a-number");
+    expect(await getLastBackgroundRun()).toBeNull();
+    store.set("last_background_run", "0");
+    expect(await getLastBackgroundRun()).toBeNull();
+  });
+
+  it("is wiped by clearAllData", async () => {
+    await setLastBackgroundRun(1_700_000_000_000);
+    await clearAllData();
     expect(await getLastBackgroundRun()).toBeNull();
   });
 });
