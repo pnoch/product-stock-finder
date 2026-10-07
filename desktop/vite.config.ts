@@ -56,6 +56,14 @@ export default defineConfig(({ mode }) => ({
         replacement: path.resolve(__dirname, "../lib/scrapers/browser.web.ts"),
       },
       {
+        // Keep impit out of the desktop bundle: it is a Node-only native module
+        // (requires node:fs and a platform .node binary). lib/scrapers/
+        // plain-fetch.ts imports it lazily, but Vite resolves that statically,
+        // so without this alias the desktop build fails on the .node binary.
+        find: /^impit$/,
+        replacement: path.resolve(__dirname, "../lib/scrapers/impit-stub.ts"),
+      },
+      {
         // Keep react-native out of the desktop bundle: shared lib modules
         // import Platform/Alert/Linking that desktop never renders.
         find: /^react-native$/,

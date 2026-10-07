@@ -18,7 +18,7 @@
     "test": "vitest run",
     "test:db": "node scripts/test-db.mjs",
     "test:rust": "cargo test --manifest-path desktop/src-tauri/Cargo.toml",
-    "verify": "pnpm check && pnpm lint && pnpm test && pnpm check:desktop && pnpm --dir desktop test && pnpm test:rust && pnpm build:android-js",
+    "verify": "pnpm check && pnpm lint && pnpm test && pnpm check:desktop && pnpm --dir desktop test && pnpm test:rust && pnpm build:android-js && pnpm build:desktop",
     "smoke:web": "tsx scripts/smoke-web.ts",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "android": "expo run:android",
