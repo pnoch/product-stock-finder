@@ -19,6 +19,7 @@ describe("CI workflow", () => {
       "pnpm db:push",
       "pnpm test:db",
       "pnpm build",
+      "pnpm build:android-js",
       "pnpm smoke:web",
     ]) {
       expect(src, `missing CI step: ${step}`).toContain(step);

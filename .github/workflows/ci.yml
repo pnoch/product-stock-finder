@@ -53,6 +53,12 @@ jobs:
           TEST_DATABASE_URL: mysql://root:root@127.0.0.1:3306/psf_test
       # Verify the deployable artifacts build (web export + server bundle).
       - run: pnpm build
+      # The Android JS bundle is a SEPARATE Metro resolution from web: a
+      # Node-only import (e.g. impit's `node:fs`) can bundle fine on web but
+      # break the Android release build, which `pnpm verify`/`pnpm build` never
+      # exercise. This exports the Android bundle (no Android SDK needed) so a
+      # Metro-resolution regression fails CI instead of shipping.
+      - run: pnpm build:android-js
       # The web export compiles even when it renders a blank page at runtime;
       # this catches that class (e.g. import.meta in a classic script).
       # patchright has no postinstall, so its browsers must be installed

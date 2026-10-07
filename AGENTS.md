@@ -35,8 +35,9 @@ pnpm check        # tsc --noEmit  (typecheck — run before claiming done)
 pnpm lint         # expo lint (ESLint flat config, eslint-config-expo)
 pnpm format       # prettier --write .
 pnpm test         # vitest run
-pnpm verify       # full local gate: check + lint + test + check:desktop + desktop test + cargo test
+pnpm verify       # full local gate: check + lint + test + check:desktop + desktop test + cargo test + build:android-js
 pnpm build:apk    # Android release APK via Gradle (android/app/build/outputs/apk/release/app-release.apk)
+pnpm build:android-js  # Expo Android JS bundle (Metro resolution gate; no Android SDK needed)
 pnpm test:rust    # cargo test for desktop/src-tauri
 pnpm db:push      # drizzle-kit generate && migrate (requires DATABASE_URL)
 pnpm build        # esbuild bundle server to dist/

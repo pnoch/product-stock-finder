@@ -5,6 +5,7 @@ node_modules/
 
 # Expo
 .expo/
+.expo-android-export/
 dist/
 dist-web/
 web-build/
