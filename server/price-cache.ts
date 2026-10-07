@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt } from "drizzle-orm";
 import { priceCache, type PriceCacheRow } from "../drizzle/schema";
 import { getDb, affectedRowsOf } from "./db";
 import { storagePrice, storeKey } from "./store-keys";
@@ -169,6 +169,28 @@ export async function getAllFetchedAt(
 
 export function clearPriceCacheForTests(): void {
   memoryCache.clear();
+}
+
+export async function listCachedInStock(
+  now: number,
+  maxAgeMs: number,
+): Promise<(PriceSnapshot & { distributorId: string; modelNumber: string })[]> {
+  const cutoff = now - maxAgeMs;
+  const db = await getDb();
+  if (!db) {
+    const out: (PriceSnapshot & { distributorId: string; modelNumber: string })[] = [];
+    for (const entry of memoryCache.values()) {
+      if (entry.snapshot.stockStatus === "in_stock" && entry.snapshot.fetchedAt >= cutoff) {
+        out.push({ ...entry.snapshot, distributorId: entry.distributorId, modelNumber: entry.modelNumber });
+      }
+    }
+    return out;
+  }
+  const rows = await db
+    .select()
+    .from(priceCache)
+    .where(and(eq(priceCache.stockStatus, "in_stock"), gte(priceCache.fetchedAt, cutoff)));
+  return rows.map((r) => ({ ...rowToSnapshot(r), distributorId: r.distributorId, modelNumber: r.modelNumber }));
 }
 
 // price_cache rows are keyed by (distributor, model) and grow with every
