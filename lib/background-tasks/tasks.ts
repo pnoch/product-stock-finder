@@ -1,7 +1,7 @@
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { Platform } from "react-native";
-import { getSettings, getBackgroundTaskInterval, saveBackgroundTaskInterval } from "../storage";
+import { getSettings, getBackgroundTaskInterval, saveBackgroundTaskInterval, setLastBackgroundRun } from "../storage";
 import { getEntitlementState } from "@/lib/entitlements";
 import { shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { healthService } from "./instances";
@@ -15,6 +15,7 @@ export const HEALTH_PROBE_TASK = "health-probe";
 TaskManager.defineTask(PRICE_CHECK_TASK, async () => {
   try {
     await runPriceCheckCore();
+    await setLastBackgroundRun(Date.now());
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
     return BackgroundTask.BackgroundTaskResult.Failed;

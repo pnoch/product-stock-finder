@@ -30,6 +30,7 @@ vi.mock("../lib/storage", () => ({
   getAlerts: vi.fn(async () => state.alertsStore.map((a) => ({ ...a }))),
   getWatchlist: vi.fn(async () => state.watchlistStore),
   getSettings: vi.fn(async () => state.settingsStore),
+  setLastBackgroundRun: vi.fn(async () => {}),
   saveAlerts: vi.fn(async (alerts: PriceAlert[]) => {
     state.alertsStore.length = 0;
     state.alertsStore.push(...alerts.map((a) => ({ ...a })));

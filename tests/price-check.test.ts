@@ -64,6 +64,7 @@ vi.mock("../lib/storage", () => ({
     if (minutes === null) delete state.taskIntervals[task];
     else state.taskIntervals[task] = minutes;
   }),
+  setLastBackgroundRun: vi.fn(async () => {}),
 }));
 
 vi.mock("../lib/notifications", () => ({
@@ -132,7 +133,7 @@ import {
   registerHealthProbeTask,
   syncBackgroundTasks,
 } from "../lib/background-price-check";
-import { deactivateAlert } from "../lib/storage";
+import { deactivateAlert, setLastBackgroundRun } from "../lib/storage";
 import {
   createHealthService,
   HealthSample,
@@ -219,6 +220,13 @@ describe("checkPriceDropsNow", () => {
     await checkPriceDropsNow();
     expect(state.scheduledNotifications).toHaveLength(0);
     state.recordedNotifications = [];
+  });
+
+  it("records the last-run timestamp so a foreground check clears `stale`", async () => {
+    vi.mocked(setLastBackgroundRun).mockClear();
+    await checkPriceDropsNow();
+    expect(vi.mocked(setLastBackgroundRun)).toHaveBeenCalledTimes(1);
+    expect(typeof vi.mocked(setLastBackgroundRun).mock.calls[0]![0]).toBe("number");
   });
 
   it("does nothing when the product has no listings", async () => {

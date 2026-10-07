@@ -8389,3 +8389,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] `NotificationHistoryEntry.type` gains `suspicious_price`; the mobile + desktop notification centers map its icon.
 - [x] Tests: `stats` (2), `alert-integrity` (7, incl. the exclusive-threshold boundary), `price-check-anomaly` (2), `build-events-anomaly` (2), `history-lookup` (1). Non-vacuity spot-checked (removing the guard fires the misparse; tightening it suppresses a real drop). `pnpm verify` exit 0 — root `3537` / desktop `324` / cargo `92` + both bundles.
 - [x] **Deferred:** surfacing the suppression count in the Alerts tab beyond the history row.
+
+## Phase 1130: Monitoring health — status + re-enable + Home banner
+
+- [x] **Detect silently-dead background monitoring.** `assessMonitoringHealth({ enabled, registered, lastRunAt, intervalMs, now })` in `lib/monitoring-health.ts` returns `off` (disabled or not entitled), `stopped` (enabled but `TaskManager.isTaskRegisteredAsync` false), `stale` (`lastRunAt` older than `2×` the configured interval), or `ok` (`lastRunAt` null = registered, never run). The hook mirrors `registerPriceCheckTask`'s gate exactly (`checkInterval !== "manual"` + entitlement) and deliberately ignores `backgroundServiceEnabled` (a separate native foreground-service toggle).
+- [x] **Last-run timestamp.** The price-check task persists each run via the new `getLastBackgroundRun`/storage key; the hook reads it and re-assesses on `AppState` `active`.
+- [x] `hooks/use-monitoring-health.ts` returns the `MonitoringHealth` union; no-op on web (`off`).
+- [x] **Settings** (`app/(tabs)/settings.tsx`): under the Background Refresh row — `Last checked: <formatLastRefreshed>` / `Not yet run` when `ok`; a warning row (amber icon + "Background monitoring may have stopped") with a **Re-enable** button calling `registerPriceCheckTask()` when `stopped`/`stale`; nothing when `off`.
+- [x] **Home** (`app/(tabs)/index.tsx`): a dismissible amber banner ("Background monitoring may have stopped — tap to fix.") above the watchlist when `stopped`/`stale`; body pushes to Settings, close icon dismisses for the session.
+- [x] `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
+- [x] **Deferred:** push-delivery diagnostics (did the server actually deliver?) — this phase covers task registration + last-run freshness only.

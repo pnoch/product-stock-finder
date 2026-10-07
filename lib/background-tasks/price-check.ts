@@ -10,6 +10,7 @@ import {
   getPriceDigestSnapshot,
   savePriceDigestSnapshot,
   updateSettings,
+  setLastBackgroundRun,
 } from "../storage";
 import { Platform } from "react-native";
 import { formatPrice } from "@shared/currency";
@@ -336,6 +337,11 @@ export async function checkPriceDropsNow(
 ) {
   // Foreground check — same logic as background task, called on app focus
   await runPriceCheckCore({ onProgress });
+
+  // Record the timestamp here too: the health hook reads it as "last price
+  // check (foreground or background)", so a foreground check must clear a
+  // `stale` background task rather than only the background handler updating it.
+  await setLastBackgroundRun(Date.now());
 
   // Pull any server-queued notification events (server-side detection supplement)
   await syncServerNotifications();

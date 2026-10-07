@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   priceCore: vi.fn(async () => {}),
   testAll: vi.fn(async () => {}),
   checkAlerts: vi.fn(async () => {}),
+  setLastBackgroundRun: vi.fn(async (_ts: number) => {}),
   isTaskRegisteredAsync: vi.fn(async (name: string) => !!state.registered[name]),
   registerTaskAsync: vi.fn(async (name: string, opts: unknown) => {
     state.registered[name] = true;
@@ -58,6 +59,8 @@ vi.mock("../lib/storage", () => ({
   ),
   saveBackgroundTaskInterval: (...a: unknown[]) =>
     state.saveInterval(...(a as [number | null, string])),
+  setLastBackgroundRun: (...a: unknown[]) =>
+    state.setLastBackgroundRun(...(a as [number])),
 }));
 
 vi.mock("../lib/background-tasks/instances", () => ({
@@ -117,6 +120,12 @@ describe("task handlers", () => {
     expect(await state.handlers[PRICE_CHECK_TASK]!()).toBe("success");
     state.priceCore.mockRejectedValueOnce(new Error("boom"));
     expect(await state.handlers[PRICE_CHECK_TASK]!()).toBe("failed");
+  });
+
+  it("records the last background run on success", async () => {
+    await state.handlers[PRICE_CHECK_TASK]!();
+    expect(state.setLastBackgroundRun).toHaveBeenCalledTimes(1);
+    expect(typeof state.setLastBackgroundRun.mock.calls[0]![0]).toBe("number");
   });
 
   it("runs the health probe then alerts, returning Success/Failed", async () => {

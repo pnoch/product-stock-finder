@@ -11,6 +11,7 @@ import {
   Animated,
   Easing,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -31,6 +32,7 @@ import { ConnectionBadge } from "@/components/connection-badge";
 import { TrendingSection } from "@/components/home/trending-section";
 import { AvailableSection } from "@/components/home/available-section";
 import { useConnection } from "@/hooks/use-connection";
+import { useMonitoringHealth } from "@/hooks/use-monitoring-health";
 import { fetchProductImage } from "@/lib/server-images";
 
 
@@ -115,6 +117,8 @@ export default function HomeScreen() {
   const colors = useColors();
   const connection = useConnection();
   const queryClient = useQueryClient();
+  const { health: monitoring } = useMonitoringHealth();
+  const [monitoringDismissed, setMonitoringDismissed] = useState(false);
   const [watchlist, setWatchlist] = useState<Product[]>([]);
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -314,6 +318,49 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {!monitoringDismissed &&
+          (monitoring.status === "stopped" || monitoring.status === "stale") && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginHorizontal: 16,
+                marginBottom: 4,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: colors.warning + "55",
+                backgroundColor: colors.warning + "1A",
+              }}
+            >
+              <Pressable
+                onPress={() => router.push("/(tabs)/settings")}
+                accessibilityRole="button"
+                accessibilityLabel="Background monitoring may have stopped. Tap to fix."
+                style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}
+              >
+                <IconSymbol
+                  name="exclamationmark.triangle.fill"
+                  size={18}
+                  color={colors.warning}
+                />
+                <Text style={{ flex: 1, color: colors.foreground, fontSize: 13 }}>
+                  Background monitoring may have stopped — tap to fix.
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setMonitoringDismissed(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss monitoring warning"
+                hitSlop={8}
+              >
+                <IconSymbol name="xmark" size={16} color={colors.muted} />
+              </Pressable>
+            </View>
+          )}
 
         {/* Summary Cards */}
         <View className="flex-row px-4 mt-3 mb-4" style={{ gap: 8 }}>

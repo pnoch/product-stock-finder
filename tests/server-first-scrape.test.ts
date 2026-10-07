@@ -17,6 +17,7 @@ const healthMocks = vi.hoisted(() => ({
 
 vi.mock("../lib/storage", () => ({
   getWatchlist: vi.fn(async () => state.watchlistStore),
+  setLastBackgroundRun: vi.fn(async () => {}),
   updateProductListings: vi.fn(
     async (productId: string, listings: DistributorListing[]) => {
       state.updatedListings.push(listings);
