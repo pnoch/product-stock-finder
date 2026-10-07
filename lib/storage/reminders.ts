@@ -150,6 +150,19 @@ export function createRemindersStorage(ctx: StorageContext) {
     });
   }
 
+  async function updateStockWatchStatuses(
+    watchId: string,
+    statuses: Record<string, string>,
+  ): Promise<void> {
+    await enqueue(KEYS.STOCK_WATCHES, async () => {
+      const watches = await getStockWatches();
+      const updated = watches.map((w) =>
+        w.id === watchId ? { ...w, lastKnownStatusByDistributor: statuses } : w,
+      );
+      await persistStockWatches(updated);
+    });
+  }
+
   return {
     getBackOrderReminders,
     saveBackOrderReminders,
@@ -162,5 +175,6 @@ export function createRemindersStorage(ctx: StorageContext) {
     addStockWatch,
     removeStockWatch,
     updateStockWatchStatus,
+    updateStockWatchStatuses,
   };
 }
