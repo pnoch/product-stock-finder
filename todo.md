@@ -8320,3 +8320,10 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] CI already ran `build:desktop`; added `build:android-js`.
 - [x] `pnpm verify` exit 0 — root `3453` / desktop `324` / cargo `90` + both bundles build.
 - [x] **Lesson reinforced:** the same Node-only-import regression broke two independent bundlers (Metro, then Vite). A guard now covers all bundlers, and both builds are in the gate.
+
+## Phase 1122: Desktop currency parity (static rates + format_price)
+
+- [x] **Real bug found by auditing the desktop Rust poller.** The desktop Settings picker offers all **44** currencies (`Object.keys(EXCHANGE_RATES)` from shared), but the Rust `static EXCHANGE_RATES` had only **12** and `format_price` knew only 12 symbols. For a JPY/INR/PLN/etc. user, `convert_price` returned `None` (rate absent) so the price alert **silently never fired**, and the notification body showed a bare number with no symbol. The live `fx_rates` overlay only helps once the server fetch warms it; the static fallback (offline / pre-fetch) was wrong.
+- [x] Extended the Rust static table to all 44 currencies and rewrote `format_price` to mirror shared `formatPrice` (all symbols, leading minus for negatives, `N/A` for non-finite).
+- [x] Tests: a Rust test asserts every offered currency has a static rate, a same-currency conversion succeeds, and `format_price` carries a symbol; a TS parity guard (`tests/desktop-parity-shared-helpers.test.ts`) reads the Rust source and asserts its table covers every `EXCHANGE_RATES` key. Both non-vacuous.
+- [x] `pnpm verify` exit 0 — root `3454` / desktop `324` / cargo `91` + both bundles.

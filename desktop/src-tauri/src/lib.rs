@@ -13,7 +13,7 @@ use tokio::net::TcpListener;
 
 // ─── Exchange Rates (matching lib/currency.ts) ────────────────────────────────
 
-static EXCHANGE_RATES: [(&str, f64); 12] = [
+static EXCHANGE_RATES: [(&str, f64); 44] = [
     ("USD", 1.0),
     ("EUR", 0.92),
     ("GBP", 0.79),
@@ -26,6 +26,38 @@ static EXCHANGE_RATES: [(&str, f64); 12] = [
     ("SGD", 1.34),
     ("HKD", 7.82),
     ("AED", 3.67),
+    ("BDT", 110.0),
+    ("CHF", 0.88),
+    ("CNY", 7.25),
+    ("CZK", 23.0),
+    ("DKK", 6.9),
+    ("EGP", 48.0),
+    ("HUF", 360.0),
+    ("IDR", 15800.0),
+    ("ILS", 3.7),
+    ("INR", 84.0),
+    ("JPY", 150.0),
+    ("KES", 130.0),
+    ("KHR", 4100.0),
+    ("KRW", 1350.0),
+    ("KWD", 0.31),
+    ("LKR", 300.0),
+    ("MXN", 18.0),
+    ("NGN", 1600.0),
+    ("NOK", 10.8),
+    ("NPR", 134.0),
+    ("PHP", 58.0),
+    ("PKR", 278.0),
+    ("PLN", 4.0),
+    ("QAR", 3.64),
+    ("RON", 4.6),
+    ("RSD", 108.0),
+    ("SAR", 3.75),
+    ("SEK", 10.5),
+    ("TRY", 34.0),
+    ("TWD", 32.0),
+    ("UAH", 41.0),
+    ("VND", 25000.0),
 ];
 
 /// Live FX overlay, mirroring lib/currency.ts (`setExchangeRates` +
@@ -88,6 +120,8 @@ fn convert_price(amount: f64, from_currency: &str, to_currency: &str) -> Option<
 }
 
 fn format_price(amount: f64, currency: &str) -> String {
+    // Mirrors shared/src/currency.ts formatPrice: symbol (or the code when
+    // unknown), a leading minus for negatives, and no exponential notation.
     let symbol = match currency {
         "USD" => "$",
         "EUR" => "€",
@@ -101,9 +135,45 @@ fn format_price(amount: f64, currency: &str) -> String {
         "SGD" => "S$",
         "HKD" => "HK$",
         "AED" => "AED",
-        _ => "",
+        "BDT" => "৳",
+        "CHF" => "CHF",
+        "CNY" => "CN¥",
+        "CZK" => "Kč",
+        "DKK" => "kr",
+        "EGP" => "E£",
+        "HUF" => "Ft",
+        "IDR" => "Rp",
+        "ILS" => "₪",
+        "INR" => "₹",
+        "JPY" => "¥",
+        "KES" => "KSh",
+        "KHR" => "៛",
+        "KRW" => "₩",
+        "KWD" => "KD",
+        "LKR" => "Rs",
+        "MXN" => "Mex$",
+        "NGN" => "₦",
+        "NOK" => "kr",
+        "NPR" => "Rs",
+        "PHP" => "₱",
+        "PKR" => "Rs",
+        "PLN" => "zł",
+        "QAR" => "QR",
+        "RON" => "lei",
+        "RSD" => "din",
+        "SAR" => "SR",
+        "SEK" => "kr",
+        "TRY" => "₺",
+        "TWD" => "NT$",
+        "UAH" => "₴",
+        "VND" => "₫",
+        other => other,
     };
-    format!("{}{:.2}", symbol, amount)
+    if !amount.is_finite() {
+        return "N/A".to_string();
+    }
+    let sign = if amount < 0.0 { "-" } else { "" };
+    format!("{}{}{:.2}", sign, symbol, amount.abs())
 }
 
 fn trigger_event_json(
@@ -2320,6 +2390,38 @@ mod tests {
         }
         assert_eq!(convert_price(100.0, "USD", "EUR"), Some(92.0));
         assert_eq!(convert_price(100.0, "USD", "ZZZ"), None);
+    }
+
+    #[test]
+    fn static_rates_and_format_price_cover_every_offered_currency() {
+        // The Settings picker offers every key of shared EXCHANGE_RATES (44).
+        // The static table must cover them all, or a JPY/INR/PLN user's alert
+        // silently never fires (convert_price returns None) and the body shows
+        // a bare number. Mirrors shared/src/currency.ts.
+        for code in [
+            "USD", "EUR", "GBP", "MYR", "AUD", "NZD", "CAD", "ZAR", "THB", "SGD", "HKD", "AED",
+            "BDT", "CHF", "CNY", "CZK", "DKK", "EGP", "HUF", "IDR", "ILS", "INR", "JPY", "KES",
+            "KHR", "KRW", "KWD", "LKR", "MXN", "NGN", "NOK", "NPR", "PHP", "PKR", "PLN", "QAR",
+            "RON", "RSD", "SAR", "SEK", "TRY", "TWD", "UAH", "VND",
+        ] {
+            assert!(
+                EXCHANGE_RATES.iter().any(|(c, _)| *c == code),
+                "static EXCHANGE_RATES missing {code}"
+            );
+            // A same-currency conversion must succeed (rate present and > 0).
+            assert!(
+                convert_price(100.0, code, code).is_some(),
+                "convert_price failed for {code}"
+            );
+            // The formatted body must carry a symbol, not a bare number.
+            let formatted = format_price(1204.0, code);
+            assert!(
+                formatted.contains(code) || formatted.chars().any(|c| !c.is_ascii_digit() && c != '.'),
+                "format_price({code}) produced no symbol: {formatted}"
+            );
+        }
+        assert_eq!(format_price(-5.0, "USD"), "-$5.00");
+        assert_eq!(format_price(f64::NAN, "USD"), "N/A");
     }
 
     #[test]
