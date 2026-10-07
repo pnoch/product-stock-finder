@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   PRODUCT_CATALOG,
   getAllBrands,
@@ -67,6 +69,26 @@ describe("desktop parity shared helpers", () => {
   it("uses the hourly FX cache window", () => {
     expect(FX_TTL_MS).toBe(60 * 60 * 1000);
     expect(Object.keys(EXCHANGE_RATES)).toContain("USD");
+  });
+
+  it("the desktop Rust static rates cover every shared currency", () => {
+    // The Settings picker offers every key of EXCHANGE_RATES; the desktop Rust
+    // static table (used by the poller's alert conversion before the live FX
+    // overlay warms) must cover them all, or a JPY/INR/PLN alert silently never
+    // fires. This guard reads the Rust source so the two tables cannot drift.
+    const rust = readFileSync(
+      join(__dirname, "..", "desktop", "src-tauri", "src", "lib.rs"),
+      "utf8",
+    );
+    const table = rust.slice(
+      rust.indexOf("static EXCHANGE_RATES"),
+      rust.indexOf("];", rust.indexOf("static EXCHANGE_RATES")),
+    );
+    for (const code of Object.keys(EXCHANGE_RATES)) {
+      expect(table, `desktop EXCHANGE_RATES missing ${code}`).toContain(
+        `("${code}",`,
+      );
+    }
   });
 
   it("ignores unrecognized listings when choosing regional best prices", () => {
