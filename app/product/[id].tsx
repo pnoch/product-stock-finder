@@ -480,7 +480,7 @@ export default function ProductDetailScreen() {
         { text: "Any distributor", onPress: () => { setTogglingWatch(false); void toggleAnyWatch(); } },
       ],
     );
-  }, [id, product, listings, stockWatches, showToast, togglingWatch]);
+  }, [id, product, stockWatches, showToast, togglingWatch, toggleAnyWatch]);
 
   const handleSetReminder = useCallback(async () => {
     const listing = reminderListing;
@@ -678,7 +678,7 @@ export default function ProductDetailScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
       >
-        <DetailHeader product={product} bestDeal={bestDeal} scrollY={scrollY} />
+        <DetailHeader product={product} bestDeal={bestDeal} scrollY={scrollY} watchingAny={!!stockWatches["*"]} onToggleWatch={() => void toggleAnyWatch()} />
         <View ref={shareRef} collapsable={false}>
           <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={effectiveCurrency} productImage={productImage} />
           {dealScore != null && (

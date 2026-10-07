@@ -1,7 +1,8 @@
-import { Animated, Text, View } from "react-native";
+import { Animated, Pressable, Text, View } from "react-native";
 import { StockBadge } from "@/components/stock-badge";
 import { getDistributorById } from "@shared/distributors";
 import { useColors } from "@/hooks/use-colors";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import type { Product } from "@/lib/types";
 import type { BestDeal } from "@/lib/best-deal";
 
@@ -9,10 +10,14 @@ export function DetailHeader({
   product,
   bestDeal,
   scrollY,
+  watchingAny,
+  onToggleWatch,
 }: {
   product: Product;
   bestDeal: BestDeal | null;
   scrollY?: Animated.Value;
+  watchingAny: boolean;
+  onToggleWatch: () => void;
 }) {
   const colors = useColors();
   const region = bestDeal
@@ -38,6 +43,28 @@ export function DetailHeader({
       <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>{product.name}</Text>
       <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>{product.brand} · {product.category} · {product.modelNumber}</Text>
       {region ? <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>{region}</Text> : null}
+      <Pressable
+        onPress={onToggleWatch}
+        accessibilityRole="button"
+        accessibilityLabel={watchingAny ? "Stop watching all distributors" : "Watch for restock across all distributors"}
+        style={{
+          marginTop: 10,
+          alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 7,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: watchingAny ? colors.success : colors.primary,
+        }}
+      >
+        <IconSymbol name={watchingAny ? "bell.fill" : "bell"} size={14} color={watchingAny ? colors.success : colors.primary} />
+        <Text style={{ color: watchingAny ? colors.success : colors.primary, fontWeight: "600", fontSize: 13 }}>
+          {watchingAny ? "Watching — tap to stop" : "Watch for restock"}
+        </Text>
+      </Pressable>
       {bestDeal ? <View style={{ marginTop: 8 }}><StockBadge status="in_stock" /></View> : null}
     </View>
   );
