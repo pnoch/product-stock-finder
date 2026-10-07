@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   watchlist: [] as any[],
-  addToWatchlist: vi.fn(async () => true),
+  addToWatchlist: vi.fn(async (_product: unknown) => true),
   enforceLimits: false,
   canAdd: true,
 }));
