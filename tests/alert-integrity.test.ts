@@ -33,4 +33,11 @@ describe("checkPriceAnomaly", () => {
     expect(checkPriceAnomaly(40, [100, 100, 100], { lowRatio: 0.5 }).suspicious).toBe(true);
     expect(checkPriceAnomaly(40, [100, 100, 100], { lowRatio: 0.3 }).suspicious).toBe(false);
   });
+
+  it("treats the thresholds as exclusive (exactly at the ratio is not suspicious)", () => {
+    // ratio === 0.3 (the default lowRatio) must NOT be suspicious.
+    expect(checkPriceAnomaly(30, [100, 100, 100]).suspicious).toBe(false);
+    // ratio === 5 (the default highRatio) must NOT be suspicious.
+    expect(checkPriceAnomaly(500, [100, 100, 100]).suspicious).toBe(false);
+  });
 });
