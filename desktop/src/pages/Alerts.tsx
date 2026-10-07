@@ -53,6 +53,7 @@ const TYPE_ICONS = {
   reminder: Clock,
   health: TriangleAlert,
   digest: BarChart3,
+  suspicious_price: TriangleAlert,
 } as const;
 
 export function Alerts() {
