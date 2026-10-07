@@ -81,13 +81,15 @@ export const StockWatchCard = memo(function StockWatchCard({
               }}
             />
             <Text style={{ color: colors.muted, fontSize: 12 }}>
-              {watch.lastKnownStatus === "back_order"
-                ? "Back Order"
-                : watch.lastKnownStatus === "out_of_stock"
-                  ? "Out of Stock"
-                  : watch.lastKnownStatus === "in_stock"
-                    ? "In Stock"
-                    : "Unknown"}
+              {watch.scope === "any"
+                ? "Watching all distributors"
+                : watch.lastKnownStatus === "back_order"
+                  ? "Back Order"
+                  : watch.lastKnownStatus === "out_of_stock"
+                    ? "Out of Stock"
+                    : watch.lastKnownStatus === "in_stock"
+                      ? "In Stock"
+                      : "Unknown"}
             </Text>
             <Text
               style={{
