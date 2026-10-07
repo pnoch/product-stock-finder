@@ -14,6 +14,7 @@ import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getAllBrands, getAllCategories } from "@shared/catalog";
 import { formatPrice } from "@shared/currency";
+import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { getBestPrice } from "@/lib/currency";
 import { getSettings, getWatchlist } from "@/lib/storage";
 import { isServerConfigured } from "@/constants/oauth";
@@ -29,6 +30,8 @@ type Row = {
   price: number;
   currency: string;
   storeCount: number;
+  /** Epoch ms the price was cached; undefined for the standalone fallback. */
+  fetchedAt?: number;
 };
 
 function Chip({
@@ -141,6 +144,11 @@ function AvailableRow({ row, onPress }: { row: Row; onPress: () => void }) {
             {formatPrice(row.price, row.currency)} · in stock at {row.storeCount}{" "}
             {row.storeCount === 1 ? "store" : "stores"}
           </Text>
+          {row.fetchedAt != null && (
+            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
+              as of {formatLastRefreshed(new Date(row.fetchedAt).toISOString())}
+            </Text>
+          )}
         </View>
         <StockBadge status="in_stock" />
       </View>
@@ -206,6 +214,7 @@ export default function AvailableScreen() {
         price: p.bestPrice,
         currency: p.bestCurrency,
         storeCount: p.storeCount,
+        fetchedAt: p.fetchedAt,
       })),
     [query.data],
   );

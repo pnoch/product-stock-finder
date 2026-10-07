@@ -50,4 +50,9 @@ describe("AvailableScreen", () => {
     expect(screen.getByText(/Switch A/)).toBeTruthy();
     expect(screen.getByText(/100/)).toBeTruthy();
   });
+
+  it("shows a freshness line for server rows", () => {
+    render(<AvailableScreen />);
+    expect(screen.getByText(/as of /i)).toBeTruthy();
+  });
 });
