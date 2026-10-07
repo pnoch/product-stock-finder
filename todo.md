@@ -8311,3 +8311,12 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Verified end-to-end:** `./gradlew :app:assembleRelease` now succeeds; the APK installs and launches on the x86_64 emulator showing the repositioned home ("Product Stock Finder" / "Find it anywhere. Landed to your door.") with the 7 seeded products. The fresh web export no longer bundles the real impit (uses `impit-stub`).
 - [x] Guard: `tests/metro-resolver.test.ts` (+4) pins the impit redirect on all app platforms and the node passthrough; `tests/scrapers/impit-guard.test.ts` allows the stub. `pnpm verify` exit 0 — root `3449` / desktop `324` / cargo `90`.
 - [x] **Lesson:** `pnpm verify` (tsc/lint/vitest/cargo) does not build the Android JS bundle, so a Metro-resolution regression is invisible to it. Building the release APK is the only gate that catches this class.
+
+## Phase 1121: Desktop Vite build fix (impit) + build gates
+
+- [x] **The same impit bug broke the desktop build.** `desktop/src/pages/Health.tsx` imports `classifyFetchStatus` from `lib/scrapers/resilient.ts`, which imports `plain-fetch.ts` → `impit`. Vite resolved the lazy import statically and failed on impit's platform `.node` binary (`Unexpected character '\u{7f}'`). Fixed by aliasing `impit` → `lib/scrapers/impit-stub.ts` in `desktop/vite.config.ts` (same trick as the `browser` stub).
+- [x] **Both builds are now in `pnpm verify`:** `build:android-js` (Metro/Android) and `build:desktop` (Vite). `pnpm verify` = check + lint + root tests + desktop tests + cargo + Android bundle + desktop build.
+- [x] **Cross-bundler guard** (`tests/bundler-impit-guard.test.ts`): pins that Metro (`scripts/metro-resolver.js` + `metro.config.js`) AND Vite (`desktop/vite.config.ts`) both redirect impit to the stub, and that the stub throws. Non-vacuous (removing either alias fails it).
+- [x] CI already ran `build:desktop`; added `build:android-js`.
+- [x] `pnpm verify` exit 0 — root `3453` / desktop `324` / cargo `90` + both bundles build.
+- [x] **Lesson reinforced:** the same Node-only-import regression broke two independent bundlers (Metro, then Vite). A guard now covers all bundlers, and both builds are in the gate.
