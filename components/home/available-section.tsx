@@ -1,21 +1,27 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { useToast } from "@/components/ui/toast";
+import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { formatPrice } from "@shared/currency";
 import { isServerConfigured } from "@/constants/oauth";
-import { fetchAvailable, type AvailableProduct } from "@/lib/server-catalog";
+import { getSettings } from "@/lib/storage";
+import { fetchAvailable } from "@/lib/server-catalog";
+import { ensureWatchlistProduct } from "@/lib/ensure-watchlist-product";
+import type { AvailableProduct } from "@/lib/types";
 
 const AvailableRow = memo(function AvailableRow({
   product,
   onPress,
 }: {
   product: AvailableProduct;
-  onPress: (id: string) => void;
+  onPress: () => void;
 }) {
   const colors = useColors();
-  const handlePress = useCallback(() => onPress(product.id), [onPress, product.id]);
+  const handlePress = useCallback(() => onPress(), [onPress]);
   return (
     <Pressable
       onPress={handlePress}
@@ -67,11 +73,43 @@ AvailableRow.displayName = "AvailableRow";
 export const AvailableSection = memo(function AvailableSection() {
   const colors = useColors();
   const router = useRouter();
+  const { isPro } = useEntitlements();
+  const { showToast } = useToast();
+  const [currency, setCurrency] = useState("USD");
+  const [paywallVisible, setPaywallVisible] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const settings = await getSettings();
+      if (active) setCurrency(settings?.displayCurrency ?? "USD");
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["available", "home"],
-    queryFn: () => fetchAvailable(),
+    queryKey: ["available", "home", currency],
+    queryFn: () => fetchAvailable({ currency }),
     enabled: isServerConfigured(),
   });
+
+  const handlePress = useCallback(
+    async (product: AvailableProduct) => {
+      const result = await ensureWatchlistProduct(product, isPro);
+      if (result.paywall) {
+        setPaywallVisible(true);
+        return;
+      }
+      if (!result.ok) {
+        showToast("Couldn't add to watchlist", "error");
+        return;
+      }
+      router.push(`/product/${product.id}`);
+    },
+    [isPro, router, showToast],
+  );
 
   if (isLoading || !data || data.length === 0) return null;
 
@@ -111,9 +149,13 @@ export const AvailableSection = memo(function AvailableSection() {
         <AvailableRow
           key={product.id}
           product={product}
-          onPress={(id) => router.push(`/product/${id}`)}
+          onPress={() => void handlePress(product)}
         />
       ))}
+      <PaywallScreen
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+      />
     </View>
   );
 });

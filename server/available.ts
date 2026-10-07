@@ -1,18 +1,8 @@
 import type { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import { convertPrice } from "../shared/src/currency.js";
+import type { AvailableProduct } from "../lib/types";
 
-export interface AvailableProduct {
-  id: string;
-  name: string;
-  brand: string;
-  category: string;
-  modelNumber: string;
-  bestPrice: number;
-  bestCurrency: string;
-  bestDistributorId: string;
-  storeCount: number;
-  fetchedAt: number;
-}
+export type { AvailableProduct };
 
 interface CacheRow {
   distributorId: string;

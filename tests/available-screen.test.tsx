@@ -6,6 +6,12 @@ import React from "react";
 const state = vi.hoisted(() => ({
   configured: true,
   watchlist: [] as any[],
+  queryError: false,
+  push: vi.fn(),
+  refetch: vi.fn(),
+  ensure: vi.fn(
+    async (_product: unknown, _isPro: boolean) => ({ ok: true, paywall: false }),
+  ),
 }));
 
 vi.mock("react-native", async () => {
@@ -38,14 +44,31 @@ vi.mock("@/lib/storage", () => ({
   getSettings: vi.fn(async () => ({ displayCurrency: "USD" })),
 }));
 vi.mock("@/lib/server-catalog", () => ({ fetchAvailable: vi.fn(async () => []) }));
+vi.mock("@/lib/ensure-watchlist-product", () => ({
+  ensureWatchlistProduct: (product: any, isPro: boolean) =>
+    state.ensure(product, isPro),
+}));
+vi.mock("@/hooks/use-entitlements", () => ({
+  useEntitlements: () => ({ tier: "free", isPro: false }),
+}));
+vi.mock("@/components/ui/toast", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+vi.mock("@/components/paywall/paywall-screen", () => ({
+  PaywallScreen: () => null,
+}));
 vi.mock("expo-router", () => ({
   Stack: { Screen: () => null },
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: state.push }),
 }));
 vi.mock("@tanstack/react-query", () => ({
   useQuery: () => ({
-    data: [{ id: "p1", name: "Switch A", brand: "MikroTik", category: "Networking Switch", modelNumber: "M1", bestPrice: 100, bestCurrency: "USD", bestDistributorId: "d1", storeCount: 2, fetchedAt: Date.now() }],
+    data: state.queryError
+      ? undefined
+      : [{ id: "p1", name: "Switch A", brand: "MikroTik", category: "Networking Switch", modelNumber: "M1", bestPrice: 100, bestCurrency: "USD", bestDistributorId: "d1", storeCount: 2, fetchedAt: Date.now() }],
     isLoading: false,
+    isError: state.queryError,
+    refetch: state.refetch,
   }),
 }));
 
@@ -55,6 +78,11 @@ afterEach(() => {
   cleanup();
   state.configured = true;
   state.watchlist = [];
+  state.queryError = false;
+  state.push.mockClear();
+  state.refetch.mockClear();
+  state.ensure.mockClear();
+  state.ensure.mockResolvedValue({ ok: true, paywall: false });
 });
 
 function listing(stockStatus: string, price = 100) {
@@ -86,6 +114,52 @@ describe("AvailableScreen", () => {
   it("shows a freshness line for server rows", () => {
     render(<AvailableScreen />);
     expect(screen.getByText(/as of /i)).toBeTruthy();
+  });
+
+  it("adds a board product before navigating to its detail", async () => {
+    render(<AvailableScreen />);
+    const row = screen.getByRole("button", { name: /View Switch A/ });
+    await act(async () => {
+      row.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    // The detail screen reads the watchlist, so a server row must be added
+    // before navigating or it shows "Product not found".
+    expect(state.ensure).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "p1" }),
+      false,
+    );
+    expect(state.push).toHaveBeenCalledWith("/product/p1");
+  });
+
+  it("does not navigate when the add is blocked", async () => {
+    state.ensure.mockResolvedValue({ ok: false, paywall: true });
+    render(<AvailableScreen />);
+    const row = screen.getByRole("button", { name: /View Switch A/ });
+    await act(async () => {
+      row.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(state.push).not.toHaveBeenCalled();
+  });
+
+  it("shows an error state with Retry instead of the empty state on failure", () => {
+    state.queryError = true;
+    render(<AvailableScreen />);
+    expect(screen.getByText(/Couldn't load/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Retry loading available/i })).toBeTruthy();
+    expect(screen.queryByText(/Nothing in stock right now/i)).toBeNull();
+  });
+
+  it("retries the query when Retry is pressed", async () => {
+    state.queryError = true;
+    render(<AvailableScreen />);
+    const retry = screen.getByRole("button", { name: /Retry loading available/i });
+    await act(async () => {
+      retry.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(state.refetch).toHaveBeenCalled();
   });
 
   it("renders an in-stock watchlist product in the standalone fallback", async () => {

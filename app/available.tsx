@@ -18,15 +18,22 @@ import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { getBestPrice } from "@/lib/currency";
 import { getSettings, getWatchlist } from "@/lib/storage";
 import { isServerConfigured } from "@/constants/oauth";
-import { fetchAvailable, type AvailableProduct } from "@/lib/server-catalog";
+import { fetchAvailable } from "@/lib/server-catalog";
+import { ensureWatchlistProduct } from "@/lib/ensure-watchlist-product";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { useToast } from "@/components/ui/toast";
+import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { goBackOrHome } from "@/lib/navigation";
-import type { Product } from "@/lib/types";
+import type { AvailableProduct, Product } from "@/lib/types";
 
 const PRICE_CAPS = [50, 250, 500, 1000];
 
 type Row = {
   id: string;
   name: string;
+  brand: string;
+  category: string;
+  modelNumber?: string;
   price: number;
   currency: string;
   storeCount: number;
@@ -160,12 +167,15 @@ export default function AvailableScreen() {
   const colors = useColors();
   const router = useRouter();
   const configured = isServerConfigured();
+  const { isPro } = useEntitlements();
+  const { showToast } = useToast();
 
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [brand, setBrand] = useState<string | undefined>(undefined);
   const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
   const [currency, setCurrency] = useState("USD");
   const [fallbackRows, setFallbackRows] = useState<Row[]>([]);
+  const [paywallVisible, setPaywallVisible] = useState(false);
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
@@ -209,6 +219,9 @@ export default function AvailableScreen() {
         rows.push({
           id: product.id,
           name: product.name,
+          brand: product.brand,
+          category: product.category,
+          modelNumber: product.modelNumber,
           price: best.price,
           currency: best.currency,
           storeCount: inStock.length,
@@ -226,6 +239,9 @@ export default function AvailableScreen() {
       (query.data ?? []).map((p) => ({
         id: p.id,
         name: p.name,
+        brand: p.brand,
+        category: p.category,
+        modelNumber: p.modelNumber,
         price: p.bestPrice,
         currency: p.bestCurrency,
         storeCount: p.storeCount,
@@ -237,11 +253,22 @@ export default function AvailableScreen() {
   const rows = configured ? serverRows : fallbackRows;
   const loading = configured && query.isLoading;
 
+  // The product detail screen reads the watchlist, so a server row must be
+  // added before navigating or it shows "Product not found".
   const openProduct = useCallback(
-    (id: string) => {
-      router.push(`/product/${id}`);
+    async (row: Row) => {
+      const result = await ensureWatchlistProduct(row, isPro);
+      if (result.paywall) {
+        setPaywallVisible(true);
+        return;
+      }
+      if (!result.ok) {
+        showToast("Couldn't add to watchlist", "error");
+        return;
+      }
+      router.push(`/product/${row.id}`);
     },
-    [router],
+    [isPro, router, showToast],
   );
 
   return (
@@ -370,6 +397,48 @@ export default function AvailableScreen() {
             <SkeletonRow />
             <SkeletonRow />
           </>
+        ) : configured && query.isError ? (
+          <View
+            style={{
+              alignItems: "center",
+              paddingHorizontal: 32,
+              marginTop: 48,
+            }}
+          >
+            <IconSymbol
+              name="exclamationmark.triangle"
+              size={30}
+              color={colors.muted}
+            />
+            <Text
+              style={{
+                color: colors.foreground,
+                fontWeight: "700",
+                fontSize: 16,
+                marginTop: 16,
+                textAlign: "center",
+              }}
+            >
+              Couldn&apos;t load available products
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading available"
+              onPress={() => void query.refetch()}
+              style={{
+                marginTop: 16,
+                backgroundColor: colors.primary,
+                borderRadius: 10,
+                paddingHorizontal: 18,
+                paddingVertical: 9,
+              }}
+            >
+              <Text style={{ color: "#fff", fontSize: 14, fontWeight: "600" }}>
+                Retry
+              </Text>
+            </TouchableOpacity>
+          </View>
         ) : rows.length === 0 ? (
           <View
             style={{
@@ -408,11 +477,15 @@ export default function AvailableScreen() {
             <AvailableRow
               key={row.id}
               row={row}
-              onPress={() => openProduct(row.id)}
+              onPress={() => void openProduct(row)}
             />
           ))
         )}
       </ScrollView>
+      <PaywallScreen
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+      />
     </ScreenContainer>
   );
 }
