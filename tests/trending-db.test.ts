@@ -92,7 +92,10 @@ describe.skipIf(!runDbTests)("trending router (DB)", () => {
     const rows = await caller.get();
     expect(rows).toHaveLength(1);
     expect(rows[0]!.name).toBe("RTX 5090");
-    expect(rows[0]!.estimatedPrice).toBe("2000.00");
+    // Drizzle returns the decimal column as a string; the router must convert
+    // it to a number or the client's formatPrice renders "N/A".
+    expect(rows[0]!.estimatedPrice).toBe(2000);
+    expect(typeof rows[0]!.estimatedPrice).toBe("number");
   });
 
   it("returns count 0 without clobbering existing rows when the model returns none", async () => {
