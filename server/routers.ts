@@ -14,6 +14,7 @@ import { pricesRouter } from "./routers/prices";
 import { notificationsRouter } from "./routers/notifications";
 import { devicesRouter } from "./routers/devices";
 import { sharedWatchlistsRouter } from "./routers/shared-watchlists";
+import { catalogRouter } from "./routers/catalog";
 
 export { getOrigin } from "./routers/helpers";
 export { clearHealthCacheForTests } from "./routers/health";
@@ -48,6 +49,8 @@ export const appRouter = router({
   devices: devicesRouter,
 
   sharedWatchlists: sharedWatchlistsRouter,
+
+  catalog: catalogRouter,
 });
 
 export type AppRouter = typeof appRouter;

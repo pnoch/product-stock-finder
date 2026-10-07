@@ -1,8 +1,9 @@
-import { and, asc, desc, eq, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { priceCache, type PriceCacheRow } from "../drizzle/schema";
 import { getDb, affectedRowsOf } from "./db";
 import { storagePrice, storeKey } from "./store-keys";
 import { isPlausiblePrice } from "../shared/const";
+import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
 import type { PriceSnapshot, StockStatus } from "../lib/types";
 
 type MemoryEntry = {
@@ -169,6 +170,42 @@ export async function getAllFetchedAt(
 
 export function clearPriceCacheForTests(): void {
   memoryCache.clear();
+}
+
+export async function listCachedInStock(
+  now: number,
+  maxAgeMs: number,
+): Promise<(PriceSnapshot & { distributorId: string; modelNumber: string })[]> {
+  const cutoff = now - maxAgeMs;
+  // prices.get is public with an arbitrary modelNumber, so the cache can hold
+  // far more than the catalog. Bound the scan to catalog models at SQL level;
+  // otherwise this is an unbounded, publicly reachable scan.
+  const catalogModels = PRODUCT_CATALOG.map((p) => p.modelNumber);
+  const db = await getDb();
+  if (!db) {
+    const out: (PriceSnapshot & { distributorId: string; modelNumber: string })[] = [];
+    for (const entry of memoryCache.values()) {
+      if (
+        entry.snapshot.stockStatus === "in_stock" &&
+        entry.snapshot.fetchedAt >= cutoff &&
+        catalogModels.includes(entry.modelNumber)
+      ) {
+        out.push({ ...entry.snapshot, distributorId: entry.distributorId, modelNumber: entry.modelNumber });
+      }
+    }
+    return out;
+  }
+  const rows = await db
+    .select()
+    .from(priceCache)
+    .where(
+      and(
+        eq(priceCache.stockStatus, "in_stock"),
+        gte(priceCache.fetchedAt, cutoff),
+        inArray(priceCache.modelNumber, catalogModels),
+      ),
+    );
+  return rows.map((r) => ({ ...rowToSnapshot(r), distributorId: r.distributorId, modelNumber: r.modelNumber }));
 }
 
 // price_cache rows are keyed by (distributor, model) and grow with every

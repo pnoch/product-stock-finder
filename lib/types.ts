@@ -232,6 +232,19 @@ export interface SyncMeta {
   settingsSnapshot?: Partial<AppSettings>;
 }
 
+export interface AvailableProduct {
+  id: string;
+  name: string;
+  brand: string;
+  category: string;
+  modelNumber: string;
+  bestPrice: number;
+  bestCurrency: string;
+  bestDistributorId: string;
+  storeCount: number;
+  fetchedAt: number;
+}
+
 export interface TrendingProduct {
   id: string;
   name: string;
