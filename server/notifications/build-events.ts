@@ -165,10 +165,16 @@ export async function buildEvents(
 
     if (watch.scope === "any" || watch.distributorId === "*") {
       const ids = getAllParserIds();
+      // A distributor the watch already knew was in stock at creation is not a
+      // restock; absent entries are treated as not-previously-in-stock, matching
+      // the client's seeded map.
+      const prev = watch.lastKnownStatusByDistributor ?? {};
       const inStock: string[] = [];
       for (const id of ids) {
         const snap = await getPrice(id, modelNumber);
-        if (snap?.stockStatus === "in_stock") inStock.push(id);
+        if (snap?.stockStatus === "in_stock" && prev[id] !== "in_stock") {
+          inStock.push(id);
+        }
       }
       if (inStock.length === 0) continue;
       const names = inStock

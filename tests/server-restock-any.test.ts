@@ -44,4 +44,26 @@ describe("server restock — any scope", () => {
     );
     expect(events.some((e) => e.type === "restock")).toBe(false);
   });
+
+  it("does not fire when the in-stock distributor was already known in stock", async () => {
+    const events = await buildEvents(
+      {
+        alerts: [],
+        stockWatches: [
+          {
+            id: "w1",
+            productId: "raspberry-pi-5-8gb",
+            modelNumber: "SC1112",
+            distributorId: "*",
+            scope: "any",
+            lastKnownStatusByDistributor: { "linitx-uk": "in_stock" },
+          },
+        ],
+        dateReminders: [],
+      } as never,
+      Date.now(),
+      getPrice as never,
+    );
+    expect(events.some((e) => e.type === "restock")).toBe(false);
+  });
 });

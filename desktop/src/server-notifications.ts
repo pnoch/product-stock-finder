@@ -30,6 +30,7 @@ interface PushConfig {
     distributorId: string;
     scope?: "distributor" | "any";
     lastKnownStatus?: string;
+    lastKnownStatusByDistributor?: Record<string, string>;
   }[];
   dateReminders: {
     id: string;
@@ -174,6 +175,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
           distributorId: w.distributorId,
           scope: w.scope,
           lastKnownStatus: w.lastKnownStatus,
+          lastKnownStatusByDistributor: w.lastKnownStatusByDistributor,
         }))
       : [];
     const dateReminders = (await storage.getBackOrderReminders())

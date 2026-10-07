@@ -172,6 +172,7 @@ async function runSyncServerNotifications(): Promise<void> {
           distributorId: w.distributorId,
           scope: w.scope,
           lastKnownStatus: w.lastKnownStatus,
+          lastKnownStatusByDistributor: w.lastKnownStatusByDistributor,
         }))
       : [];
 

@@ -198,7 +198,12 @@ async function evaluateAnonMemory(
   for (const draft of toDeliver) {
     if (blocked.has(draft.dedupKey) || seen.has(draft.dedupKey)) continue;
     seen.add(draft.dedupKey);
-    const event = { ...draftToEvent(draft), userId: null, deviceId };
+    const event = {
+      ...draftToEvent(draft),
+      userId: null,
+      deviceId,
+      dedupKey: draft.dedupKey,
+    };
     memoryEvents.set(event.id, event);
     added.push(event);
   }
@@ -255,7 +260,12 @@ async function evaluateUserMemory(
   for (const draft of toDeliver) {
     if (blocked.has(draft.dedupKey) || seen.has(draft.dedupKey)) continue;
     seen.add(draft.dedupKey);
-    const event = { ...draftToEvent(draft), userId, deviceId: null };
+    const event = {
+      ...draftToEvent(draft),
+      userId,
+      deviceId: null,
+      dedupKey: draft.dedupKey,
+    };
     memoryEvents.set(event.id, event);
     added.push(event);
   }
