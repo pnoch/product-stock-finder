@@ -21,6 +21,8 @@ import { formatPrice } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
+import { AvailabilityCard } from "@/components/product/availability-card";
+import { computeAvailability } from "@/lib/availability";
 import { computePriceVsAverage } from "@/lib/price-average";
 import { computeDealScore, dealBandLabel } from "@/lib/deal-score";
 import { findBestDeal } from "@/lib/best-deal";
@@ -219,6 +221,7 @@ export default function ProductDetailScreen() {
     return best;
   }, [visibleListings, effectiveCurrency]);
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, effectiveCurrency), [listings, effectiveCurrency]);
+  const availability = useMemo(() => computeAvailability(listings), [listings]);
   const dealScore = useMemo(() => computeDealScore(listings, effectiveCurrency), [listings, effectiveCurrency]);
   const reminderTarget = useMemo(
     () => bestInStockListing ?? sortedListings.find((l) => l.stockStatus !== "out_of_stock") ?? sortedListings[0] ?? null,
@@ -676,6 +679,7 @@ export default function ProductDetailScreen() {
             </View>
           )}
           {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={effectiveCurrency} />}
+          {availability && <AvailabilityCard data={availability} />}
           <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} destination={destination} taxExempt={taxExempt} includeImportEstimate={includeImportEstimate} onSelectCountry={handleSelectCountry} onToggleTaxExempt={handleToggleTaxExempt} onToggleImportEstimate={handleToggleImportEstimate} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)} onRemind={setReminderListing} onFindPrices={handleFindPrices} findingPrices={findingPrices} />
         </View>
         {/* Notes and distributor targets sit outside the shareRef capture: notes

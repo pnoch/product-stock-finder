@@ -14,6 +14,8 @@ import { formatPrice } from "@shared/currency";
 import { convertPrice, getBestPrice } from "@/lib/currency";
 import { computePriceChange } from "@/lib/price-change";
 import { StockBadge } from "@/components/stock-badge";
+import { ScarcityBadge } from "@/components/watchlist/scarcity-badge";
+import { computeAvailability } from "@/lib/availability";
 import { PriceSparkline } from "@/components/price-sparkline";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { fetchProductImage } from "@/lib/server-images";
@@ -65,6 +67,10 @@ export const ProductCard = memo(function ProductCard({
     [product.listings, currency],
   );
   const bestStatus = useMemo(() => productStatus(product), [product]);
+  const availability = useMemo(
+    () => computeAvailability(product.listings ?? []),
+    [product.listings],
+  );
   const distributorCount = product.listings?.length ?? 0;
   const validTags = useMemo(
     () => (product.tags ?? []).filter((id) => getTagById(tagDefinitions, id)),
@@ -365,6 +371,7 @@ export const ProductCard = memo(function ProductCard({
         </View>
         <View style={{ alignItems: "flex-end", gap: 6 }}>
           <StockBadge status={bestStatus} />
+          {availability && <ScarcityBadge scarcity={availability.scarcity} />}
           {bestPrice && (
             <Text
               style={{ color: colors.primary, fontWeight: "700", fontSize: 16 }}
