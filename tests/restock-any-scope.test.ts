@@ -65,4 +65,45 @@ describe("checkRestocks — any scope", () => {
     await checkRestocks(s, notify);
     expect(notify).not.toHaveBeenCalled();
   });
+
+  it("persists statuses (and does not notify) when nothing transitions", async () => {
+    const s = storage([anyWatch], [
+      { distributorId: "d1", stockStatus: "back_order", price: 1, currency: "USD" },
+    ]);
+    const notify = vi.fn(async () => true);
+    await checkRestocks(s, notify);
+    expect(notify).not.toHaveBeenCalled();
+    expect((s as any).updateStockWatchStatuses).toHaveBeenCalledWith(
+      "w1",
+      { d1: "back_order" },
+    );
+  });
+
+  it("keeps the watch and does not persist statuses when notify fails", async () => {
+    const s = storage([anyWatch], [
+      { distributorId: "d2", stockStatus: "in_stock", price: 2, currency: "USD" },
+    ]);
+    const notify = vi.fn(async () => false);
+    await checkRestocks(s, notify);
+    expect((s as any).removeStockWatch).not.toHaveBeenCalled();
+    expect((s as any).updateStockWatchStatuses).not.toHaveBeenCalled();
+  });
+
+  it("names a single store for one hit and counts distributors for many", async () => {
+    const one = storage([anyWatch], [
+      { distributorId: "d2", stockStatus: "in_stock", price: 2, currency: "USD" },
+    ]);
+    const n1 = vi.fn(async (_title: string, _body: string) => true);
+    await checkRestocks(one, n1);
+    expect(n1.mock.calls[0][1]).toMatch(/in stock at /);
+    expect(n1.mock.calls[0][1]).not.toMatch(/distributors:/);
+
+    const many = storage([anyWatch], [
+      { distributorId: "d2", stockStatus: "in_stock", price: 2, currency: "USD" },
+      { distributorId: "d3", stockStatus: "in_stock", price: 3, currency: "USD" },
+    ]);
+    const n2 = vi.fn(async (_title: string, _body: string) => true);
+    await checkRestocks(many, n2);
+    expect(n2.mock.calls[0][1]).toMatch(/2 distributors:/);
+  });
 });
