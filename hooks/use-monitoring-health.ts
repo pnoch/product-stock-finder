@@ -20,10 +20,14 @@ export function useMonitoringHealth(): MonitoringHealth {
     try {
       const settings = await getSettings();
       const { isPro } = await getEntitlementState();
+      // Mirror registerPriceCheckTask's gate exactly: the OS task is registered
+      // when the interval is non-manual and the entitlement allows it. It does
+      // NOT consult backgroundServiceEnabled (a separate native foreground-
+      // service toggle), so including it here would report "off" while the task
+      // is actually registered and running.
       const enabled =
-        !!settings.backgroundServiceEnabled &&
-        (!shouldEnforceFreeLimits() || isPro) &&
-        settings.checkInterval !== "manual";
+        settings.checkInterval !== "manual" &&
+        (!shouldEnforceFreeLimits() || isPro);
       let registered = false;
       try {
         registered = await TaskManager.isTaskRegisteredAsync(PRICE_CHECK_TASK);
