@@ -1,0 +1,90 @@
+import { describe, expect, it } from "vitest";
+import { computeAvailability } from "../lib/availability";
+import type { DistributorListing } from "../lib/types";
+
+const DAY = 24 * 60 * 60 * 1000;
+const NOW = Date.parse("2026-03-01T12:00:00.000Z");
+
+function listing(days: number, inStockDays: number[]): DistributorListing {
+  return {
+    distributorId: "d1",
+    productId: "p1",
+    price: 100,
+    currency: "USD",
+    stockStatus: "in_stock",
+    url: "",
+    lastChecked: new Date(NOW).toISOString(),
+    priceHistory: Array.from({ length: days }, (_, i) => ({
+      date: new Date(NOW - (days - 1 - i) * DAY).toISOString(),
+      price: 100,
+      currency: "USD",
+      stockStatus: inStockDays.includes(i) ? "in_stock" : "out_of_stock",
+    })),
+  } as DistributorListing;
+}
+
+describe("computeAvailability", () => {
+  it("returns null below 7 sample days", () => {
+    expect(computeAvailability([listing(6, [5])], NOW)).toBeNull();
+  });
+
+  it("returns a result at 7 sample days", () => {
+    expect(computeAvailability([listing(7, [6])], NOW)).not.toBeNull();
+  });
+
+  it("computes inStockRate over distinct days", () => {
+    const a = computeAvailability([listing(10, [0, 9])], NOW)!;
+    expect(a.sampleDays).toBe(10);
+    expect(a.inStockRate).toBeCloseTo(0.2, 5);
+  });
+
+  it("reports the most recent in-stock day", () => {
+    const a = computeAvailability([listing(10, [0, 5])], NOW)!;
+    expect(a.lastInStockAt).toBe(NOW - 4 * DAY);
+  });
+
+  it("computes the longest outage", () => {
+    const a = computeAvailability([listing(10, [0, 9])], NOW)!;
+    expect(a.longestOutageDays).toBe(8);
+  });
+
+  it("computes the median restock gap", () => {
+    const a = computeAvailability([listing(10, [0, 3, 9])], NOW)!;
+    expect(a.typicalRestockDays).toBeCloseTo(4.5, 5);
+  });
+
+  it("returns null cadence when there is no transition", () => {
+    const a = computeAvailability([listing(10, [0, 1, 2])], NOW)!;
+    expect(a.typicalRestockDays).toBeNull();
+  });
+
+  it("classifies scarcity at the boundaries", () => {
+    expect(computeAvailability([listing(10, [9])], NOW)!.scarcity).toBe("rare");
+    expect(computeAvailability([listing(10, [0, 9])], NOW)!.scarcity).toBe("occasional");
+    expect(computeAvailability([listing(10, [5, 6, 7, 8, 9])], NOW)!.scarcity).toBe("common");
+  });
+
+  it("buckets multiple points in one day once, any in-stock marks the day", () => {
+    const l = listing(10, []);
+    l.priceHistory.push(
+      { date: new Date(NOW).toISOString(), price: 1, currency: "USD", stockStatus: "out_of_stock" },
+      { date: new Date(NOW).toISOString(), price: 1, currency: "USD", stockStatus: "in_stock" },
+    );
+    const a = computeAvailability([l], NOW)!;
+    expect(a.sampleDays).toBe(10);
+    expect(a.inStockRate).toBeCloseTo(0.1, 5);
+  });
+
+  it("skips non-finite dates", () => {
+    const l = listing(10, [9]);
+    l.priceHistory.push({ date: "not-a-date", price: 1, currency: "USD", stockStatus: "in_stock" });
+    const a = computeAvailability([l], NOW)!;
+    expect(a.sampleDays).toBe(10);
+  });
+
+  it("pools across listings", () => {
+    const a = computeAvailability([listing(10, [0]), listing(10, [9])], NOW)!;
+    expect(a.sampleDays).toBe(10);
+    expect(a.inStockRate).toBeCloseTo(0.2, 5);
+  });
+});
