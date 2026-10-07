@@ -8,6 +8,11 @@ const path = require("path");
 
 const STUB_PATH = path.join(__dirname, "..", "lib", "scrapers", "browser.web.ts");
 const NATIVE_PATH = path.join(__dirname, "..", "lib", "scrapers", "browser-native.ts");
+// impit is a Node-only native module (requires `node:fs`). Metro resolves the
+// literal `await import("impit")` in plain-fetch.ts at build time, so without
+// this stub the Android release bundle fails to resolve `node:fs`. The stub's
+// constructor throws, which plain-fetch.ts already catches.
+const IMPIT_STUB_PATH = path.join(__dirname, "..", "lib", "scrapers", "impit-stub.ts");
 // cheerio's default entry pulls in node:stream, which Hermes cannot resolve.
 // Its browser build is dependency-free and has the same API surface.
 const CHEERIO_BROWSER_PATH = path.join(
@@ -53,8 +58,22 @@ function resolveBrowserModulePath(platform, request, originModulePath) {
   return NATIVE_PATH;
 }
 
+/**
+ * On every app platform (ios/android/web), redirect `impit` to a throwing stub
+ * so Metro never tries to bundle the Node-only native module. The server
+ * (node) resolves the real impit.
+ */
+function resolveImpitPath(platform, request) {
+  if (platform !== "ios" && platform !== "android" && platform !== "web") {
+    return null;
+  }
+  return request === "impit" ? IMPIT_STUB_PATH : null;
+}
+
 module.exports.BROWSER_STUB_PATH = STUB_PATH;
 module.exports.BROWSER_NATIVE_PATH = NATIVE_PATH;
 module.exports.CHEERIO_BROWSER_PATH = CHEERIO_BROWSER_PATH;
+module.exports.IMPIT_STUB_PATH = IMPIT_STUB_PATH;
 module.exports.resolveBrowserModulePath = resolveBrowserModulePath;
 module.exports.resolveCheerioPath = resolveCheerioPath;
+module.exports.resolveImpitPath = resolveImpitPath;

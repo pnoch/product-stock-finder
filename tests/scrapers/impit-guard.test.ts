@@ -19,7 +19,11 @@ describe("impit is server-only", () => {
     for (const dir of ["lib", "app", "components", "hooks", "shared"]) {
       for (const file of walk(path.join(root, dir))) {
         const rel = path.relative(root, file);
-        if (rel === "lib/scrapers/plain-fetch.ts") continue;
+        // plain-fetch.ts is the one real impit importer; impit-stub.ts is the
+        // Metro redirect target (it does not import impit — it replaces it).
+        if (rel === "lib/scrapers/plain-fetch.ts" || rel === "lib/scrapers/impit-stub.ts") {
+          continue;
+        }
         const src = readFileSync(file, "utf-8");
         if (/from\s+["']impit["']/.test(src) || /import\(\s*["']impit["']\s*\)/.test(src)) {
           offenders.push(rel);
