@@ -243,7 +243,7 @@ async function runPriceCheckCoreInner(opts?: {
       try {
         const { recordNotificationEvent } = await import("../storage");
         await recordNotificationEvent({
-          id: `local-suspicious-${alert.id}-${Date.now()}`,
+          id: `local-suspicious-${alert.id}-${new Date().toISOString().slice(0, 10)}`,
           type: "suspicious_price",
           title: "Suspicious price ignored",
           body: `${product.name} showed ${formatPrice(bestPrice, alert.currency)} — far from its usual price. Alert kept armed.`,
