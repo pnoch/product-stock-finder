@@ -45,4 +45,14 @@ describe("localAlternatives", () => {
     const out = localAlternatives({ id: "self", category: "Switch" }, watchlist, "USD");
     expect(out.map((a) => a.id)).toEqual(["a"]);
   });
+
+  it("excludes self even when it is in stock, and sorts cheapest first", () => {
+    const watchlist = [
+      { id: "self", name: "self", category: "Switch", listings: [{ distributorId: "d1", price: 1, currency: "USD", stockStatus: "in_stock" }] },
+      { id: "dear", name: "Dear", category: "Switch", listings: [{ distributorId: "d1", price: 300, currency: "USD", stockStatus: "in_stock" }] },
+      { id: "cheap", name: "Cheap", category: "Switch", listings: [{ distributorId: "d1", price: 100, currency: "USD", stockStatus: "in_stock" }] },
+    ] as unknown as Product[];
+    const out = localAlternatives({ id: "self", category: "Switch" }, watchlist, "USD");
+    expect(out.map((a) => a.id)).toEqual(["cheap", "dear"]);
+  });
 });
