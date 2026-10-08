@@ -104,7 +104,6 @@ export function AwaySummaryCard({
               style={{ color: colors.foreground, fontSize: 14, flex: 1 }}
             >
               {item.name}
-              {pct !== undefined ? ` · ${formatPct(pct)}` : ""}
             </Text>
             {pct !== undefined && pct < 0 ? (
               <Text style={{ color: colors.success, fontSize: 14, fontWeight: "600" }}>

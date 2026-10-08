@@ -52,4 +52,37 @@ describe("AwaySummaryCard", () => {
     fireEvent.click(screen.getByLabelText(/dismiss/i));
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
+
+  it("omits empty buckets and pluralizes", () => {
+    const many = {
+      priceDrops: [
+        { productId: "a", name: "A", pct: -10, price: 90, currency: "USD" },
+        { productId: "b", name: "B", pct: -20, price: 80, currency: "USD" },
+      ],
+      priceRises: [], restocks: [], stockOuts: [], since: Date.now(),
+    };
+    render(<AwaySummaryCard summary={many as any} onDismiss={() => {}} />);
+    expect(screen.getByText(/2 price drops/i)).toBeTruthy();
+    expect(screen.queryByText(/back in stock/i)).toBeNull();
+    expect(screen.queryByText(/out of stock/i)).toBeNull();
+  });
+
+  it("orders drops before restocks and expands with See all", () => {
+    const big = {
+      priceDrops: [{ productId: "d1", name: "DropOne", pct: -10, price: 90, currency: "USD" }],
+      priceRises: [],
+      restocks: [
+        { productId: "r1", name: "RestockOne", distributorId: "x" },
+        { productId: "r2", name: "RestockTwo", distributorId: "y" },
+        { productId: "r3", name: "RestockThree", distributorId: "z" },
+      ],
+      stockOuts: [], since: Date.now(),
+    };
+    render(<AwaySummaryCard summary={big as any} onDismiss={() => {}} />);
+    // Top 3 = DropOne + first two restocks; the third restock is hidden until See all.
+    expect(screen.getByText(/DropOne/)).toBeTruthy();
+    expect(screen.queryByText(/RestockThree/)).toBeNull();
+    fireEvent.click(screen.getByText(/See all/i));
+    expect(screen.getByText(/RestockThree/)).toBeTruthy();
+  });
 });
