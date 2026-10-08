@@ -90,4 +90,19 @@ describe("ProductCard buy button", () => {
     render(<ProductCard {...(base as any)} product={out as any} />);
     expect(screen.queryByLabelText(/buy/i)).toBeNull();
   });
+
+  it("picks the cheapest in-stock store across currencies", () => {
+    // 209 USD vs 900 MYR (~201 USD at 4.47) — the MYR store is cheaper despite
+    // the larger number, so a raw compare would pick the wrong one.
+    const mixed = {
+      ...inStock,
+      listings: [
+        { ...inStock.listings[0], distributorId: "us", price: 209, currency: "USD", url: "https://us.example/p" },
+        { ...inStock.listings[0], distributorId: "my", price: 900, currency: "MYR", url: "https://my.example/p" },
+      ],
+    };
+    render(<ProductCard {...(base as any)} product={mixed as any} />);
+    fireEvent.click(screen.getByLabelText(/buy/i));
+    expect(openListingUrl).toHaveBeenCalledWith("https://my.example/p");
+  });
 });

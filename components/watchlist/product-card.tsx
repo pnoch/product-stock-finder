@@ -72,8 +72,15 @@ export const ProductCard = memo(function ProductCard({
       (l) => l.stockStatus === "in_stock" && l.price > 0 && Number.isFinite(l.price),
     );
     if (inStock.length === 0) return null;
-    return inStock.reduce((best, l) => (l.price < best.price ? l : best));
-  }, [product.listings]);
+    // Compare in the display currency: listings carry native currencies, so a
+    // raw numeric compare would pick a numerically-lower but actually-pricier
+    // store (e.g. 900 MYR ≈ 190 USD beats 209 USD). Mirrors getBestPrice.
+    return inStock.reduce((best, l) => {
+      const bestConv = convertPrice(best.price, best.currency, currency) ?? Infinity;
+      const lConv = convertPrice(l.price, l.currency, currency) ?? Infinity;
+      return lConv < bestConv ? l : best;
+    });
+  }, [product.listings, currency]);
   const bestStatus = useMemo(() => productStatus(product), [product]);
   const availability = useMemo(
     () => computeAvailability(product.listings ?? []),
