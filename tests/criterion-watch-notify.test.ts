@@ -189,4 +189,21 @@ describe("criterion watches in the price check", () => {
     expect(state.criterionNotifications).toHaveLength(1);
     expect(state.criterionWatches[0]!.seenProductIds).toEqual(["b"]);
   });
+
+  it("marks only the successfully-notified match as seen (partial failure re-detects)", async () => {
+    // Two new matches; make the first send fail (returns null).
+    state.available = [
+      { id: "b", name: "Switch B", brand: "X", category: "Switch", modelNumber: "B", bestPrice: 200, bestCurrency: "USD", bestDistributorId: "d1", storeCount: 2, fetchedAt: 1 },
+      { id: "c", name: "Switch C", brand: "X", category: "Switch", modelNumber: "C", bestPrice: 250, bestCurrency: "USD", bestDistributorId: "d1", storeCount: 1, fetchedAt: 1 },
+    ] as never;
+    const { scheduleStockAlert } = await import("../lib/notifications");
+    vi.mocked(scheduleStockAlert)
+      .mockResolvedValueOnce(null) // "b" fails
+      .mockResolvedValueOnce("notif-id"); // "c" succeeds
+
+    await checkPriceDropsNow();
+
+    // Only the successful match is marked seen; the failed one re-detects.
+    expect(state.criterionWatches[0]!.seenProductIds).toEqual(["c"]);
+  });
 });

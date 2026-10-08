@@ -13,6 +13,7 @@ import {
   setLastBackgroundRun,
   getCriterionWatches,
   updateCriterionWatches,
+  recordNotificationEvent,
 } from "../storage";
 import { Platform } from "react-native";
 import { formatPrice } from "@shared/currency";
@@ -133,37 +134,60 @@ async function runPriceCheckCoreInner(opts?: {
       // `expo-linking` via constants/oauth → server-catalog.
       const { isServerConfigured } = await import("../../constants/oauth");
       const { fetchAvailable } = await import("../server-catalog");
+      const criterionSettings = await getSettings();
+      const criterionEnabled =
+        criterionSettings.notificationsEnabled !== false &&
+        criterionSettings.stockAlerts !== false;
+      const currency = criterionSettings.displayCurrency ?? "USD";
       let available: AvailableProduct[] = [];
       if (isServerConfigured()) {
-        available = await fetchAvailable({ currency: watches[0]!.currency });
+        available = await fetchAvailable({ currency });
       } else {
+        // Standalone: one entry per product (cheapest in-stock listing),
+        // converted to the display currency so maxPrice compares like-for-like.
         const watchlist = await getWatchlist();
-        available = watchlist.flatMap((p) =>
-          (p.listings ?? [])
-            .filter((l) => l.stockStatus === "in_stock")
-            .map((l) => ({
-              id: p.id,
-              name: p.name,
-              brand: p.brand,
-              category: p.category,
-              modelNumber: p.modelNumber,
-              bestPrice: l.price,
-              bestCurrency: l.currency,
-              bestDistributorId: l.distributorId,
-              storeCount: 1,
-              fetchedAt: Date.now(),
-            })),
-        );
+        for (const p of watchlist) {
+          const inStock = (p.listings ?? []).filter(
+            (l) => l.stockStatus === "in_stock",
+          );
+          if (inStock.length === 0) continue;
+          const best = getBestPrice(inStock, currency);
+          if (!best) continue;
+          available.push({
+            id: p.id,
+            name: p.name,
+            brand: p.brand,
+            category: p.category,
+            modelNumber: p.modelNumber,
+            bestPrice: best.price,
+            bestCurrency: best.currency,
+            bestDistributorId: inStock[0]!.distributorId,
+            storeCount: inStock.length,
+            fetchedAt: Date.now(),
+          });
+        }
       }
-      const { matches, updated } = evaluateCriterionWatches({ watches, available });
-      if (matches.length > 0) {
-        const settings = await getSettings();
-        const enabled =
-          settings.notificationsEnabled !== false && settings.stockAlerts !== false;
-        let notified = false;
-        if (enabled) {
-          for (const m of matches) {
-            try {
+      const { matches } = evaluateCriterionWatches({ watches, available });
+
+      // Notify per match; only a match that actually notified (or that needs no
+      // notification) is marked seen, so a failed send re-detects next cycle.
+      const notifiedIds = new Set<string>();
+      for (const m of matches) {
+        if (!criterionEnabled) {
+          notifiedIds.add(m.productId);
+          continue;
+        }
+        try {
+          let ok = false;
+          if (Platform.OS === "web") {
+            const { displayWebNotification } = await import("../web-notifications");
+            ok = displayWebNotification(
+              "New match",
+              `${m.name} — ${formatPrice(m.bestPrice, m.bestCurrency)} at ${m.storeCount} store${m.storeCount === 1 ? "" : "s"}`,
+            );
+          } else {
+            const granted = await ensureNotificationPermission();
+            if (granted) {
               const id = await scheduleStockAlert(
                 m.name,
                 `${m.storeCount} store${m.storeCount === 1 ? "" : "s"}`,
@@ -171,18 +195,47 @@ async function runPriceCheckCoreInner(opts?: {
                 m.bestCurrency,
                 m.productId,
               );
-              notified = notified || id !== null;
-            } catch {
-              // best effort
+              ok = id !== null;
             }
           }
-        } else {
-          notified = true;
+          if (ok) {
+            notifiedIds.add(m.productId);
+            try {
+              await recordNotificationEvent({
+                id: `local-criterion-${m.watchId}-${m.productId}-${new Date().toISOString().slice(0, 10)}`,
+                type: "criterion_match",
+                title: "New match",
+                body: `${m.name} — ${formatPrice(m.bestPrice, m.bestCurrency)} at ${m.storeCount} store${m.storeCount === 1 ? "" : "s"}`,
+                productId: m.productId,
+                createdAt: Date.now(),
+              });
+            } catch {
+              // history is best-effort
+            }
+          }
+        } catch {
+          // best effort
         }
-        if (notified) await updateCriterionWatches(() => updated);
-      } else {
-        await updateCriterionWatches(() => updated);
       }
+
+      // Merge into the CURRENT store (a watch added/removed during the fetch
+      // must not be clobbered) and advance seen ids only for notified matches.
+      const notifiedByWatch = new Map<string, Set<string>>();
+      for (const m of matches) {
+        if (!notifiedIds.has(m.productId)) continue;
+        const set = notifiedByWatch.get(m.watchId) ?? new Set<string>();
+        set.add(m.productId);
+        notifiedByWatch.set(m.watchId, set);
+      }
+      await updateCriterionWatches((current) =>
+        current.map((w) => {
+          const notified = notifiedByWatch.get(w.id);
+          if (!notified) return w;
+          const next = new Set(w.seenProductIds);
+          for (const id of notified) next.add(id);
+          return { ...w, seenProductIds: [...next] };
+        }),
+      );
     }
   } catch {
     // criterion evaluation is best-effort; never break the price check
