@@ -144,6 +144,7 @@ export default function RootLayout() {
       const dataForId = response.notification.request.content.data as {
         eventId?: string;
         productId?: string;
+        distributorId?: string;
         type?: string;
       };
       const fallbackId = dataForId?.eventId ?? dataForId?.productId ?? dataForId?.type ?? "unknown";

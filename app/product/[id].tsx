@@ -18,14 +18,13 @@ import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBa
 import { rediscoverProduct } from "@/lib/manual-add";
 import { discoverListings } from "@/lib/listing-discovery";
 import { formatPrice } from "@shared/currency";
-import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
 import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { AvailabilityCard } from "@/components/product/availability-card";
 import { computeAvailability } from "@/lib/availability";
 import { computePriceVsAverage } from "@/lib/price-average";
 import { computeDealScore, dealBandLabel } from "@/lib/deal-score";
-import { findBestDeal } from "@/lib/best-deal";
+import { findBestDeal, findCheapestInStockListing } from "@/lib/best-deal";
 import { rankByLandedCost } from "@/lib/landed-cost";
 import { resolveDestination, landedCostOptions } from "@/lib/destination";
 import { suggestAlertPrices } from "@/lib/alert-suggestions";
@@ -48,8 +47,14 @@ import { LOG_ERROR } from "@shared/log";
 
 export default function ProductDetailScreen() {
   const insets = useSafeAreaInsets();
-  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId, distributor } = useLocalSearchParams<{
+    id: string;
+    distributor?: string;
+  }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  const highlightDistributorId = Array.isArray(distributor)
+    ? distributor[0]
+    : distributor;
   const colors = useColors();
   const { showToast } = useToast();
   const { product, listings, loaded, lastUpdatedAt, refresh } = useLiveProduct(id ?? "");
@@ -206,21 +211,14 @@ export default function ProductDetailScreen() {
   const effectiveCurrency = displayCurrency ?? "USD";
   const effectiveShippingRegion = shippingRegion ?? "Asia-Pacific";
   const isSettingsLoaded = settingsLoaded;
-  const bestInStockListing = useMemo(() => {
-    const inStock = visibleListings.filter((l) => l.stockStatus === "in_stock");
-    if (inStock.length === 0) return null;
-    let best: DistributorListing | null = null;
-    let bestConverted = Infinity;
-    for (const l of inStock) {
-      const converted = convertPrice(l.price, l.currency, effectiveCurrency);
-      if (converted === null || !Number.isFinite(converted)) continue;
-      if (converted < bestConverted) {
-        bestConverted = converted;
-        best = l;
-      }
-    }
-    return best;
-  }, [visibleListings, effectiveCurrency]);
+  const bestInStockListing = useMemo(
+    () =>
+      findCheapestInStockListing(
+        visibleListings.filter((l) => l.stockStatus === "in_stock"),
+        effectiveCurrency,
+      ),
+    [visibleListings, effectiveCurrency],
+  );
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, effectiveCurrency), [listings, effectiveCurrency]);
   const availability = useMemo(() => computeAvailability(listings), [listings]);
   const dealScore = useMemo(() => computeDealScore(listings, effectiveCurrency), [listings, effectiveCurrency]);
@@ -719,7 +717,7 @@ export default function ProductDetailScreen() {
           )}
           {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={effectiveCurrency} />}
           {availability && <AvailabilityCard data={availability} />}
-          <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} destination={destination} taxExempt={taxExempt} includeImportEstimate={includeImportEstimate} onSelectCountry={handleSelectCountry} onToggleTaxExempt={handleToggleTaxExempt} onToggleImportEstimate={handleToggleImportEstimate} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)} onRemind={setReminderListing} onFindPrices={handleFindPrices} findingPrices={findingPrices} onWatchAny={() => void toggleAnyWatch()} watchingAny={!!stockWatches["*"]} />
+          <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} highlightDistributorId={highlightDistributorId} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} destination={destination} taxExempt={taxExempt} includeImportEstimate={includeImportEstimate} onSelectCountry={handleSelectCountry} onToggleTaxExempt={handleToggleTaxExempt} onToggleImportEstimate={handleToggleImportEstimate} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)} onRemind={setReminderListing} onFindPrices={handleFindPrices} findingPrices={findingPrices} onWatchAny={() => void toggleAnyWatch()} watchingAny={!!stockWatches["*"]} />
         </View>
         {/* Notes and distributor targets sit outside the shareRef capture: notes
             are device-private and targets are personal, so neither belongs in a

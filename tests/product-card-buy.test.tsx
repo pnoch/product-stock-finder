@@ -105,4 +105,21 @@ describe("ProductCard buy button", () => {
     fireEvent.click(screen.getByLabelText(/buy/i));
     expect(openListingUrl).toHaveBeenCalledWith("https://my.example/p");
   });
+
+  it("does not also trigger the card's onPress when Buy is tapped", () => {
+    const onPress = vi.fn();
+    render(<ProductCard {...(base as any)} product={inStock as any} onPress={onPress} />);
+    fireEvent.click(screen.getByLabelText(/buy/i));
+    expect(openListingUrl).toHaveBeenCalledWith("https://getic.example/p");
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it("omits the buy button when the in-stock listing has no url", () => {
+    const noUrl = {
+      ...inStock,
+      listings: [{ ...inStock.listings[0], url: undefined }],
+    };
+    render(<ProductCard {...(base as any)} product={noUrl as any} />);
+    expect(screen.queryByLabelText(/buy/i)).toBeNull();
+  });
 });

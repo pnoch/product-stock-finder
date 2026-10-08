@@ -12,6 +12,7 @@ vi.mock("react-native", async () => {
       React.createElement("button", { ...r, "aria-label": accessibilityLabel, onClick: onPress }, children),
     TouchableOpacity: ({ children, onPress, accessibilityLabel, ...r }: any) =>
       React.createElement("button", { ...r, "aria-label": accessibilityLabel, onClick: onPress }, children),
+    Switch: (r: any) => React.createElement("div", r),
     ScrollView: ({ children, ...r }: any) => React.createElement("div", r, children),
     Modal: ({ children, ...r }: any) => React.createElement("div", r, children),
     Platform: { OS: "ios" },
@@ -23,6 +24,14 @@ vi.mock("@/hooks/use-colors", () => ({
 vi.mock("@/components/stock-badge", () => ({ StockBadge: () => null }));
 vi.mock("@/components/ui/icon-symbol", () => ({ IconSymbol: () => null }));
 vi.mock("@/components/ui/country-picker", () => ({ CountryPicker: () => null }));
+vi.mock("@/components/best-distributor-card", () => ({ BestDistributorCard: () => null }));
+const highlightedProps: boolean[] = [];
+vi.mock("@/components/product/distributor-listing-card", () => ({
+  DistributorListingCard: (props: { highlighted?: boolean }) => {
+    highlightedProps.push(props.highlighted ?? false);
+    return null;
+  },
+}));
 vi.mock("react-native-svg", () => ({
   default: ({ children, ...r }: any) => React.createElement("div", r, children),
   Polyline: () => null,
@@ -43,7 +52,10 @@ const baseProps = {
   onOpenChart: () => {},
 } as never;
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  highlightedProps.length = 0;
+});
 
 describe("listing empty state", () => {
   it("renders Watch anyway and calls onWatchAny", () => {
@@ -56,5 +68,40 @@ describe("listing empty state", () => {
   it("omits Watch anyway when onWatchAny is not provided", () => {
     render(<DistributorListingSection {...(baseProps as any)} />);
     expect(screen.queryByText(/Watch anyway/i)).toBeNull();
+  });
+});
+
+describe("DistributorListingSection highlight", () => {
+  const listing = {
+    distributorId: "getic-gr",
+    productId: "p1",
+    price: 209,
+    currency: "USD",
+    stockStatus: "in_stock",
+    url: "https://getic.example/p",
+    lastChecked: "2026-01-01T00:00:00.000Z",
+    priceHistory: [],
+  };
+  const listedProps = {
+    ...(baseProps as any),
+    sortedListings: [listing],
+    visibleListings: [listing],
+    bestInStockListing: listing,
+    product: { id: "p1", name: "CRS804", listings: [listing] },
+  };
+
+  it("highlights the listing matching highlightDistributorId", () => {
+    render(
+      <DistributorListingSection
+        {...(listedProps as any)}
+        highlightDistributorId="getic-gr"
+      />,
+    );
+    expect(highlightedProps).toEqual([true]);
+  });
+
+  it("highlights nothing when highlightDistributorId is absent", () => {
+    render(<DistributorListingSection {...(listedProps as any)} />);
+    expect(highlightedProps).toEqual([false]);
   });
 });

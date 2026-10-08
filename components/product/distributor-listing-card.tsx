@@ -28,6 +28,7 @@ interface DistributorListingCardProps {
   onOpenChart: (listing: DistributorListing) => void;
   onRemind?: (listing: DistributorListing) => void;
   hasDestination?: boolean;
+  highlighted?: boolean;
 }
 
 export const DistributorListingCard = memo(function DistributorListingCard({
@@ -38,6 +39,7 @@ export const DistributorListingCard = memo(function DistributorListingCard({
   onOpenChart,
   onRemind,
   hasDestination = false,
+  highlighted = false,
 }: DistributorListingCardProps) {
   const colors = useColors();
   const distributor = useMemo(
@@ -81,8 +83,8 @@ export const DistributorListingCard = memo(function DistributorListingCard({
         borderRadius: 16,
         padding: 16,
         marginBottom: 10,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: highlighted ? 2 : 1,
+        borderColor: highlighted ? colors.primary : colors.border,
       }}
     >
       <View

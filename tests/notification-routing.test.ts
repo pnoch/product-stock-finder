@@ -9,4 +9,16 @@ describe("notificationRouteFor", () => {
     expect(notificationRouteFor({})).toBeNull();
     expect(notificationRouteFor({ type: "unknown-thing" })).toBeNull();
   });
+
+  // The restock notification carries distributorId/url, so a tap must open the
+  // product with the in-stock store highlighted instead of dropping the store.
+  it("highlights the store when distributorId is present", () => {
+    expect(
+      notificationRouteFor({
+        productId: "p1",
+        distributorId: "getic-gr",
+        type: "stock_alert",
+      }),
+    ).toBe("/product/p1?distributor=getic-gr");
+  });
 });

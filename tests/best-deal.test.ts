@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { findBestDeal, findBestInStockListing } from "@/lib/best-deal";
+import {
+  findBestDeal,
+  findBestInStockListing,
+  findCheapestInStockListing,
+} from "@/lib/best-deal";
 import type { DistributorListing } from "@/lib/types";
 
 function makeListing(
@@ -224,5 +228,36 @@ describe("findBestInStockListing", () => {
       findBestInStockListing([makeListing({ stockStatus: "back_order" })], "USD"),
     ).toBeNull();
     expect(findBestInStockListing([], "USD")).toBeNull();
+  });
+});
+
+describe("findCheapestInStockListing", () => {
+  it("compares across currencies without applying a stock filter", () => {
+    const listings = [
+      makeListing({ distributorId: "a", price: 499, currency: "USD" }),
+      makeListing({ distributorId: "b", price: 449, currency: "GBP" }),
+      makeListing({ distributorId: "c", price: 2600, currency: "MYR" }),
+    ];
+    expect(findCheapestInStockListing(listings, "USD")?.distributorId).toBe("a");
+  });
+
+  it("considers back-order listings the caller passed in", () => {
+    const listings = [
+      makeListing({ distributorId: "a", price: 100, stockStatus: "back_order" }),
+      makeListing({ distributorId: "b", price: 120 }),
+    ];
+    expect(findCheapestInStockListing(listings, "USD")?.distributorId).toBe("a");
+  });
+
+  it("skips unconvertible listings instead of anchoring on Infinity", () => {
+    const listings = [
+      makeListing({ distributorId: "bad", price: 10, currency: "XYZ" }),
+      makeListing({ distributorId: "ok", price: 100, currency: "USD" }),
+    ];
+    expect(findCheapestInStockListing(listings, "USD")?.distributorId).toBe("ok");
+  });
+
+  it("returns null for an empty list", () => {
+    expect(findCheapestInStockListing([], "USD")).toBeNull();
   });
 });

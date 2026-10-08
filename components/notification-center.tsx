@@ -140,6 +140,7 @@ export function NotificationCenter({
       // events land on the right screen instead of /product/undefined.
       const route = notificationRouteFor({
         productId: item.productId || undefined,
+        distributorId: item.distributorId,
         type: item.type,
       });
       if (route) router.push(route as never);

@@ -13,6 +13,7 @@ import { Product, TagDefinition } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { convertPrice, getBestPrice } from "@/lib/currency";
 import { computePriceChange } from "@/lib/price-change";
+import { findCheapestInStockListing } from "@/lib/best-deal";
 import { StockBadge } from "@/components/stock-badge";
 import { ScarcityBadge } from "@/components/watchlist/scarcity-badge";
 import { computeAvailability } from "@/lib/availability";
@@ -67,20 +68,18 @@ export const ProductCard = memo(function ProductCard({
     () => getBestPrice(product.listings ?? [], currency),
     [product.listings, currency],
   );
-  const bestInStockListing = useMemo(() => {
-    const inStock = (product.listings ?? []).filter(
-      (l) => l.stockStatus === "in_stock" && l.price > 0 && Number.isFinite(l.price),
-    );
-    if (inStock.length === 0) return null;
-    // Compare in the display currency: listings carry native currencies, so a
-    // raw numeric compare would pick a numerically-lower but actually-pricier
-    // store (e.g. 900 MYR ≈ 190 USD beats 209 USD). Mirrors getBestPrice.
-    return inStock.reduce((best, l) => {
-      const bestConv = convertPrice(best.price, best.currency, currency) ?? Infinity;
-      const lConv = convertPrice(l.price, l.currency, currency) ?? Infinity;
-      return lConv < bestConv ? l : best;
-    });
-  }, [product.listings, currency]);
+  const bestInStockListing = useMemo(
+    // The Buy button opens the store, so require a url — an in-stock listing
+    // without one would render a dead button (the Visit CTA guards the same way).
+    () =>
+      findCheapestInStockListing(
+        (product.listings ?? []).filter(
+          (l) => l.stockStatus === "in_stock" && l.price > 0 && !!l.url,
+        ),
+        currency,
+      ),
+    [product.listings, currency],
+  );
   const bestStatus = useMemo(() => productStatus(product), [product]);
   const availability = useMemo(
     () => computeAvailability(product.listings ?? []),
