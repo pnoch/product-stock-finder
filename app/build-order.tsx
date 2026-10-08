@@ -142,10 +142,14 @@ function StoreBreakdown({
 
 function verdictLine(comparison: BuildOrderComparison): string {
   const { singleStore, savings } = comparison;
-  if (singleStore && savings > 0) {
+  if (!singleStore) {
+    // No store carries everything, so the split is the only option — not a tie.
+    return "No single store has everything — the split order is the way to go";
+  }
+  if (savings > 0) {
     return `Order everything from ${singleStore.stores[0]!.distributorName} and save ${formatEstimate(savings, singleStore.currency)}`;
   }
-  if (singleStore && savings < 0) {
+  if (savings < 0) {
     return `Splitting saves ${formatEstimate(-savings, singleStore.currency)}`;
   }
   return "Similar cost either way";
@@ -288,7 +292,7 @@ export default function BuildOrderScreen() {
                     key={id}
                     style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}
                   >
-                    {id}
+                    {watchlist.find((p) => p.id === id)?.name ?? id}
                   </Text>
                 ))}
               </Card>

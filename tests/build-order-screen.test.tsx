@@ -20,20 +20,33 @@ vi.mock("@/hooks/use-colors", () => ({
 vi.mock("@/components/ui/icon-symbol", () => ({ IconSymbol: () => null }));
 vi.mock("@/components/screen-container", () => ({ ScreenContainer: ({ children }: any) => React.createElement("div", null, children) }));
 vi.mock("expo-router", () => ({ Stack: { Screen: () => null }, useRouter: () => ({ push: vi.fn() }) }));
+
+const state: { shipToCountry: string | null } = { shipToCountry: "TH" };
 vi.mock("@/lib/storage", () => ({
   getWatchlist: async () => [
     { id: "p1", name: "P1", listings: [{ distributorId: "balticnetworks-us", productId: "p1", price: 100, currency: "USD", stockStatus: "in_stock", url: "", lastChecked: "2026-01-01T00:00:00.000Z", priceHistory: [] }] },
   ],
-  getSettings: async () => ({ displayCurrency: "USD", shipToCountry: "TH" }),
+  getSettings: async () => ({ displayCurrency: "USD", shipToCountry: state.shipToCountry }),
 }));
 
 import BuildOrderScreen from "../app/build-order";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  state.shipToCountry = "TH";
+});
 
 describe("BuildOrderScreen", () => {
-  it("renders a purchasing plan", async () => {
+  it("renders the cheapest-single and split cards for a destination", async () => {
     render(<BuildOrderScreen />);
-    expect(await screen.findByText(/single order|split|Plan order/i)).toBeTruthy();
+    expect(await screen.findByText(/Cheapest single order/i)).toBeTruthy();
+    expect(screen.getByText(/Cheapest split/i)).toBeTruthy();
+  });
+
+  it("prompts to set a destination when shipToCountry is unset", async () => {
+    state.shipToCountry = null;
+    render(<BuildOrderScreen />);
+    expect(await screen.findByText(/Set where you ship to/i)).toBeTruthy();
+    expect(screen.queryByText(/Cheapest single order/i)).toBeNull();
   });
 });
