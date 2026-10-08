@@ -20,7 +20,13 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { getWatchlist, getAlerts, getSettings } from "@/lib/storage";
+import {
+  getWatchlist,
+  getAlerts,
+  getSettings,
+  getLastSeenAt,
+  setLastSeenAt,
+} from "@/lib/storage";
 import { countActiveAlerts } from "@/lib/alert-state";
 import { Product, StockStatus } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
@@ -31,6 +37,8 @@ import { IconSymbol, type IconSymbolName } from "@/components/ui/icon-symbol";
 import { ConnectionBadge } from "@/components/connection-badge";
 import { TrendingSection } from "@/components/home/trending-section";
 import { AvailableSection } from "@/components/home/available-section";
+import { AwaySummaryCard } from "@/components/home/away-summary-card";
+import { computeAwaySummary, type AwaySummary } from "@/lib/away-summary";
 import { useConnection } from "@/hooks/use-connection";
 import { useMonitoringHealth } from "@/hooks/use-monitoring-health";
 import { fetchProductImage } from "@/lib/server-images";
@@ -126,6 +134,8 @@ export default function HomeScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [images, setImages] = useState<Map<string, string>>(new Map());
+  const [awaySummary, setAwaySummary] = useState<AwaySummary | null>(null);
+  const [awayDismissed, setAwayDismissed] = useState(false);
   const statAnim0 = useRef(new Animated.Value(0)).current;
   const statAnim1 = useRef(new Animated.Value(0)).current;
   const statAnim2 = useRef(new Animated.Value(0)).current;
@@ -167,6 +177,20 @@ export default function HomeScreen() {
       const settings = await getSettings();
       if (gen !== loadGenRef.current) return;
       setDisplayCurrency(settings?.displayCurrency ?? "USD");
+
+      const seen = await getLastSeenAt();
+      if (gen !== loadGenRef.current) return;
+      if (seen != null && list.length > 0) {
+        setAwaySummary(
+          computeAwaySummary({
+            watchlist: list,
+            since: seen,
+            now: Date.now(),
+            displayCurrency: settings?.displayCurrency ?? "USD",
+          }),
+        );
+      }
+      await setLastSeenAt(Date.now());
     } catch (e) {
       if (gen !== loadGenRef.current) return;
       log.error(e);
@@ -673,6 +697,13 @@ export default function HomeScreen() {
             })
           )}
         </View>
+
+        {awaySummary && !awayDismissed && (
+          <AwaySummaryCard
+            summary={awaySummary}
+            onDismiss={() => setAwayDismissed(true)}
+          />
+        )}
 
         {/* Available Now */}
         <View style={{ paddingHorizontal: 16 }}>
