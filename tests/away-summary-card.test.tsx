@@ -67,6 +67,18 @@ describe("AwaySummaryCard", () => {
     expect(screen.queryByText(/out of stock/i)).toBeNull();
   });
 
+  it("renders a rises-only summary instead of a blank card", () => {
+    const rises = {
+      priceDrops: [],
+      priceRises: [{ productId: "p9", name: "Riser", pct: 12, price: 112, currency: "USD" }],
+      restocks: [], stockOuts: [], since: Date.now(),
+    };
+    render(<AwaySummaryCard summary={rises as any} onDismiss={() => {}} />);
+    expect(screen.getByText(/1 price rise/i)).toBeTruthy();
+    expect(screen.getByText(/Riser/)).toBeTruthy();
+    expect(screen.getByText(/\+12%/)).toBeTruthy();
+  });
+
   it("orders drops before restocks and expands with See all", () => {
     const big = {
       priceDrops: [{ productId: "d1", name: "DropOne", pct: -10, price: 90, currency: "USD" }],

@@ -32,12 +32,14 @@ export function AwaySummaryCard({
 
   const counts = [
     countLine(summary.priceDrops.length, "price drop", "price drops"),
+    countLine(summary.priceRises.length, "price rise", "price rises"),
     countLine(summary.restocks.length, "back in stock", "back in stock"),
     countLine(summary.stockOuts.length, "now out of stock", "now out of stock"),
   ].filter((c): c is string => c !== null);
 
   const items = [
     ...summary.priceDrops.map((item) => ({ item, pct: item.pct })),
+    ...summary.priceRises.map((item) => ({ item, pct: item.pct })),
     ...summary.restocks.map((item) => ({ item, pct: undefined })),
     ...summary.stockOuts.map((item) => ({ item, pct: undefined })),
   ];
@@ -105,8 +107,14 @@ export function AwaySummaryCard({
             >
               {item.name}
             </Text>
-            {pct !== undefined && pct < 0 ? (
-              <Text style={{ color: colors.success, fontSize: 14, fontWeight: "600" }}>
+            {pct !== undefined ? (
+              <Text
+                style={{
+                  color: pct < 0 ? colors.success : colors.error,
+                  fontSize: 14,
+                  fontWeight: "600",
+                }}
+              >
                 {formatPct(pct)}
               </Text>
             ) : null}

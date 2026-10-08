@@ -67,22 +67,28 @@ export function computeAwaySummary(input: {
       else historyByDistributor.set(listing.distributorId, [listing]);
     }
     for (const [distributorId, group] of historyByDistributor) {
-      const history = group.flatMap((l) => l.priceHistory ?? []);
+      const history = [...group.flatMap((l) => l.priceHistory ?? [])].sort(
+        (a, b) => Date.parse(a.date) - Date.parse(b.date),
+      );
+      const latest = history[history.length - 1];
+      if (!latest) continue;
+      const latestT = Date.parse(latest.date);
+      // Only report a change if the listing was actually re-sampled after
+      // `since`; otherwise "not refreshed" would masquerade as "out of stock".
+      if (latestT <= since) continue;
       const hadBefore = history.some((p) => Date.parse(p.date) <= since);
       if (!hadBefore) continue;
       const hadInStockBefore = history.some(
         (p) => p.stockStatus === "in_stock" && Date.parse(p.date) <= since,
       );
-      const hasInStockAfter = history.some(
-        (p) => p.stockStatus === "in_stock" && Date.parse(p.date) > since,
-      );
-      if (!hadInStockBefore && hasInStockAfter) {
+      const latestInStock = latest.stockStatus === "in_stock";
+      if (latestInStock && !hadInStockBefore) {
         restocks.push({
           productId: product.id,
           name: product.name,
           distributorId,
         });
-      } else if (hadInStockBefore && !hasInStockAfter) {
+      } else if (!latestInStock && hadInStockBefore) {
         stockOuts.push({
           productId: product.id,
           name: product.name,

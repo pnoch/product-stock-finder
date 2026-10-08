@@ -193,6 +193,16 @@ describe("computeAwaySummary", () => {
     expect(computeAwaySummary({ watchlist: [p], since: SINCE, now: NOW, displayCurrency: "USD" })).toBeNull();
   });
 
+  it("does not report a stock-out when an in-stock listing was not re-sampled since", () => {
+    // In stock at SINCE-2d and SINCE-1d, but no sample after `since`. "Not
+    // refreshed" must not masquerade as "now out of stock".
+    const p = product("p9", [
+      { distributorId: "d1", price: 100, stockStatus: "in_stock", date: new Date(SINCE - 2 * DAY).toISOString() },
+      { distributorId: "d1", price: 100, stockStatus: "in_stock", date: new Date(SINCE - DAY).toISOString() },
+    ]);
+    expect(computeAwaySummary({ watchlist: [p], since: SINCE, now: NOW, displayCurrency: "USD" })).toBeNull();
+  });
+
   it("honors a custom minDropPct", () => {
     const p = product("p8", [
       { distributorId: "d1", price: 100, stockStatus: "in_stock", date: new Date(SINCE - DAY).toISOString() },
