@@ -8,13 +8,22 @@ const SINCE = NOW - 3 * DAY;
 
 function product(
   id: string,
-  listings: {
+  points: {
     distributorId: string;
     price: number;
     stockStatus: string;
     date: string;
   }[],
 ): Product {
+  // Real data: one listing per distributor carrying its full history, with the
+  // current price/status being the latest point. Group the given points by
+  // distributor so the fixture models that shape.
+  const byDistributor = new Map<string, typeof points>();
+  for (const p of points) {
+    const group = byDistributor.get(p.distributorId);
+    if (group) group.push(p);
+    else byDistributor.set(p.distributorId, [p]);
+  }
   return {
     id,
     name: id,
@@ -23,23 +32,27 @@ function product(
     category: "Router",
     isWatched: true,
     addedAt: new Date(SINCE - DAY).toISOString(),
-    listings: listings.map((l) => ({
-      distributorId: l.distributorId,
-      productId: id,
-      price: l.price,
-      currency: "USD",
-      stockStatus: l.stockStatus,
-      url: "",
-      lastChecked: l.date,
-      priceHistory: [
-        {
-          date: l.date,
-          price: l.price,
+    listings: [...byDistributor.entries()].map(([distributorId, group]) => {
+      const sorted = [...group].sort(
+        (a, b) => Date.parse(a.date) - Date.parse(b.date),
+      );
+      const latest = sorted[sorted.length - 1]!;
+      return {
+        distributorId,
+        productId: id,
+        price: latest.price,
+        currency: "USD",
+        stockStatus: latest.stockStatus,
+        url: "",
+        lastChecked: latest.date,
+        priceHistory: sorted.map((p) => ({
+          date: p.date,
+          price: p.price,
           currency: "USD",
-          stockStatus: l.stockStatus,
-        },
-      ],
-    })),
+          stockStatus: p.stockStatus,
+        })),
+      };
+    }),
   } as unknown as Product;
 }
 
@@ -159,5 +172,33 @@ describe("computeAwaySummary", () => {
         displayCurrency: "USD",
       }),
     ).toBeNull();
+  });
+
+  it("detects a price rise beyond the threshold", () => {
+    const p = product("p6", [
+      { distributorId: "d1", price: 100, stockStatus: "in_stock", date: new Date(SINCE - DAY).toISOString() },
+      { distributorId: "d1", price: 120, stockStatus: "in_stock", date: new Date(NOW).toISOString() },
+    ]);
+    const s = computeAwaySummary({ watchlist: [p], since: SINCE, now: NOW, displayCurrency: "USD" })!;
+    expect(s.priceRises).toHaveLength(1);
+    expect(s.priceRises[0]!.pct).toBeGreaterThan(0);
+  });
+
+  it("ignores a move below the minDropPct threshold", () => {
+    // 100 -> 98 is a 2% drop, below the default 3%.
+    const p = product("p7", [
+      { distributorId: "d1", price: 100, stockStatus: "in_stock", date: new Date(SINCE - DAY).toISOString() },
+      { distributorId: "d1", price: 98, stockStatus: "in_stock", date: new Date(NOW).toISOString() },
+    ]);
+    expect(computeAwaySummary({ watchlist: [p], since: SINCE, now: NOW, displayCurrency: "USD" })).toBeNull();
+  });
+
+  it("honors a custom minDropPct", () => {
+    const p = product("p8", [
+      { distributorId: "d1", price: 100, stockStatus: "in_stock", date: new Date(SINCE - DAY).toISOString() },
+      { distributorId: "d1", price: 98, stockStatus: "in_stock", date: new Date(NOW).toISOString() },
+    ]);
+    const s = computeAwaySummary({ watchlist: [p], since: SINCE, now: NOW, displayCurrency: "USD", minDropPct: 1 })!;
+    expect(s.priceDrops).toHaveLength(1);
   });
 });
