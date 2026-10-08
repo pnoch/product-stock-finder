@@ -224,9 +224,24 @@ export default function ProductDetailScreen() {
       ),
     [visibleListings, effectiveCurrency],
   );
+  // `bestInStockListing` is a new object identity every render (listings
+  // recompute from useQueries), so depend on this stable boolean instead — an
+  // object dep would re-run the alternatives effect every render. Computed from
+  // the UNFILTERED listings: "out of stock everywhere", not just in the region
+  // filter, is the dead end that warrants alternatives.
+  const isOutOfStock = useMemo(
+    () =>
+      findCheapestInStockListing(
+        listings.filter((l) => l.stockStatus === "in_stock"),
+        effectiveCurrency,
+      ) == null,
+    [listings, effectiveCurrency],
+  );
   useEffect(() => {
-    if (!product?.category || bestInStockListing != null) {
-      setAlternatives([]);
+    if (!product?.category || !isOutOfStock) {
+      // Bail out when already empty: a fresh `[]` would be a new reference and
+      // re-trigger this effect into an infinite loop.
+      setAlternatives((prev) => (prev.length === 0 ? prev : []));
       return;
     }
     let active = true;
@@ -253,7 +268,7 @@ export default function ProductDetailScreen() {
     return () => {
       active = false;
     };
-  }, [product?.category, bestInStockListing, effectiveCurrency, id]);
+  }, [product?.category, isOutOfStock, effectiveCurrency, id]);
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, effectiveCurrency), [listings, effectiveCurrency]);
   const availability = useMemo(() => computeAvailability(listings), [listings]);
   const dealScore = useMemo(() => computeDealScore(listings, effectiveCurrency), [listings, effectiveCurrency]);
@@ -753,7 +768,7 @@ export default function ProductDetailScreen() {
           {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={effectiveCurrency} />}
           {availability && <AvailabilityCard data={availability} />}
           <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} highlightDistributorId={highlightDistributorId} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} destination={destination} taxExempt={taxExempt} includeImportEstimate={includeImportEstimate} onSelectCountry={handleSelectCountry} onToggleTaxExempt={handleToggleTaxExempt} onToggleImportEstimate={handleToggleImportEstimate} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)} onRemind={setReminderListing} onFindPrices={handleFindPrices} findingPrices={findingPrices} onWatchAny={() => void toggleAnyWatch()} watchingAny={!!stockWatches["*"]} />
-          {bestInStockListing == null && product?.category && (
+          {isOutOfStock && product?.category && (
             <AlternativesSection category={product.category} alternatives={alternatives} />
           )}
         </View>
