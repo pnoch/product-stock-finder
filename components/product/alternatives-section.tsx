@@ -30,7 +30,14 @@ export function AlternativesSection({
         padding: 16,
       }}
     >
-      <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 15, marginBottom: 12 }}>
+      <Text
+        style={{
+          color: colors.foreground,
+          fontWeight: "600",
+          fontSize: 15,
+          marginBottom: 12,
+        }}
+      >
         In stock now in {category}
       </Text>
       {alternatives.map((alt, index) => (
@@ -50,7 +57,13 @@ export function AlternativesSection({
           }}
         >
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontSize: 14,
+                fontWeight: "600",
+              }}
+            >
               {alt.name}
             </Text>
             <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
