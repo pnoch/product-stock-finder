@@ -8,11 +8,11 @@ import {
   Platform,
   Animated,
 } from "react-native";
-import { useCallback, useState, useRef, useMemo } from "react";
-import type { PriceAlert } from "@/lib/types";
+import { useCallback, useState, useRef, useMemo, useEffect } from "react";
+import type { PriceAlert, CriterionWatch } from "@/lib/types";
 import { PriceAlertModal } from "@/components/product/price-alert-modal";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -21,6 +21,8 @@ import { useColors } from "@/hooks/use-colors";
 import { countActiveAlerts } from "@/lib/alert-state";
 import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { IconActionButton } from "@/components/ui/icon-action-button";
+import { getCriterionWatches, removeCriterionWatch } from "@/lib/storage";
 import { useAlertsData } from "@/hooks/use-alerts-data";
 import { showAlert } from "@/lib/alert";
 import { savingAlerts } from "@/lib/alert-savings";
@@ -53,6 +55,42 @@ export default function AlertsScreen() {
     rescheduleDate, setRescheduleDate,
     showReschedulePicker, setShowReschedulePicker,
   } = useAlertsData();
+
+  const [criterionWatches, setCriterionWatches] = useState<CriterionWatch[]>([]);
+
+  const loadCriterionWatches = useCallback(async () => {
+    try {
+      setCriterionWatches(await getCriterionWatches());
+    } catch {
+      setCriterionWatches([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadCriterionWatches();
+  }, [loadCriterionWatches, refreshing, loading]);
+
+  // Reload on focus so a watch created on the board appears when the user
+  // returns to this tab (the effect above only fires on mount/refresh).
+  useFocusEffect(
+    useCallback(() => {
+      void loadCriterionWatches();
+    }, [loadCriterionWatches]),
+  );
+
+  const handleRemoveCriterionWatch = useCallback(
+    async (id: string) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await removeCriterionWatch(id);
+        await loadCriterionWatches();
+      } catch {
+        showAlert("Remove failed", "We couldn't remove that watch. Please try again.");
+      }
+    },
+    [loadCriterionWatches],
+  );
 
   const fabScale = useRef(new Animated.Value(1)).current;
   const handleFabPressIn = useCallback(() => {
@@ -447,16 +485,88 @@ export default function AlertsScreen() {
                   </Text>
                 </View>
               )}
-              {/* Empty state when both lists are empty */}
-              {stockWatches.length === 0 && reminders.length === 0 && (
-                <EmptyStateView
-                  icon="calendar"
-                  title="No reminders set"
-                  subtitle='Open a back-order product listing and tap "Remind me" or "Watch for Restock".'
-                  ctaLabel="Browse Products"
-                  onCtaPress={() => router.push("/search")}
-                />
+              {/* Criterion Watches section */}
+              {criterionWatches.length > 0 && (
+                <View style={{ marginBottom: 16 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <IconSymbol
+                      name="bookmark.fill"
+                      size={15}
+                      color={colors.success}
+                    />
+                    <Text
+                      style={{
+                        color: colors.foreground,
+                        fontWeight: "700",
+                        fontSize: 14,
+                      }}
+                    >
+                      Watched Searches ({criterionWatches.length})
+                    </Text>
+                  </View>
+                  {criterionWatches.map((watch) => (
+                    <View
+                      key={watch.id}
+                      style={{
+                        backgroundColor: colors.surface,
+                        borderRadius: 16,
+                        padding: 16,
+                        marginBottom: 12,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <View style={{ flex: 1, marginRight: 12 }}>
+                        <Text
+                          style={{
+                            color: colors.foreground,
+                            fontWeight: "600",
+                            fontSize: 14,
+                          }}
+                          numberOfLines={2}
+                          ellipsizeMode="tail"
+                        >
+                          Any{" "}
+                          {watch.category ?? watch.brand ?? "product"}
+                          {watch.maxPrice != null
+                            ? ` under ${formatPrice(watch.maxPrice, watch.currency)}`
+                            : ""}
+                        </Text>
+                      </View>
+                      <IconActionButton
+                        name="trash.fill"
+                        size={16}
+                        color={colors.error}
+                        onPress={() => void handleRemoveCriterionWatch(watch.id)}
+                        accessibilityLabel="Remove watched search"
+                        accessibilityHint="Double tap to remove"
+                      />
+                    </View>
+                  ))}
+                </View>
               )}
+              {/* Empty state when all lists are empty */}
+              {stockWatches.length === 0 &&
+                reminders.length === 0 &&
+                criterionWatches.length === 0 && (
+                  <EmptyStateView
+                    icon="calendar"
+                    title="No reminders set"
+                    subtitle='Open a back-order product listing and tap "Remind me" or "Watch for Restock".'
+                    ctaLabel="Browse Products"
+                    onCtaPress={() => router.push("/search")}
+                  />
+                )}
             </View>
           }
           renderItem={({ item }) => (

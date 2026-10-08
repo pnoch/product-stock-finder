@@ -42,6 +42,7 @@ vi.mock("@/constants/oauth", () => ({
 vi.mock("@/lib/storage", () => ({
   getWatchlist: vi.fn(async () => state.watchlist),
   getSettings: vi.fn(async () => ({ displayCurrency: "USD" })),
+  addCriterionWatch: vi.fn(async () => {}),
 }));
 vi.mock("@/lib/server-catalog", () => ({ fetchAvailable: vi.fn(async () => []) }));
 vi.mock("@/lib/ensure-watchlist-product", () => ({
@@ -53,6 +54,12 @@ vi.mock("@/hooks/use-entitlements", () => ({
 }));
 vi.mock("@/components/ui/toast", () => ({
   useToast: () => ({ showToast: vi.fn() }),
+}));
+vi.mock("expo-haptics", () => ({
+  impactAsync: vi.fn(),
+  notificationAsync: vi.fn(),
+  ImpactFeedbackStyle: { Light: "light", Medium: "medium", Heavy: "heavy" },
+  NotificationFeedbackType: { Success: "success", Warning: "warning", Error: "error" },
 }));
 vi.mock("@/components/paywall/paywall-screen", () => ({
   PaywallScreen: () => null,

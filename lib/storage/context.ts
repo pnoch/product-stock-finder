@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   SETTINGS: "app_settings",
   REMINDERS: "back_order_reminders",
   STOCK_WATCHES: "back_in_stock_watches",
+  CRITERION_WATCHES: "criterion_watches",
   DIGEST_SNAPSHOT: "price_digest_snapshot",
   SYNC_META: "sync_meta",
   DISPLAYED_EVENT_IDS: "displayed_notification_event_ids",

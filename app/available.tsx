@@ -5,7 +5,9 @@ import {
   View,
   Pressable,
   TouchableOpacity,
+  Platform,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { ScreenContainer } from "@/components/screen-container";
@@ -16,7 +18,11 @@ import { getAllBrands, getAllCategories } from "@shared/catalog";
 import { formatPrice } from "@shared/currency";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { getBestPrice } from "@/lib/currency";
-import { getSettings, getWatchlist } from "@/lib/storage";
+import {
+  getSettings,
+  getWatchlist,
+  addCriterionWatch,
+} from "@/lib/storage";
 import { isServerConfigured } from "@/constants/oauth";
 import { fetchAvailable } from "@/lib/server-catalog";
 import { ensureWatchlistProduct } from "@/lib/ensure-watchlist-product";
@@ -271,6 +277,28 @@ export default function AvailableScreen() {
     [isPro, router, showToast],
   );
 
+  const hasFilter = category != null || brand != null || maxPrice != null;
+
+  const handleWatchSearch = useCallback(async () => {
+    if (!category && !brand && maxPrice == null) return;
+    if (Platform.OS !== "web")
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await addCriterionWatch({
+      id: `cw-${Date.now()}`,
+      category,
+      brand,
+      maxPrice,
+      currency,
+      seenProductIds: [],
+      createdAt: new Date().toISOString(),
+      isActive: true,
+    });
+    showToast(
+      "Watching this search — you'll be notified of new matches",
+      "success",
+    );
+  }, [category, brand, maxPrice, currency, showToast]);
+
   return (
     <ScreenContainer>
       <Stack.Screen options={{ title: "Available Now" }} />
@@ -388,6 +416,45 @@ export default function AvailableScreen() {
             />
           ))}
         </ScrollView>
+      )}
+
+      {configured && (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Watch this search"
+            accessibilityState={{ disabled: !hasFilter }}
+            disabled={!hasFilter}
+            onPress={() => void handleWatchSearch()}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              backgroundColor: hasFilter ? colors.primary : colors.surface,
+              borderWidth: 1,
+              borderColor: hasFilter ? colors.primary : colors.border,
+              borderRadius: 12,
+              paddingVertical: 10,
+            }}
+          >
+            <IconSymbol
+              name="bookmark.fill"
+              size={16}
+              color={hasFilter ? "#fff" : colors.muted}
+            />
+            <Text
+              style={{
+                color: hasFilter ? "#fff" : colors.muted,
+                fontSize: 14,
+                fontWeight: "600",
+              }}
+            >
+              Watch this search
+            </Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>

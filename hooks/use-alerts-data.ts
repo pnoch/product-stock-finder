@@ -17,6 +17,7 @@ import {
   addBackOrderReminder,
   getStockWatches,
   removeStockWatch,
+  getCriterionWatches,
   rearmAlert,
   getUnreadNotificationCount,
   getSettings,
@@ -36,6 +37,7 @@ export function useAlertsData() {
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [reminders, setReminders] = useState<BackOrderReminder[]>([]);
   const [stockWatches, setStockWatches] = useState<BackOrderReminder[]>([]);
+  const [criterionWatchCount, setCriterionWatchCount] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,7 @@ export function useAlertsData() {
       setStockWatches(w);
       setUnreadNotifications(n);
       setDisplayCurrency(s.displayCurrency ?? "USD");
+      setCriterionWatchCount((await getCriterionWatches()).length);
       setLoadError(null);
     } catch {
       if (gen !== loadGen.current) return;
@@ -352,7 +355,7 @@ export function useAlertsData() {
 
   const tabCount = {
     alerts: countOpenAlerts(alerts),
-    reminders: reminders.length + stockWatches.length,
+    reminders: reminders.length + stockWatches.length + criterionWatchCount,
     notifications: unreadNotifications,
   };
 

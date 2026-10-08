@@ -37,7 +37,8 @@ type TypeIconName =
   | "checkmark.circle.fill"
   | "clock.fill"
   | "chart.bar.fill"
-  | "exclamationmark.triangle.fill";
+  | "exclamationmark.triangle.fill"
+  | "sparkles";
 
 const TYPE_ICONS: Record<HistoryType, TypeIconName> = {
   price_drop: "dollarsign.circle.fill",
@@ -47,6 +48,7 @@ const TYPE_ICONS: Record<HistoryType, TypeIconName> = {
   health: "exclamationmark.triangle.fill",
   digest: "chart.bar.fill",
   suspicious_price: "exclamationmark.triangle.fill",
+  criterion_match: "sparkles",
 };
 
 export function NotificationCenter({

@@ -14,6 +14,7 @@ import {
   TrendingUp,
   TriangleAlert,
   RotateCcw,
+  Sparkles,
   ToggleLeft,
   ToggleRight,
   Pause,
@@ -54,6 +55,7 @@ const TYPE_ICONS = {
   health: TriangleAlert,
   digest: BarChart3,
   suspicious_price: TriangleAlert,
+  criterion_match: Sparkles,
 } as const;
 
 export function Alerts() {

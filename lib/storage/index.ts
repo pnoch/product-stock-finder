@@ -6,6 +6,7 @@ import { createIDBAdapter, isIndexedDBAvailable } from "./idb-adapter";
 import { createWatchlistStorage } from "./watchlist";
 import { createAlertsStorage } from "./alerts";
 import { createRemindersStorage } from "./reminders";
+import { createCriterionWatchesStorage } from "./criterion-watches";
 import { createSettingsStorage } from "./settings";
 import { stripDeviceLocalSettings } from "../settings-privacy";
 import { createDigestFxStorage } from "./digest-fx";
@@ -42,6 +43,7 @@ export function createStorage(
   const watchlist = createWatchlistStorage(ctx);
   const alertsStorage = createAlertsStorage(ctx);
   const remindersStorage = createRemindersStorage(ctx);
+  const criterionWatchesStorage = createCriterionWatchesStorage(ctx);
 
   // ─── Clear All Data ─────────────────────────────────────────────────────────
 
@@ -66,6 +68,7 @@ export function createStorage(
       STORAGE_KEYS.ALERTS,
       STORAGE_KEYS.REMINDERS,
       STORAGE_KEYS.STOCK_WATCHES,
+      STORAGE_KEYS.CRITERION_WATCHES,
       STORAGE_KEYS.SYNC_META,
       STORAGE_KEYS.DISPLAYED_EVENT_IDS,
       STORAGE_KEYS.NOTIFICATION_HISTORY,
@@ -131,6 +134,7 @@ export function createStorage(
       STORAGE_KEYS.SETTINGS,
       STORAGE_KEYS.REMINDERS,
       STORAGE_KEYS.STOCK_WATCHES,
+      STORAGE_KEYS.CRITERION_WATCHES,
       STORAGE_KEYS.SYNC_META,
       STORAGE_KEYS.DISPLAYED_EVENT_IDS,
       STORAGE_KEYS.NOTIFICATION_HISTORY,
@@ -223,6 +227,7 @@ export function createStorage(
     ...watchlist,
     ...alertsStorage,
     ...remindersStorage,
+    ...criterionWatchesStorage,
     ...createSettingsStorage(ctx, watchlist),
     ...createDigestFxStorage(ctx),
     ...createFxHistoryStorage(ctx),
@@ -320,6 +325,13 @@ export const {
   removeStockWatch,
   updateStockWatchStatus,
   updateStockWatchStatuses,
+} = defaultStorage;
+// ─── Criterion Watches ────────────────────────────────────────────────────
+export const {
+  getCriterionWatches,
+  addCriterionWatch,
+  removeCriterionWatch,
+  updateCriterionWatches,
 } = defaultStorage;
 // ─── Settings / Meta ─────────────────────────────────────────────────────
 export const {
