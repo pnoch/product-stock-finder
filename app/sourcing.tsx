@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Pressable,
   ScrollView,
@@ -154,30 +154,33 @@ export default function SourcingScreen() {
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState<SourcingLine | null>(null);
 
+  const load = useCallback(async () => {
+    const [items, settings] = await Promise.all([getWatchlist(), getSettings()]);
+    setWatchlist(items as Product[]);
+    setDestination(
+      settings?.shipToCountry
+        ? {
+            countryCode: settings.shipToCountry,
+            currency: settings.displayCurrency ?? "USD",
+          }
+        : null,
+    );
+    setOptions({
+      taxExempt: settings?.taxExempt,
+      includeImportEstimate: settings?.includeImportEstimate,
+    });
+    setLoaded(true);
+  }, []);
+
   useEffect(() => {
     let active = true;
-    (async () => {
-      const [items, settings] = await Promise.all([getWatchlist(), getSettings()]);
-      if (!active) return;
-      setWatchlist(items as Product[]);
-      setDestination(
-        settings?.shipToCountry
-          ? {
-              countryCode: settings.shipToCountry,
-              currency: settings.displayCurrency ?? "USD",
-            }
-          : null,
-      );
-      setOptions({
-        taxExempt: settings?.taxExempt,
-        includeImportEstimate: settings?.includeImportEstimate,
-      });
-      setLoaded(true);
-    })();
+    void load().catch(() => {
+      if (active) setLoaded(true);
+    });
     return () => {
       active = false;
     };
-  }, []);
+  }, [load]);
 
   const summary = useMemo(
     () =>
@@ -269,7 +272,10 @@ export default function SourcingScreen() {
           targetSellPrice={editingProduct.targetSellPrice}
           currency={destination?.currency ?? "USD"}
           onClose={() => setEditing(null)}
-          onSaved={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            void load();
+          }}
         />
       ) : null}
     </ScreenContainer>

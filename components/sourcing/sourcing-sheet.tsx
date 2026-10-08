@@ -13,6 +13,7 @@ import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { updateProductSourcing } from "@/lib/storage";
+import { showAlert } from "@/lib/alert";
 
 function fieldStyle(colors: ReturnType<typeof useColors>) {
   return {
@@ -77,6 +78,8 @@ export function SourcingSheet({
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSaved?.();
       onClose();
+    } catch {
+      showAlert("Couldn't save", "Please try again.");
     } finally {
       setSaving(false);
     }
@@ -93,6 +96,8 @@ export function SourcingSheet({
       if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onSaved?.();
       onClose();
+    } catch {
+      showAlert("Couldn't clear", "Please try again.");
     } finally {
       setSaving(false);
     }
