@@ -8436,3 +8436,11 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Reminders entry** (`app/(tabs)/alerts.tsx`): the Reminders tab lists watched searches as "Any {category|brand|product}{ under $max}" rows with a remove action; the empty state now accounts for them.
 - [x] Tests: `criterion-watch` (4), `criterion-watches-storage` (3), `criterion-watch-notify` (2, incl. the failed-notify leaves-`seenProductIds` guard), `available-screen` (+`expo-haptics` mock for the new import). `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
 - [x] **Deferred:** server-side evaluation (a follow-up — the client path covers the app-open/background case), cross-device sync (device-local by design), and desktop parity.
+
+## Phase 1135: Build order (consolidated cart plan)
+
+- [x] **Plan the whole watchlist purchase.** `computeBuildOrder` (`lib/build-order.ts`) takes the watchlist plus per-store shipping/FX options and returns a `BuildOrderPlan`: a single-store verdict when one distributor beats the split, otherwise a greedy cheapest-first assignment of each product to a store with a `BuildOrderComparison` of single-store vs split landed totals. Pure and deterministic; no scraping.
+- [x] **Plan order screen** (`app/build-order.tsx`): loads the watchlist + settings, computes the plan, and renders the single-store-vs-split comparison with per-store groups, unassigned product names, and an estimate footer.
+- [x] **Watchlist entry** (`app/(tabs)/watchlist.tsx`): a "Plan order" card row above the search bar, visible when `watchlist.length >= 2`, pushes `/build-order`.
+- [x] Tests: `build-order` (ranking/split/single-store verdict), `build-order-screen` (render + navigation). `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
+- [x] **Deferred:** cart/checkout (no payments — the screen plans and hands off) and desktop parity (desktop has no build-order surface yet).
