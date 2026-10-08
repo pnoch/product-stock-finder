@@ -989,6 +989,54 @@ export default function WatchlistScreen() {
   </View>
 )}
 {watchlist.length > 0 && (
+  <View
+    style={{
+      marginHorizontal: 16,
+      marginBottom: 12,
+      borderRadius: 16,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: "hidden",
+    }}
+  >
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => {
+        if (Platform.OS !== "web")
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push("/sourcing");
+      }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+      }}
+      accessibilityLabel="Sourcing sheet"
+      accessibilityRole="button"
+    >
+      <IconSymbol
+        name="dollarsign.circle.fill"
+        size={20}
+        color={colors.primary}
+      />
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 15, fontWeight: "600" }}
+        >
+          Sourcing sheet
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+          Track buy prices, sell targets, and margin
+        </Text>
+      </View>
+      <IconSymbol name="chevron.right" size={12} color={colors.muted} />
+    </TouchableOpacity>
+  </View>
+)}
+{watchlist.length > 0 && (
   <SearchBar query={query} onQueryChange={setQuery} />
 )}
 <ProgressBar

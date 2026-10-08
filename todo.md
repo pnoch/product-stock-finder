@@ -8444,3 +8444,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Watchlist entry** (`app/(tabs)/watchlist.tsx`): a "Plan order" card row above the search bar, visible when `watchlist.length >= 2`, pushes `/build-order`.
 - [x] Tests: `build-order` (ranking/split/single-store verdict), `build-order-screen` (render + navigation). `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
 - [x] **Deferred:** cart/checkout (no payments — the screen plans and hands off) and desktop parity (desktop has no build-order surface yet).
+
+## Phase 1136: Sourcing sheet (reseller margins)
+
+- [x] **Sourcing fields on `Product`** (`lib/types.ts`): optional `quantity` (units per line, defaults to 1 when absent/invalid), `targetSellPrice` (native sell price), and `sellCurrency` (ISO code the sell price is quoted in, defaults to the destination currency). Persisted via `updateProductSourcing` (`lib/storage/watchlist.ts`) and re-exported from `lib/storage/index.ts`.
+- [x] **Pure margin math** (`lib/reseller.ts`): `computeSourcing(watchlist, destination, options)` ranks each product with `rankByLandedCost`, takes the cheapest landed buy unit, computes the sell unit via `convertPrice(targetSellPrice, sellCurrency, destination.currency)`, and returns per-line `buyUnit`/`sellUnit`/`marginUnit`/`marginTotal` plus a `SourcingSummary` (`totalOutlay`, `totalMargin`). The spread is over **in-stock listings only** (a back-order price is not a live arbitrage signal), even though `rankByLandedCost` admits `back_order` for the buy unit. A missing sell price yields `null` margin, never a fabricated one.
+- [x] **Sourcing sheet screen** (`app/sourcing.tsx`): loads the watchlist + settings, computes the summary, and renders per-line cards (qty, buy/sell unit, margin unit/total, spread) with a summary card (total outlay, total margin). A per-line "Set sell price" action opens the edit modal; saving reloads the sheet.
+- [x] **Edit modal** (`components/sourcing/sourcing-sheet.tsx`): edits `quantity` + `targetSellPrice` (+ `sellCurrency`) and persists via `updateProductSourcing`, with error handling on save failure.
+- [x] **Watchlist entry** (`app/(tabs)/watchlist.tsx`): a "Sourcing sheet" card row beside "Plan order", visible when `watchlist.length > 0`, pushes `/sourcing`.
+- [x] Tests: `computeSourcing` (in-stock-only spread, exact values, currency conversion, no-sell-price null margin), `sourcing-screen` (render + navigation), `updateProductSourcing` storage. `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
+- [x] **Deferred:** automated sell-side comps (sell prices are user-entered; no market comps are fetched) and desktop parity (desktop has no sourcing surface yet).
