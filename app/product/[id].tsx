@@ -14,7 +14,10 @@ import { buildShareText } from "@/lib/price-share";
 import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
 import * as Linking from "expo-linking";
 import { captureAndShareImage } from "@/lib/share-image";
-import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings, updateSettings } from "@/lib/storage";
+import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings, updateSettings, getWatchlist } from "@/lib/storage";
+import { pickAlternatives, localAlternatives, type Alternative } from "@/lib/alternatives";
+import { fetchAvailable } from "@/lib/server-catalog";
+import { isServerConfigured } from "@/constants/oauth";
 import { rediscoverProduct } from "@/lib/manual-add";
 import { discoverListings } from "@/lib/listing-discovery";
 import { formatPrice } from "@shared/currency";
@@ -35,6 +38,7 @@ import { schedulePriceAlert, scheduleStockWatchConfirmation, scheduleBackOrderRe
 import { showAlert } from "@/lib/alert";
 import { ProductInfoCard, DistributorListingSection, ReminderDatePickerModal, NotesCard, TargetTableCard, PriceAlertModal } from "./_components";
 import { EditProductSheet } from "@/components/product/edit-product-sheet";
+import { AlternativesSection } from "@/components/product/alternatives-section";
 import { PriceAlert, DistributorListing } from "@/lib/types";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { SkeletonCard, SkeletonChart, SkeletonDetailHeader } from "@/components/ui/skeleton";
@@ -101,6 +105,7 @@ export default function ProductDetailScreen() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
+  const [alternatives, setAlternatives] = useState<Alternative[]>([]);
   const scrollY = useRef(new Animated.Value(0)).current;
   const stickyOpacity = scrollY.interpolate({ inputRange: [80, 140], outputRange: [0, 1], extrapolate: "clamp" });
   const shareScale = useRef(new Animated.Value(1)).current;
@@ -219,6 +224,36 @@ export default function ProductDetailScreen() {
       ),
     [visibleListings, effectiveCurrency],
   );
+  useEffect(() => {
+    if (!product?.category || bestInStockListing != null) {
+      setAlternatives([]);
+      return;
+    }
+    let active = true;
+    (async () => {
+      try {
+        const next = isServerConfigured()
+          ? pickAlternatives({
+              product: { id, category: product.category },
+              available: await fetchAvailable({
+                category: product.category,
+                currency: effectiveCurrency,
+              }),
+            })
+          : localAlternatives(
+              { id, category: product.category },
+              await getWatchlist(),
+              effectiveCurrency,
+            );
+        if (active) setAlternatives(next);
+      } catch {
+        if (active) setAlternatives([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [product?.category, bestInStockListing, effectiveCurrency, id]);
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, effectiveCurrency), [listings, effectiveCurrency]);
   const availability = useMemo(() => computeAvailability(listings), [listings]);
   const dealScore = useMemo(() => computeDealScore(listings, effectiveCurrency), [listings, effectiveCurrency]);
@@ -718,6 +753,9 @@ export default function ProductDetailScreen() {
           {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={effectiveCurrency} />}
           {availability && <AvailabilityCard data={availability} />}
           <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} highlightDistributorId={highlightDistributorId} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} destination={destination} taxExempt={taxExempt} includeImportEstimate={includeImportEstimate} onSelectCountry={handleSelectCountry} onToggleTaxExempt={handleToggleTaxExempt} onToggleImportEstimate={handleToggleImportEstimate} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)} onRemind={setReminderListing} onFindPrices={handleFindPrices} findingPrices={findingPrices} onWatchAny={() => void toggleAnyWatch()} watchingAny={!!stockWatches["*"]} />
+          {bestInStockListing == null && product?.category && (
+            <AlternativesSection category={product.category} alternatives={alternatives} />
+          )}
         </View>
         {/* Notes and distributor targets sit outside the shareRef capture: notes
             are device-private and targets are personal, so neither belongs in a
