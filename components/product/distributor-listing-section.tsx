@@ -10,7 +10,7 @@ import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { formatEstimate } from "@/lib/estimate-format";
-import { convertPrice } from "@/lib/currency";
+import { findCheapestInStockListing } from "@/lib/best-deal";
 import { getDistributorById } from "@shared/distributors";
 import { BestDistributorCard } from "@/components/best-distributor-card";
 import type { Product } from "@/lib/types";
@@ -19,6 +19,7 @@ import type { Destination } from "@/lib/landed-cost";
 import { CountryPicker } from "@/components/ui/country-picker";
 import { getCountry } from "@shared/countries";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { openListingUrl } from "@/lib/listing-utils";
 import { DistributorListingCard } from "./distributor-listing-card";
 
 interface DistributorListingSectionProps {
@@ -36,6 +37,7 @@ interface DistributorListingSectionProps {
   id: string;
   displayCurrency: string;
   destination: Destination | null;
+  highlightDistributorId?: string;
   taxExempt: boolean;
   includeImportEstimate: boolean;
   onSelectCountry: (code: string) => void;
@@ -139,6 +141,7 @@ export function DistributorListingSection({
   id,
   displayCurrency,
   destination,
+  highlightDistributorId,
   taxExempt,
   includeImportEstimate,
   onSelectCountry,
@@ -166,18 +169,7 @@ export function DistributorListingSection({
       (l) => l.stockStatus === "in_stock" || l.stockStatus === "back_order",
     );
     if (orderable.length === 0) return null;
-    const target = displayCurrency ?? "USD";
-    let best: DistributorListing | null = null;
-    let bestConverted = Infinity;
-    for (const l of orderable) {
-      const c = convertPrice(l.price, l.currency, target);
-      if (c === null || !Number.isFinite(c)) continue;
-      if (c < bestConverted) {
-        bestConverted = c;
-        best = l;
-      }
-    }
-    return best;
+    return findCheapestInStockListing(orderable, displayCurrency ?? "USD");
   })();
 
   return (
@@ -567,6 +559,36 @@ export function DistributorListingSection({
                   </Text>
                 </>
               )}
+              {(() => {
+                const listing = sortedListings.find(
+                  (l) => l.distributorId === bestDeal.distributorId && l.url,
+                );
+                if (!listing) return null;
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    accessibilityLabel="Visit store"
+                    accessibilityRole="button"
+                    onPress={() => void openListingUrl(listing.url)}
+                    style={{
+                      marginTop: 10,
+                      alignSelf: "flex-start",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 16,
+                      backgroundColor: colors.primary,
+                    }}
+                  >
+                    <IconSymbol name="arrow.up.right.square" size={14} color="#fff" />
+                    <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+                      Visit store
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })()}
             </View>
           )}
           {visibleListings.map((listing) => (
@@ -575,6 +597,7 @@ export function DistributorListingSection({
               listing={listing}
               displayCurrency={displayCurrency}
               stockWatches={stockWatches}
+              highlighted={listing.distributorId === highlightDistributorId}
               onToggleStockWatch={onToggleStockWatch}
               onOpenChart={onOpenChart}
               onRemind={onRemind}

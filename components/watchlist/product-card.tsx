@@ -13,6 +13,7 @@ import { Product, TagDefinition } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { convertPrice, getBestPrice } from "@/lib/currency";
 import { computePriceChange } from "@/lib/price-change";
+import { findCheapestInStockListing } from "@/lib/best-deal";
 import { StockBadge } from "@/components/stock-badge";
 import { ScarcityBadge } from "@/components/watchlist/scarcity-badge";
 import { computeAvailability } from "@/lib/availability";
@@ -24,6 +25,7 @@ import {
   getLastRefreshedColor,
 } from "@/lib/last-refreshed";
 import { getTagById } from "@/lib/tags";
+import { openListingUrl } from "@/lib/listing-utils";
 import { productStatus } from "@/lib/watchlist-org";
 import type { DealScore } from "@/lib/deal-score";
 import { dealBandLabel } from "@/lib/deal-score";
@@ -64,6 +66,18 @@ export const ProductCard = memo(function ProductCard({
     (dealScore != null && dealScore.band === "hot");
   const bestPrice = useMemo(
     () => getBestPrice(product.listings ?? [], currency),
+    [product.listings, currency],
+  );
+  const bestInStockListing = useMemo(
+    // The Buy button opens the store, so require a url — an in-stock listing
+    // without one would render a dead button (the Visit CTA guards the same way).
+    () =>
+      findCheapestInStockListing(
+        (product.listings ?? []).filter(
+          (l) => l.stockStatus === "in_stock" && l.price > 0 && !!l.url,
+        ),
+        currency,
+      ),
     [product.listings, currency],
   );
   const bestStatus = useMemo(() => productStatus(product), [product]);
@@ -378,6 +392,26 @@ export const ProductCard = memo(function ProductCard({
             >
               {formatPrice(bestPrice.price, bestPrice.currency)}
             </Text>
+          )}
+          {bestInStockListing && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              accessibilityLabel={`Buy ${product.name} at the cheapest in-stock store`}
+              accessibilityRole="button"
+              onPress={(e) => {
+                e?.stopPropagation?.();
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                void openListingUrl(bestInStockListing.url);
+              }}
+              style={{
+                flexDirection: "row", alignItems: "center", gap: 4,
+                paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14,
+                backgroundColor: colors.primary + "22",
+              }}
+            >
+              <IconSymbol name="cart.fill" size={13} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 12 }}>Buy</Text>
+            </TouchableOpacity>
           )}
           {sparklineData && (
             <PriceSparkline data={sparklineData} width={64} height={24} />

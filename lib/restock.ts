@@ -68,6 +68,8 @@ async function runCheckRestocks(
     names: string,
     price: number,
     currency: string,
+    distributorId?: string,
+    url?: string,
   ): Promise<boolean> {
     const notificationsEnabled =
       settings.notificationsEnabled !== false && settings.stockAlerts !== false;
@@ -86,6 +88,8 @@ async function runCheckRestocks(
         price,
         currency,
         watch.productId,
+        distributorId,
+        url,
       );
       return id !== null;
     } catch {
@@ -131,6 +135,8 @@ async function runCheckRestocks(
           names,
           first.price,
           first.currency,
+          first.distributorId,
+          first.url,
         ))
       ) {
         continue;
@@ -178,6 +184,8 @@ async function runCheckRestocks(
           names,
           currentListing.price,
           currentListing.currency,
+          currentListing.distributorId,
+          currentListing.url,
         ))
       ) {
         // Keep the watch so the next cycle retries the notification.

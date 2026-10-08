@@ -8399,3 +8399,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Home** (`app/(tabs)/index.tsx`): a dismissible amber banner ("Background monitoring may have stopped — tap to fix.") above the watchlist when `stopped`/`stale`; body pushes to Settings, close icon dismisses for the session.
 - [x] `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
 - [x] **Deferred:** push-delivery diagnostics (did the server actually deliver?) — this phase covers task registration + last-run freshness only.
+
+## Phase 1131: Buy last-mile
+
+- [x] **One tap from the purchase.** Buy Last-Mile carries the store URL through restock notifications, adds a Buy button to the watchlist card, and adds a Visit CTA to the best-deal card — so the user lands on the store's own page instead of retracing the search.
+- [x] **Notification URL payload** (`lib/notifications.ts` `scheduleStockAlert` gains `url`/`distributorId`; `lib/restock.ts` `deliverRestock` passes the first in-stock listing's), so a restock tap opens the product detail with that store highlighted.
+- [x] **Watchlist Buy button** (`components/watchlist/product-card.tsx`): rendered only when `bestInStockListing` exists, opens that listing via `openListingUrl` — never a dead button.
+- [x] **Best-deal Visit CTA** (`components/product/distributor-listing-section.tsx`): inside the best-deal card, a "Visit store" button resolves the best-deal distributor's listing (`sortedListings.find(l => l.distributorId === bestDeal.distributorId && l.url)`) and opens it via `openListingUrl`; hidden when no URL resolves.
+- [x] **Honest handoff** — no cart/checkout/payments; the app opens the distributor's page and hands off.
+- [x] Tests: `notifications-stock-url` (url/distributorId in payload), `restock-any-scope` (url threading), `product-card-buy` (Buy button gating + open), `best-deal-visit-guard` (Visit CTA present). `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
+- [x] **Deferred:** desktop parity (desktop has no notification path and no Buy/Visit action yet) and cart/checkout (explicitly out of scope per the spec).

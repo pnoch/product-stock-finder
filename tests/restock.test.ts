@@ -91,6 +91,35 @@ describe("checkRestocks", () => {
     expect(state.removed).toEqual(["w1"]);
   });
 
+  it("threads the triggering listing's url into the notification", async () => {
+    state.watches = [makeWatch()];
+    state.watchlist = [
+      {
+        id: "p1",
+        listings: [
+          {
+            distributorId: "d1",
+            stockStatus: "in_stock",
+            price: 100,
+            currency: "USD",
+            url: "https://d1.example/p",
+          },
+        ],
+      },
+    ];
+    await checkRestocks();
+    const { scheduleStockAlert } = await import("../lib/notifications");
+    expect(vi.mocked(scheduleStockAlert)).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      100,
+      "USD",
+      "p1",
+      "d1",
+      "https://d1.example/p",
+    );
+  });
+
   // QA round 140: the restock history write used the module-level default store
   // (IndexedDB in a Tauri webview) instead of the injected store the desktop
   // passes, so desktop restock events never reached the Alerts tab.

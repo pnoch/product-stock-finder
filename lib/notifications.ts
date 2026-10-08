@@ -125,6 +125,8 @@ export async function scheduleStockAlert(
   price: number,
   currency: string,
   productId?: string,
+  distributorId?: string,
+  url?: string,
 ): Promise<string | null> {
   if (Platform.OS === "web") return null;
   try {
@@ -132,7 +134,7 @@ export async function scheduleStockAlert(
       content: {
         title: "Back In Stock!",
         body: `${productName} is now available at ${distributorName} for ${currency} ${price.toFixed(2)}`,
-        data: { type: "stock_alert", productName, distributorName, productId },
+        data: { type: "stock_alert", productName, distributorName, productId, distributorId, url },
         sound: "default",
       },
       trigger: immediateTrigger("stock"),

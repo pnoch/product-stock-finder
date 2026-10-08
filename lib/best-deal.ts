@@ -89,19 +89,23 @@ export function findBestDeal(
   return best;
 }
 
-export function findBestInStockListing(
+// Cheapest candidate in the display currency. Callers pass the listings they
+// consider orderable (the watchlist buys only in-stock; the detail screen's
+// best-price card also accepts back-order), so the scan stays filter-agnostic
+// and the currency comparison lives in one place. Listings whose price can't be
+// converted are skipped rather than anchoring the result.
+export function findCheapestInStockListing(
   listings: DistributorListing[],
-  targetCurrency: string,
+  displayCurrency: string,
 ): DistributorListing | null {
   let best: DistributorListing | null = null;
   let bestPrice = Infinity;
 
   for (const listing of listings) {
-    if (listing.stockStatus !== "in_stock" || listing.price <= 0) continue;
     const converted = convertPrice(
       listing.price,
       listing.currency,
-      targetCurrency,
+      displayCurrency,
     );
     if (converted === null || !Number.isFinite(converted)) continue;
     if (converted < bestPrice) {
@@ -111,4 +115,14 @@ export function findBestInStockListing(
   }
 
   return best;
+}
+
+export function findBestInStockListing(
+  listings: DistributorListing[],
+  targetCurrency: string,
+): DistributorListing | null {
+  return findCheapestInStockListing(
+    listings.filter((l) => l.stockStatus === "in_stock" && l.price > 0),
+    targetCurrency,
+  );
 }
