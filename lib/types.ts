@@ -101,6 +101,9 @@ export interface Product {
    * union made a removal device-local and impossible to propagate.
    */
   tagsUpdatedAt?: string;
+  quantity?: number;
+  targetSellPrice?: number;
+  sellCurrency?: string;
 }
 
 export interface PriceAlert {
