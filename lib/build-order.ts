@@ -40,6 +40,7 @@ interface Candidate {
   distributorName: string;
   itemCost: number;
   shipping: number;
+  total: number;
 }
 
 function candidatesFor(
@@ -50,6 +51,7 @@ function candidatesFor(
   const out: Candidate[] = [];
   for (const listing of product.listings ?? []) {
     if (listing.stockStatus !== "in_stock" && listing.stockStatus !== "back_order") continue;
+    if (!(listing.price > 0)) continue;
     const distributor = getDistributorById(listing.distributorId);
     if (!distributor) continue;
     const cost = computeLandedCost(listing, distributor, destination, options);
@@ -61,6 +63,7 @@ function candidatesFor(
       distributorName: distributor.name,
       itemCost: cost.total - cost.shipping,
       shipping: cost.shipping,
+      total: cost.total,
     });
   }
   return out;
@@ -83,7 +86,7 @@ export function computeBuildOrder(
   const byStore = new Map<string, BuildOrderStore>();
   for (const { candidates } of perProduct) {
     if (candidates.length === 0) continue;
-    const best = candidates.reduce((a, b) => (b.itemCost < a.itemCost ? b : a));
+    const best = candidates.reduce((a, b) => (b.total < a.total ? b : a));
     const store = byStore.get(best.distributorId) ?? {
       distributorId: best.distributorId, distributorName: best.distributorName,
       items: [], itemsTotal: 0, shipping: best.shipping, total: 0,
@@ -105,7 +108,7 @@ export function computeBuildOrder(
     for (const { candidates } of perProduct) {
       const here = candidates.filter((c) => c.distributorId === distributorId);
       if (here.length === 0) { ok = false; break; }
-      const best = here.reduce((a, b) => (b.itemCost < a.itemCost ? b : a));
+      const best = here.reduce((a, b) => (b.total < a.total ? b : a));
       items.push({ productId: best.productId, productName: best.productName, distributorId, itemCost: best.itemCost });
       shipping = best.shipping;
     }
