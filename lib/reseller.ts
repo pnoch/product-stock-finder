@@ -38,11 +38,22 @@ export function computeSourcing(
       category: product.category,
     });
     const buyUnit = ranked.length > 0 ? ranked[0]!.total : null;
-    const inStock = ranked.filter((r) => r.total > 0);
+    // Spread is over IN-STOCK listings only (an out-of-stock/back-order price is
+    // not a live arbitrage signal). rankByLandedCost also admits back_order, so
+    // filter the listings to in-stock before ranking for the spread.
+    const inStockRanked = rankByLandedCost(
+      (product.listings ?? []).filter((l) => l.stockStatus === "in_stock"),
+      destination,
+      { ...options, category: product.category },
+    );
     const spreadMin =
-      inStock.length > 0 ? Math.min(...inStock.map((r) => r.total)) : null;
+      inStockRanked.length > 0
+        ? Math.min(...inStockRanked.map((r) => r.total))
+        : null;
     const spreadMax =
-      inStock.length > 0 ? Math.max(...inStock.map((r) => r.total)) : null;
+      inStockRanked.length > 0
+        ? Math.max(...inStockRanked.map((r) => r.total))
+        : null;
     const sellUnit =
       product.targetSellPrice != null && Number.isFinite(product.targetSellPrice)
         ? convertPrice(
