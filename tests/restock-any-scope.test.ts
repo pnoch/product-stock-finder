@@ -89,6 +89,30 @@ describe("checkRestocks — any scope", () => {
     expect((s as any).updateStockWatchStatuses).not.toHaveBeenCalled();
   });
 
+  it("threads the restocked listing's distributor id and url to the alert", async () => {
+    const { scheduleStockAlert } = await import("../lib/notifications");
+    vi.mocked(scheduleStockAlert).mockClear();
+    const s = storage([anyWatch], [
+      {
+        distributorId: "d2",
+        stockStatus: "in_stock",
+        price: 2,
+        currency: "USD",
+        url: "https://d2.example/p",
+      },
+    ]);
+    await checkRestocks(s);
+    expect(scheduleStockAlert).toHaveBeenCalledWith(
+      "CRS804",
+      "d2",
+      2,
+      "USD",
+      "p1",
+      "d2",
+      "https://d2.example/p",
+    );
+  });
+
   it("does not fire for a distributor already known in stock (seed guard)", async () => {
     const seeded = { ...anyWatch, lastKnownStatusByDistributor: { d2: "in_stock" } };
     const s = storage([seeded], [
