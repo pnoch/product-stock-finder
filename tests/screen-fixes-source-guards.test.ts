@@ -104,10 +104,10 @@ describe("screen-level fixes", () => {
   it("the home screen guards against an out-of-order load", () => {
     const src = read("app/(tabs)/index.tsx");
     // Focus + pull-to-refresh can run loadData concurrently; the earlier
-    // watchlist/alerts/settings read could land last and overwrite newer state.
+    // watchlist/alerts/settings/last-seen read could land last and overwrite newer state.
     expect(src).toContain("loadGenRef");
-    // Guarded after each of the three reads, plus the catch.
-    expect(src.split("if (gen !== loadGenRef.current) return;").length - 1).toBe(4);
+    // Guarded after each of the four reads, plus the catch.
+    expect(src.split("if (gen !== loadGenRef.current) return;").length - 1).toBe(5);
   });
 
   it("the launch price check runs only after the app UI (and webview host) mounts", () => {

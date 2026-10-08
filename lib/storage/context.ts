@@ -19,6 +19,7 @@ export const STORAGE_KEYS = {
   DISCOVERED_DISTRIBUTORS: "discovered_distributors",
   BACKGROUND_TASK_INTERVAL: "background_task_interval",
   LAST_BACKGROUND_RUN: "last_background_run",
+  LAST_SEEN_AT: "last_seen_at",
 };
 
 export interface StorageContext {

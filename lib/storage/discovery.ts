@@ -208,10 +208,33 @@ export function createBackgroundTaskStorage(ctx: StorageContext) {
     });
   }
 
+  async function getLastSeenAt(): Promise<number | null> {
+    try {
+      const raw = await adapter.getItem(KEYS.LAST_SEEN_AT);
+      if (!raw) return null;
+      const value = Number(raw);
+      return Number.isFinite(value) && value > 0 ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function setLastSeenAt(ts: number): Promise<void> {
+    await enqueue(KEYS.LAST_SEEN_AT, async () => {
+      try {
+        await adapter.setItem(KEYS.LAST_SEEN_AT, String(ts));
+      } catch {
+        // best effort
+      }
+    });
+  }
+
   return {
     getBackgroundTaskInterval,
     saveBackgroundTaskInterval,
     getLastBackgroundRun,
     setLastBackgroundRun,
+    getLastSeenAt,
+    setLastSeenAt,
   };
 }

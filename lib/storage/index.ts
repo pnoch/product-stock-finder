@@ -157,6 +157,7 @@ export function createStorage(
       // skip a needed re-registration.
       STORAGE_KEYS.BACKGROUND_TASK_INTERVAL,
       STORAGE_KEYS.LAST_BACKGROUND_RUN,
+      STORAGE_KEYS.LAST_SEEN_AT,
       // Quarantined corrupt payloads hold raw user data.
       ...(await ctx.listQuarantinedKeys()),
       QUARANTINE_INDEX_KEY,
@@ -375,4 +376,6 @@ export const {
   saveBackgroundTaskInterval,
   getLastBackgroundRun,
   setLastBackgroundRun,
+  getLastSeenAt,
+  setLastSeenAt,
 } = defaultStorage;

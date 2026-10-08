@@ -8409,3 +8409,11 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Honest handoff** — no cart/checkout/payments; the app opens the distributor's page and hands off.
 - [x] Tests: `notifications-stock-url` (url/distributorId in payload), `restock-any-scope` (url threading), `product-card-buy` (Buy button gating + open), `best-deal-visit-guard` (Visit CTA present). `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
 - [x] **Deferred:** desktop parity (desktop has no notification path and no Buy/Visit action yet) and cart/checkout (explicitly out of scope per the spec).
+
+## Phase 1132: "While you were away" diff
+
+- [x] **Show what changed since the user last looked.** A new `last_seen_at` timestamp (`lib/storage/discovery.ts` `getLastSeenAt`/`setLastSeenAt`, wiped by `clearAllData`) anchors the window; `computeAwaySummary` (`lib/away-summary.ts`) diffs each product's stored `priceHistory` over `[lastSeenAt, now]` into price drops/rises, restocks, and stock-outs — no new scraping. A product with no history at/before `since` is skipped (no basis, so a false "no change" is impossible), and the function returns `null` when nothing changed.
+- [x] **Home card** (`components/home/away-summary-card.tsx`): a dismissible "While you were away" card with pluralized counts, the top 3 items (drops first, then restocks, then stock-outs) navigating to the product, and a "See all" toggle.
+- [x] **Wiring** (`app/(tabs)/index.tsx`): `loadData` reads `lastSeenAt`, computes the summary against the loaded watchlist/settings (with the `loadGenRef` guard now covering the fourth read), renders the card above `<AvailableSection />` when non-null and undismissed, then advances the timestamp so the next visit diffs forward.
+- [x] Tests: `last-seen-storage` (4), `away-summary` (9, incl. the minDropPct boundary, the no-basis skip, and the not-refreshed-is-not-a-stock-out guard), `away-summary-card` (6, incl. navigation + dismiss + the rises-only card); the home source-guard test updated for the extra concurrency guard. `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
+- [x] **Deferred:** a full activity timeline (this is a since-last-seen diff only) and desktop parity (desktop has no `lastSeenAt` read or card yet).
