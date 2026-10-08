@@ -134,9 +134,28 @@ export interface BackOrderReminder {
   lastKnownStatusByDistributor?: Record<string, string>;
 }
 
+export interface CriterionWatch {
+  id: string;
+  category?: string;
+  brand?: string;
+  maxPrice?: number;
+  currency: string;
+  seenProductIds: string[];
+  createdAt: string;
+  isActive: boolean;
+}
+
 export interface NotificationHistoryEntry {
   id: string;
-  type: "price_drop" | "price_rise" | "restock" | "reminder" | "health" | "digest" | "suspicious_price";
+  type:
+    | "price_drop"
+    | "price_rise"
+    | "restock"
+    | "reminder"
+    | "health"
+    | "digest"
+    | "suspicious_price"
+    | "criterion_match";
   title: string;
   body: string;
   alertId?: string;
