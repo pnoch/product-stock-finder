@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { goBackOrHome } from "@/lib/navigation";
 import { getSettings, getWatchlist } from "@/lib/storage";
 import { formatEstimate } from "@/lib/estimate-format";
 import {
@@ -198,6 +199,26 @@ export default function BuildOrderScreen() {
   return (
     <ScreenContainer>
       <Stack.Screen options={{ title: "Plan order" }} />
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: 16,
+          paddingTop: 8,
+          paddingBottom: 4,
+          gap: 12,
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={0.7}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          onPress={() => goBackOrHome(router)}
+          style={{ padding: 4 }}
+        >
+          <IconSymbol name="chevron.left" size={22} color={colors.foreground} />
+        </TouchableOpacity>
+      </View>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
         <Text
           style={{

@@ -49,12 +49,16 @@ function candidatesFor(
   options: LandedCostOptions,
 ): Candidate[] {
   const out: Candidate[] = [];
+  // Thread the product's category into the landed-cost options so the import
+  // estimate uses the right duty rate (most networking gear is duty-free),
+  // matching Product Detail's per-product landed cost.
+  const productOptions: LandedCostOptions = { ...options, category: product.category };
   for (const listing of product.listings ?? []) {
     if (listing.stockStatus !== "in_stock" && listing.stockStatus !== "back_order") continue;
     if (!(listing.price > 0)) continue;
     const distributor = getDistributorById(listing.distributorId);
     if (!distributor) continue;
-    const cost = computeLandedCost(listing, distributor, destination, options);
+    const cost = computeLandedCost(listing, distributor, destination, productOptions);
     if (!cost) continue;
     out.push({
       productId: product.id,
