@@ -944,6 +944,50 @@ export default function WatchlistScreen() {
     onViewStats={() => router.push("/stats")}
   />
 )}
+{watchlist.length >= 2 && (
+  <View
+    style={{
+      marginHorizontal: 16,
+      marginBottom: 12,
+      borderRadius: 16,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: "hidden",
+    }}
+  >
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => {
+        if (Platform.OS !== "web")
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push("/build-order");
+      }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+      }}
+      accessibilityLabel="Plan order"
+      accessibilityRole="button"
+    >
+      <IconSymbol name="cart.fill" size={20} color={colors.primary} />
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{ color: colors.foreground, fontSize: 15, fontWeight: "600" }}
+        >
+          Plan order
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+          Find the cheapest way to buy your watchlist at once
+        </Text>
+      </View>
+      <IconSymbol name="chevron.right" size={12} color={colors.muted} />
+    </TouchableOpacity>
+  </View>
+)}
 {watchlist.length > 0 && (
   <SearchBar query={query} onQueryChange={setQuery} />
 )}
