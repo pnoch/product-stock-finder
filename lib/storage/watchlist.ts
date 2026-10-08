@@ -147,6 +147,42 @@ export function createWatchlistStorage(ctx: StorageContext) {
     });
   }
 
+  async function updateProductSourcing(
+    productId: string,
+    fields: {
+      quantity?: number | null;
+      targetSellPrice?: number | null;
+      sellCurrency?: string;
+    },
+  ): Promise<void> {
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      const updated = list.map((p) => {
+        if (p.id !== productId) return p;
+        const next: Product = { ...p };
+        if (fields.quantity === null) delete next.quantity;
+        else if (
+          typeof fields.quantity === "number" &&
+          Number.isFinite(fields.quantity) &&
+          fields.quantity > 0
+        )
+          next.quantity = Math.floor(fields.quantity);
+        if (fields.targetSellPrice === null) delete next.targetSellPrice;
+        else if (
+          typeof fields.targetSellPrice === "number" &&
+          Number.isFinite(fields.targetSellPrice) &&
+          fields.targetSellPrice > 0
+        )
+          next.targetSellPrice = fields.targetSellPrice;
+        if (fields.sellCurrency !== undefined)
+          next.sellCurrency = fields.sellCurrency;
+        return next;
+      });
+      await persistWatchlist(updated);
+      notify("watchlist", productId);
+    });
+  }
+
   async function updateProductListings(
     productId: string,
     listings: DistributorListing[],
@@ -179,6 +215,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
     addToWatchlist,
     removeFromWatchlist,
     updateProductDetails,
+    updateProductSourcing,
     updateProductListings,
     refreshWatchlistPrices,
   };
