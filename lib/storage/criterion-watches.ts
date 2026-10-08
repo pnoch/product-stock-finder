@@ -2,6 +2,9 @@ import type { CriterionWatch } from "../types";
 import type { StorageContext } from "./context";
 
 export function createCriterionWatchesStorage(ctx: StorageContext) {
+  // Deliberately no `notify()`: criterion watches are device-local, not a synced
+  // collection (like the per-distributor status map). `notify` takes a synced
+  // `Collection` and would push them into sync.
   const { adapter, KEYS, enqueue, readList } = ctx;
 
   async function getCriterionWatches(): Promise<CriterionWatch[]> {

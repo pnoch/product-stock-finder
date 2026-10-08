@@ -52,6 +52,18 @@ describe("matchesCriterion", () => {
       matchesCriterion(avail("a", "Switch", "Y", 100), watch({ brand: "X" })),
     ).toBe(false);
   });
+
+  it("treats maxPrice as inclusive and an absent category as a wildcard", () => {
+    // bestPrice === maxPrice must match (inclusive boundary).
+    expect(matchesCriterion(avail("a", "Switch", "X", 300), watch())).toBe(true);
+    // An absent category matches any category.
+    expect(
+      matchesCriterion(
+        avail("a", "Router", "X", 100),
+        watch({ category: undefined }),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("evaluateCriterionWatches", () => {
