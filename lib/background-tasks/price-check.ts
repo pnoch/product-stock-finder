@@ -11,19 +11,26 @@ import {
   savePriceDigestSnapshot,
   updateSettings,
   setLastBackgroundRun,
+  getCriterionWatches,
+  updateCriterionWatches,
 } from "../storage";
 import { Platform } from "react-native";
 import { formatPrice } from "@shared/currency";
 import { convertPrice, getBestPrice } from "../currency";
-import { ensureNotificationPermission, immediateTrigger } from "../notifications";
+import {
+  ensureNotificationPermission,
+  immediateTrigger,
+  scheduleStockAlert,
+} from "../notifications";
 import { checkRestocks } from "../restock";
+import { evaluateCriterionWatches } from "../criterion-watch";
 import { maybeSendDigest } from "../price-digest";
 import { syncServerNotifications } from "../server-notifications";
 import { listingsForAlert } from "../alert-scope";
 import { checkPriceAnomaly } from "../alert-integrity";
 import { mergedPoints } from "../product-insights";
 import { track } from "../telemetry";
-import type { DistributorListing, Product } from "../types";
+import type { AvailableProduct, DistributorListing, Product } from "../types";
 import { createHealthCollector, type HealthCollector } from "./health-collector";
 import { refreshListing } from "./refresh-listing";
 
@@ -117,6 +124,69 @@ async function runPriceCheckCoreInner(opts?: {
 
   // Check back-in-stock watches globally (independent of price alerts)
   await checkRestocks();
+
+  // Criterion watches: notify when a new matching product appears in stock.
+  try {
+    const watches = await getCriterionWatches();
+    if (watches.some((w) => w.isActive)) {
+      // Lazy so this module (and tests that import it) never statically pulls
+      // `expo-linking` via constants/oauth → server-catalog.
+      const { isServerConfigured } = await import("../../constants/oauth");
+      const { fetchAvailable } = await import("../server-catalog");
+      let available: AvailableProduct[] = [];
+      if (isServerConfigured()) {
+        available = await fetchAvailable({ currency: watches[0]!.currency });
+      } else {
+        const watchlist = await getWatchlist();
+        available = watchlist.flatMap((p) =>
+          (p.listings ?? [])
+            .filter((l) => l.stockStatus === "in_stock")
+            .map((l) => ({
+              id: p.id,
+              name: p.name,
+              brand: p.brand,
+              category: p.category,
+              modelNumber: p.modelNumber,
+              bestPrice: l.price,
+              bestCurrency: l.currency,
+              bestDistributorId: l.distributorId,
+              storeCount: 1,
+              fetchedAt: Date.now(),
+            })),
+        );
+      }
+      const { matches, updated } = evaluateCriterionWatches({ watches, available });
+      if (matches.length > 0) {
+        const settings = await getSettings();
+        const enabled =
+          settings.notificationsEnabled !== false && settings.stockAlerts !== false;
+        let notified = false;
+        if (enabled) {
+          for (const m of matches) {
+            try {
+              const id = await scheduleStockAlert(
+                m.name,
+                `${m.storeCount} store${m.storeCount === 1 ? "" : "s"}`,
+                m.bestPrice,
+                m.bestCurrency,
+                m.productId,
+              );
+              notified = notified || id !== null;
+            } catch {
+              // best effort
+            }
+          }
+        } else {
+          notified = true;
+        }
+        if (notified) await updateCriterionWatches(() => updated);
+      } else {
+        await updateCriterionWatches(() => updated);
+      }
+    }
+  } catch {
+    // criterion evaluation is best-effort; never break the price check
+  }
 
   // Send a scheduled digest if one is due
   const settings = await getSettings();
