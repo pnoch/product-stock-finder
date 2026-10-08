@@ -19,6 +19,7 @@ import type { Destination } from "@/lib/landed-cost";
 import { CountryPicker } from "@/components/ui/country-picker";
 import { getCountry } from "@shared/countries";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { openListingUrl } from "@/lib/listing-utils";
 import { DistributorListingCard } from "./distributor-listing-card";
 
 interface DistributorListingSectionProps {
@@ -567,6 +568,36 @@ export function DistributorListingSection({
                   </Text>
                 </>
               )}
+              {(() => {
+                const listing = sortedListings.find(
+                  (l) => l.distributorId === bestDeal.distributorId && l.url,
+                );
+                if (!listing) return null;
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    accessibilityLabel="Visit store"
+                    accessibilityRole="button"
+                    onPress={() => void openListingUrl(listing.url)}
+                    style={{
+                      marginTop: 10,
+                      alignSelf: "flex-start",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 16,
+                      backgroundColor: colors.primary,
+                    }}
+                  >
+                    <IconSymbol name="arrow.up.right.square" size={14} color="#fff" />
+                    <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+                      Visit store
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })()}
             </View>
           )}
           {visibleListings.map((listing) => (
