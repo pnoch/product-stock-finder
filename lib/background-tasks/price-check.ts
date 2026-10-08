@@ -167,14 +167,30 @@ async function runPriceCheckCoreInner(opts?: {
           });
         }
       }
-      const { matches } = evaluateCriterionWatches({ watches, available });
+      // Convert each watch's cap into the display currency so maxPrice compares
+      // like-for-like (the watch stores the currency it was created in).
+      const evalWatches = watches.map((w) => ({
+        ...w,
+        maxPrice:
+          w.maxPrice != null
+            ? (convertPrice(w.maxPrice, w.currency, currency) ?? w.maxPrice)
+            : undefined,
+      }));
+      const { matches } = evaluateCriterionWatches({
+        watches: evalWatches,
+        available,
+      });
 
       // Notify per match; only a match that actually notified (or that needs no
       // notification) is marked seen, so a failed send re-detects next cycle.
-      const notifiedIds = new Set<string>();
+      // Keyed by (watch, product): the same product matched by two watches must
+      // not let one watch's success mark the other's failed send as seen.
+      const notifiedKeys = new Set<string>();
+      const keyOf = (m: { watchId: string; productId: string }) =>
+        `${m.watchId}:${m.productId}`;
       for (const m of matches) {
         if (!criterionEnabled) {
-          notifiedIds.add(m.productId);
+          notifiedKeys.add(keyOf(m));
           continue;
         }
         try {
@@ -199,7 +215,7 @@ async function runPriceCheckCoreInner(opts?: {
             }
           }
           if (ok) {
-            notifiedIds.add(m.productId);
+            notifiedKeys.add(keyOf(m));
             try {
               await recordNotificationEvent({
                 id: `local-criterion-${m.watchId}-${m.productId}-${new Date().toISOString().slice(0, 10)}`,
@@ -222,7 +238,7 @@ async function runPriceCheckCoreInner(opts?: {
       // must not be clobbered) and advance seen ids only for notified matches.
       const notifiedByWatch = new Map<string, Set<string>>();
       for (const m of matches) {
-        if (!notifiedIds.has(m.productId)) continue;
+        if (!notifiedKeys.has(keyOf(m))) continue;
         const set = notifiedByWatch.get(m.watchId) ?? new Set<string>();
         set.add(m.productId);
         notifiedByWatch.set(m.watchId, set);

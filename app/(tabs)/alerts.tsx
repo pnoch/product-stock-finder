@@ -12,7 +12,7 @@ import { useCallback, useState, useRef, useMemo, useEffect } from "react";
 import type { PriceAlert, CriterionWatch } from "@/lib/types";
 import { PriceAlertModal } from "@/components/product/price-alert-modal";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -69,6 +69,14 @@ export default function AlertsScreen() {
   useEffect(() => {
     void loadCriterionWatches();
   }, [loadCriterionWatches, refreshing, loading]);
+
+  // Reload on focus so a watch created on the board appears when the user
+  // returns to this tab (the effect above only fires on mount/refresh).
+  useFocusEffect(
+    useCallback(() => {
+      void loadCriterionWatches();
+    }, [loadCriterionWatches]),
+  );
 
   const handleRemoveCriterionWatch = useCallback(
     async (id: string) => {

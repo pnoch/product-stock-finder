@@ -206,4 +206,27 @@ describe("criterion watches in the price check", () => {
     // Only the successful match is marked seen; the failed one re-detects.
     expect(state.criterionWatches[0]!.seenProductIds).toEqual(["c"]);
   });
+
+  it("does not let one watch's success mark another watch's failed match as seen", async () => {
+    // Two watches both match product "b"; watch w2's send fails.
+    state.criterionWatches = [
+      { id: "w1", category: "Switch", maxPrice: 300, currency: "USD", seenProductIds: [], createdAt: "", isActive: true },
+      { id: "w2", category: "Switch", maxPrice: 300, currency: "USD", seenProductIds: [], createdAt: "", isActive: true },
+    ] as never;
+    state.available = [
+      { id: "b", name: "Switch B", brand: "X", category: "Switch", modelNumber: "B", bestPrice: 200, bestCurrency: "USD", bestDistributorId: "d1", storeCount: 2, fetchedAt: 1 },
+    ] as never;
+    const { scheduleStockAlert } = await import("../lib/notifications");
+    vi.mocked(scheduleStockAlert)
+      .mockResolvedValueOnce("notif-id") // w1 succeeds
+      .mockResolvedValueOnce(null); // w2 fails
+
+    await checkPriceDropsNow();
+
+    const w1 = state.criterionWatches.find((w) => w.id === "w1")!;
+    const w2 = state.criterionWatches.find((w) => w.id === "w2")!;
+    expect(w1.seenProductIds).toEqual(["b"]);
+    // w2's failed send must NOT be marked seen by w1's success.
+    expect(w2.seenProductIds).toEqual([]);
+  });
 });
