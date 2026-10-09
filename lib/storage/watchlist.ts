@@ -183,6 +183,24 @@ export function createWatchlistStorage(ctx: StorageContext) {
     });
   }
 
+  async function updateProductAcquired(
+    productId: string,
+    acquiredAt: string | null,
+  ): Promise<void> {
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      const updated = list.map((p) => {
+        if (p.id !== productId) return p;
+        const next: Product = { ...p };
+        if (acquiredAt === null) delete next.acquiredAt;
+        else if (typeof acquiredAt === "string" && acquiredAt.length > 0) next.acquiredAt = acquiredAt;
+        return next;
+      });
+      await persistWatchlist(updated);
+      notify("watchlist", productId);
+    });
+  }
+
   async function updateProductListings(
     productId: string,
     listings: DistributorListing[],
@@ -216,6 +234,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
     removeFromWatchlist,
     updateProductDetails,
     updateProductSourcing,
+    updateProductAcquired,
     updateProductListings,
     refreshWatchlistPrices,
   };
