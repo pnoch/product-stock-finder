@@ -18,6 +18,7 @@ import {
   X,
   Plus,
   Lightbulb,
+  CheckCircle,
 } from "lucide-react";
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
@@ -49,6 +50,7 @@ import { copyTextWithFallback } from "../lib/share";
 import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
 import { parseBulkImportCsv } from "../../../lib/csv";
 import { PRODUCT_CATALOG } from "@shared/catalog";
+import { isAcquired } from "../../../lib/acquired";
 import { rediscoverProduct } from "../../../lib/manual-add";
 import { discoverListings } from "../../../lib/listing-discovery";
 import type { BackOrderReminder, DistributorListing, PriceAlert, Product, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
@@ -208,6 +210,7 @@ export function Watchlist() {
   const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
   const [query, setQuery] = useState("");
   const [inStockOnly, setInStockOnly] = useState(() => searchParams.get("inStock") === "1");
+  const [showAcquired, setShowAcquired] = useState(false);
   const inStockParamRef = useRef(searchParams.get("inStock") === "1");
   const [priceMinInput, setPriceMinInput] = useState("");
   const [priceMaxInput, setPriceMaxInput] = useState("");
@@ -326,8 +329,8 @@ export function Watchlist() {
         priceRange,
         inStockOnly,
         displayCurrency,
-      }),
-    [products, regionFilter, selectedTagIds, tagMatchMode, filter, query, priceRange, inStockOnly, displayCurrency],
+      }).filter((p) => showAcquired || !isAcquired(p)),
+    [products, regionFilter, selectedTagIds, tagMatchMode, filter, query, priceRange, inStockOnly, displayCurrency, showAcquired],
   );
 
   const summary = useMemo(
@@ -732,6 +735,16 @@ export function Watchlist() {
     }
   };
 
+  const handleToggleAcquired = async (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    try {
+      await storage.updateProductAcquired(product.id, isAcquired(product) ? null : new Date().toISOString());
+      await refresh();
+    } catch {
+      showToast("Couldn't update acquired status");
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-4">
@@ -901,7 +914,7 @@ export function Watchlist() {
           setSelectedId(product.id);
           navigate(`/product/${product.id}`);
         }}
-        className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors duration-150 ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"} ${selectedIds.has(product.id) ? "bg-brand-50/60 dark:bg-brand-900/20" : ""}`}
+        className={`border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors duration-150 ${selectedId === product.id ? "bg-brand-50 dark:bg-brand-900/10 border-l-2 border-l-brand-500" : "border-l-2 border-l-transparent hover:border-l-brand-200"} ${selectedIds.has(product.id) ? "bg-brand-50/60 dark:bg-brand-900/20" : ""} ${isAcquired(product) ? "opacity-55" : ""}`}
       >
         {selectionMode && (
           <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
@@ -1042,6 +1055,16 @@ export function Watchlist() {
           {formatLastRefreshed(refreshed)}
         </td>
         <td className="px-4 py-3 text-right">
+          <button
+            type="button"
+            onClick={(e) => void handleToggleAcquired(e, product)}
+            onKeyDown={(e) => e.stopPropagation()}
+            className={`p-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${isAcquired(product) ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/30"}`}
+            aria-label={isAcquired(product) ? "Mark as not acquired" : "Mark as acquired"}
+            aria-pressed={isAcquired(product)}
+          >
+            <CheckCircle className="w-4 h-4" />
+          </button>
           {/* Mobile's product card has an Edit tags action per product. */}
           <button
             type="button"
@@ -1245,6 +1268,16 @@ export function Watchlist() {
             aria-label="In stock only"
           />
           In stock only
+        </label>
+        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showAcquired}
+            onChange={(e) => setShowAcquired(e.target.checked)}
+            className="rounded border-gray-300"
+            aria-label="Show acquired"
+          />
+          Show acquired
         </label>
         <input
           type="number"
@@ -1454,8 +1487,17 @@ export function Watchlist() {
 
         {sorted.length === 0 && (
           <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 space-y-3">
-            <p className="font-semibold text-gray-700 dark:text-gray-200">No products match your filters</p>
-            <p>Try adjusting your filters or search — or add a new product to track.</p>
+            {products.length > 0 && products.every(isAcquired) && !showAcquired ? (
+              <>
+                <p className="font-semibold text-gray-700 dark:text-gray-200">Everything here is acquired</p>
+                <p>All your watched parts are marked as acquired. Turn on "Show acquired" to see them.</p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold text-gray-700 dark:text-gray-200">No products match your filters</p>
+                <p>Try adjusting your filters or search — or add a new product to track.</p>
+              </>
+            )}
             {products.length > 0 && (
               <button
                 onClick={() => {
