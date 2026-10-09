@@ -48,6 +48,7 @@ import {
   removeFromWatchlist,
   getSyncMeta,
   updateProductListings,
+  updateProductAcquired,
 } from "@/lib/storage";
 import { rediscoverProduct } from "@/lib/manual-add";
 import { discoverListings } from "@/lib/listing-discovery";
@@ -80,6 +81,7 @@ import {
 } from "@/lib/watchlist-org";
 import { CURRENCY_SYMBOLS } from "@shared/currency";
 import { ProductCard } from "@/components/watchlist/product-card";
+import { isAcquired } from "@/lib/acquired";
 import { SwipeableCard } from "@/components/watchlist/swipeable-card";
 import { SummaryCard } from "@/components/watchlist/summary-card";
 import { SearchBar } from "@/components/watchlist/search-bar";
@@ -123,6 +125,7 @@ export default function WatchlistScreen() {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [showAcquired, setShowAcquired] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number] | undefined>(undefined);
   const [priceMinInput, setPriceMinInput] = useState("");
   const [priceMaxInput, setPriceMaxInput] = useState("");
@@ -282,8 +285,8 @@ export default function WatchlistScreen() {
         priceRange,
         inStockOnly,
         displayCurrency,
-      }),
-    [watchlist, regionFilter, selectedTagIds, tagMatchMode, statusFilter, query, priceRange, inStockOnly, displayCurrency],
+      }).filter((p) => showAcquired || !isAcquired(p)),
+    [watchlist, regionFilter, selectedTagIds, tagMatchMode, statusFilter, query, priceRange, inStockOnly, displayCurrency, showAcquired],
   );
 
   const tagCounts = useMemo(
@@ -344,6 +347,22 @@ export default function WatchlistScreen() {
       return next;
     });
   }, []);
+
+  const handleToggleAcquired = useCallback(
+    async (product: Product) => {
+      try {
+        await updateProductAcquired(
+          product.id,
+          isAcquired(product) ? null : new Date().toISOString(),
+        );
+        await reload();
+      } catch (e) {
+        log.error("[Watchlist] toggle acquired failed", e);
+        showAlert("Update failed", "We couldn't update that product. Please try again.");
+      }
+    },
+    [reload],
+  );
 
   const exitSelection = useCallback(() => {
     setSelectionMode(false);
@@ -790,6 +809,7 @@ export default function WatchlistScreen() {
           onFindPrices={() => handleFindPrices(item)}
           findingPrices={findingIds.has(item.id)}
           tagDefinitions={tagDefinitions}
+          onToggleAcquired={() => void handleToggleAcquired(item)}
         />
       </SwipeableCard>
     ),
@@ -805,6 +825,7 @@ export default function WatchlistScreen() {
       handleProductLongPress,
       handleDelete,
       handleFindPrices,
+      handleToggleAcquired,
     ],
   );
 
@@ -1076,6 +1097,14 @@ export default function WatchlistScreen() {
       <Switch
         value={inStockOnly}
         onValueChange={setInStockOnly}
+        trackColor={{ true: colors.primary, false: colors.border }}
+      />
+    </View>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>Show acquired</Text>
+      <Switch
+        value={showAcquired}
+        onValueChange={setShowAcquired}
         trackColor={{ true: colors.primary, false: colors.border }}
       />
     </View>

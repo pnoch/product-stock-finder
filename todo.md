@@ -8454,3 +8454,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Watchlist entry** (`app/(tabs)/watchlist.tsx`): a "Sourcing sheet" card row beside "Plan order", visible when `watchlist.length > 0`, pushes `/sourcing`.
 - [x] Tests: `computeSourcing` (in-stock-only spread, exact values, currency conversion, no-sell-price null margin), `sourcing-screen` (render + navigation), `updateProductSourcing` storage. `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
 - [x] **Deferred:** automated sell-side comps (sell prices are user-entered; no market comps are fetched) and desktop parity (desktop has no sourcing surface yet).
+
+## Phase 1137: Mark as acquired
+
+- [x] **Track what you've already bought, manually.** `Product.acquiredAt?: string` (`lib/types.ts`) records an ISO timestamp set by the user — acquisition is manual, there is **no purchase inference** from orders, email, or price history. `isAcquired(product)` / `activeProducts(products)` (`lib/acquired.ts`) are the pure predicates over the field.
+- [x] **Storage** (`lib/storage/watchlist.ts`): `updateProductAcquired(productId, acquiredAt | null)` sets or deletes the field under the watchlist write queue, notifies sync, and is re-exported from `lib/storage/index.ts`.
+- [x] **Card action** (`components/watchlist/product-card.tsx`): a `checkmark.circle.fill` action beside the tag/delete row (success when acquired, muted when not) calls `onToggleAcquired` with `stopPropagation` so it doesn't open the detail. Acquired cards render dimmed via an animated opacity on the card container.
+- [x] **Detail action** (`components/product/detail-header.tsx`): an acquired toggle beside "Watch for restock" ("Mark as acquired" / "Acquired — tap to undo"); wired in `app/product/[id].tsx` to `isAcquired(product)` + `updateProductAcquired` then `refresh()`.
+- [x] **Watchlist consumer** (`app/(tabs)/watchlist.tsx`): the rendered list drops acquired products unless "Show acquired" is on (composed with the existing filters/sort/group), each `ProductCard` gets `onToggleAcquired` calling `updateProductAcquired` then `reload()`, and a "Show acquired" switch sits beside "In stock only".
+- [x] Tests: `detail-header-watch` updated for the two new required props. `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
+- [x] **Deferred:** automatic purchase inference (acquisition is explicitly user-driven) and desktop parity (desktop has no acquired field, card action, or filter yet).
