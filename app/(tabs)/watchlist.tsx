@@ -1157,6 +1157,7 @@ export default function WatchlistScreen() {
             selectedTagIds={selectedTagIds}
             inStockOnly={inStockOnly}
             priceRange={priceRange}
+            allAcquired={watchlist.length > 0 && watchlist.every(isAcquired)}
             onClearFilters={() => {
               setRegionFilter("all");
               setSelectedTagIds([]);
@@ -1166,6 +1167,7 @@ export default function WatchlistScreen() {
               setPriceMinInput("");
               setPriceMaxInput("");
               setQuery("");
+              setShowAcquired(true);
             }}
             onAddProduct={() => router.push("/search")}
           />

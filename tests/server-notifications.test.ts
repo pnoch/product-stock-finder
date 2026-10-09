@@ -284,6 +284,10 @@ describe("syncServerNotifications respects notification settings", () => {
     const storage = await import("../lib/storage");
     vi.mocked(storage.getSettings).mockResolvedValue(makeSettings());
     vi.mocked(storage.getPendingHealthEvents).mockResolvedValue([]);
+    vi.mocked(storage.getWatchlist).mockResolvedValue([]);
+    vi.mocked(storage.getAlerts).mockResolvedValue([]);
+    vi.mocked(storage.getStockWatches).mockResolvedValue([]);
+    vi.mocked(storage.getBackOrderReminders).mockResolvedValue([]);
   });
 
   function pendingHealthEvent() {
@@ -376,6 +380,54 @@ describe("syncServerNotifications respects notification settings", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("excludes acquired products from alerts, stock watches, and date reminders", async () => {
+    const mutate = vi.fn().mockResolvedValue({ accepted: true });
+    mockClient({ uploadConfig: mutate, pull: vi.fn().mockResolvedValue({ events: [] }) });
+
+    const storage = await import("../lib/storage");
+    vi.mocked(storage.getSettings).mockResolvedValue(makeSettings());
+    vi.mocked(storage.getWatchlist).mockResolvedValue([
+      { id: "p1", acquiredAt: "2026-02-01T00:00:00.000Z", modelNumber: "M1" },
+      { id: "p2", modelNumber: "M2" },
+    ] as never);
+    vi.mocked(storage.getAlerts).mockResolvedValue([
+      {
+        id: "a1",
+        productId: "p1",
+        targetPrice: 100,
+        currency: "USD",
+        isActive: true,
+        createdAt: "2026-01-01",
+      },
+      {
+        id: "a2",
+        productId: "p2",
+        targetPrice: 100,
+        currency: "USD",
+        isActive: true,
+        createdAt: "2026-01-01",
+      },
+    ] as never);
+    vi.mocked(storage.getStockWatches).mockResolvedValue([
+      { id: "w1", productId: "p1", distributorId: "d1", lastKnownStatus: "out_of_stock" },
+      { id: "w2", productId: "p2", distributorId: "d1", lastKnownStatus: "out_of_stock" },
+    ] as never);
+    vi.mocked(storage.getBackOrderReminders).mockResolvedValue([
+      { id: "r1", productId: "p1", reminderType: "date", reminderDate: "2026-03-01" },
+      { id: "r2", productId: "p2", reminderType: "date", reminderDate: "2026-03-01" },
+    ] as never);
+
+    await syncServerNotifications();
+
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alerts: [expect.objectContaining({ id: "a2" })],
+        stockWatches: [expect.objectContaining({ id: "w2" })],
+        dateReminders: [expect.objectContaining({ id: "r2" })],
+      }),
+    );
   });
 
   it("filters uploads by category flags", async () => {

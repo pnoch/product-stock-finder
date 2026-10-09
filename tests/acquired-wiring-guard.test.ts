@@ -24,6 +24,11 @@ describe("acquired consumers are wired", () => {
     expect(read("lib/restock.ts")).toContain("isAcquired(product)");
   });
 
+  it("the digest and basket paths compute over active products", () => {
+    const priceCheck = read("lib/background-tasks/price-check.ts");
+    expect(priceCheck).toContain("activeProducts(await getWatchlist())");
+  });
+
   it("the server upload excludes acquired products", () => {
     expect(read("lib/server-notifications.ts")).toContain("isAcquired");
   });

@@ -11,6 +11,7 @@ export function EmptyState({
   selectedTagIds,
   inStockOnly,
   priceRange,
+  allAcquired = false,
   onClearFilters,
   onAddProduct,
 }: {
@@ -20,6 +21,7 @@ export function EmptyState({
   selectedTagIds: string[];
   inStockOnly?: boolean;
   priceRange?: [number, number];
+  allAcquired?: boolean;
   onClearFilters: () => void;
   onAddProduct: () => void;
 }) {
@@ -70,7 +72,11 @@ export function EmptyState({
           textAlign: "center",
         }}
       >
-        {hasFilters ? "No products match your filters" : "No products yet"}
+        {allAcquired
+          ? "Everything here is acquired"
+          : hasFilters
+            ? "No products match your filters"
+            : "No products yet"}
       </Text>
       <Text
         style={{
@@ -81,11 +87,13 @@ export function EmptyState({
           lineHeight: 20,
         }}
       >
-        {hasFilters
-          ? "Try adjusting your filters or search — or add a new product to track."
-          : "Add a part and we'll watch all 25 distributors — alerting you the moment it's in stock or cheaper."}
+        {allAcquired
+          ? "All your watched parts are marked as acquired. Turn on \"Show acquired\" to see them."
+          : hasFilters
+            ? "Try adjusting your filters or search — or add a new product to track."
+            : "Add a part and we'll watch all 25 distributors — alerting you the moment it's in stock or cheaper."}
       </Text>
-      {!hasFilters && (
+      {!hasFilters && !allAcquired && (
         <View
           style={{
             backgroundColor: colors.surface,

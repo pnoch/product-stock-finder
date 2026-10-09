@@ -263,7 +263,7 @@ async function runPriceCheckCoreInner(opts?: {
   const prevDigest = await getPriceDigestSnapshot();
   const nextDigest = await maybeSendDigest(
     prevDigest,
-    await getWatchlist(),
+    activeProducts(await getWatchlist()),
     settings,
     await getAlerts(),
   );

@@ -618,20 +618,22 @@ export const ProductCard = memo(function ProductCard({
             </Text>
           );
         })()}
-        <TouchableOpacity activeOpacity={0.7}
-          onPress={handleToggleAcquired}
-          hitSlop={8}
-          style={{ padding: 4, marginRight: 4 }}
-          accessibilityLabel={acquired ? "Mark as not acquired" : "Mark as acquired"}
-          accessibilityRole="button"
-          accessibilityState={{ selected: acquired }}
-        >
-          <IconSymbol
-            name="checkmark.circle.fill"
-            size={16}
-            color={acquired ? colors.success : colors.muted}
-          />
-        </TouchableOpacity>
+        {onToggleAcquired && (
+          <TouchableOpacity activeOpacity={0.7}
+            onPress={handleToggleAcquired}
+            hitSlop={8}
+            style={{ padding: 4, marginRight: 4 }}
+            accessibilityLabel={acquired ? "Mark as not acquired" : "Mark as acquired"}
+            accessibilityRole="button"
+            accessibilityState={{ selected: acquired }}
+          >
+            <IconSymbol
+              name="checkmark.circle.fill"
+              size={16}
+              color={acquired ? colors.success : colors.muted}
+            />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity activeOpacity={0.7}
           onPress={handleTagPress}
           hitSlop={8}

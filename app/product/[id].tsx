@@ -471,6 +471,19 @@ export default function ProductDetailScreen() {
     }
   }, [id, product, listings, stockWatches, togglingWatch, showToast]);
 
+  const handleToggleAcquired = useCallback(async () => {
+    if (!product) return;
+    try {
+      await updateProductAcquired(
+        product.id,
+        isAcquired(product) ? null : new Date().toISOString(),
+      );
+      await refresh();
+    } catch {
+      showAlert("Couldn't update", "Please try again.");
+    }
+  }, [product, refresh]);
+
   const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
     if (!id || togglingWatch) return;
     const isWatched = stockWatches[listing.distributorId];
@@ -740,7 +753,7 @@ export default function ProductDetailScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
       >
-        <DetailHeader product={product} bestDeal={bestDeal} scrollY={scrollY} watchingAny={!!stockWatches["*"]} onToggleWatch={() => void toggleAnyWatch()} acquired={isAcquired(product)} onToggleAcquired={() => void (async () => { await updateProductAcquired(product.id, isAcquired(product) ? null : new Date().toISOString()); await refresh(); })()} />
+        <DetailHeader product={product} bestDeal={bestDeal} scrollY={scrollY} watchingAny={!!stockWatches["*"]} onToggleWatch={() => void toggleAnyWatch()} acquired={isAcquired(product)} onToggleAcquired={() => void handleToggleAcquired()} />
         <View ref={shareRef} collapsable={false}>
           <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={effectiveCurrency} productImage={productImage} />
           {dealScore != null && (

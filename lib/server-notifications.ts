@@ -187,7 +187,7 @@ async function runSyncServerNotifications(): Promise<void> {
       : [];
 
     const dateReminders = (await getBackOrderReminders())
-      .filter((r) => r.reminderType === "date")
+      .filter((r) => r.reminderType === "date" && !acquiredIds.has(r.productId))
       .map((r) => ({
         id: r.id,
         productId: r.productId,

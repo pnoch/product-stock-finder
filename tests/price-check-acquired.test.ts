@@ -95,7 +95,10 @@ vi.mock("../lib/entitlements", () => ({
 }));
 vi.mock("react-native", () => ({ Platform: { OS: "ios" } }));
 vi.mock("expo-notifications", () => ({
-  scheduleNotificationAsync: vi.fn(async () => "id"),
+  scheduleNotificationAsync: vi.fn(async (input: unknown) => {
+    state.scheduledNotifications.push(input);
+    return "id";
+  }),
   cancelScheduledNotificationAsync: vi.fn(async () => {}),
   setNotificationHandler: vi.fn(),
   getPermissionsAsync: vi.fn(async () => ({ granted: true })),
@@ -161,5 +164,27 @@ describe("acquired products and price alerts", () => {
     expect(state.scheduledNotifications).toHaveLength(0);
     expect(deactivateAlert).not.toHaveBeenCalled();
     expect(state.alertsStore[0]!.isActive).toBe(true);
+  });
+
+  it("still fires for the same product when it is NOT acquired (positive control)", async () => {
+    state.alertsStore.push({
+      id: "a1",
+      productId: "p1",
+      targetPrice: 100,
+      currency: "USD",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    });
+    state.watchlistStore = [
+      {
+        id: "p1",
+        listings: [makeListing(90)], // 90 <= 100 -> fires
+      } as unknown as Product,
+    ];
+
+    await checkPriceDropsNow();
+
+    expect(state.scheduledNotifications).toHaveLength(1);
+    expect(deactivateAlert).toHaveBeenCalled();
   });
 });
