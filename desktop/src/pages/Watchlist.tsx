@@ -1508,6 +1508,7 @@ export function Watchlist() {
                   setInStockOnly(false);
                   setPriceMinInput("");
                   setPriceMaxInput("");
+                  setShowAcquired(true);
                 }}
                 className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 transition-colors"
                 aria-label="Clear all filters"
