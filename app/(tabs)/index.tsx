@@ -39,6 +39,7 @@ import { TrendingSection } from "@/components/home/trending-section";
 import { AvailableSection } from "@/components/home/available-section";
 import { AwaySummaryCard } from "@/components/home/away-summary-card";
 import { computeAwaySummary, type AwaySummary } from "@/lib/away-summary";
+import { activeProducts } from "@/lib/acquired";
 import { useConnection } from "@/hooks/use-connection";
 import { useMonitoringHealth } from "@/hooks/use-monitoring-health";
 import { fetchProductImage } from "@/lib/server-images";
@@ -183,7 +184,7 @@ export default function HomeScreen() {
       if (seen != null && list.length > 0) {
         setAwaySummary(
           computeAwaySummary({
-            watchlist: list,
+            watchlist: activeProducts(list),
             since: seen,
             now: Date.now(),
             displayCurrency: settings?.displayCurrency ?? "USD",

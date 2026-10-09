@@ -30,6 +30,7 @@ import { syncServerNotifications } from "../server-notifications";
 import { listingsForAlert } from "../alert-scope";
 import { checkPriceAnomaly } from "../alert-integrity";
 import { mergedPoints } from "../product-insights";
+import { isAcquired } from "../acquired";
 import { track } from "../telemetry";
 import type { AvailableProduct, DistributorListing, Product } from "../types";
 import { createHealthCollector, type HealthCollector } from "./health-collector";
@@ -353,6 +354,7 @@ async function runPriceCheckCoreInner(opts?: {
   for (const alert of activeAlerts) {
     const product = refreshedWatchlist.find((p) => p.id === alert.productId);
     if (!product?.listings?.length) continue;
+    if (isAcquired(product)) continue;
 
     const eligibleListings = listingsForAlert(
       product.listings,

@@ -22,6 +22,7 @@ import {
   type SourcingSummary,
 } from "@/lib/reseller";
 import type { LandedCostOptions, Destination } from "@/lib/landed-cost";
+import { activeProducts } from "@/lib/acquired";
 import type { Product } from "@/lib/types";
 
 function money(amount: number | null, currency: string): string {
@@ -184,7 +185,7 @@ export default function SourcingScreen() {
 
   const summary = useMemo(
     () =>
-      destination ? computeSourcing(watchlist, destination, options) : null,
+      destination ? computeSourcing(activeProducts(watchlist), destination, options) : null,
     [watchlist, destination, options],
   );
 

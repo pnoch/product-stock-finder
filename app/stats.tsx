@@ -26,6 +26,7 @@ import {
   type MoversWindow,
 } from "@/lib/watchlist-stats";
 import { computeProductInsights } from "@/lib/product-insights";
+import { activeProducts } from "@/lib/acquired";
 import { computeDropCalendar } from "@/lib/drop-calendar";
 import { InsightsCard } from "@/components/stats/insights-card";
 import { DropCalendarCard } from "@/components/stats/drop-calendar-card";
@@ -152,7 +153,7 @@ export default function StatsScreen() {
     [watchlist, displayCurrency, days],
   );
   const basket = useMemo(
-    () => computeBasketValue(watchlist, displayCurrency),
+    () => computeBasketValue(activeProducts(watchlist), displayCurrency),
     [watchlist, displayCurrency],
   );
   const stockHealth = useMemo(() => computeStockHealth(watchlist), [watchlist]);

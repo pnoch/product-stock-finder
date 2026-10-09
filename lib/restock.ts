@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import * as defaultStorageModule from "./storage";
 import { ensureNotificationPermission, scheduleStockAlert } from "./notifications";
 import { getDistributorById } from "@shared/distributors";
+import { isAcquired } from "./acquired";
 import type { BackOrderReminder } from "./types";
 
 // The subset of the storage API this module needs. Injectable so the desktop
@@ -100,6 +101,7 @@ async function runCheckRestocks(
   for (const watch of watches) {
     const product = watchlist.find((p) => p.id === watch.productId);
     if (!product?.listings?.length) continue;
+    if (isAcquired(product)) continue;
 
     if (watch.scope === "any" || watch.distributorId === "*") {
       const prev = watch.lastKnownStatusByDistributor ?? {};
