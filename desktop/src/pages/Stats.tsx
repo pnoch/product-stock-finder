@@ -11,6 +11,7 @@ import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
 import { convertPrice, getBestPrice } from "@/lib/currency";
 import { DISTRIBUTORS } from "@shared/distributors";
 import type { Product } from "../../../lib/types";
+import { activeProducts } from "../../../lib/acquired";
 import {
   computeBasketValue,
   computeDataFreshness,
@@ -154,7 +155,7 @@ export function Stats() {
   const loading = products === null && loadError === null;
 
   const basket = useMemo(
-    () => (products ? computeBasketValue(products, displayCurrency) : null),
+    () => (products ? computeBasketValue(activeProducts(products), displayCurrency) : null),
     [products, displayCurrency],
   );
   const stockHealth = useMemo(

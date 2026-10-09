@@ -25,6 +25,7 @@ import { EmptyState } from "../components/EmptyState";
 import { TrendingSection } from "../components/TrendingSection";
 import { ProductImage } from "../components/ProductImage";
 import type { StockStatus, DistributorListing, Product } from "../../../lib/types";
+import { activeProducts } from "../../../lib/acquired";
 
 const STOCK_ORDER: Record<StockStatus, number> = {
   in_stock: 0,
@@ -173,7 +174,7 @@ export function Home() {
 
   if (loading) return <LoadingSpinner size="large" label="Loading dashboard..." />;
 
-  const inStockCount = products.filter((p) =>
+  const inStockCount = activeProducts(products).filter((p) =>
     (p.listings ?? []).some((l) => l.stockStatus === "in_stock"),
   ).length;
 
