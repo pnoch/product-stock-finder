@@ -104,6 +104,8 @@ export interface Product {
   quantity?: number;
   targetSellPrice?: number;
   sellCurrency?: string;
+  /** ISO timestamp when the user marked this product as bought. */
+  acquiredAt?: string;
 }
 
 export interface PriceAlert {

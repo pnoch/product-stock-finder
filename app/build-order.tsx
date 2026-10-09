@@ -14,6 +14,7 @@ import {
   type BuildOrderStore,
 } from "@/lib/build-order";
 import type { LandedCostOptions, Destination } from "@/lib/landed-cost";
+import { activeProducts } from "@/lib/acquired";
 import type { Product } from "@/lib/types";
 
 function Card({
@@ -192,7 +193,7 @@ export default function BuildOrderScreen() {
 
   const comparison = useMemo(
     () =>
-      destination ? computeBuildOrder(watchlist, destination, options) : null,
+      destination ? computeBuildOrder(activeProducts(watchlist), destination, options) : null,
     [watchlist, destination, options],
   );
 
@@ -230,6 +231,12 @@ export default function BuildOrderScreen() {
         >
           Plan order
         </Text>
+
+        {watchlist.length > activeProducts(watchlist).length ? (
+          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 12 }}>
+            {watchlist.length - activeProducts(watchlist).length} part(s) already acquired
+          </Text>
+        ) : null}
 
         {loaded && !destination ? (
           <Card title="Set where you ship to">

@@ -17,6 +17,7 @@ import {
   Calendar,
   Copy,
   Download,
+  CheckCircle,
 } from "lucide-react";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
@@ -46,6 +47,7 @@ import { getProductNote, saveProductNote } from "../../../lib/product-notes";
 import { withTimeout } from "../../../lib/with-timeout";
 import { rediscoverProduct } from "../../../lib/manual-add";
 import { discoverListings } from "../../../lib/listing-discovery";
+import { isAcquired } from "../../../lib/acquired";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
@@ -778,6 +780,21 @@ export function ProductDetail() {
     showToast("Watching for restock");
   };
 
+  const handleToggleAcquired = async () => {
+    if (!product) return;
+    try {
+      await storage.updateProductAcquired(
+        product.id,
+        isAcquired(product) ? null : new Date().toISOString(),
+      );
+      const refreshed = await storage.getWatchlist();
+      const found = refreshed.find((p) => p.id === product.id);
+      if (found) setProduct(found);
+    } catch {
+      showToast("Couldn't update. Please try again.");
+    }
+  };
+
   const handleToggleListingWatch = async (listing: (typeof visibleListings)[number]) => {
     if (!product || savingReminder) return;
     const isWatching = !!stockWatches[listing.distributorId];
@@ -1285,6 +1302,14 @@ export function ProductDetail() {
           aria-label="Watch for restock"
         >
           <Star className="w-4 h-4" /> Watch for Restock
+        </button>
+        <button
+          onClick={() => void handleToggleAcquired()}
+          className={`inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer ${product && isAcquired(product) ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/30" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+          aria-label={product && isAcquired(product) ? "Acquired — tap to undo" : "Mark as acquired"}
+          aria-pressed={product ? isAcquired(product) : false}
+        >
+          <CheckCircle className="w-4 h-4" /> {product && isAcquired(product) ? "Acquired — tap to undo" : "Mark as acquired"}
         </button>
         <button
           onClick={handleShare}

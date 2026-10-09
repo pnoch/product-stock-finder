@@ -12,12 +12,16 @@ export function DetailHeader({
   scrollY,
   watchingAny,
   onToggleWatch,
+  acquired,
+  onToggleAcquired,
 }: {
   product: Product;
   bestDeal: BestDeal | null;
   scrollY?: Animated.Value;
   watchingAny: boolean;
   onToggleWatch: () => void;
+  acquired: boolean;
+  onToggleAcquired: () => void;
 }) {
   const colors = useColors();
   const region = bestDeal
@@ -43,12 +47,12 @@ export function DetailHeader({
       <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: "700" }}>{product.name}</Text>
       <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>{product.brand} · {product.category} · {product.modelNumber}</Text>
       {region ? <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>{region}</Text> : null}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
       <Pressable
         onPress={onToggleWatch}
         accessibilityRole="button"
         accessibilityLabel={watchingAny ? "Stop watching all distributors" : "Watch for restock across all distributors"}
         style={{
-          marginTop: 10,
           alignSelf: "flex-start",
           flexDirection: "row",
           alignItems: "center",
@@ -65,6 +69,29 @@ export function DetailHeader({
           {watchingAny ? "Watching — tap to stop" : "Watch for restock"}
         </Text>
       </Pressable>
+      <Pressable
+        onPress={onToggleAcquired}
+        accessibilityRole="button"
+        accessibilityLabel={acquired ? "Acquired — tap to undo" : "Mark as acquired"}
+        accessibilityState={{ selected: acquired }}
+        style={{
+          alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 7,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: acquired ? colors.success : colors.primary,
+        }}
+      >
+        <IconSymbol name="checkmark.circle.fill" size={14} color={acquired ? colors.success : colors.primary} />
+        <Text style={{ color: acquired ? colors.success : colors.primary, fontWeight: "600", fontSize: 13 }}>
+          {acquired ? "Acquired — tap to undo" : "Mark as acquired"}
+        </Text>
+      </Pressable>
+      </View>
       {bestDeal ? <View style={{ marginTop: 8 }}><StockBadge status="in_stock" /></View> : null}
     </View>
   );

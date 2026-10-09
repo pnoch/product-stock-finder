@@ -30,6 +30,7 @@ import { syncServerNotifications } from "../server-notifications";
 import { listingsForAlert } from "../alert-scope";
 import { checkPriceAnomaly } from "../alert-integrity";
 import { mergedPoints } from "../product-insights";
+import { isAcquired, activeProducts } from "../acquired";
 import { track } from "../telemetry";
 import type { AvailableProduct, DistributorListing, Product } from "../types";
 import { createHealthCollector, type HealthCollector } from "./health-collector";
@@ -262,7 +263,7 @@ async function runPriceCheckCoreInner(opts?: {
   const prevDigest = await getPriceDigestSnapshot();
   const nextDigest = await maybeSendDigest(
     prevDigest,
-    await getWatchlist(),
+    activeProducts(await getWatchlist()),
     settings,
     await getAlerts(),
   );
@@ -270,7 +271,7 @@ async function runPriceCheckCoreInner(opts?: {
 
   // Basket value alert (fires once per set threshold, then auto-disables)
   if (settings.notificationsEnabled && settings.basketAlertThreshold) {
-    const fresh = await getWatchlist();
+    const fresh = activeProducts(await getWatchlist());
     // The threshold is entered in the user's display currency (the sheet says
     // so), so the total must be computed in that currency too — hardcoding USD
     // compared a USD total against a EUR/GBP/etc threshold.
@@ -353,6 +354,7 @@ async function runPriceCheckCoreInner(opts?: {
   for (const alert of activeAlerts) {
     const product = refreshedWatchlist.find((p) => p.id === alert.productId);
     if (!product?.listings?.length) continue;
+    if (isAcquired(product)) continue;
 
     const eligibleListings = listingsForAlert(
       product.listings,

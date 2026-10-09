@@ -6,6 +6,7 @@ import {
   MAX_UPLOAD_HEALTH_EVENTS,
   MAX_UPLOAD_STOCK_WATCHES,
 } from "../shared/const";
+import { isAcquired } from "./acquired";
 import type {
   NotificationConfig,
   NotificationEvent,
@@ -147,9 +148,16 @@ async function runSyncServerNotifications(): Promise<void> {
     const modelByProductId = new Map(
       watchlist.map((p) => [p.id, p.modelNumber] as const),
     );
+    // An acquired product is bought; don't upload its alerts/watches, or the
+    // server keeps pushing notifications for a part the user already owns.
+    const acquiredIds = new Set(
+      watchlist.filter((p) => isAcquired(p)).map((p) => p.id),
+    );
     const activeAlerts = settings.priceAlerts
       ? alerts
-          .filter((a) => a.isActive && !a.triggeredAt)
+          .filter(
+            (a) => a.isActive && !a.triggeredAt && !acquiredIds.has(a.productId),
+          )
           .map((a) => ({
             id: a.id,
             productId: a.productId,
@@ -165,7 +173,9 @@ async function runSyncServerNotifications(): Promise<void> {
     const currentWatchIds = new Set((await getStockWatches()).map((w) => w.id));
 
     const stockWatches = settings.stockAlerts
-      ? (await getStockWatches()).map((w) => ({
+      ? (await getStockWatches())
+          .filter((w) => !acquiredIds.has(w.productId))
+          .map((w) => ({
           id: w.id,
           productId: w.productId,
           modelNumber: modelByProductId.get(w.productId),
@@ -177,7 +187,7 @@ async function runSyncServerNotifications(): Promise<void> {
       : [];
 
     const dateReminders = (await getBackOrderReminders())
-      .filter((r) => r.reminderType === "date")
+      .filter((r) => r.reminderType === "date" && !acquiredIds.has(r.productId))
       .map((r) => ({
         id: r.id,
         productId: r.productId,

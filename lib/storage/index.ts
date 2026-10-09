@@ -296,6 +296,7 @@ export const {
   removeFromWatchlist,
   updateProductDetails,
   updateProductSourcing,
+  updateProductAcquired,
   updateProductListings,
   refreshWatchlistPrices,
 } = defaultStorage;

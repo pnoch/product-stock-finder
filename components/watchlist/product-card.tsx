@@ -27,6 +27,7 @@ import {
 import { getTagById } from "@/lib/tags";
 import { openListingUrl } from "@/lib/listing-utils";
 import { productStatus } from "@/lib/watchlist-org";
+import { isAcquired } from "@/lib/acquired";
 import type { DealScore } from "@/lib/deal-score";
 import { dealBandLabel } from "@/lib/deal-score";
 
@@ -44,6 +45,7 @@ export const ProductCard = memo(function ProductCard({
   displayCurrency,
   onFindPrices,
   findingPrices = false,
+  onToggleAcquired,
 }: {
   product: Product;
   onPress: () => void;
@@ -58,8 +60,28 @@ export const ProductCard = memo(function ProductCard({
   displayCurrency?: string;
   onFindPrices?: () => void;
   findingPrices?: boolean;
+  onToggleAcquired?: () => void;
 }) {
   const colors = useColors();
+  const acquired = isAcquired(product);
+  const cardOpacity = useRef(new Animated.Value(acquired ? 0.55 : 1)).current;
+  useEffect(() => {
+    Animated.timing(cardOpacity, {
+      toValue: acquired ? 0.55 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [acquired, cardOpacity]);
+  const handleToggleAcquired = useCallback(
+    (e: { stopPropagation?: () => void }) => {
+      if (Platform.OS === "web") e?.stopPropagation?.();
+      if (Platform.OS !== "web") {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      onToggleAcquired?.();
+    },
+    [onToggleAcquired],
+  );
   const currency = displayCurrency ?? "USD";
   const showInsightRow =
     (insight != null && (insight.atAllTimeLow || insight.dropStreak >= 2)) ||
@@ -244,7 +266,7 @@ export const ProductCard = memo(function ProductCard({
       // below is the accessible "open" control instead.
       accessible={false}
     >
-      <Animated.View style={cardStyle}>
+      <Animated.View style={[cardStyle, { opacity: cardOpacity }]}>
       <View
         style={{
           flexDirection: "row",
@@ -596,6 +618,22 @@ export const ProductCard = memo(function ProductCard({
             </Text>
           );
         })()}
+        {onToggleAcquired && (
+          <TouchableOpacity activeOpacity={0.7}
+            onPress={handleToggleAcquired}
+            hitSlop={8}
+            style={{ padding: 4, marginRight: 4 }}
+            accessibilityLabel={acquired ? "Mark as not acquired" : "Mark as acquired"}
+            accessibilityRole="button"
+            accessibilityState={{ selected: acquired }}
+          >
+            <IconSymbol
+              name="checkmark.circle.fill"
+              size={16}
+              color={acquired ? colors.success : colors.muted}
+            />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity activeOpacity={0.7}
           onPress={handleTagPress}
           hitSlop={8}
