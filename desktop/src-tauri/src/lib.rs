@@ -1218,6 +1218,16 @@ fn check_price_drops_inner(app: &tauri::AppHandle, data_dir: &PathBuf) -> Result
             None => continue,
         };
 
+        // Skip acquired products — the user already owns them.
+        let is_acquired = product
+            .get("acquiredAt")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false);
+        if is_acquired {
+            continue;
+        }
+
         let listings = product
             .get("listings")
             .and_then(|v| v.as_array())
