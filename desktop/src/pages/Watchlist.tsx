@@ -1490,7 +1490,7 @@ export function Watchlist() {
             {products.length > 0 && products.every(isAcquired) && !showAcquired ? (
               <>
                 <p className="font-semibold text-gray-700 dark:text-gray-200">Everything here is acquired</p>
-                <p>All your watched parts are marked as acquired. Turn on "Show acquired" to see them.</p>
+                <p>All your watched parts are marked as acquired. Turn on &quot;Show acquired&quot; to see them.</p>
               </>
             ) : (
               <>
