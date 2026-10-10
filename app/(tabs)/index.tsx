@@ -36,6 +36,7 @@ import { StockBadge } from "@/components/stock-badge";
 import { IconSymbol, type IconSymbolName } from "@/components/ui/icon-symbol";
 import { ConnectionBadge } from "@/components/connection-badge";
 import { TrendingSection } from "@/components/home/trending-section";
+import { DropLeaderboard } from "@/components/home/drop-leaderboard";
 import { AvailableSection } from "@/components/home/available-section";
 import { AwaySummaryCard } from "@/components/home/away-summary-card";
 import { computeAwaySummary, type AwaySummary } from "@/lib/away-summary";
@@ -714,6 +715,11 @@ export default function HomeScreen() {
         {/* Trending */}
         <View style={{ paddingHorizontal: 16 }}>
           <TrendingSection />
+        </View>
+
+        {/* Price Drop Leaderboard */}
+        <View style={{ paddingHorizontal: 16 }}>
+          <DropLeaderboard />
         </View>
 
         {/* Quick Access */}
