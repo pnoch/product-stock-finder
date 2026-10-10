@@ -81,4 +81,16 @@ export const pricesRouter = router({
       );
       return { accepted: input.points.length } as const;
     }),
+  topDrops: publicProcedure
+    .input(
+      z.object({
+        window: z.enum(["24h", "7d", "30d"]),
+        limit: z.number().int().min(1).max(50).default(20),
+        sortBy: z.enum(["pct", "abs"]).default("pct"),
+      }),
+    )
+    .query(async ({ input }) => {
+      const { topDrops } = await import("../price-leaderboard.js");
+      return topDrops(input.window, input.limit, input.sortBy);
+    }),
 });
