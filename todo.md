@@ -8503,3 +8503,10 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] ConciergeScreen (hunt → ship → notify → done) replaces carousel for first-run.
 - [x] Same `has_seen_onboarding` gate; skip jumps to Discover; no auth wall.
 - [x] Old onboarding-screen.tsx retained (cleanup deferred). TypeScript: 0 errors.
+
+## Phase 1142: Redesign C — Home priority feed
+
+- [x] `lib/home-feed.ts` (greetingFor, buildFeedItems) + tests.
+- [x] Feed cards (alerts/drops/restocks/quiet) + Home rewire.
+- [x] Stat cards, recent activity, away card, Available/Trending sections removed.
+- [x] Watchlist preview kept. TypeScript: 0 errors.
