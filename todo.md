@@ -8487,3 +8487,12 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Mobile `app/diagnostics.tsx` + Settings entry.
 - [x] Desktop Diagnostics page + Settings entry + route.
 - [x] Wiring guards + parity guards. TypeScript: 0 errors.
+
+## Phase 1140: Redesign A — navigation retab
+
+- [x] Tab bar: Home · Discover · Watch · Drops · Alerts; rates/settings hidden (`href: null`).
+- [x] Discover tab composes CatalogSearchBar + Trending + Available sections.
+- [x] You stack screen (profile + stats/rates/health/diagnostics/settings links) + Home gear shortcut.
+- [x] Drops promoted to tab via re-export; `/drops` deep links keep working.
+- [x] Old routes intact (search, rates, settings). TypeScript: 0 errors.
+- [x] Deviation from spec §1: You ships as a stack screen (not a 6th tab) — tabs stay at 5 daily-use entries; spec §1 listed Discover·Watch·Drops·Alerts·You with no Home while §3 describes a Home screen.
