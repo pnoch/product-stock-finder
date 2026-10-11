@@ -1945,7 +1945,18 @@ export function Settings() {
             </p>
           )}
         </div>
-        <div className="mt-4">
+        <div className="mt-4 space-y-2">
+          <Link
+            to="/diagnostics"
+            aria-label="Push delivery status"
+            className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors"
+          >
+            <span>
+              <span className="block text-sm font-medium">Push delivery status</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">Check per-device delivery health</span>
+            </span>
+            <span className="text-brand-600 dark:text-brand-400 text-sm font-medium">View</span>
+          </Link>
           <button
             onClick={handleTestNotification}
             className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"

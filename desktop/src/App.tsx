@@ -68,6 +68,9 @@ const Health = lazy(() =>
 const HealthDetail = lazy(() =>
   import("./pages/HealthDetail").then((m) => ({ default: m.HealthDetail })),
 );
+const Diagnostics = lazy(() =>
+  import("./pages/Diagnostics").then((m) => ({ default: m.Diagnostics })),
+);
 const RestockWatches = lazy(() =>
   import("./pages/RestockWatches").then((m) => ({ default: m.RestockWatches })),
 );
@@ -576,6 +579,7 @@ export default function App() {
                       <Route path="/stats" element={<Stats />} />
                       <Route path="/health" element={<Health />} />
                       <Route path="/health/:id" element={<HealthDetail />} />
+                      <Route path="/diagnostics" element={<Diagnostics />} />
                       <Route path="/restock-watches" element={<RestockWatches />} />
                       <Route
                         path="/distributor-analysis"
