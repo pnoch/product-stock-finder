@@ -1,4 +1,12 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
+
+// lib/server-notifications pulls lib/trpc -> lib/storage -> react-native at
+// import time; mock the tRPC factory so the pure pushErrorHelpText mapping can
+// be tested without the native chain.
+vi.mock("../lib/trpc", () => ({
+  createTRPCClient: vi.fn(),
+}));
+
 import {
   recordPushOutcome,
   getPushOutcome,
@@ -76,5 +84,17 @@ describe("router endpoints (structural)", () => {
     ).readFileSync("server/routers/notifications.ts", "utf8");
     expect(src).toContain("pushStatusAll");
     expect(src).toContain("sendTestPush");
+  });
+});
+
+describe("pushErrorHelpText", () => {
+  it("maps known Expo errors to user-facing text", async () => {
+    const { pushErrorHelpText } = await import("../lib/server-notifications");
+    expect(pushErrorHelpText("DeviceNotRegistered")).toContain("reconnect");
+    expect(pushErrorHelpText("MessageTooBig")).toContain("too large");
+    expect(pushErrorHelpText("MessageRateExceeded")).toContain("minute");
+    expect(pushErrorHelpText("InvalidCredentials")).toContain("support");
+    expect(pushErrorHelpText(null)).toBe("Delivered.");
+    expect(pushErrorHelpText("SomethingWeird")).toContain("SomethingWeird");
   });
 });
