@@ -324,6 +324,14 @@ export default function HomeScreen() {
               }
             />
             <TouchableOpacity activeOpacity={0.85}
+              onPress={() => router.push("/you")}
+              accessibilityLabel="Open profile and settings"
+              accessibilityRole="button"
+              style={{ padding: 8 }}
+            >
+              <IconSymbol name="gearshape.fill" size={24} color={colors.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity activeOpacity={0.85}
               accessibilityLabel="Add product"
               accessibilityRole="button"
               style={{
