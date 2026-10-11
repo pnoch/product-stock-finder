@@ -124,11 +124,11 @@ server/                Express + tRPC backend (see server/README.md)
   devices.ts           Device binding, labels, sign-out, stale cleanup (deviceId from session JWT claim → x-device-id header; per-user ownership via assertDeviceAccess; unrevoke on login; 30-day idle cleanup; revokedDevices with user-scoped composite keys)
   catalog-warmer.ts    Full-catalog background warmer
   storage.ts           S3 helpers
-drizzle/              MySQL schema — 22 tables: users, watchlistItems, priceAlerts,
+drizzle/              MySQL schema — 23 tables: users, watchlistItems, priceAlerts,
                       backOrderReminders, appSettings, priceCache, priceHistory,
                       priceInsights, productImages, deviceNotificationConfigs,
                       notificationEvents, notificationEventDeliveries, devicePushTokens,
-                      deviceLabels, revokedDevices, passwordResetTokens,
+                      deviceLabels, pushDeliveryLog, revokedDevices, passwordResetTokens,
                       emailVerificationTokens, trendingProducts, sharedWatchlists,
                       sharedWatchlistMembers, notificationEmailLog,
                       notificationWebhookLog

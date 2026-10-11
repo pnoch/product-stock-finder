@@ -8477,3 +8477,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Wiring guards** (`tests/drops-wiring-guard.test.ts`, `desktop/tests/drops-parity.test.tsx`): pin the Home imports, the `/drops` routes, the `computeLocalDrops`/`buildDropShareText` exports, the server `topDrops` query, and the desktop sidebar/route entries.
 - [x] **A11y fix** (`components/home/drop-leaderboard.tsx`): window/sort chips carry `accessibilityLabel` + `accessibilityRole="button"` matching `app/drops.tsx`, satisfying `tests/interactive-a11y.test.ts`.
 - [x] `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0 — root `3679` / desktop `334` / cargo `92` + both bundles.
+
+## Phase 1139: Push delivery diagnostics
+
+- [x] `pushDeliveryLog` table + `recordPushOutcome`/`getPushOutcome` (memory + DB).
+- [x] Expo receipt checking inline in `sendPushForDevice` (15s delay, test-env skip).
+- [x] `pushStatusAll` query + `sendTestPush` mutation (1/min rate limit).
+- [x] Client wrappers + `pushErrorHelpText` mapping.
+- [x] Mobile `app/diagnostics.tsx` + Settings entry.
+- [x] Desktop Diagnostics page + Settings entry + route.
+- [x] Wiring guards + parity guards. TypeScript: 0 errors.
