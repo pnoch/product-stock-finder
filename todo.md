@@ -8496,3 +8496,10 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Drops promoted to tab via re-export; `/drops` deep links keep working.
 - [x] Old routes intact (search, rates, settings). TypeScript: 0 errors.
 - [x] Deviation from spec §1: You ships as a stack screen (not a 6th tab) — tabs stay at 5 daily-use entries; spec §1 listed Discover·Watch·Drops·Alerts·You with no Home while §3 describes a Home screen.
+
+## Phase 1141: Redesign B — concierge onboarding
+
+- [x] `lib/concierge.ts` (defaultAlertTarget, clampSelection) + tests.
+- [x] ConciergeScreen (hunt → ship → notify → done) replaces carousel for first-run.
+- [x] Same `has_seen_onboarding` gate; skip jumps to Discover; no auth wall.
+- [x] Old onboarding-screen.tsx retained (cleanup deferred). TypeScript: 0 errors.

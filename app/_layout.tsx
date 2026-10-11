@@ -42,7 +42,7 @@ import {
 import { setupWebNotifications } from "@/lib/web-notifications";
 import { hasSeenOnboarding, isPublicRoute } from "@/lib/onboarding";
 import { setBackgroundAppState } from "@/lib/background-safe-timers";
-import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
+import { ConciergeScreen } from "@/components/onboarding/concierge-screen";
 import { registerServiceWorker } from "@/lib/web-push";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
@@ -421,7 +421,7 @@ export default function RootLayout() {
   if (onboardingState === "intro" && !isPublic) {
     return (
       <ThemeProvider>
-        <OnboardingScreen onComplete={() => setOnboardingState("app")} />
+        <ConciergeScreen onComplete={() => setOnboardingState("app")} />
       </ThemeProvider>
     );
   }
