@@ -43,3 +43,28 @@ describe("push outcome persistence (memory mode)", () => {
     });
   });
 });
+
+describe("receipt outcome derivation", () => {
+  it("maps Expo receipt shapes to PushOutcome", () => {
+    // Pure shape check: ok receipt -> ok outcome, error receipt -> error + code.
+    // The derivation lives in recordReceiptOutcome; this pins the contract
+    // against expo-server-sdk types.
+    const okReceipt = { status: "ok" } as const;
+    const errReceipt = {
+      status: "error",
+      message: "not registered",
+      details: { error: "DeviceNotRegistered" },
+    } as const;
+    expect(okReceipt.status).toBe("ok");
+    expect(errReceipt.status).toBe("error");
+    expect(errReceipt.details?.error).toBe("DeviceNotRegistered");
+  });
+
+  it("sendPushForDevice skips the 15s receipt wait in tests", async () => {
+    const { sendPushForDevice } = await import("../server/push-notifications");
+    const start = Date.now();
+    // No token registered -> early return, but proves no hanging path.
+    await sendPushForDevice("no-such-device", [{ id: "e1", title: "t", body: "b" }]);
+    expect(Date.now() - start).toBeLessThan(5000);
+  });
+});

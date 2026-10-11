@@ -185,19 +185,59 @@ export async function sendPushForDevice(
         distributorId: e.distributorId,
       },
     }));
+    const ticketIds: string[] = [];
+    let hasNotRegistered = false;
     for (const chunk of expo.chunkPushNotifications(messages)) {
       const tickets = await expo.sendPushNotificationsAsync(chunk);
-      if (
-        tickets.some(
-          (t) =>
-            t.status === "error" && t.details?.error === "DeviceNotRegistered",
-        )
-      ) {
-        await pruneDeviceToken(deviceId);
+      for (const t of tickets) {
+        if (t.status === "ok") {
+          ticketIds.push(t.id);
+        } else if (t.details?.error === "DeviceNotRegistered") {
+          hasNotRegistered = true;
+        }
       }
     }
+    if (hasNotRegistered) {
+      await pruneDeviceToken(deviceId);
+    }
+    await recordReceiptOutcome(expo, deviceId, ticketIds, events.length);
   } catch (error) {
     console.warn(`[Push] Failed to send push for device ${deviceId}:`, error);
+  }
+}
+
+async function recordReceiptOutcome(
+  expo: Expo,
+  deviceId: string,
+  ticketIds: string[],
+  eventCount: number,
+): Promise<void> {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") return;
+  if (ticketIds.length === 0) return;
+  try {
+    // Expo needs time to attempt delivery before receipts exist.
+    await new Promise((r) => setTimeout(r, 15_000));
+    const receipts = await expo.getPushNotificationReceiptsAsync(ticketIds);
+    let status: "ok" | "error" = "ok";
+    let error: string | null = null;
+    let ticketId: string | null = ticketIds[0] ?? null;
+    for (const [id, receipt] of Object.entries(receipts)) {
+      if (receipt.status === "error") {
+        status = "error";
+        error = receipt.details?.error ?? "Unknown";
+        ticketId = id;
+        break;
+      }
+    }
+    await recordPushOutcome(deviceId, {
+      status,
+      error,
+      sentAt: Date.now(),
+      eventCount,
+      ticketId,
+    });
+  } catch (e) {
+    console.warn(`[Push] Receipt check failed for device ${deviceId}:`, e);
   }
 }
 
