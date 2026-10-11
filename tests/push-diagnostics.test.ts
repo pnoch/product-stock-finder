@@ -68,3 +68,13 @@ describe("receipt outcome derivation", () => {
     expect(Date.now() - start).toBeLessThan(5000);
   });
 });
+
+describe("router endpoints (structural)", () => {
+  it("notifications router exposes pushStatusAll and sendTestPush", async () => {
+    const src = (
+      await import("node:fs")
+    ).readFileSync("server/routers/notifications.ts", "utf8");
+    expect(src).toContain("pushStatusAll");
+    expect(src).toContain("sendTestPush");
+  });
+});

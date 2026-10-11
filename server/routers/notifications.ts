@@ -10,7 +10,16 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { checkRateLimit } from "../rate-limit";
 import { assertDeviceAccess } from "../devices";
 import { upsertDeviceConfig, pullPendingEvents } from "../notifications";
-import { upsertPushToken, pruneDeviceToken } from "../push-notifications";
+import { upsertPushToken, pruneDeviceToken, getPushOutcome, sendPushForDevice } from "../push-notifications";
+import type { PushOutcome } from "../push-notifications";
+
+export interface PushStatusDevice {
+  deviceId: string;
+  label: string | null;
+  platform: string | null;
+  hasToken: boolean;
+  outcome: PushOutcome | null;
+}
 
 export const notificationsRouter = router({
   uploadConfig: protectedProcedure
@@ -196,5 +205,57 @@ export const notificationsRouter = router({
       checkRateLimit(ctx, "notifications.testWebhook", 5, 60_000);
       const { sendTestWebhook } = await import("../notifications/webhook-alerts");
       return sendTestWebhook(input.url);
+    }),
+  pushStatusAll: protectedProcedure
+    .input(z.object({}))
+    .query(async ({ ctx }) => {
+      checkRateLimit(ctx, "notifications.pushStatusAll", 60, 60_000);
+      const { getDb } = await import("../db");
+      const db = await getDb();
+      if (!db) return { devices: [] as PushStatusDevice[] };
+      const { devicePushTokens, deviceLabels } = await import("../../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const tokens = await db
+        .select({
+          deviceId: devicePushTokens.deviceId,
+          platform: devicePushTokens.platform,
+        })
+        .from(devicePushTokens)
+        .where(eq(devicePushTokens.userId, ctx.user.id));
+      const labels = await db
+        .select()
+        .from(deviceLabels);
+      const labelByDevice = new Map(labels.map((l) => [l.deviceId, l.label]));
+      const devices: PushStatusDevice[] = [];
+      for (const t of tokens) {
+        const outcome = await getPushOutcome(t.deviceId);
+        devices.push({
+          deviceId: t.deviceId,
+          label: labelByDevice.get(t.deviceId) ?? null,
+          platform: t.platform,
+          hasToken: true,
+          outcome,
+        });
+      }
+      return { devices };
+    }),
+  sendTestPush: protectedProcedure
+    .input(z.object({}))
+    .mutation(async ({ ctx }) => {
+      checkRateLimit(ctx, "notifications.sendTestPush", 1, 60_000);
+      if (!ctx.deviceId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Missing device id",
+        });
+      }
+      await assertDeviceAccess(ctx.user.id, ctx.deviceId);
+      await sendPushForDevice(ctx.deviceId, [{
+        id: `test-${Date.now()}`,
+        title: "Test notification ✅",
+        body: "If you see this, push is working.",
+        type: "test",
+      }]);
+      return (await getPushOutcome(ctx.deviceId)) ?? null;
     }),
 });
