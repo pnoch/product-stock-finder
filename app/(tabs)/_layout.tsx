@@ -14,22 +14,22 @@ export default function TabLayout() {
   const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPadding;
 
+  const screenOptions = {
+    tabBarActiveTintColor: colors.tint,
+    headerShown: false,
+    tabBarButton: HapticTab,
+    tabBarStyle: {
+      paddingTop: 8,
+      paddingBottom: bottomPadding,
+      height: tabBarHeight,
+      backgroundColor: colors.background,
+      borderTopColor: colors.border,
+      borderTopWidth: 0.5,
+    },
+  } as const;
+
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarStyle: {
-          paddingTop: 8,
-          paddingBottom: bottomPadding,
-          height: tabBarHeight,
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: 0.5,
-        },
-      }}
-    >
+    <Tabs screenOptions={screenOptions}>
       <Tabs.Screen
         name="index"
         options={{
@@ -40,11 +40,29 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="discover"
+        options={{
+          title: "Discover",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="magnifyingglass" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="watchlist"
         options={{
-          title: "Watchlist",
+          title: "Watch",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="list.bullet" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="drops"
+        options={{
+          title: "Drops",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="chart.line.downtrend.xyaxis" color={color} />
           ),
         }}
       />
@@ -66,19 +84,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="rates"
         options={{
-          title: "Rates",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="dollarsign.circle.fill" color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="gearshape.fill" color={color} />
-          ),
+          href: null,
         }}
       />
     </Tabs>
