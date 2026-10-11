@@ -126,6 +126,8 @@ export default function WatchlistScreen() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [showAcquired, setShowAcquired] = useState(false);
+  // Alert presence drives the swipe-action label ("Alert"/"Muted").
+  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number] | undefined>(undefined);
   const [priceMinInput, setPriceMinInput] = useState("");
   const [priceMaxInput, setPriceMaxInput] = useState("");
@@ -186,7 +188,15 @@ export default function WatchlistScreen() {
   }, [watchlist.length]);
 
   const hasLoadedSettingsRef = useRef(false);
+  const reloadAlerts = useCallback(async () => {
+    try {
+      setAlerts(await getAlerts());
+    } catch (e) {
+      log.error("[Watchlist] alerts reload failed", e);
+    }
+  }, []);
   const loadData = useCallback(async () => {
+    await reloadAlerts();
     // A storage read failure must not reject unhandled or leave the settings
     // gate closed (which disabled the price filter and prefs silently).
     let settings: Awaited<ReturnType<typeof getSettings>> | null = null;
@@ -221,7 +231,7 @@ export default function WatchlistScreen() {
     setTagDefinitions(defs);
     setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
     hasLoadedSettingsRef.current = true;
-  }, []);
+  }, [reloadAlerts]);
 
   // Real-time price range filter without Apply — updates as user types
   useEffect(() => {
@@ -364,6 +374,17 @@ export default function WatchlistScreen() {
     [reload],
   );
 
+  // Swipe "Alert" action: alerts are created on the product detail screen
+  // (the watch row itself has no alert composer), so the swipe opens it.
+  const handleSwipeAlert = useCallback((product: Product) => {
+    router.push(`/product/${product.id}`);
+  }, [router]);
+
+  const alertProductIds = useMemo(
+    () => new Set(alerts.filter((a) => a.isActive && !a.triggeredAt).map((a) => a.productId)),
+    [alerts],
+  );
+
   const exitSelection = useCallback(() => {
     setSelectionMode(false);
     setSelectedIds(new Set());
@@ -461,13 +482,14 @@ export default function WatchlistScreen() {
         const removedWatches = allWatches.filter((w) => w.productId === product.id);
         await removeFromWatchlist(product.id);
         await reload();
+        await reloadAlerts();
         showUndoBar(product, removedAlerts, removedReminders, removedWatches);
       } catch (e) {
         log.error("[Watchlist] remove failed", e);
         showAlert("Remove failed", "We couldn't remove that product. Please try again.");
       }
     },
-    [reload, showUndoBar],
+    [reload, reloadAlerts, showUndoBar],
   );
 
   const handleDelete = useCallback(
@@ -532,11 +554,12 @@ export default function WatchlistScreen() {
       undoRemindersRef.current = [];
       undoWatchesRef.current = [];
       await reload();
+      await reloadAlerts();
     } catch (e) {
       log.error("[Watchlist] undo failed", e);
       showAlert("Undo failed", "We couldn't restore that product. Please try again.");
     }
-  }, [undoProduct, reload]);
+  }, [undoProduct, reload, reloadAlerts]);
 
   useEffect(() => {
     return () => {
@@ -787,7 +810,14 @@ export default function WatchlistScreen() {
   // use-live-prices this keeps the SectionList cheap on large watchlists.
   const renderItem = useCallback(
     ({ item }: { item: Product & { _sectionKey?: string } }) => (
-      <SwipeableCard enabled={!selectionMode} onDelete={() => handleDelete(item)}>
+      <SwipeableCard
+        enabled={!selectionMode}
+        onDelete={() => handleDelete(item)}
+        onToggleAlert={() => handleSwipeAlert(item)}
+        onToggleAcquired={() => void handleToggleAcquired(item)}
+        isAcquired={isAcquired(item)}
+        hasAlert={alertProductIds.has(item.id)}
+      >
         <ProductCard
           product={item}
           displayCurrency={displayCurrency}
@@ -826,6 +856,8 @@ export default function WatchlistScreen() {
       handleDelete,
       handleFindPrices,
       handleToggleAcquired,
+      handleSwipeAlert,
+      alertProductIds,
     ],
   );
 
