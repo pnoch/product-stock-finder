@@ -126,6 +126,33 @@ async function runPriceCheckCoreInner(opts?: {
 
   await healthCollector.flush();
 
+  // Fulfill concierge pending alerts: runs in the shared core (not the
+  // foreground-only tail) so background checks fulfill too. Storage writes
+  // only — no notification permission needed.
+  try {
+    const coreSettings = await getSettings().catch(() => null);
+    const pending = coreSettings?.pendingAlertProductIds ?? [];
+    if (pending.length > 0) {
+      const products = await getWatchlist().catch(() => []);
+      const displayCurrency = coreSettings?.displayCurrency ?? "USD";
+      const { alertsToCreate, remainingIds } = fulfillPendingAlerts(products, pending, displayCurrency);
+      const existing = await getAlerts().catch(() => []);
+      for (const a of alertsToCreate) {
+        // Skip if user already created an alert for this product meanwhile.
+        if (existing.some((e) => e.productId === a.productId && e.isActive)) continue;
+        await addAlert({
+          id: `alert-${a.productId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          productId: a.productId,
+          targetPrice: a.targetPrice,
+          currency: a.currency,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      await updateSettings({ pendingAlertProductIds: remainingIds }).catch(() => {});
+    }
+  } catch { /* best-effort */ }
+
   // Check back-in-stock watches globally (independent of price alerts)
   await checkRestocks();
 
@@ -488,28 +515,4 @@ export async function checkPriceDropsNow(
 
   // Pull any server-queued notification events (server-side detection supplement)
   await syncServerNotifications();
-
-  try {
-    const settings = await getSettings().catch(() => null);
-    const pending = settings?.pendingAlertProductIds ?? [];
-    if (pending.length > 0) {
-      const products = await getWatchlist().catch(() => []);
-      const displayCurrency = settings?.displayCurrency ?? "USD";
-      const { alertsToCreate, remainingIds } = fulfillPendingAlerts(products, pending, displayCurrency);
-      const existing = await getAlerts().catch(() => []);
-      for (const a of alertsToCreate) {
-        // Skip if user already created an alert for this product meanwhile.
-        if (existing.some((e) => e.productId === a.productId && e.isActive)) continue;
-        await addAlert({
-          id: `alert-${a.productId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          productId: a.productId,
-          targetPrice: a.targetPrice,
-          currency: a.currency,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        });
-      }
-      await updateSettings({ pendingAlertProductIds: remainingIds }).catch(() => {});
-    }
-  } catch { /* best-effort */ }
 }
