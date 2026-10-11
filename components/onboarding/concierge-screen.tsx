@@ -20,6 +20,7 @@ import {
   addAlert,
   addStockWatch,
   addToWatchlist,
+  getSettings,
   updateSettings,
 } from "@/lib/storage";
 import { clampSelection, defaultAlertTarget } from "@/lib/concierge";
@@ -88,6 +89,13 @@ export function ConciergeScreen({ onComplete }: { onComplete: () => void }) {
 
   const projectedWatches = notifyStock ? selectedProducts.length : 0;
 
+  const pendingPreview = useMemo(() => {
+    if (!notifyDrops) return 0;
+    return selectedProducts.filter(
+      (p) => defaultAlertTarget(p, displayCurrency) === null,
+    ).length;
+  }, [notifyDrops, selectedProducts, displayCurrency]);
+
   const skip = async () => {
     await setOnboardingSeen();
     onComplete();
@@ -106,6 +114,7 @@ export function ConciergeScreen({ onComplete }: { onComplete: () => void }) {
     if (finishing) return;
     setFinishing(true);
     try {
+      const createdAlertIds = new Set<string>();
       for (const product of selectedProducts) {
         await addToWatchlist(product);
         if (notifyDrops) {
@@ -119,6 +128,7 @@ export function ConciergeScreen({ onComplete }: { onComplete: () => void }) {
               createdAt: new Date().toISOString(),
               isActive: true,
             });
+            createdAlertIds.add(product.id);
           }
         }
         if (notifyStock) {
@@ -147,6 +157,19 @@ export function ConciergeScreen({ onComplete }: { onComplete: () => void }) {
           : {}),
         taxExempt,
         digestFrequency: notifyDigest ? "daily" : "off",
+        ...(notifyDrops
+          ? {
+              pendingAlertProductIds: Array.from(
+                new Set([
+                  ...((await getSettings().catch(() => null))
+                    ?.pendingAlertProductIds ?? []),
+                  ...selectedProducts
+                    .filter((p) => !createdAlertIds.has(p.id))
+                    .map((p) => p.id),
+                ]),
+              ),
+            }
+          : {}),
       });
       await setOnboardingSeen();
       if (Platform.OS !== "web")
@@ -673,6 +696,15 @@ export function ConciergeScreen({ onComplete }: { onComplete: () => void }) {
                 {projectedAlerts === 1 ? "" : "s"} · {projectedWatches}{" "}
                 restock watch{projectedWatches === 1 ? "" : "es"}
               </Text>
+              {pendingPreview > 0 && (
+                <Text
+                  style={{ color: colors.muted, fontSize: 14, marginTop: 4 }}
+                >
+                  {pendingPreview} price alert
+                  {pendingPreview === 1 ? "" : "s"} will activate once first
+                  prices arrive
+                </Text>
+              )}
             </View>
 
             <View style={{ flex: 1 }} />

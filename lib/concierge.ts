@@ -25,3 +25,29 @@ export function clampSelection(ids: string[], max = 5): string[] {
   }
   return out;
 }
+
+export interface FulfillResult {
+  alertsToCreate: { productId: string; targetPrice: number; currency: string }[];
+  remainingIds: string[];
+}
+
+export function fulfillPendingAlerts(
+  products: Product[],
+  pendingIds: string[],
+  displayCurrency: string,
+): FulfillResult {
+  const alertsToCreate: FulfillResult["alertsToCreate"] = [];
+  const remainingIds: string[] = [];
+  const byId = new Map(products.map((p) => [p.id, p]));
+  for (const id of pendingIds) {
+    const product = byId.get(id);
+    if (!product) continue; // product removed -> drop id silently
+    const target = defaultAlertTarget(product, displayCurrency);
+    if (target) {
+      alertsToCreate.push({ productId: id, targetPrice: target.targetPrice, currency: target.currency });
+    } else {
+      remainingIds.push(id); // still no price -> keep pending
+    }
+  }
+  return { alertsToCreate, remainingIds };
+}

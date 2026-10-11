@@ -187,6 +187,8 @@ export interface AppSettings {
   shippingRegion?: string;
   digestFrequency?: "off" | "daily" | "weekly";
   digestDayOfWeek?: number; // 0=Sunday..6=Saturday, used when digestFrequency=weekly
+  /** Concierge-selected product ids still waiting for first prices before a price alert can be created. */
+  pendingAlertProductIds?: string[];
   basketAlertThreshold?: number | null;
   webNotificationsEnabled?: boolean;
   tagDefinitions?: Record<string, TagDefinition>;

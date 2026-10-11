@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultAlertTarget, clampSelection } from "../lib/concierge";
+import { defaultAlertTarget, clampSelection, fulfillPendingAlerts } from "../lib/concierge";
 import type { Product } from "../lib/types";
 
 function makeProduct(price: number, currency = "USD"): Product {
@@ -61,5 +61,34 @@ describe("clampSelection", () => {
   it("passes through short lists", () => {
     expect(clampSelection(["a"])).toEqual(["a"]);
     expect(clampSelection([])).toEqual([]);
+  });
+});
+
+describe("fulfillPendingAlerts", () => {
+  it("queues an alert and drops the id when the product has a price", () => {
+    const p = makeProduct(100);
+    const { alertsToCreate, remainingIds } = fulfillPendingAlerts([p], ["p1"], "USD");
+    expect(alertsToCreate).toEqual([{ productId: "p1", targetPrice: 90, currency: "USD" }]);
+    expect(remainingIds).toEqual([]);
+  });
+
+  it("keeps the id pending when the product still has no price", () => {
+    const p = makeProduct(100);
+    p.listings = [];
+    const { alertsToCreate, remainingIds } = fulfillPendingAlerts([p], ["p1"], "USD");
+    expect(alertsToCreate).toEqual([]);
+    expect(remainingIds).toEqual(["p1"]);
+  });
+
+  it("drops unknown ids silently", () => {
+    const p = makeProduct(100);
+    const { alertsToCreate, remainingIds } = fulfillPendingAlerts([p], ["missing"], "USD");
+    expect(alertsToCreate).toEqual([]);
+    expect(remainingIds).toEqual([]);
+  });
+
+  it("returns empty result for empty pending", () => {
+    const p = makeProduct(100);
+    expect(fulfillPendingAlerts([p], [], "USD")).toEqual({ alertsToCreate: [], remainingIds: [] });
   });
 });
