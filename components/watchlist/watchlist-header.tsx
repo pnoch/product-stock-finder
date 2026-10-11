@@ -132,7 +132,7 @@ export function WatchlistHeader({
   return (
     <View className="px-5 pt-4 pb-2 flex-row items-center justify-between" style={{ flexWrap: "wrap", gap: 8 }}>
       <View style={{ flexShrink: 1 }}>
-        <Text className="text-2xl font-bold text-foreground">Watchlist</Text>
+        <Text style={{ fontSize: 28, fontWeight: "700", color: colors.foreground }}>Watchlist</Text>
         <Text className="text-muted text-sm">
           {watchlistLength} product{watchlistLength !== 1 ? "s" : ""} tracked
           {filteredCount !== undefined && filteredCount !== watchlistLength ? ` · ${filteredCount} shown` : ""}

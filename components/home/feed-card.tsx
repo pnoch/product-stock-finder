@@ -142,6 +142,7 @@ export const DropCard = memo(function DropCard({
               justifyContent: "space-between",
               alignItems: "center",
               paddingVertical: 8,
+              minHeight: 56,
               borderTopWidth: index === 0 ? 0 : 1,
               borderTopColor: colors.border,
             }}
@@ -212,6 +213,7 @@ export const RestockCard = memo(function RestockCard({
               justifyContent: "space-between",
               alignItems: "center",
               paddingVertical: 8,
+              minHeight: 56,
               borderTopWidth: index === 0 ? 0 : 1,
               borderTopColor: colors.border,
             }}

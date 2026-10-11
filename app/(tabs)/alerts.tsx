@@ -178,7 +178,7 @@ export default function AlertsScreen() {
           <Text
             style={{
               color: colors.foreground,
-              fontSize: 24,
+              fontSize: 28,
               fontWeight: "700",
             }}
           >
@@ -250,7 +250,7 @@ export default function AlertsScreen() {
                 <View
                   style={{
                     backgroundColor: colors.error + "15",
-                    borderRadius: 12,
+                    borderRadius: 16,
                     padding: 12,
                     marginBottom: 12,
                     flexDirection: "row",
@@ -271,7 +271,7 @@ export default function AlertsScreen() {
                 <View
                   style={{
                     backgroundColor: colors.primary + "15",
-                    borderRadius: 12,
+                    borderRadius: 16,
                     padding: 12,
                     marginBottom: 16,
                     flexDirection: "row",
@@ -324,7 +324,7 @@ export default function AlertsScreen() {
                 <View
                   style={{
                     backgroundColor: colors.success + "18",
-                    borderRadius: 14,
+                    borderRadius: 16,
                     padding: 14,
                     marginBottom: 14,
                     flexDirection: "row",

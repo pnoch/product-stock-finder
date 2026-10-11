@@ -33,7 +33,7 @@ export const TriggeredAlertCard = memo(function TriggeredAlertCard({
     <View
       style={{
         backgroundColor: colors.surface,
-        borderRadius: 14,
+        borderRadius: 16,
         padding: 14,
         marginBottom: 10,
         borderWidth: 1,

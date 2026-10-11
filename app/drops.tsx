@@ -67,7 +67,7 @@ function DropRow({
       onPress={onPress}
       style={{
         backgroundColor: colors.surface,
-        borderRadius: 12,
+        borderRadius: 16,
         padding: 12,
         marginBottom: 8,
         borderWidth: 1,
@@ -309,7 +309,7 @@ export default function DropsScreen() {
         <Text
           style={{
             color: colors.foreground,
-            fontSize: 20,
+            fontSize: 28,
             fontWeight: "700",
             flex: 1,
           }}
@@ -420,7 +420,7 @@ export default function DropsScreen() {
             flexDirection: "row",
             marginHorizontal: 16,
             marginBottom: 12,
-            borderRadius: 10,
+            borderRadius: 16,
             backgroundColor: colors.surface,
             borderWidth: 1,
             borderColor: colors.border,
