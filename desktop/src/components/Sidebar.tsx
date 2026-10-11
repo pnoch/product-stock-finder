@@ -14,12 +14,14 @@ import {
   Building2,
   LineChart,
   DollarSign,
+  TrendingDown,
 } from "lucide-react";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Home" },
   { to: "/watchlist", icon: List, label: "Watchlist" },
   { to: "/alerts", icon: Bell, label: "Alerts" },
+  { to: "/drops", icon: TrendingDown, label: "Drops" },
   { to: "/restock-watches", icon: BellRing, label: "Restock Watches" },
   { to: "/search", icon: Search, label: "Search" },
   { to: "/rates", icon: DollarSign, label: "Rates" },

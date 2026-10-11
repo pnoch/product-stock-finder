@@ -47,6 +47,9 @@ const Compare = lazy(() =>
 const Alerts = lazy(() =>
   import("./pages/Alerts").then((m) => ({ default: m.Alerts })),
 );
+const Drops = lazy(() =>
+  import("./pages/Drops").then((m) => ({ default: m.Drops })),
+);
 const Search = lazy(() =>
   import("./pages/Search").then((m) => ({ default: m.Search })),
 );
@@ -566,6 +569,7 @@ export default function App() {
                       <Route path="/product/:id" element={<ProductDetail />} />
                       <Route path="/compare/:id" element={<Compare />} />
                       <Route path="/alerts" element={<Alerts />} />
+                      <Route path="/drops" element={<Drops />} />
                       <Route path="/search" element={<Search />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/rates" element={<Rates />} />

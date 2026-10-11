@@ -23,6 +23,7 @@ import { useConnection } from "../hooks/use-connection";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
 import { TrendingSection } from "../components/TrendingSection";
+import { DropLeaderboard } from "../components/DropLeaderboard";
 import { ProductImage } from "../components/ProductImage";
 import type { StockStatus, DistributorListing, Product } from "../../../lib/types";
 import { activeProducts } from "../../../lib/acquired";
@@ -304,6 +305,8 @@ export function Home() {
       </div>
 
       <TrendingSection />
+
+      <DropLeaderboard />
 
       <div>
         <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
