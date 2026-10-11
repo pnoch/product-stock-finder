@@ -4,6 +4,17 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.19.0] - 2026-10-11
+
+### Added
+
+- Push delivery diagnostics: per-device delivery status screen (`/diagnostics`,
+  reached from Settings → Notifications) with live "Send test push" and
+  user-facing explanations for Expo errors. The server now checks Expo receipts
+  ~15s after each send and persists the outcome per device (`pushDeliveryLog`
+  table); new `pushStatusAll` query and rate-limited `sendTestPush` mutation.
+  Full desktop parity.
+
 ## [5.18.0] - 2026-10-11
 
 ### Added
