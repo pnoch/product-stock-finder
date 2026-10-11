@@ -4,6 +4,20 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.18.0] - 2026-10-11
+
+### Added
+
+- Mark as acquired: flag products you've already bought (`Product.acquiredAt`,
+  card + detail toggle, "Show acquired" filter, dimmed rows). Acquired products
+  are excluded from price alerts, restock watches, basket stats, digests and
+  server notification uploads. Full desktop parity (watchlist, detail, stats,
+  home, Rust price-drop checker).
+- Price drop leaderboard: biggest drops across tracked products (local) and all
+  products (`prices.topDrops` server query over `priceHistory`). Home preview
+  (top 5) + full `/drops` screen (top 20, Your/Global tabs, 24h/7d/30d windows,
+  %/$ ranking, clipboard sharing). Full desktop parity (page, section, sidebar).
+
 ## [5.17.0] - 2026-10-04
 
 ### Added
