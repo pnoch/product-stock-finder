@@ -5,8 +5,10 @@ import { join } from "node:path";
 const read = (p: string) => readFileSync(join(__dirname, "..", p), "utf8");
 
 describe("drops feature wiring", () => {
-  it("Home screen imports DropLeaderboard", () => {
-    expect(read("app/(tabs)/index.tsx")).toContain("drop-leaderboard");
+  it("Home screen surfaces drops via the feed", () => {
+    // Redesign Plan C dissolved the DropLeaderboard section into the priority
+    // feed; drops still reach Home through DropCard + computeLocalDrops.
+    expect(read("app/(tabs)/index.tsx")).toContain("DropCard");
   });
 
   it("full screen route exists and exports", () => {

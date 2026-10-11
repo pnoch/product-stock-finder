@@ -14,10 +14,12 @@ describe("repositioned copy", () => {
     expect(src).toContain("Never Miss a Restock");
   });
 
-  it("mobile home uses the radar subtitle and empty state", () => {
+  it("mobile home uses the greeting header (redesign Plan C)", () => {
+    // Plan C replaced the radar subtitle/empty state with the priority-feed
+    // greeting; the radar copy lives on in About (asserted below).
     const src = read("app/(tabs)/index.tsx");
-    expect(src).toContain("Find it anywhere. Landed to your door.");
-    expect(src).toContain("Nothing on the radar yet");
+    expect(src).toContain("greetingFor");
+    expect(src).toContain("what needs your attention");
   });
 
   it("About carries the tagline and origin line", () => {
