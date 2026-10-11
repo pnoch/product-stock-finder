@@ -8510,3 +8510,10 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Feed cards (alerts/drops/restocks/quiet) + Home rewire.
 - [x] Stat cards, recent activity, away card, Available/Trending sections removed.
 - [x] Watchlist preview kept. TypeScript: 0 errors.
+
+## Phase 1143: Redesign D — Watch refresh + visual pass
+
+- [x] Swipe actions (alert/acquired/remove) on watch rows.
+- [x] Collapsed filter bar with active-count badge.
+- [x] 16px cards, 56px targets, 28px titles on key screens.
+- [x] Guards. TypeScript: 0 errors.
