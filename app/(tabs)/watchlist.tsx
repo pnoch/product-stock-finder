@@ -126,6 +126,10 @@ export default function WatchlistScreen() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [showAcquired, setShowAcquired] = useState(false);
+  // Collapsed filter bar (Plan D Task 2): null = auto (expanded when any
+  // filter is active, collapsed otherwise); once the user toggles, the choice
+  // persists for the session (no storage).
+  const [filtersManual, setFiltersManual] = useState<boolean | null>(null);
   // Alert presence drives the swipe-action label ("Alert"/"Muted").
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number] | undefined>(undefined);
@@ -347,6 +351,35 @@ export default function WatchlistScreen() {
         ? prev.filter((id) => id !== tagId)
         : [...prev, tagId],
     );
+  }, []);
+
+  // Number of non-default filters driving the Filters button badge. Each
+  // dimension counts at most 1: query, tags, status, price, region,
+  // in-stock-on, and show-acquired-on.
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (query.trim() !== "") count += 1;
+    if (selectedTagIds.length > 0) count += 1;
+    if (statusFilter !== "all") count += 1;
+    if (priceRange !== undefined || priceMinInput !== "" || priceMaxInput !== "") count += 1;
+    if (regionFilter !== "all") count += 1;
+    if (inStockOnly) count += 1;
+    if (showAcquired) count += 1;
+    return count;
+  }, [query, selectedTagIds, statusFilter, priceRange, priceMinInput, priceMaxInput, regionFilter, inStockOnly, showAcquired]);
+
+  const filtersExpanded = filtersManual ?? activeFilterCount > 0;
+
+  const clearAllFilters = useCallback(() => {
+    setRegionFilter("all");
+    setSelectedTagIds([]);
+    setStatusFilter("all");
+    setInStockOnly(false);
+    setPriceRange(undefined);
+    setPriceMinInput("");
+    setPriceMaxInput("");
+    setQuery("");
+    setShowAcquired(true);
   }, []);
 
   const toggleSelection = useCallback((id: string) => {
@@ -1116,13 +1149,66 @@ export default function WatchlistScreen() {
   />
 )}
 {watchlist.length > 0 && (
+  <TouchableOpacity
+    activeOpacity={0.7}
+    onPress={() => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setFiltersManual((v) => !(v ?? activeFilterCount > 0));
+    }}
+    style={{
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginHorizontal: 16,
+      marginBottom: filtersExpanded ? 8 : 10,
+      paddingHorizontal: 12,
+      minHeight: 40,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: filtersExpanded ? colors.primary : colors.border,
+    }}
+    accessibilityLabel={activeFilterCount > 0 ? `Filters, ${activeFilterCount} active` : "Filters"}
+    accessibilityRole="button"
+    accessibilityState={{ expanded: filtersExpanded }}
+  >
+    <IconSymbol
+      name="line.3.horizontal.decrease.circle"
+      size={18}
+      color={filtersExpanded || activeFilterCount > 0 ? colors.primary : colors.muted}
+    />
+    <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", flex: 1 }}>
+      Filters
+    </Text>
+    {activeFilterCount > 0 && (
+      <View
+        style={{
+          minWidth: 22,
+          height: 22,
+          borderRadius: 11,
+          backgroundColor: colors.primary,
+          alignItems: "center",
+          justifyContent: "center",
+          paddingHorizontal: 6,
+        }}
+        accessibilityLabel={`${activeFilterCount} filters active`}
+      >
+        <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>
+          {activeFilterCount}
+        </Text>
+      </View>
+    )}
+    <IconSymbol name={filtersExpanded ? "chevron.up" : "chevron.down"} size={16} color={colors.muted} />
+  </TouchableOpacity>
+)}
+{filtersExpanded && watchlist.length > 0 && (
+  <View>
   <RegionFilterRow
     regions={regions}
     regionFilter={regionFilter}
     onRegionChange={setRegionFilter}
   />
-)}
-{watchlist.length > 0 && (
   <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingVertical: 8 }}>
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
       <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>In stock only</Text>
@@ -1168,17 +1254,35 @@ export default function WatchlistScreen() {
       )}
     </View>
   </View>
+  <TagFilterRow
+    tagDefinitions={tagDefinitions}
+    selectedTagIds={selectedTagIds}
+    tagMatchMode={tagMatchMode}
+    counts={tagCounts}
+    onToggleTag={toggleTagFilter}
+    onChangeMode={setTagMatchMode}
+    onClearAll={() => setSelectedTagIds([])}
+    onManage={() => setManageVisible(true)}
+  />
+  {activeFilterCount > 0 && (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => {
+        if (Platform.OS !== "web")
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        clearAllFilters();
+      }}
+      style={{ alignSelf: "flex-end", marginRight: 20, marginBottom: 10, padding: 4 }}
+      accessibilityLabel="Clear all filters"
+      accessibilityRole="button"
+    >
+      <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+        Clear all
+      </Text>
+    </TouchableOpacity>
+  )}
+  </View>
 )}
-<TagFilterRow
-  tagDefinitions={tagDefinitions}
-  selectedTagIds={selectedTagIds}
-  tagMatchMode={tagMatchMode}
-  counts={tagCounts}
-  onToggleTag={toggleTagFilter}
-  onChangeMode={setTagMatchMode}
-  onClearAll={() => setSelectedTagIds([])}
-  onManage={() => setManageVisible(true)}
-/>
           </View>
         }
         ListEmptyComponent={
@@ -1190,17 +1294,7 @@ export default function WatchlistScreen() {
             inStockOnly={inStockOnly}
             priceRange={priceRange}
             allAcquired={watchlist.length > 0 && watchlist.every(isAcquired)}
-            onClearFilters={() => {
-              setRegionFilter("all");
-              setSelectedTagIds([]);
-              setStatusFilter("all");
-              setInStockOnly(false);
-              setPriceRange(undefined);
-              setPriceMinInput("");
-              setPriceMaxInput("");
-              setQuery("");
-              setShowAcquired(true);
-            }}
+            onClearFilters={clearAllFilters}
             onAddProduct={() => router.push("/search")}
           />
         }
