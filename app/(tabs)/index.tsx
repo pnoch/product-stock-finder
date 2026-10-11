@@ -7,9 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   Platform,
-  Image,
-  Animated,
-  Easing,
   ActivityIndicator,
   Pressable,
 } from "react-native";
@@ -26,26 +23,26 @@ import {
   getSettings,
   getLastSeenAt,
   setLastSeenAt,
+  rearmAlert,
 } from "@/lib/storage";
-import { countActiveAlerts } from "@/lib/alert-state";
-import { Product, StockStatus } from "@/lib/types";
+import { Product, PriceAlert, StockStatus } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "@/lib/currency";
-import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { StockBadge } from "@/components/stock-badge";
-import { IconSymbol, type IconSymbolName } from "@/components/ui/icon-symbol";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ConnectionBadge } from "@/components/connection-badge";
-import { TrendingSection } from "@/components/home/trending-section";
-import { DropLeaderboard } from "@/components/home/drop-leaderboard";
-import { AvailableSection } from "@/components/home/available-section";
-import { AwaySummaryCard } from "@/components/home/away-summary-card";
 import { computeAwaySummary, type AwaySummary } from "@/lib/away-summary";
 import { activeProducts } from "@/lib/acquired";
 import { useConnection } from "@/hooks/use-connection";
 import { useMonitoringHealth } from "@/hooks/use-monitoring-health";
-import { fetchProductImage } from "@/lib/server-images";
-
-
+import { showAlert } from "@/lib/alert";
+import { greetingFor, buildFeedItems } from "@/lib/home-feed";
+import {
+  AlertFiredCard,
+  DropCard,
+  RestockCard,
+  QuietCard,
+} from "@/components/home/feed-card";
 
 const STOCK_ORDER: Record<StockStatus, number> = {
   in_stock: 0,
@@ -64,64 +61,6 @@ function getBestStatus(product: Product): StockStatus {
   return sorted[0]!.stockStatus;
 }
 
-function useAnimatedNumber(target: number) {
-  const [display, setDisplay] = useState(target);
-  const anim = useRef(new Animated.Value(target)).current;
-  const prev = useRef(target);
-  useEffect(() => {
-    const id = anim.addListener(({ value }) => setDisplay(Math.round(value)));
-    return () => anim.removeListener(id);
-  }, [anim]);
-  useEffect(() => {
-    if (prev.current === target) return;
-    prev.current = target;
-    Animated.timing(anim, { toValue: target, duration: 520, useNativeDriver: false, easing: Easing.out(Easing.cubic) } as unknown as Animated.TimingAnimationConfig).start();
-  }, [target, anim]);
-  useEffect(() => { anim.setValue(target); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  return display;
-}
-
-// Shared stat pill — tokens aligned with components/watchlist/summary-card.tsx: 16px radius, 16px padding, 1px border
-function SummaryCard({
-  label,
-  value,
-  color,
-  icon,
-}: {
-  label: string;
-  value: string | number;
-  color: string;
-  icon: IconSymbolName;
-}) {
-  const colors = useColors();
-  const numericValue = typeof value === "number" ? value : 0;
-  const animatedNumber = useAnimatedNumber(numericValue);
-  const numeric = typeof value === "number" ? animatedNumber : value;
-  const pop = useRef(new Animated.Value(1)).current;
-  const prevVal = useRef(value);
-  useEffect(() => {
-    if (prevVal.current !== value) {
-      prevVal.current = value;
-      Animated.sequence([
-        Animated.spring(pop, { toValue: 1.12, useNativeDriver: true, tension: 280, friction: 8 }),
-        Animated.spring(pop, { toValue: 1, useNativeDriver: true, tension: 180, friction: 9 }),
-      ]).start();
-    }
-  }, [value, pop]);
-  return (
-    <View
-      className="flex-1 bg-surface rounded-2xl p-4 border border-border"
-      style={{ borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <IconSymbol name={icon} size={20} color={colors.muted} />
-        <Animated.Text style={{ color, fontSize: 24, fontWeight: "700", transform: [{ scale: pop }] }}>{numeric}</Animated.Text>
-      </View>
-      <Text className="text-muted text-xs mt-1">{label}</Text>
-    </View>
-  );
-}
-
 export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
@@ -130,40 +69,12 @@ export default function HomeScreen() {
   const { health: monitoring } = useMonitoringHealth();
   const [monitoringDismissed, setMonitoringDismissed] = useState(false);
   const [watchlist, setWatchlist] = useState<Product[]>([]);
-  const [alertCount, setAlertCount] = useState(0);
+  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
-  const [images, setImages] = useState<Map<string, string>>(new Map());
   const [awaySummary, setAwaySummary] = useState<AwaySummary | null>(null);
-  const [awayDismissed, setAwayDismissed] = useState(false);
-  const statAnim0 = useRef(new Animated.Value(0)).current;
-  const statAnim1 = useRef(new Animated.Value(0)).current;
-  const statAnim2 = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.stagger(90, [
-      Animated.spring(statAnim0, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 80,
-        friction: 9,
-      }),
-      Animated.spring(statAnim1, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 80,
-        friction: 9,
-      }),
-      Animated.spring(statAnim2, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 80,
-        friction: 9,
-      }),
-    ]).start();
-  }, [statAnim0, statAnim1, statAnim2]);
 
   const loadGenRef = useRef(0);
   const loadData = useCallback(async () => {
@@ -173,9 +84,9 @@ export default function HomeScreen() {
       const list = await getWatchlist();
       if (gen !== loadGenRef.current) return;
       setWatchlist(list);
-      const alerts = await getAlerts();
+      const alertList = await getAlerts();
       if (gen !== loadGenRef.current) return;
-      setAlertCount(countActiveAlerts(alerts));
+      setAlerts(alertList);
       const settings = await getSettings();
       if (gen !== loadGenRef.current) return;
       setDisplayCurrency(settings?.displayCurrency ?? "USD");
@@ -219,77 +130,57 @@ export default function HomeScreen() {
     if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
     try {
-      await Promise.all([
-        loadData(),
-        queryClient.invalidateQueries({ queryKey: ["trending"] }),
-      ]);
+      await loadData();
       if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setRefreshing(false);
     }
-  }, [loadData, queryClient]);
+  }, [loadData]);
 
-  const inStockCount = useMemo(
+  const feedItems = useMemo(
     () =>
-      watchlist.reduce((count, p) => {
-        const hasInStock = p.listings?.some((l) => l.stockStatus === "in_stock");
-        return hasInStock ? count + 1 : count;
-      }, 0),
+      buildFeedItems({
+        alerts,
+        products: watchlist,
+        awaySummary,
+        displayCurrency,
+      }),
+    [alerts, watchlist, awaySummary, displayCurrency],
+  );
+
+  const productNames = useMemo(
+    () => new Map(watchlist.map((p) => [p.id, p.name] as const)),
     [watchlist],
   );
 
-  const recentActivity = useMemo(() => {
-    const withTime = watchlist.map((p) => {
-      const listings = p.listings ?? [];
-      if (listings.length === 0) {
-        const raw = p.addedAt as string | undefined;
-        const t = raw ? Date.parse(raw) : NaN;
-        const fallback = isNaN(t) ? 0 : t;
-        return { product: p, listing: null as unknown as typeof listings[0] | null, sortTime: fallback };
-      }
-      let best = listings[0]!;
-      let bestTime = isNaN(new Date(best.lastChecked).getTime()) ? 0 : new Date(best.lastChecked).getTime();
-      for (const l of listings) {
-        const t = isNaN(new Date(l.lastChecked).getTime()) ? 0 : new Date(l.lastChecked).getTime();
-        if (t > bestTime) {
-          best = l;
-          bestTime = t;
-        }
-      }
-      return { product: p, listing: best as typeof listings[0] | null, sortTime: bestTime };
-    });
-    withTime.sort((a, b) => b.sortTime - a.sortTime);
-    return withTime.slice(0, 5).map(({ product, listing }) => ({ product, listing }));
-  }, [watchlist]);
+  const handleViewProduct = useCallback(
+    (productId: string) => {
+      router.push(`/product/${productId}`);
+    },
+    [router],
+  );
 
-  const recentIdsKey = useMemo(() => recentActivity.map(({ product }) => product.id).join(","), [recentActivity]);
+  const handleRearm = useCallback(
+    async (alertId: string) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      try {
+        await rearmAlert(alertId);
+        await loadData();
+      } catch (e) {
+        log.error("[Home] re-arm failed", e);
+        showAlert("Re-arm failed", "We couldn't re-arm that alert. Please try again.");
+        return;
+      }
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    [loadData],
+  );
 
-  useEffect(() => {
-    let active = true;
-    const ids = recentIdsKey ? recentIdsKey.split(",").filter(Boolean) : [];
-    if (ids.length === 0) {
-      setImages(new Map());
-      return;
-    }
-    const load = async () => {
-      const results = await Promise.allSettled(ids.map((id) => fetchProductImage(id)));
-      if (!active) return;
-      const newImages = new Map<string, string>();
-      results.forEach((r, i) => {
-        const pid = ids[i];
-        if (r.status === "fulfilled" && r.value && pid) {
-          newImages.set(pid, r.value.imageUrl);
-        }
-      });
-      setImages(newImages);
-    };
-    load();
-    return () => {
-      active = false;
-    };
-  }, [recentIdsKey]);
+  const greeting = useMemo(() => greetingFor(new Date().getHours()), []);
 
   return (
     <ScreenContainer>
@@ -307,10 +198,10 @@ export default function HomeScreen() {
         <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
           <View>
             <Text className="text-2xl font-bold text-foreground">
-              Product Stock Finder
+              {greeting}
             </Text>
             <Text className="text-muted text-sm">
-              Find it anywhere. Landed to your door.
+              Here&apos;s what needs your attention.
             </Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -396,102 +287,13 @@ export default function HomeScreen() {
             </View>
           )}
 
-        {/* Summary Cards */}
-        <View className="flex-row px-4 mt-3 mb-4" style={{ gap: 8 }}>
-          <Animated.View
-            style={{
-              flex: 1,
-              opacity: statAnim0,
-              transform: [
-                {
-                  translateY: statAnim0.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [14, 0],
-                  }),
-                },
-                {
-                  scale: statAnim0.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.96, 1],
-                  }),
-                },
-              ],
-            }}
-          >
-            <SummaryCard
-              label="Tracked"
-              value={watchlist.length}
-              color={colors.primary}
-              icon="list.bullet"
-            />
-          </Animated.View>
-          <Animated.View
-            style={{
-              flex: 1,
-              opacity: statAnim1,
-              transform: [
-                {
-                  translateY: statAnim1.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [14, 0],
-                  }),
-                },
-                {
-                  scale: statAnim1.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.96, 1],
-                  }),
-                },
-              ],
-            }}
-          >
-            <SummaryCard
-              label="In Stock"
-              value={inStockCount}
-              color={colors.success}
-              icon="checkmark.circle.fill"
-            />
-          </Animated.View>
-          <Animated.View
-            style={{
-              flex: 1,
-              opacity: statAnim2,
-              transform: [
-                {
-                  translateY: statAnim2.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [14, 0],
-                  }),
-                },
-                {
-                  scale: statAnim2.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.96, 1],
-                  }),
-                },
-              ],
-            }}
-          >
-            <SummaryCard
-              label="Alerts"
-              value={alertCount}
-              color={colors.warning}
-              icon="bell.fill"
-            />
-          </Animated.View>
-        </View>
-
-        {/* Recent Activity */}
-        <View className="px-5 mb-3">
-          <Text className="text-base font-semibold text-foreground mb-3">
-            Recent Activity
-          </Text>
-          {!loaded ? (
-            <View style={{ alignItems: "center", paddingVertical: 32 }}>
-              <ActivityIndicator color={colors.primary} />
-              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8 }}>Loading watchlist…</Text>
-            </View>
-          ) : loadError ? (
+        {!loaded ? (
+          <View style={{ alignItems: "center", paddingVertical: 32 }}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8 }}>Loading watchlist…</Text>
+          </View>
+        ) : loadError ? (
+          <View className="px-5">
             <View className="bg-surface rounded-2xl p-6 items-center border border-border">
               <View
                 style={{
@@ -532,7 +334,9 @@ export default function HomeScreen() {
                 <Text style={{ color: "#fff", fontWeight: "600" }}>Retry</Text>
               </TouchableOpacity>
             </View>
-          ) : recentActivity.length === 0 ? (
+          </View>
+        ) : watchlist.length === 0 ? (
+          <View className="px-5">
             <View className="bg-surface rounded-2xl p-8 items-center border border-border">
               <View
                 style={{
@@ -598,223 +402,125 @@ export default function HomeScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            recentActivity.map(({ product, listing }) => {
-              const bestPrice = getBestPrice(product.listings ?? [], displayCurrency);
-              return (
-              <TouchableOpacity activeOpacity={0.7}
-                key={product.id}
-                accessibilityLabel={bestPrice ? `${product.name}, ${formatPrice(bestPrice.price, bestPrice.currency)}` : product.name}
-                accessibilityRole="button"
-                style={{
-                  backgroundColor: colors.surface,
-                  borderRadius: 16,
-                  padding: 14,
-                  marginBottom: 10,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}
-                onPress={() => router.push(`/product/${product.id}`)}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  {images.get(product.id) ? (
-                    <Image
-                      source={{ uri: images.get(product.id)! }}
-                      accessibilityLabel={`${product.name} image`}
-                      onError={() => setImages((prev) => { const n = new Map(prev); n.delete(product.id); return n; })}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 8,
-                        marginRight: 12,
-                        backgroundColor: colors.border,
-                      }}
-                    />
-                  ) : (
-                    <View
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 8,
-                        marginRight: 12,
-                        backgroundColor: colors.border + "66",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                      }}
-                    >
-                      <IconSymbol name="photo" size={14} color={colors.muted} />
-                    </View>
-                  )}
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text
-                      style={{
-                        color: colors.foreground,
-                        fontWeight: "600",
-                        fontSize: 14,
-                      }}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {product.name}
-                    </Text>
-                    <Text
-                      style={{
-                        color: colors.muted,
-                        fontSize: 12,
-                        marginTop: 2,
-                      }}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {product.modelNumber}
-                    </Text>
-                  </View>
-                  <StockBadge
-                    status={listing ? listing!.stockStatus : "unknown"}
-                    expectedDate={listing?.expectedDate}
-                  />
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    marginTop: 8,
-                  }}
-                >
-                  <Text
+          </View>
+        ) : (
+          <>
+            {/* Priority feed */}
+            <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
+              {feedItems.map((item) => {
+                switch (item.kind) {
+                  case "alerts":
+                    return (
+                      <AlertFiredCard
+                        key="alerts"
+                        alerts={item.alerts}
+                        names={productNames}
+                        onView={handleViewProduct}
+                        onRearm={handleRearm}
+                      />
+                    );
+                  case "drops":
+                    return <DropCard key="drops" drops={item.drops} />;
+                  case "restocks":
+                    return (
+                      <RestockCard
+                        key="restocks"
+                        productIds={item.productIds}
+                        names={item.names}
+                        onView={handleViewProduct}
+                      />
+                    );
+                  case "quiet":
+                    return <QuietCard key="quiet" dropCount={item.dropCount} />;
+                }
+              })}
+            </View>
+
+            {/* Watchlist preview */}
+            <View className="px-5">
+              <Text className="text-base font-semibold text-foreground mb-3">
+                Your Watchlist
+              </Text>
+              {watchlist.slice(0, 3).map((product) => {
+                const bestPrice = getBestPrice(
+                  product.listings ?? [],
+                  displayCurrency,
+                );
+                const bestStatus = getBestStatus(product);
+                return (
+                  <TouchableOpacity activeOpacity={0.7}
+                    key={product.id}
+                    accessibilityLabel={`${product.name}, ${bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : "no price"}`}
+                    accessibilityRole="button"
                     style={{
-                      color: colors.primary,
-                      fontWeight: "700",
-                      fontSize: 15,
+                      backgroundColor: colors.surface,
+                      borderRadius: 16,
+                      padding: 14,
+                      marginBottom: 10,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      flexDirection: "row",
+                      alignItems: "center",
                     }}
+                    onPress={() => router.push(`/product/${product.id}`)}
                   >
-                    {bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : "—"}
-                  </Text>
-                  <Text style={{ color: colors.muted, fontSize: 11 }}>
-                    {listing ? formatLastRefreshed(listing!.lastChecked) : formatLastRefreshed(product.addedAt)}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              );
-            })
-          )}
-        </View>
-
-        {awaySummary && !awayDismissed && (
-          <AwaySummaryCard
-            summary={awaySummary}
-            onDismiss={() => setAwayDismissed(true)}
-          />
-        )}
-
-        {/* Available Now */}
-        <View style={{ paddingHorizontal: 16 }}>
-          <AvailableSection />
-        </View>
-
-        {/* Trending */}
-        <View style={{ paddingHorizontal: 16 }}>
-          <TrendingSection />
-        </View>
-
-        {/* Price Drop Leaderboard */}
-        <View style={{ paddingHorizontal: 16 }}>
-          <DropLeaderboard />
-        </View>
-
-        {/* Quick Access */}
-        {watchlist.length > 0 && (
-          <View className="px-5">
-            <Text className="text-base font-semibold text-foreground mb-3">
-              Your Watchlist
-            </Text>
-            {watchlist.slice(0, 3).map((product) => {
-              const bestPrice = getBestPrice(
-                product.listings ?? [],
-                displayCurrency,
-              );
-              const bestStatus = getBestStatus(product);
-              return (
-                <TouchableOpacity activeOpacity={0.7}
-                  key={product.id}
-                  accessibilityLabel={`${product.name}, ${bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : "no price"}`}
-                  accessibilityRole="button"
-                  style={{
-                    backgroundColor: colors.surface,
-                    borderRadius: 16,
-                    padding: 14,
-                    marginBottom: 10,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                  onPress={() => router.push(`/product/${product.id}`)}
-                >
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text
-                      style={{
-                        color: colors.foreground,
-                        fontWeight: "600",
-                        fontSize: 14,
-                      }}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {product.name}
-                    </Text>
-                    <Text
-                      style={{
-                        color: colors.muted,
-                        fontSize: 12,
-                        marginTop: 2,
-                      }}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {product.brand} · {product.category}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: "flex-end" }}>
-                    {bestPrice && (
+                    <View style={{ flex: 1, marginRight: 8 }}>
                       <Text
                         style={{
-                          color: colors.primary,
-                          fontWeight: "700",
-                          fontSize: 15,
+                          color: colors.foreground,
+                          fontWeight: "600",
+                          fontSize: 14,
                         }}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
                       >
-                        {formatPrice(bestPrice.price, bestPrice.currency)}
+                        {product.name}
                       </Text>
-                    )}
-                    <View style={{ marginTop: 4 }}>
-                      <StockBadge status={bestStatus} />
+                      <Text
+                        style={{
+                          color: colors.muted,
+                          fontSize: 12,
+                          marginTop: 2,
+                        }}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {product.brand} · {product.category}
+                      </Text>
                     </View>
-                  </View>
+                    <View style={{ alignItems: "flex-end" }}>
+                      {bestPrice && (
+                        <Text
+                          style={{
+                            color: colors.primary,
+                            fontWeight: "700",
+                            fontSize: 15,
+                          }}
+                        >
+                          {formatPrice(bestPrice.price, bestPrice.currency)}
+                        </Text>
+                      )}
+                      <View style={{ marginTop: 4 }}>
+                        <StockBadge status={bestStatus} />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+              {watchlist.length > 3 && (
+                <TouchableOpacity activeOpacity={0.7}
+                  onPress={() => router.push("/(tabs)/watchlist")}
+                  accessibilityLabel={`View all ${watchlist.length} product${watchlist.length === 1 ? "" : "s"}`}
+                  accessibilityRole="button"
+                  style={{ alignItems: "center", paddingVertical: 8 }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                    View all {watchlist.length} product{watchlist.length === 1 ? "" : "s"} →
+                  </Text>
                 </TouchableOpacity>
-              );
-            })}
-            {watchlist.length > 3 && (
-              <TouchableOpacity activeOpacity={0.7}
-                onPress={() => router.push("/(tabs)/watchlist")}
-                accessibilityLabel={`View all ${watchlist.length} product${watchlist.length === 1 ? "" : "s"}`}
-                accessibilityRole="button"
-                style={{ alignItems: "center", paddingVertical: 8 }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: "600" }}>
-                  View all {watchlist.length} product{watchlist.length === 1 ? "" : "s"} →
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+              )}
+            </View>
+          </>
         )}
       </ScrollView>
     </ScreenContainer>
