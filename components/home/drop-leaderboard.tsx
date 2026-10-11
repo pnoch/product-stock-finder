@@ -132,6 +132,8 @@ export const DropLeaderboard = memo(function DropLeaderboard() {
           {WINDOWS.map((w) => (
             <TouchableOpacity
               key={w}
+              accessibilityLabel={`Show drops from last ${w}`}
+              accessibilityRole="button"
               onPress={() => {
                 if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setWindow(w);
@@ -154,6 +156,8 @@ export const DropLeaderboard = memo(function DropLeaderboard() {
           {SORTS.map((s) => (
             <TouchableOpacity
               key={s.key}
+              accessibilityLabel={`Sort by ${s.key === "pct" ? "percentage" : "amount"}`}
+              accessibilityRole="button"
               onPress={() => {
                 if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSortBy(s.key);

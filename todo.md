@@ -8464,3 +8464,16 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] **Watchlist consumer** (`app/(tabs)/watchlist.tsx`): the rendered list drops acquired products unless "Show acquired" is on (composed with the existing filters/sort/group), each `ProductCard` gets `onToggleAcquired` calling `updateProductAcquired` then `reload()`, and a "Show acquired" switch sits beside "In stock only".
 - [x] Tests: `detail-header-watch` updated for the two new required props. `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0.
 - [x] **Deferred:** automatic purchase inference (acquisition is explicitly user-driven) and desktop parity (desktop has no acquired field, card action, or filter yet).
+
+## Phase 1138: Price drop leaderboard
+
+- [x] **Pure local computation** (`lib/price-leaderboard.ts` `computeLocalDrops`): diffs each watchlist listing's `priceHistory` over the 24h/7d/30d window into `PriceDrop` rows (previous/current price, pct + absolute drop), sorted by pct or amount and capped at a limit; no scraping.
+- [x] **Tests** (`tests/price-leaderboard.test.ts`): window filtering, sort orders, limit, empty/no-history cases, plus `buildDropShareText` formatting.
+- [x] **Server global drops** (`server/price-leaderboard.ts` `topDrops` via `prices.topDrops` in `server/routers/prices.ts`): queries the `priceHistory` table for the biggest cross-user drops; client falls back to local drops when the server is unconfigured.
+- [x] **Home section** (`components/home/drop-leaderboard.tsx`): compact top-5 list ("Biggest Drops" + "See all" → `/drops`) with window/sort chips, wired into `app/(tabs)/index.tsx`.
+- [x] **Full screen** (`app/drops.tsx`): top-20 board with Your/Global tabs, 24h/7d/30d + pct/abs controls, and a share button.
+- [x] **Sharing** (`buildDropShareText` + `lib/share-text.ts`): formats the visible drops as a ranked text list ("Price Drops (7d, by %) … via Product Stock Finder").
+- [x] **Desktop parity** (`desktop/src/pages/Drops.tsx`, `desktop/src/components/DropLeaderboard.tsx`): full Drops page + Home section + Sidebar "Drops" entry + `/drops` route in `App.tsx`.
+- [x] **Wiring guards** (`tests/drops-wiring-guard.test.ts`, `desktop/tests/drops-parity.test.tsx`): pin the Home imports, the `/drops` routes, the `computeLocalDrops`/`buildDropShareText` exports, the server `topDrops` query, and the desktop sidebar/route entries.
+- [x] **A11y fix** (`components/home/drop-leaderboard.tsx`): window/sort chips carry `accessibilityLabel` + `accessibilityRole="button"` matching `app/drops.tsx`, satisfying `tests/interactive-a11y.test.ts`.
+- [x] `pnpm check` 0 errors; eslint clean; `pnpm verify` exit 0 — root `3679` / desktop `334` / cargo `92` + both bundles.
