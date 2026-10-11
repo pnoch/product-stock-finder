@@ -333,6 +333,18 @@ export const deviceLabels = mysqlTable("device_labels", {
 export type DeviceLabelRow = typeof deviceLabels.$inferSelect;
 export type InsertDeviceLabelRow = typeof deviceLabels.$inferInsert;
 
+export const pushDeliveryLog = mysqlTable("push_delivery_log", {
+  deviceId: varchar("deviceId", { length: 128 }).notNull().primaryKey(),
+  status: varchar("status", { length: 16 }).notNull(),
+  error: varchar("error", { length: 64 }),
+  sentAt: bigint("sentAt", { mode: "number" }).notNull(),
+  eventCount: bigint("eventCount", { mode: "number" }).notNull(),
+  ticketId: varchar("ticketId", { length: 64 }),
+});
+
+export type PushDeliveryLogRow = typeof pushDeliveryLog.$inferSelect;
+export type InsertPushDeliveryLogRow = typeof pushDeliveryLog.$inferInsert;
+
 export const revokedDevices = mysqlTable(
   "revoked_devices",
   {

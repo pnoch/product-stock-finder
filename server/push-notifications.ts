@@ -18,6 +18,80 @@ export interface PushableEvent {
   distributorId?: string;
 }
 
+export interface PushOutcome {
+  status: "ok" | "error";
+  error: string | null;
+  sentAt: number;
+  eventCount: number;
+  ticketId: string | null;
+}
+
+const memoryOutcomes = new Map<string, PushOutcome>();
+
+export async function recordPushOutcome(
+  deviceId: string,
+  outcome: PushOutcome,
+): Promise<void> {
+  try {
+    const db = await getDb();
+    if (!db) {
+      memoryOutcomes.set(deviceId, outcome);
+      return;
+    }
+    const { pushDeliveryLog } = await import("../drizzle/schema");
+    await db
+      .insert(pushDeliveryLog)
+      .values({
+        deviceId,
+        status: outcome.status,
+        error: outcome.error,
+        sentAt: outcome.sentAt,
+        eventCount: outcome.eventCount,
+        ticketId: outcome.ticketId,
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          status: outcome.status,
+          error: outcome.error,
+          sentAt: outcome.sentAt,
+          eventCount: outcome.eventCount,
+          ticketId: outcome.ticketId,
+        },
+      });
+  } catch (error) {
+    console.warn(`[Push] Failed to record outcome for device ${deviceId}:`, error);
+  }
+}
+
+export async function getPushOutcome(deviceId: string): Promise<PushOutcome | null> {
+  try {
+    const db = await getDb();
+    if (!db) return memoryOutcomes.get(deviceId) ?? null;
+    const { pushDeliveryLog } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const rows = await db
+      .select()
+      .from(pushDeliveryLog)
+      .where(eq(pushDeliveryLog.deviceId, deviceId));
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      status: row.status as "ok" | "error",
+      error: row.error,
+      sentAt: row.sentAt,
+      eventCount: row.eventCount,
+      ticketId: row.ticketId,
+    };
+  } catch (error) {
+    console.warn(`[Push] Failed to read outcome for device ${deviceId}:`, error);
+    return null;
+  }
+}
+
+export function clearPushOutcomesForTests(): void {
+  memoryOutcomes.clear();
+}
+
 const memoryTokens = new Map<
   string,
   { token: string; platform: string; userId: number | null }
@@ -193,6 +267,7 @@ export async function pruneDeviceToken(deviceId: string): Promise<void> {
 
 export function clearPushTokensForTests(): void {
   memoryTokens.clear();
+  memoryOutcomes.clear();
 }
 
 export function listMemoryTokenDevices(): {
