@@ -7,6 +7,7 @@ import {
   Switch,
   Platform,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -32,6 +33,7 @@ export function NotificationsSection({
   setWebNotificationHint: (hint: string | null) => void;
 }) {
   const colors = useColors();
+  const router = useRouter();
   const { isAuthenticated } = useAuth();
   const [webhookUrl, setWebhookUrl] = useState(settings.alertWebhookUrl ?? "");
   const [testingWebhook, setTestingWebhook] = useState(false);
@@ -428,6 +430,50 @@ export function NotificationsSection({
             </Text>
             <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
               Send a test alert to verify setup
+            </Text>
+          </View>
+          <IconSymbol name="chevron.right" size={16} color={colors.muted} />
+        </TouchableOpacity>
+        <TouchableOpacity activeOpacity={0.7}
+          onPress={() => router.push("/diagnostics")}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+          }}
+          accessibilityLabel="Push delivery status"
+          accessibilityRole="button"
+        >
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              backgroundColor: colors.primary + "22",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 12,
+            }}
+          >
+            <IconSymbol
+              name="bell.badge.fill"
+              size={18}
+              color={colors.primary}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontWeight: "500",
+                fontSize: 15,
+              }}
+            >
+              Push delivery status
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>
+              Check per-device delivery health
             </Text>
           </View>
           <IconSymbol name="chevron.right" size={16} color={colors.muted} />
