@@ -1,9 +1,58 @@
 import { MARKETPLACE_REDIRECT_LIMIT } from "../shared/const";
 import { parseMarketplaceUrl, type MarketplaceIdentity, type MarketplaceResolution } from "../shared/marketplace-url";
+import { renderWithBrowser } from "./browser-render";
 import { fetchPinned, readCapped, resolvePublicAddresses } from "./product-parse";
 
 const LAZADA_SHORT_HOST = "s.lazada.co.th";
+const FB_SHARE_HOST = "www.facebook.com";
+const FB_RENDER_TIMEOUT_MS = 20_000;
 const LANDING_HTML_CAP = 500_000;
+
+export interface FacebookRenderDeps {
+  renderHtml: (url: string) => Promise<string>; // headed browser render
+}
+
+interface ResolverDeps {
+  fetchPinned: typeof fetchPinned;
+  resolvePublicAddresses: typeof resolvePublicAddresses;
+  renderHtml?: FacebookRenderDeps["renderHtml"];
+}
+
+// Extracts the marketplace item id from a rendered share-link page.
+export function parseFacebookShareRender(html: string): string | null {
+  const m =
+    html.match(/marketplace\/item\/([1-9]\d{0,19})/) ??
+    html.match(/"item_id"\s*:\s*"?([1-9]\d{0,19})"?/);
+  return m ? m[1]! : null;
+}
+
+async function resolveFacebookShare(
+  shareUrl: string,
+  renderHtml: FacebookRenderDeps["renderHtml"],
+): Promise<MarketplaceResolution> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const html = await Promise.race([
+      renderHtml(shareUrl),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("facebook render timed out")), FB_RENDER_TIMEOUT_MS);
+      }),
+    ]);
+    const itemId = parseFacebookShareRender(html);
+    if (!itemId) return { kind: "error", reason: "unresolved" };
+    // Defense in depth: the extracted id must round-trip through the shared
+    // parser as a canonical www.facebook.com item URL before it is trusted.
+    const validated = parseMarketplaceUrl(`https://www.facebook.com/marketplace/item/${itemId}/`);
+    if (validated.kind !== "product" || validated.identity.platform !== "facebook") {
+      return { kind: "error", reason: "unresolved" };
+    }
+    return { kind: "product", identity: validated.identity };
+  } catch {
+    return { kind: "error", reason: "network" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export function parseLazadaLanding(html: string): MarketplaceIdentity | null {
   const appUrl = html.match(/lazada:\/\/th\/d\?[^"'`\s<>]+/i);
@@ -30,8 +79,12 @@ export function parseLazadaLanding(html: string): MarketplaceIdentity | null {
 
 export async function resolveMarketplaceLink(
   raw: string,
-  deps = { fetchPinned, resolvePublicAddresses },
+  deps: ResolverDeps = { fetchPinned, resolvePublicAddresses },
 ): Promise<MarketplaceResolution> {
+  const initial = parseMarketplaceUrl(raw.trim());
+  if (initial.kind === "short_link" && new URL(initial.url).hostname === FB_SHARE_HOST) {
+    return resolveFacebookShare(initial.url, deps.renderHtml ?? renderWithBrowser);
+  }
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadline = new Promise<MarketplaceResolution>((resolve) => {
