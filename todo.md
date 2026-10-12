@@ -8526,3 +8526,11 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Marketplace products excluded from all automatic pipelines (mobile + desktop + Rust); manual prices excluded from uploads/digest/Drops.
 - [x] Detail MarketplaceCard (variant/seller/manual price/update/visit); alert/watch affordances hidden for manual products.
 - [x] Sync preserves marketplace metadata + manual history. TypeScript: 0 errors.
+
+## Phase 1145: Shopee TH automatic price checks
+
+- [x] `parseShopeePrice` extractor + fixture tests (identity-guarded, THB-only, range refusal).
+- [x] "Check price now" on-device button + `refreshMarketplaceListing`; variant-matched check flips to automatic.
+- [x] `shopee-th` parser (browser-first, 60s rate limit) + login-wall blocked markers (TS + Rust).
+- [x] `shopee-th` catalog entry (31 distributors / 26 parsers); Rust port + dispatch; adversarial exemption; model-gate fixture.
+- [x] Guards. TypeScript: 0 errors.

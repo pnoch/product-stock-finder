@@ -19,7 +19,7 @@ describe("refreshMarketplaceListing", () => {
       persist,
       now: () => "2026-10-12T00:00:00.000Z",
     });
-    expect(out).toEqual({ status: "updated" });
+    expect(out).toEqual({ status: "updated", variantMatched: true });
     expect(persist).toHaveBeenCalledOnce();
     const listings = persist.mock.calls[0]![1];
     const first = listings[0]!;
@@ -34,7 +34,7 @@ describe("refreshMarketplaceListing", () => {
       loadHtml: async () => `<html><body>ต้องเข้าสู่ระบบ</body></html>`,
       persist: vi.fn(),
     });
-    expect(out).toEqual({ status: "login_required" });
+    expect(out).toEqual({ status: "login_required", variantMatched: false });
   });
 
   it("reports unavailable when the host throws", async () => {
@@ -42,7 +42,7 @@ describe("refreshMarketplaceListing", () => {
       loadHtml: async () => { throw new Error("no host"); },
       persist: vi.fn(),
     });
-    expect(out).toEqual({ status: "unavailable" });
+    expect(out).toEqual({ status: "unavailable", variantMatched: false });
   });
 
   it("reports unavailable without marketplace identity", async () => {
@@ -52,7 +52,36 @@ describe("refreshMarketplaceListing", () => {
       loadHtml: async () => JSON_HTML,
       persist: vi.fn(),
     });
-    expect(out).toEqual({ status: "unavailable" });
+    expect(out).toEqual({ status: "unavailable", variantMatched: false });
+  });
+});
+
+describe("variant matching", () => {
+  const htmlFor = (name: string | null) =>
+    `<html><body><script>{"shopid":1950119,"itemid":28177881956,"price":1190,"stock":5${name === null ? "" : `,"selected_model":{"name":${JSON.stringify(name)}}`}};</script></body></html>`;
+
+  it("matches case-insensitively with whitespace trimmed", async () => {
+    const out = await refreshMarketplaceListing(product(), {
+      loadHtml: async () => htmlFor("  30ML "),
+      persist: vi.fn(),
+    });
+    expect(out).toEqual({ status: "updated", variantMatched: true });
+  });
+
+  it("does not match a different variant", async () => {
+    const out = await refreshMarketplaceListing(product(), {
+      loadHtml: async () => htmlFor("50ml"),
+      persist: vi.fn(),
+    });
+    expect(out).toEqual({ status: "updated", variantMatched: false });
+  });
+
+  it("does not match when no variant is observed", async () => {
+    const out = await refreshMarketplaceListing(product(), {
+      loadHtml: async () => htmlFor(null),
+      persist: vi.fn(),
+    });
+    expect(out).toEqual({ status: "updated", variantMatched: false });
   });
 });
 

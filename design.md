@@ -2,7 +2,7 @@
 
 ## App Overview
 
-A professional mobile app for tracking product availability and prices across 30 global electronics distributors (25 live parsers + 5 without a registered parser — health dashboard/classifyFetchStatus surfaces live status; resilientFetch escalates plain→browser with circuit breakers). Target users are IT professionals, procurement teams, and electronics enthusiasts who need to monitor hard-to-find products globally.
+A professional mobile app for tracking product availability and prices across 31 global electronics distributors (26 live parsers + 5 without a registered parser — health dashboard/classifyFetchStatus surfaces live status; resilientFetch escalates plain→browser with circuit breakers). Target users are IT professionals, procurement teams, and electronics enthusiasts who need to monitor hard-to-find products globally.
 
 ## Brand Identity
 
@@ -143,9 +143,9 @@ Stack screens (outside tabs): `product/[id]` (detail), `compare/[id]` (multi-dis
 - 🔴 Red pill: "Out of Stock"
 - ⚪ Gray pill: "Unknown"
 
-## Pre-loaded Distributor Database (30 sites)
+## Pre-loaded Distributor Database (31 sites)
 
-Regions covered: USA, Europe (UK, Germany, Poland, Greece, Czech Republic, EU), Asia-Pacific (Malaysia, Singapore, Hong Kong, Australia, New Zealand), Middle East (UAE), Africa (South Africa)
+Regions covered: USA, Europe (UK, Germany, Poland, Greece, Czech Republic, EU), Asia-Pacific (Malaysia, Singapore, Hong Kong, Australia, New Zealand, Thailand), Middle East (UAE), Africa (South Africa)
 
 Key distributors pre-loaded:
 
@@ -179,6 +179,7 @@ Key distributors pre-loaded:
 - Pimoroni (UK)
 - Allied Electronics (UK)
 - Steam (USA)
+- Shopee TH (Thailand, marketplace)
 
 ## Pre-loaded Product Catalog
 

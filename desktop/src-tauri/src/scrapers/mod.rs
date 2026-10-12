@@ -23,6 +23,8 @@ pub mod networkdevices;
 pub mod pbtech;
 pub mod rocnoc;
 pub mod server2u;
+#[path = "shopee-th.rs"]
+pub mod shopee_th;
 pub mod winncom;
 pub mod wisp;
 

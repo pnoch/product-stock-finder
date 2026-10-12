@@ -560,6 +560,18 @@ export const DISTRIBUTORS: Distributor[] = [
       Africa: 48,
     },
   },
+  {
+    id: "shopee-th",
+    name: "Shopee Thailand",
+    taxMode: "origin",
+    currency: "THB",
+    country: "Thailand",
+    countryCode: "TH",
+    region: "Asia-Pacific",
+    website: "https://shopee.co.th",
+    paymentMethods: ["Credit Card", "Bank Transfer", "Cash on Delivery"],
+    notes: "Marketplace — tracked per listing; on-device checks only",
+  },
 ];
 
 export function getDistributorById(id: string): Distributor | undefined {

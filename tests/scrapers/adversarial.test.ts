@@ -27,6 +27,10 @@ const CANNOT_PARSE_SYNTHETIC = new Set<string>([
   // getic reads the model from aria-label/alt/href attributes, not text nodes,
   // so this text-only synthetic card has no model signal for it to match.
   "getic-gr",
+  // shopee-th is identity-keyed (shopee-th-{shopId}-{itemId} matched against
+  // embedded page state), so generic card markup with catalog-style model
+  // names carries no signal it can verify. Covered by shopee-th.test.ts.
+  "shopee-th",
 ]);
 
 describe("parser wrong-product guard (adversarial two-product page)", () => {

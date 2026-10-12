@@ -5,6 +5,8 @@ import { parseShopeePrice } from "./scrapers/shopee-th";
 
 export interface MarketplaceRefresh {
   status: "updated" | "login_required" | "unavailable" | "no_price";
+  /** True when the observed variant matches the tracked variant (both non-empty, case-insensitive). */
+  variantMatched: boolean;
 }
 
 export async function refreshMarketplaceListing(
@@ -17,7 +19,7 @@ export async function refreshMarketplaceListing(
 ): Promise<MarketplaceRefresh> {
   const marketplace = product.marketplace;
   const listing = product.listings[0];
-  if (!marketplace || !listing) return { status: "unavailable" };
+  if (!marketplace || !listing) return { status: "unavailable", variantMatched: false };
   const loadHtml =
     deps?.loadHtml ??
     (async (url: string) => {
@@ -36,13 +38,16 @@ export async function refreshMarketplaceListing(
   try {
     html = await loadHtml(marketplace.canonicalUrl);
   } catch {
-    return { status: "unavailable" };
+    return { status: "unavailable", variantMatched: false };
   }
   const found = parseShopeePrice(html, marketplace.shopId, marketplace.itemId);
   if (!found) {
     const wall = /ต้องเข้าสู่ระบบ|verify\/traffic|is_logged_in=false/.test(html);
-    return { status: wall ? "login_required" : "no_price" };
+    return { status: wall ? "login_required" : "no_price", variantMatched: false };
   }
+  const tracked = marketplace.variant.trim().toLowerCase();
+  const observed = found.variantName?.trim().toLowerCase() ?? "";
+  const variantMatched = tracked.length > 0 && observed.length > 0 && tracked === observed;
   const now = (deps?.now ?? (() => new Date().toISOString()))();
   const point: PricePoint = {
     date: now, price: found.price, currency: "THB",
@@ -53,7 +58,7 @@ export async function refreshMarketplaceListing(
     ...listing, price: found.price, priceSource: "manual", lastChecked: now,
     priceHistory: [...listing.priceHistory, point],
   }]);
-  return { status: "updated" };
+  return { status: "updated", variantMatched };
 }
 
 export function isAutomaticProduct(product: { marketplace?: unknown; modelNumber?: string }): boolean {

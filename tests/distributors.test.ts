@@ -3,7 +3,7 @@ import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 
 describe("DISTRIBUTORS", () => {
   it("has 30 entries", () => {
-    expect(DISTRIBUTORS).toHaveLength(30);
+    expect(DISTRIBUTORS).toHaveLength(31);
   });
 
   it("includes distributors referenced by sample listings", () => {

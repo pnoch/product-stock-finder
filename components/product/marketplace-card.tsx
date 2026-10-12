@@ -19,6 +19,12 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
     setChecking(true);
     try {
       const out = await refreshMarketplaceListing(product);
+      // A variant-matched observation means the user verified this exact
+      // offer: hand it to the automatic pipeline for background checks.
+      if (out.status === "updated" && out.variantMatched) {
+        const { updateMarketplaceStatus } = await import("@/lib/storage");
+        await updateMarketplaceStatus(product.id, "automatic");
+      }
       await onUpdated();
       if (out.status === "updated") {
         if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
