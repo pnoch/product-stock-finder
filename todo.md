@@ -8535,6 +8535,16 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] `shopee-th` catalog entry (31 distributors / 26 parsers); Rust port + dispatch; adversarial exemption; model-gate fixture.
 - [x] Guards. TypeScript: 0 errors.
 
+## Phase 1147: Facebook Marketplace (manual + Discover search)
+
+- [x] `FacebookIdentity` (`fbmp-{itemId}`) + item/share-link recognition.
+- [x] Share-link resolution via bounded headed render (identity only, no price).
+- [x] `parseFacebookPrice` (identity-guarded, login-wall aware, title verification).
+- [x] Confirmation form (variant optional → "Single option", fixed TH/THB market).
+- [x] Card: Facebook branding, check action (never auto-flips), login guidance.
+- [x] Discover: Facebook Marketplace search sheet (keyword/location/radius, WebView).
+- [x] Excluded from automatic pipelines + global cache. Guards. TypeScript: 0 errors.
+
 ## Phase 1146: Lazada TH Rust port + fixtures + guards
 
 - [x] `desktop/src-tauri/src/scrapers/lazada-th.rs` (plain-first with browser fallback, pdt_price + selected-sku + JSON-LD stock, 7 in-file tests) + `mod.rs` registration + `lib.rs` dispatch (`scrape(model, false)`).
