@@ -15,8 +15,9 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
   const marketplace = product.marketplace;
-  const brand = marketplace?.platform === "lazada" ? "Lazada" : "Shopee";
-  const shortName = marketplace?.platform === "lazada" ? "Lazada TH" : "Shopee TH";
+  const brand = marketplace?.platform === "lazada" ? "Lazada" : marketplace?.platform === "facebook" ? "Facebook Marketplace" : "Shopee";
+  const shortName = marketplace?.platform === "lazada" ? "Lazada TH" : marketplace?.platform === "facebook" ? "Facebook Marketplace" : "Shopee TH";
+  const visitLabel = marketplace?.platform === "facebook" ? "Open Facebook listing" : `Visit ${brand} product`;
   const check = async () => {
     if (checking) return;
     setChecking(true);
@@ -24,7 +25,9 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
       const out = await refreshMarketplaceListing(product);
       // A variant-matched observation means the user verified this exact
       // offer: hand it to the automatic pipeline for background checks.
-      if (out.status === "updated" && out.variantMatched) {
+      // Facebook listings have no variants, so a verified observation stays
+      // manual — background checks are not offered for Facebook.
+      if (out.status === "updated" && out.variantMatched && marketplace?.platform !== "facebook") {
         const { updateMarketplaceStatus } = await import("@/lib/storage");
         await updateMarketplaceStatus(product.id, "automatic");
       }
@@ -32,9 +35,19 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
       if (out.status === "updated") {
         if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else if (out.status === "login_required") {
-        showAlert(`${brand} login needed`, `${brand} asked for login. Open Settings → Site sessions to connect, then try again.`);
+        showAlert(
+          `${brand} login needed`,
+          marketplace?.platform === "facebook"
+            ? "Facebook requires login. Log into Facebook in the app's browser, then try again."
+            : `${brand} asked for login. Open Settings → Site sessions to connect, then try again.`,
+        );
       } else if (out.status === "no_price") {
-        showAlert("No price found", "The page loaded but no variant price was readable. Try again later.");
+        showAlert(
+          "No price found",
+          marketplace?.platform === "facebook"
+            ? "The listing may have changed or been removed — reconfirm it, or re-import the link."
+            : "The page loaded but no variant price was readable. Try again later.",
+        );
       } else {
         showAlert("Check unavailable", "On-device price check isn't available on this platform.");
       }
@@ -60,9 +73,9 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
       <Text style={{ color: colors.foreground }}>Selected variant: {marketplace.variant}{"\n"}Seller: {marketplace.seller}</Text>
       <Text style={{ color: colors.foreground }}>Manually entered price: {listing ? formatPrice(listing.price, "THB") : "Not entered"}</Text>
       {listing && <Text style={{ color: colors.muted }}>Entered {new Date(listing.lastChecked).toLocaleString()} · {listing.priceHistory.length} manual price records</Text>}
-      <Text style={{ color: colors.muted }}>Monitoring: {marketplace.monitoringStatus.replace("_", " ")}. {brand === "Shopee" ? "Shopee may require login. " : ""}Price and stock are not automatically verified; automatic alerts are unavailable.</Text>
-      <TouchableOpacity accessibilityRole="link" accessibilityLabel={`Visit ${brand} product`} onPress={() => { void Linking.openURL(marketplace.canonicalUrl).catch(() => showAlert(`Couldn't open ${brand}`, "Please try again.")); }}>
-        <Text style={{ color: colors.primary }}>Visit {brand} product</Text>
+      <Text style={{ color: colors.muted }}>Monitoring: {marketplace.monitoringStatus.replace("_", " ")}. {brand === "Shopee" ? "Shopee may require login. " : ""}{brand === "Facebook Marketplace" ? "Facebook requires login. " : ""}Price and stock are not automatically verified; automatic alerts are unavailable.</Text>
+      <TouchableOpacity accessibilityRole="link" accessibilityLabel={visitLabel} onPress={() => { void Linking.openURL(marketplace.canonicalUrl).catch(() => showAlert(`Couldn't open ${brand}`, "Please try again.")); }}>
+        <Text style={{ color: colors.primary }}>{visitLabel}</Text>
       </TouchableOpacity>
       <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Check current ${brand} price`} disabled={checking} onPress={() => void check()}>
         <Text style={{ color: colors.primary }}>{checking ? "Checking…" : "Check current price"}</Text>
