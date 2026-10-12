@@ -4,7 +4,7 @@ import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import type { Product } from "@/lib/types";
-import { parseManualPrice } from "@/lib/marketplace";
+import { parseManualPrice, refreshMarketplaceListing } from "@/lib/marketplace";
 import { updateManualMarketplacePrice } from "@/lib/storage";
 import { showAlert } from "@/lib/alert";
 import { formatPrice } from "@shared/currency";
@@ -13,6 +13,24 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
   const colors = useColors();
   const [price, setPrice] = useState("");
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const check = async () => {
+    if (checking) return;
+    setChecking(true);
+    try {
+      const out = await refreshMarketplaceListing(product);
+      await onUpdated();
+      if (out.status === "updated") {
+        if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else if (out.status === "login_required") {
+        showAlert("Shopee login needed", "Shopee asked for login. Open Settings → Site sessions to connect, then try again.");
+      } else if (out.status === "no_price") {
+        showAlert("No price found", "The page loaded but no variant price was readable. Try again later.");
+      } else {
+        showAlert("Check unavailable", "On-device price check isn't available on this platform.");
+      }
+    } finally { setChecking(false); }
+  };
   const marketplace = product.marketplace;
   if (!marketplace) return null;
   const listing = product.listings[0];
@@ -37,6 +55,9 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
       <Text style={{ color: colors.muted }}>Monitoring: {marketplace.monitoringStatus.replace("_", " ")}. Shopee may require login. Price and stock are not automatically verified; automatic alerts are unavailable.</Text>
       <TouchableOpacity accessibilityRole="link" accessibilityLabel="Visit Shopee product" onPress={() => { void Linking.openURL(marketplace.canonicalUrl).catch(() => showAlert("Couldn't open Shopee", "Please try again.")); }}>
         <Text style={{ color: colors.primary }}>Visit Shopee product</Text>
+      </TouchableOpacity>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Check current Shopee price" disabled={checking} onPress={() => void check()}>
+        <Text style={{ color: colors.primary }}>{checking ? "Checking…" : "Check current price"}</Text>
       </TouchableOpacity>
       <TextInput accessibilityLabel="Updated manual THB price" placeholder="New manual price (THB)" placeholderTextColor={colors.muted} keyboardType="decimal-pad" value={price} onChangeText={setPrice} style={{ color: colors.foreground, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12 }} />
       <TouchableOpacity accessibilityRole="button" accessibilityLabel="Save manual price" disabled={saving || parseManualPrice(price) === null} onPress={() => void save()} style={{ opacity: saving || parseManualPrice(price) === null ? 0.5 : 1 }}>

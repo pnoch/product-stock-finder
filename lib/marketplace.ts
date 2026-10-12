@@ -1,6 +1,60 @@
 import { isPlausiblePrice } from "../shared/const";
 import { parseMarketplaceUrl, type ShopeeIdentity } from "../shared/marketplace-url";
-import type { Product } from "./types";
+import type { DistributorListing, PricePoint, Product } from "./types";
+import { parseShopeePrice } from "./scrapers/shopee-th";
+
+export interface MarketplaceRefresh {
+  status: "updated" | "login_required" | "unavailable" | "no_price";
+}
+
+export async function refreshMarketplaceListing(
+  product: Product,
+  deps?: {
+    loadHtml?: (url: string) => Promise<string>;
+    persist?: (productId: string, listings: DistributorListing[]) => Promise<void>;
+    now?: () => string;
+  },
+): Promise<MarketplaceRefresh> {
+  const marketplace = product.marketplace;
+  const listing = product.listings[0];
+  if (!marketplace || !listing) return { status: "unavailable" };
+  const loadHtml =
+    deps?.loadHtml ??
+    (async (url: string) => {
+      const { getWebViewHost } = await import("./scrapers/webview-host");
+      const host = getWebViewHost();
+      if (!host) throw new Error("on-device webview renderer unavailable");
+      return host.load(url, { timeoutMs: 20000 });
+    });
+  const persist =
+    deps?.persist ??
+    (async (productId: string, listings: DistributorListing[]) => {
+      const { updateProductListings } = await import("./storage");
+      await updateProductListings(productId, listings);
+    });
+  let html: string;
+  try {
+    html = await loadHtml(marketplace.canonicalUrl);
+  } catch {
+    return { status: "unavailable" };
+  }
+  const found = parseShopeePrice(html, marketplace.shopId, marketplace.itemId);
+  if (!found) {
+    const wall = /ต้องเข้าสู่ระบบ|verify\/traffic|is_logged_in=false/.test(html);
+    return { status: wall ? "login_required" : "no_price" };
+  }
+  const now = (deps?.now ?? (() => new Date().toISOString()))();
+  const point: PricePoint = {
+    date: now, price: found.price, currency: "THB",
+    stockStatus: found.inStock ? "in_stock" : "out_of_stock",
+    priceSource: "manual",
+  };
+  await persist(product.id, [{
+    ...listing, price: found.price, priceSource: "manual", lastChecked: now,
+    priceHistory: [...listing.priceHistory, point],
+  }]);
+  return { status: "updated" };
+}
 
 export function isAutomaticProduct(product: { marketplace?: unknown; modelNumber?: string }): boolean {
   return !product.marketplace && !product.modelNumber?.startsWith("shopee-th-");
