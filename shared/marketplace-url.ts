@@ -26,7 +26,7 @@ export type MarketplaceIdentity = ShopeeIdentity | LazadaIdentity | FacebookIden
 
 export function isMarketplaceKey(modelNumber?: string): boolean {
   return typeof modelNumber === "string" &&
-    (modelNumber.startsWith("shopee-th-") || modelNumber.startsWith("lazada-th-"));
+    (modelNumber.startsWith("shopee-th-") || modelNumber.startsWith("lazada-th-") || modelNumber.startsWith("fbmp-"));
 }
 
 export type MarketplaceUrl =
