@@ -8534,3 +8534,10 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] `shopee-th` parser (browser-first, 60s rate limit) + login-wall blocked markers (TS + Rust).
 - [x] `shopee-th` catalog entry (31 distributors / 26 parsers); Rust port + dispatch; adversarial exemption; model-gate fixture.
 - [x] Guards. TypeScript: 0 errors.
+
+## Phase 1146: Lazada TH Rust port + fixtures + guards
+
+- [x] `desktop/src-tauri/src/scrapers/lazada-th.rs` (plain-first with browser fallback, pdt_price + selected-sku + JSON-LD stock, 7 in-file tests) + `mod.rs` registration + `lib.rs` dispatch (`scrape(model, false)`).
+- [x] `tests/fixtures/scrapers/lazada-th.html` + fixture assertions in `lazada-th.test.ts` (satisfies model-gate exact-coverage).
+- [x] Adversarial exemption for `lazada-th` (identity-keyed like shopee-th); cap deliberately bumped 2→3 with justification comment.
+- [x] `tests/lazada-guard.test.ts` + `desktop/tests/lazada-rust-guard.test.ts`. TypeScript: 0 errors.

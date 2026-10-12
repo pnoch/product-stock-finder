@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { parseLazadaPrice, lazadaThParser } from "../../lib/scrapers/lazada-th";
 import { PARSERS } from "../../lib/scrapers/registry";
 
@@ -77,5 +79,24 @@ describe("lazadaThParser", () => {
       }),
     );
     expect(lazadaThParser.parsePrice(fixture(), "CRS804", url)).toBeNull();
+  });
+});
+
+describe("lazada-th fixture", () => {
+  const html = readFileSync(
+    path.join(__dirname, "../fixtures/scrapers/lazada-th.html"),
+    "utf8",
+  );
+
+  it("rejects an unknown model instead of reporting the fixture price", () => {
+    expect(lazadaThParser.parsePrice(html, "__NO_SUCH_MODEL__")).toBeNull();
+  });
+
+  it("extracts 237290 THB for the fixture identity", () => {
+    expect(lazadaThParser.parsePrice(html, MODEL)).toEqual({
+      price: 237290, currency: "THB", stockStatus: "in_stock",
+      url: `https://www.lazada.co.th/products/i${ITEM}-s${SKU}.html`,
+      variantName: undefined,
+    });
   });
 });

@@ -9,8 +9,8 @@ import {
 
 describe("Scraping Integration", () => {
   describe("Parser Registry", () => {
-    it("should have 26 parsers", () => {
-      expect(PARSERS).toHaveLength(26);
+    it("should have 27 parsers", () => {
+      expect(PARSERS).toHaveLength(27);
     });
 
     it("should find parser by distributor ID", () => {
@@ -321,17 +321,18 @@ describe("Scraping Integration", () => {
 
     it("every parser accepts a matching row with a model supplied", () => {
       for (const parser of PARSERS) {
-        // Identity-keyed marketplace parsers (shopee-th-<shop>-<item>) never
-        // match catalog model numbers; their keying is covered by their own
-        // suites (tests/scrapers/shopee-th.test.ts).
-        if (parser.id === "shopee-th") continue;
+        // Identity-keyed marketplace parsers (shopee-th-<shop>-<item>,
+        // lazada-th-<item>-<sku>) never match catalog model numbers; their
+        // keying is covered by their own suites (tests/scrapers/shopee-th
+        // and lazada-th.test.ts).
+        if (parser.id === "shopee-th" || parser.id === "lazada-th") continue;
         expect(parser.parsePrice(MATCH_HTML, "CRS804-4DDQ-hRM")).not.toBeNull();
       }
     });
 
     it("every parser rejects a foreign row when a model is supplied", () => {
       for (const parser of PARSERS) {
-        if (parser.id === "shopee-th") continue;
+        if (parser.id === "shopee-th" || parser.id === "lazada-th") continue;
         expect(parser.parsePrice(MISMATCH_HTML, "CRS804-4DDQ-hRM")).toBeNull();
       }
     });

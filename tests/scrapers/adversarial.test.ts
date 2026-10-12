@@ -31,6 +31,11 @@ const CANNOT_PARSE_SYNTHETIC = new Set<string>([
   // embedded page state), so generic card markup with catalog-style model
   // names carries no signal it can verify. Covered by shopee-th.test.ts.
   "shopee-th",
+  // lazada-th is identity-keyed (lazada-th-{itemId}-{skuId} matched against
+  // embedded page state + the selected sku), so generic card markup with
+  // catalog-style model names carries no signal it can verify. Covered by
+  // lazada-th.test.ts.
+  "lazada-th",
 ]);
 
 describe("parser wrong-product guard (adversarial two-product page)", () => {
@@ -55,10 +60,13 @@ describe("parser wrong-product guard (adversarial two-product page)", () => {
   it("keeps the exception list explicit and small", () => {
     // Every parser must be exercised by the loop above; the only ones allowed
     // to skip are the documented exceptions, and they must be real parser ids.
+    // Cap is 3 (deliberate bump from 2): getic reads attributes, and the two
+    // marketplace parsers are identity-keyed — a fourth exemption needs a new
+    // justification here, not a silent cap bump.
     const ids = new Set(PARSERS.map((p) => p.id));
     for (const id of CANNOT_PARSE_SYNTHETIC) {
       expect(ids.has(id), `${id} is not a registered parser`).toBe(true);
     }
-    expect(CANNOT_PARSE_SYNTHETIC.size).toBeLessThanOrEqual(2);
+    expect(CANNOT_PARSE_SYNTHETIC.size).toBeLessThanOrEqual(3);
   });
 });
