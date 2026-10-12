@@ -7,6 +7,7 @@ import {
   MAX_UPLOAD_STOCK_WATCHES,
 } from "../shared/const";
 import { isAcquired } from "./acquired";
+import { isMarketplaceKey } from "../shared/marketplace-url";
 import type {
   NotificationConfig,
   NotificationEvent,
@@ -151,7 +152,7 @@ async function runSyncServerNotifications(): Promise<void> {
     // An acquired product is bought; don't upload its alerts/watches, or the
     // server keeps pushing notifications for a part the user already owns.
     const acquiredIds = new Set(
-      watchlist.filter((p) => isAcquired(p) || p.marketplace || p.modelNumber?.startsWith("shopee-th-")).map((p) => p.id),
+      watchlist.filter((p) => isAcquired(p) || p.marketplace || isMarketplaceKey(p.modelNumber)).map((p) => p.id),
     );
     const activeAlerts = settings.priceAlerts
       ? alerts

@@ -1,4 +1,5 @@
 import { resolvePrice } from "./price-source";
+import { isMarketplaceKey } from "../shared/marketplace-url";
 import { isFreshPriceSnapshot } from "./price-freshness";
 import { getAllParserIds } from "./scrapers/registry";
 import type { DistributorListing } from "./types";
@@ -29,7 +30,7 @@ export async function discoverListings(
   modelNumber: string,
   opts: DiscoverOptions = {},
 ): Promise<DistributorListing[]> {
-  if (modelNumber.startsWith("shopee-th-")) return [];
+  if (isMarketplaceKey(modelNumber)) return [];
   const {
     parserIds = getAllParserIds(),
     productId = customProductSlug(modelNumber),

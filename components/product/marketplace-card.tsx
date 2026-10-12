@@ -14,6 +14,9 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
   const [price, setPrice] = useState("");
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
+  const marketplace = product.marketplace;
+  const brand = marketplace?.platform === "lazada" ? "Lazada" : "Shopee";
+  const shortName = marketplace?.platform === "lazada" ? "Lazada TH" : "Shopee TH";
   const check = async () => {
     if (checking) return;
     setChecking(true);
@@ -29,7 +32,7 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
       if (out.status === "updated") {
         if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else if (out.status === "login_required") {
-        showAlert("Shopee login needed", "Shopee asked for login. Open Settings → Site sessions to connect, then try again.");
+        showAlert(`${brand} login needed`, `${brand} asked for login. Open Settings → Site sessions to connect, then try again.`);
       } else if (out.status === "no_price") {
         showAlert("No price found", "The page loaded but no variant price was readable. Try again later.");
       } else {
@@ -37,7 +40,6 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
       }
     } finally { setChecking(false); }
   };
-  const marketplace = product.marketplace;
   if (!marketplace) return null;
   const listing = product.listings[0];
   const save = async () => {
@@ -54,15 +56,15 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
   };
   return (
     <View style={{ margin: 16, padding: 16, borderRadius: 16, backgroundColor: colors.surface, gap: 12 }}>
-      <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 18 }}>Shopee TH</Text>
+      <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 18 }}>{shortName}</Text>
       <Text style={{ color: colors.foreground }}>Selected variant: {marketplace.variant}{"\n"}Seller: {marketplace.seller}</Text>
       <Text style={{ color: colors.foreground }}>Manually entered price: {listing ? formatPrice(listing.price, "THB") : "Not entered"}</Text>
       {listing && <Text style={{ color: colors.muted }}>Entered {new Date(listing.lastChecked).toLocaleString()} · {listing.priceHistory.length} manual price records</Text>}
-      <Text style={{ color: colors.muted }}>Monitoring: {marketplace.monitoringStatus.replace("_", " ")}. Shopee may require login. Price and stock are not automatically verified; automatic alerts are unavailable.</Text>
-      <TouchableOpacity accessibilityRole="link" accessibilityLabel="Visit Shopee product" onPress={() => { void Linking.openURL(marketplace.canonicalUrl).catch(() => showAlert("Couldn't open Shopee", "Please try again.")); }}>
-        <Text style={{ color: colors.primary }}>Visit Shopee product</Text>
+      <Text style={{ color: colors.muted }}>Monitoring: {marketplace.monitoringStatus.replace("_", " ")}. {brand === "Shopee" ? "Shopee may require login. " : ""}Price and stock are not automatically verified; automatic alerts are unavailable.</Text>
+      <TouchableOpacity accessibilityRole="link" accessibilityLabel={`Visit ${brand} product`} onPress={() => { void Linking.openURL(marketplace.canonicalUrl).catch(() => showAlert(`Couldn't open ${brand}`, "Please try again.")); }}>
+        <Text style={{ color: colors.primary }}>Visit {brand} product</Text>
       </TouchableOpacity>
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Check current Shopee price" disabled={checking} onPress={() => void check()}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Check current ${brand} price`} disabled={checking} onPress={() => void check()}>
         <Text style={{ color: colors.primary }}>{checking ? "Checking…" : "Check current price"}</Text>
       </TouchableOpacity>
       <TextInput accessibilityLabel="Updated manual THB price" placeholder="New manual price (THB)" placeholderTextColor={colors.muted} keyboardType="decimal-pad" value={price} onChangeText={setPrice} style={{ color: colors.foreground, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12 }} />

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 
 describe("DISTRIBUTORS", () => {
-  it("has 30 entries", () => {
-    expect(DISTRIBUTORS).toHaveLength(31);
+  it("has 32 entries", () => {
+    expect(DISTRIBUTORS).toHaveLength(32);
   });
 
   it("includes distributors referenced by sample listings", () => {

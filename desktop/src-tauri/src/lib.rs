@@ -1376,7 +1376,7 @@ struct WatchedProduct {
 
 fn is_automatic_product(product: &serde_json::Value) -> bool {
     !product.get("marketplace").is_some_and(|v| !v.is_null())
-        && !product.get("modelNumber").and_then(|v| v.as_str()).is_some_and(|s| s.starts_with("shopee-th-"))
+        && !product.get("modelNumber").and_then(|v| v.as_str()).is_some_and(|s| s.starts_with("shopee-th-") || s.starts_with("lazada-th-"))
 }
 
 #[tauri::command]
@@ -1391,7 +1391,7 @@ async fn check_all_prices(
     let mut futures = futures::stream::FuturesUnordered::new();
 
     for product in products {
-        if product.model_number.starts_with("shopee-th-") {
+        if product.model_number.starts_with("shopee-th-") || product.model_number.starts_with("lazada-th-") {
             continue;
         }
         for distributor_id in product.distributor_ids {

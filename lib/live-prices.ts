@@ -2,6 +2,7 @@ import { PRICE_HISTORY_DAYS } from "@/shared/const";
 import { appendPricePoint, mergePriceHistory } from "@/lib/price-history";
 import { resolvePrice } from "@/lib/price-source";
 import { isFreshPriceSnapshot } from "@/lib/price-freshness";
+import { isMarketplaceKey } from "@/shared/marketplace-url";
 import type {
   DistributorListing,
   PricePoint,
@@ -78,7 +79,7 @@ export function deriveListingQueries(
   listings: DistributorListing[],
 ) {
   return listings.map((listing) => ({
-    enabled: listing.priceSource !== "manual" && !modelNumber.startsWith("shopee-th-"),
+    enabled: listing.priceSource !== "manual" && !isMarketplaceKey(modelNumber),
     queryKey: ["price", listing.distributorId, modelNumber] as const,
     queryFn: () => resolvePrice(listing.distributorId, modelNumber),
     staleTime: PRICE_STALE_TIME_MS,

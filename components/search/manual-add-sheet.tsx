@@ -24,7 +24,7 @@ import { DISCOVER_TIMEOUT_MS, manualAddProduct } from "@/lib/manual-add";
 import { fetchParsedProduct } from "@/lib/server-product-parse";
 import { fetchMarketplaceResolution } from "@/lib/server-marketplace";
 import { buildMarketplaceProduct, parseManualPrice } from "@/lib/marketplace";
-import { isShopeeInput, marketplaceResolutionMessage, type ShopeeIdentity } from "@/shared/marketplace-url";
+import { isLazadaInput, isMarketplaceInput, isShopeeInput, marketplaceResolutionMessage, type MarketplaceIdentity } from "@/shared/marketplace-url";
 import {
   customProductSlug,
   discoverListings,
@@ -84,7 +84,7 @@ export function ManualAddSheet({
   const [adding, setAdding] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [aiFailed, setAiFailed] = useState(false);
-  const [marketplace, setMarketplace] = useState<ShopeeIdentity | null>(null);
+  const [marketplace, setMarketplace] = useState<MarketplaceIdentity | null>(null);
   const [variant, setVariant] = useState("");
   const [seller, setSeller] = useState("");
   const [manualPrice, setManualPrice] = useState("");
@@ -152,7 +152,7 @@ export function ManualAddSheet({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setParsing(true);
     try {
-      if (isShopeeInput(text)) {
+      if (isMarketplaceInput(text)) {
         await handleMarketplaceParse(text);
         return;
       }
@@ -175,17 +175,21 @@ export function ManualAddSheet({
   const handleMarketplaceParse = async (text: string) => {
     const result = await fetchMarketplaceResolution(text);
     if (!activeRef.current) return;
-    if (result.kind !== "product" || result.identity.platform !== "shopee") {
-      showAlert("Shopee link import", result.kind === "product"
-        ? marketplaceResolutionMessage({ kind: "error", reason: "unresolved" }, "lazada")
-        : marketplaceResolutionMessage(result));
+    if (result.kind !== "product") {
+      showAlert(`${isLazadaInput(text) ? "Lazada" : "Shopee"} link import`, marketplaceResolutionMessage(result, isLazadaInput(text) ? "lazada" : "shopee"));
       return;
     }
-    setMarketplace(result.identity);
+    const identity = result.identity;
+    setMarketplace(identity);
     setVariant("");
     setSeller("");
     setManualPrice("");
-    setDraft({ ...EMPTY_DRAFT, modelNumber: `shopee-th-${result.identity.shopId}-${result.identity.itemId}` });
+    setDraft({
+      ...EMPTY_DRAFT,
+      modelNumber: identity.platform === "lazada"
+        ? `lazada-th-${identity.itemId}-${identity.skuId}`
+        : `shopee-th-${identity.shopId}-${identity.itemId}`,
+    });
     setAiFailed(false);
   };
 
@@ -196,7 +200,7 @@ export function ManualAddSheet({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setUrlParsing(true);
     try {
-      if (isShopeeInput(text)) {
+      if (isMarketplaceInput(text)) {
         await handleMarketplaceParse(text);
         return;
       }
@@ -254,9 +258,11 @@ export function ManualAddSheet({
       if (marketplaceProduct) {
         const added = await addToWatchlist(marketplaceProduct);
         if (!activeRef.current) return;
-        if (!added) { showAlert("Already Tracked", "This Shopee item is already tracked with a selected variant."); return; }
+        const mpBrand = marketplace?.platform === "lazada" ? "Lazada" : "Shopee";
+        const mpShort = marketplace?.platform === "lazada" ? "Lazada TH" : "Shopee TH";
+        if (!added) { showAlert("Already Tracked", `This ${mpBrand} item is already tracked with a selected variant.`); return; }
         if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showAlert("Product Added", "Saved your manually entered Shopee TH price. Automatic monitoring is unavailable.");
+        showAlert("Product Added", `Saved your manually entered ${mpShort} price. Automatic monitoring is unavailable.`);
         reset();
         onAdded?.();
         onClose();
@@ -379,7 +385,7 @@ export function ManualAddSheet({
                 style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}
               >
                 Paste anything — a model number, product name, or a spec-sheet
-                paragraph, or Shopee Thailand product link. Shopee imports require manual confirmation.
+                paragraph, or a Shopee Thailand / Lazada Thailand product link. Marketplace imports require manual confirmation.
               </Text>
               <TextInput
                 value={raw}
@@ -412,7 +418,7 @@ export function ManualAddSheet({
                   justifyContent: "center",
                   gap: 8,
                 }}
-                accessibilityLabel={isShopeeInput(raw) ? "Resolve Shopee link" : "Clean up with AI"}
+                accessibilityLabel={isLazadaInput(raw) ? "Resolve Lazada link" : isShopeeInput(raw) ? "Resolve Shopee link" : "Clean up with AI"}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: parsing || raw.trim().length === 0 }}
               >
@@ -424,7 +430,7 @@ export function ManualAddSheet({
                     <Text
                       style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
                     >
-                       {isShopeeInput(raw) ? "Resolve Shopee Link" : "Clean up with AI"}
+                       {isLazadaInput(raw) ? "Resolve Lazada Link" : isShopeeInput(raw) ? "Resolve Shopee Link" : "Clean up with AI"}
                     </Text>
                   </>
                 )}
@@ -435,7 +441,7 @@ export function ManualAddSheet({
                 <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
               </View>
               <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8, fontWeight: "600" }}>
-                Paste distributor or Shopee Thailand URL
+                Paste distributor, Shopee Thailand, or Lazada Thailand URL
               </Text>
               <TextInput
                 value={urlInput}
@@ -513,8 +519,10 @@ export function ManualAddSheet({
               {marketplace ? (
                 <>
                   <Text style={{ color: colors.muted, marginBottom: 12 }}>
-                    Shopee TH · shop {marketplace.shopId} · item {marketplace.itemId}{"\n"}
-                    Confirm the selected variant and seller. Prices are manual; Shopee may require login. No automatic price or stock alerts.
+                    {marketplace.platform === "lazada"
+                      ? `Lazada TH · item ${marketplace.itemId} · sku ${marketplace.skuId}`
+                      : `Shopee TH · shop ${marketplace.shopId} · item ${marketplace.itemId}`}{"\n"}
+                    Confirm the selected variant and seller. Prices are manual;{marketplace.platform === "shopee" ? " Shopee may require login." : ""} No automatic price or stock alerts.
                   </Text>
                   <TextInput value={variant} onChangeText={setVariant} placeholder="Selected variant (or Single option)" accessibilityLabel="Selected variant" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
                   <TextInput value={seller} onChangeText={setSeller} placeholder="Seller" accessibilityLabel="Seller" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
@@ -583,7 +591,7 @@ export function ManualAddSheet({
                   gap: 8,
                   marginBottom: 12,
                 }}
-                accessibilityLabel={marketplace ? "Save manual Shopee product" : "Add and search distributors"}
+                accessibilityLabel={marketplace ? `Save manual ${marketplace.platform === "lazada" ? "Lazada" : "Shopee"} product` : "Add and search distributors"}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: !canAdd || adding }}
               >
@@ -599,7 +607,7 @@ export function ManualAddSheet({
                     <Text
                       style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
                     >
-                      {marketplace ? "Save Manual Shopee Product" : "Add & Search Distributors"}
+                      {marketplace ? `Save Manual ${marketplace.platform === "lazada" ? "Lazada" : "Shopee"} Product` : "Add & Search Distributors"}
                     </Text>
                   </>
                 )}

@@ -381,7 +381,7 @@ export const ProductCard = memo(function ProductCard({
             </Text>
           </Pressable>
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }} numberOfLines={1} ellipsizeMode="tail">
-             {product.marketplace ? `Shopee TH · ${product.marketplace.variant}` : product.modelNumber}
+             {product.marketplace ? `${product.marketplace.platform === "lazada" ? "Lazada TH" : "Shopee TH"} · ${product.marketplace.variant}` : product.modelNumber}
           </Text>
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }} numberOfLines={1} ellipsizeMode="tail">
              {product.marketplace ? `${product.marketplace.seller} · Manual price` : `${product.brand} · ${product.category}`}

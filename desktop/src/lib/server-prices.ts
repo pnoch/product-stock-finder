@@ -1,4 +1,5 @@
 import type { DistributorListing, ServerPriceResult } from "../../../lib/types";
+import { isMarketplaceKey } from "../../../shared/marketplace-url";
 
 export const QUERY_TIMEOUT_MS = 20_000;
 
@@ -19,7 +20,7 @@ export async function fetchListingsWithTimeout(
 ): Promise<(ServerPriceResult | null)[]> {
   const results: (ServerPriceResult | null)[] = [];
   for (const listing of listings) {
-    if (modelNumber.startsWith("shopee-th-") || listing.priceSource === "manual") {
+    if (isMarketplaceKey(modelNumber) || listing.priceSource === "manual") {
       results.push(null);
       onItem?.();
       continue;

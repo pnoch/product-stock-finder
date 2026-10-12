@@ -572,6 +572,18 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "Bank Transfer", "Cash on Delivery"],
     notes: "Marketplace — tracked per listing; on-device checks only",
   },
+  {
+    id: "lazada-th",
+    name: "Lazada Thailand",
+    taxMode: "origin",
+    currency: "THB",
+    country: "Thailand",
+    countryCode: "TH",
+    region: "Asia-Pacific",
+    website: "https://www.lazada.co.th",
+    paymentMethods: ["Credit Card", "Bank Transfer", "Cash on Delivery"],
+    notes: "Marketplace — tracked per listing; plain-fetch first",
+  },
 ];
 
 export function getDistributorById(id: string): Distributor | undefined {

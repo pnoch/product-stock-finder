@@ -9,6 +9,7 @@ import {
   MAX_UPLOAD_HEALTH_EVENTS,
   MAX_UPLOAD_STOCK_WATCHES,
 } from "../../shared/const";
+import { isMarketplaceKey } from "../../shared/marketplace-url";
 
 const TIMEOUT_MS = 4000;
 
@@ -149,7 +150,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
     // rediscovered products also get server-side notifications (mobile does the
     // same).
     const watchlist = await storage.getWatchlist();
-    const manualIds = new Set(watchlist.filter((p) => p.marketplace || p.modelNumber?.startsWith("shopee-th-")).map((p) => p.id));
+    const manualIds = new Set(watchlist.filter((p) => p.marketplace || isMarketplaceKey(p.modelNumber)).map((p) => p.id));
     const modelByProductId = new Map(
       watchlist.map((p) => [p.id, p.modelNumber] as const),
     );

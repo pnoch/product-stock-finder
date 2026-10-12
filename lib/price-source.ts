@@ -9,6 +9,7 @@ import {
 import type { ServerPriceResult } from "@/lib/types";
 import { createSemaphore } from "@/lib/concurrency";
 import { isPlausiblePrice } from "@/shared/const";
+import { isMarketplaceKey } from "@/shared/marketplace-url";
 
 export interface ResolvedPrice extends ServerPriceResult {
   source: "server" | "device";
@@ -25,7 +26,7 @@ export async function scrapePriceOnDevice(
   distributorId: string,
   modelNumber: string,
 ): Promise<ResolvedPrice | null> {
-  if (modelNumber.startsWith("shopee-th-")) return null;
+  if (isMarketplaceKey(modelNumber)) return null;
   const parser = getParserByDistributorId(distributorId);
   if (!parser) return null;
   await scrapeSlots.acquire();
@@ -51,7 +52,7 @@ export async function resolvePrice(
   distributorId: string,
   modelNumber: string,
 ): Promise<ResolvedPrice | null> {
-  if (modelNumber.startsWith("shopee-th-")) return null;
+  if (isMarketplaceKey(modelNumber)) return null;
   let server: ServerPriceResult | null = null;
   if (isServerConfigured()) {
     server = await fetchServerPrice(distributorId, modelNumber);

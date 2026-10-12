@@ -28,8 +28,8 @@ describe("AGENTS.md drift", () => {
       ...parsers.matchAll(/^\s+[a-zA-Z][a-zA-Z0-9]*Parser,$/gm),
     ].length;
 
-    expect(distributorCount).toBe(31);
-    expect(parserCount).toBe(26);
+    expect(distributorCount).toBe(32);
+    expect(parserCount).toBe(27);
     expect(doc).toContain(`across ${distributorCount} global electronics distributors`);
     expect(doc).toContain(`${parserCount} have registered parsers`);
     expect(doc).toContain(`(${distributorCount} entries — ${parserCount} live parsers`);

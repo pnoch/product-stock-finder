@@ -1,6 +1,7 @@
 import { withTimeoutReject } from "./with-timeout";
 import type { DistributorListing, Product } from "./types";
 import { isAutomaticProduct } from "./marketplace";
+import { isMarketplaceKey } from "../shared/marketplace-url";
 
 export const DISCOVER_TIMEOUT_MS = 15_000;
 
@@ -163,7 +164,7 @@ export async function rediscoverProduct(deps: {
   timeoutMs?: number;
 }): Promise<{ discovered: number; timedOut: boolean }> {
   const { storage, discover, productId, modelNumber, onProgress, timeoutMs = DISCOVER_TIMEOUT_MS } = deps;
-  if (modelNumber.startsWith("shopee-th-")) return { discovered: 0, timedOut: false };
+  if (isMarketplaceKey(modelNumber)) return { discovered: 0, timedOut: false };
   let listings: DistributorListing[];
   let timedOut = false;
   try {
