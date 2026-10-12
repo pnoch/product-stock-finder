@@ -8551,3 +8551,10 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] `tests/fixtures/scrapers/lazada-th.html` + fixture assertions in `lazada-th.test.ts` (satisfies model-gate exact-coverage).
 - [x] Adversarial exemption for `lazada-th` (identity-keyed like shopee-th); cap deliberately bumped 2→3 with justification comment.
 - [x] `tests/lazada-guard.test.ts` + `desktop/tests/lazada-rust-guard.test.ts`. TypeScript: 0 errors.
+
+## Phase 1148: Facebook Marketplace search relay
+
+- [x] `lib/marketplace/fb-search.ts` (URL builder, extraction, state machine) + tests.
+- [x] Inline "Facebook Marketplace (N)" section in Discover search results (session-gated).
+- [x] Track → confirmation sheet prefill; login/unavailable/empty states distinct.
+- [x] Guards. TypeScript: 0 errors.
