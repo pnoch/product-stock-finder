@@ -4,6 +4,18 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.22.0] - 2026-10-12
+
+### Added
+
+- Facebook Marketplace support (Phases 1147–1148): import item/share links
+  (server resolves via a bounded headed render — identity only), track as
+  manual-monitoring THB listings with title-change protection, on-device
+  "Check price" when signed into Facebook in the app browser, and an inline
+  "Facebook Marketplace (N)" section in Discover search results (session-gated,
+  with distinct sign-in/empty/unavailable states). Facebook listings are
+  excluded from all automatic pipelines and the global price cache.
+
 ## [5.21.0] - 2026-10-12
 
 ### Added
