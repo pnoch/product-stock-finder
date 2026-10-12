@@ -76,3 +76,62 @@ describe("safe marketplace resolver", () => {
     expect(llm).not.toHaveBeenCalled();
   });
 });
+
+describe("lazada short-link resolution", () => {
+  const lazadaShort = "https://s.lazada.co.th/s.Z9ZEU8";
+  const canonical = "https://www.lazada.co.th/products/i16199450766-s127341978928.html";
+  const landing = (head: string) => `<!doctype html><html><head>${head}</head><body></body></html>`;
+  function lazadaBoundary(responses: Response[]) {
+    return {
+      resolvePublicAddresses: vi.fn(async () => publicAddresses),
+      fetchPinned: vi.fn(async () => responses.shift() ?? new Response(null, { status: 404 })),
+    };
+  }
+  const appMeta = `<meta property="al:ios:url" content="lazada://th/d?itemId=16199450766&amp;skuId=127341978928" />`
+    + `<meta property="al:android:url" content="lazada://th/d?itemId=16199450766&skuId=127341978928" />`;
+
+  it("resolves a Lazada short link from app-link meta without further fetch", async () => {
+    const deps = lazadaBoundary([new Response(landing(appMeta), { status: 200, headers: { "content-type": "text/html" } })]);
+    expect(await resolveMarketplaceLink(lazadaShort, deps)).toEqual({
+      kind: "product",
+      identity: { platform: "lazada", region: "TH", itemId: "16199450766", skuId: "127341978928", canonicalUrl: canonical },
+    });
+    expect(deps.fetchPinned).toHaveBeenCalledTimes(1);
+  });
+  it("falls back to og:url canonical when app-link meta is absent", async () => {
+    const html = landing(`<meta property="og:url" content="https://www.lazada.co.th/products/asus-rog-i16199450766-s127341978928.html" />`);
+    const deps = lazadaBoundary([new Response(html, { status: 200 })]);
+    expect(await resolveMarketplaceLink(lazadaShort, deps)).toMatchObject({
+      kind: "product", identity: { platform: "lazada", itemId: "16199450766", skuId: "127341978928" },
+    });
+  });
+  it("returns unresolved when landing HTML carries no identity", async () => {
+    const deps = lazadaBoundary([new Response(landing(`<meta property="og:title" content="Nothing here" />`), { status: 200 })]);
+    expect(await resolveMarketplaceLink(lazadaShort, deps)).toEqual({ kind: "error", reason: "unresolved" });
+  });
+  it("validates canonical Lazada URLs inline without fetching", async () => {
+    const deps = lazadaBoundary([]);
+    expect(await resolveMarketplaceLink(canonical, deps)).toEqual({
+      kind: "product",
+      identity: { platform: "lazada", region: "TH", itemId: "16199450766", skuId: "127341978928", canonicalUrl: canonical },
+    });
+    expect(deps.fetchPinned).not.toHaveBeenCalled();
+    expect(deps.resolvePublicAddresses).not.toHaveBeenCalled();
+  });
+  it("blocks wrong-region Lazada URLs without fetching", async () => {
+    const deps = lazadaBoundary([]);
+    expect(await resolveMarketplaceLink("https://www.lazada.sg/products/a-i16199450766-s127341978928.html", deps))
+      .toEqual({ kind: "blocked", reason: "url" });
+    expect(deps.fetchPinned).not.toHaveBeenCalled();
+  });
+  it("maps Lazada network failures to error", async () => {
+    const deps = lazadaBoundary([]);
+    deps.fetchPinned.mockRejectedValue(new Error("offline"));
+    expect(await resolveMarketplaceLink(lazadaShort, deps)).toEqual({ kind: "error", reason: "network" });
+  });
+  it("still enforces the hop limit on Lazada redirect chains", async () => {
+    const deps = boundary(Array.from({ length: 10 }, (_, i) => `https://s.lazada.co.th/s.chain${i}`));
+    expect(await resolveMarketplaceLink(lazadaShort, deps)).toEqual({ kind: "blocked", reason: "redirect_limit" });
+    expect(deps.fetchPinned).toHaveBeenCalledTimes(MARKETPLACE_REDIRECT_LIMIT);
+  });
+});

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildMarketplaceProduct, isAutomaticProduct, parseManualPrice, updateMarketplacePrice } from "../lib/marketplace";
+import { buildMarketplaceProduct, isAutomaticProduct, parseManualPrice, refreshMarketplaceListing, updateMarketplacePrice } from "../lib/marketplace";
+import type { DistributorListing } from "../lib/types";
 import { buildBackup, parseBackup } from "../lib/backup";
 import { createStorage } from "../lib/storage";
 import { applyServerPrice, deriveListingQueries } from "../lib/live-prices";
@@ -78,5 +79,46 @@ describe("manual Shopee products", () => {
     const discover = vi.fn();
     expect(await rediscoverMissingListings({ storage: { getWatchlist: async () => [product], updateProductListings: vi.fn() }, discover })).toEqual({ scanned: 0, discovered: 0 });
     expect(discover).not.toHaveBeenCalled();
+  });
+});
+
+const lazadaIdentity = { platform: "lazada", region: "TH", itemId: "16199450766", skuId: "127341978928", canonicalUrl: "https://www.lazada.co.th/products/i16199450766-s127341978928.html" } as const;
+const lazadaInput = { identity: lazadaIdentity, name: "Lazada confirmed product", variant: "Single option", seller: "Lazada seller", price: "237290" };
+
+describe("lazada marketplace products", () => {
+  it("builds with a lazada-th- key and round-trips the identity", () => {
+    const product = buildMarketplaceProduct({ ...lazadaInput });
+    expect(product.id).toBe("lazada-th-16199450766-127341978928");
+    expect(product.modelNumber).toBe("lazada-th-16199450766-127341978928");
+    expect(product.marketplace).toEqual({ ...lazadaIdentity, variant: lazadaInput.variant, seller: lazadaInput.seller, monitoringStatus: "manual" });
+    expect(product.listings).toHaveLength(1);
+    expect(product.listings[0]).toMatchObject({ distributorId: "lazada-th-16199450766-127341978928", price: 237290, currency: "THB", priceSource: "manual" });
+    expect(isAutomaticProduct(product)).toBe(false);
+    expect(isAutomaticProduct({ modelNumber: "lazada-th-16199450766-127341978928" })).toBe(false);
+  });
+  it("rejects mismatched lazada identity", () => {
+    expect(() => buildMarketplaceProduct({ ...lazadaInput, identity: { ...lazadaIdentity, skuId: "1" } })).toThrow();
+  });
+  it("rejects cross-platform canonical mismatch", () => {
+    expect(() => buildMarketplaceProduct({ ...lazadaInput, identity: { ...lazadaIdentity, canonicalUrl: "https://shopee.co.th/product/1950119/28177881956" } })).toThrow();
+  });
+  it("shares variant/seller/price validation", () => {
+    expect(() => buildMarketplaceProduct({ ...lazadaInput, variant: " " })).toThrow();
+    expect(() => buildMarketplaceProduct({ ...lazadaInput, seller: " " })).toThrow();
+    expect(() => buildMarketplaceProduct({ ...lazadaInput, price: "0" })).toThrow();
+  });
+  it("refreshes the listing from Lazada price markup", async () => {
+    const product = buildMarketplaceProduct({ ...lazadaInput });
+    const html = `<html><head><script type="application/ld+json">{"@type":"Product","availability":"https://schema.org/InStock"}</script></head>`
+      + `<body><div>16199450766_TH-127341978928</div><div>_p_sku=127341978928</div><div>pdt_price":"\u0e3f237,290.00"</div></body></html>`;
+    const persist = vi.fn(async (_productId: string, _listings: DistributorListing[]) => {});
+    const out = await refreshMarketplaceListing(product, {
+      loadHtml: async () => html,
+      persist,
+      now: () => "2026-10-12T00:00:00.000Z",
+    });
+    expect(out).toEqual({ status: "updated", variantMatched: false });
+    expect(persist).toHaveBeenCalledOnce();
+    expect(persist.mock.calls[0]![1][0]).toMatchObject({ price: 237290, currency: "THB", priceSource: "manual" });
   });
 });

@@ -1,4 +1,4 @@
-import type { ShopeeIdentity } from "../shared/marketplace-url";
+import type { MarketplaceIdentity } from "../shared/marketplace-url";
 
 export type StockStatus =
   | "in_stock"
@@ -87,7 +87,7 @@ export interface FxRatesResult {
 }
 
 export interface Product {
-  marketplace?: ShopeeIdentity & {
+  marketplace?: MarketplaceIdentity & {
     variant: string;
     seller: string;
     monitoringStatus: "manual" | "automatic" | "login_required" | "blocked";
