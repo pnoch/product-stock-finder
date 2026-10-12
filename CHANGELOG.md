@@ -4,6 +4,28 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.20.0] - 2026-10-12
+
+### Changed (app redesign, Phases 1140–1143)
+
+- New tab bar: Home · Discover · Watch · Drops · Alerts. Rates and Settings
+  leave the tab bar (still reachable); Drops promoted from hidden route to tab.
+- New Discover tab composing catalog search + Trending + Available Now, with
+  inline track buttons.
+- New You stack screen (profile + Statistics / Rates / Health / Diagnostics /
+  Settings links), reached via the Home gear shortcut.
+- Concierge onboarding replaces the carousel: hunt (catalog multi-select) →
+  ship (country + tax) → notify (alert/stock/digest toggles) → done. Price
+  alerts auto-activate on first prices via a pending queue fulfilled by every
+  price check (foreground and background).
+- Home is now a priority feed: greeting + urgency-ordered cards (alerts fired,
+  big drops, restocks, all-quiet) + watchlist preview. Stat cards, recent
+  activity, away card, and the old Available/Trending sections removed.
+- Watch rows gain swipe actions (alert / acquired / remove); filters collapse
+  into one bar with an active-count badge.
+- Visual pass: 16px card radius, 56px touch targets, 28px screen titles on key
+  screens.
+
 ## [5.19.0] - 2026-10-11
 
 ### Added
