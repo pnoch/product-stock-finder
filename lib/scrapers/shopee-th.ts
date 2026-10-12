@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { parsePriceFromText } from "./utils";
+import type { DistributorParser } from "./types";
 
 export interface ShopeePrice {
   price: number;
@@ -392,3 +393,33 @@ function parseDom(html: string): ShopeePrice | null {
   }
   return null;
 }
+
+function modelIds(model?: string): { shopId: string; itemId: string } | null {
+  const m = model?.match(/^shopee-th-([1-9]\d{0,19})-([1-9]\d{0,19})$/);
+  return m ? { shopId: m[1]!, itemId: m[2]! } : null;
+}
+
+export const shopeeThParser: DistributorParser = {
+  id: "shopee-th",
+  baseUrl: "https://shopee.co.th",
+  buildSearchUrl: (model) => {
+    const ids = modelIds(model);
+    return ids
+      ? `https://shopee.co.th/product/${ids.shopId}/${ids.itemId}`
+      : "https://shopee.co.th";
+  },
+  parsePrice: (html, model, url) => {
+    const ids = modelIds(model);
+    const found = ids ? parseShopeePrice(html, ids.shopId, ids.itemId) : null;
+    if (!found) return null;
+    return {
+      price: found.price,
+      currency: "THB",
+      stockStatus: found.inStock ? "in_stock" : "out_of_stock",
+      url: url ?? "https://shopee.co.th",
+      variantName: found.variantName ?? undefined,
+    };
+  },
+  rateLimitMs: 60000,
+  useBrowser: true,
+};

@@ -90,7 +90,7 @@ export interface Product {
   marketplace?: ShopeeIdentity & {
     variant: string;
     seller: string;
-    monitoringStatus: "manual" | "login_required" | "blocked";
+    monitoringStatus: "manual" | "automatic" | "login_required" | "blocked";
   };
   id: string;
   name: string;

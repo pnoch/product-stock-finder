@@ -74,7 +74,7 @@ pub fn is_blocked_error(message: &str) -> bool {
     message.starts_with(BLOCKED_ERROR_PREFIX)
 }
 
-pub const BLOCKED_MARKERS: [&str; 9] = [
+pub const BLOCKED_MARKERS: [&str; 12] = [
     "403 Forbidden",
     "Access Denied",
     "cf-browser-verification",
@@ -86,6 +86,10 @@ pub const BLOCKED_MARKERS: [&str; 9] = [
     // PerimeterX / DataDome
     "px-captcha",
     "captcha-delivery.com",
+    // Shopee TH login wall (browser-first shopee-th parser)
+    "ต้องเข้าสู่ระบบ",
+    "verify/traffic",
+    "is_logged_in=false",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

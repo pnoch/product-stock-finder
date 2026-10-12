@@ -76,6 +76,10 @@ export const BLOCKED_MARKERS = [
   // PerimeterX / DataDome
   "px-captcha",
   "captcha-delivery.com",
+  // Shopee TH login wall (browser-first shopee-th parser)
+  "ต้องเข้าสู่ระบบ",
+  "verify/traffic",
+  "is_logged_in=false",
 ];
 
 export function classifyFetchStatus(

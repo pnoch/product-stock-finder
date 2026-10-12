@@ -25,6 +25,7 @@ import { flytecParser } from "./flytec";
 import { mbsiwavParser } from "./mbsiwav";
 import { multilinkParser } from "./multilink";
 import { neobitsParser } from "./neobits";
+import { shopeeThParser } from "./shopee-th";
 
 export const PARSERS: DistributorParser[] = [
   server2uParser,
@@ -52,6 +53,7 @@ export const PARSERS: DistributorParser[] = [
   mbsiwavParser,
   multilinkParser,
   neobitsParser,
+  shopeeThParser,
 ];
 
 export function getParserByDistributorId(

@@ -299,6 +299,7 @@ export const {
   updateProductAcquired,
   updateProductListings,
   updateManualMarketplacePrice,
+  updateMarketplaceStatus,
   refreshWatchlistPrices,
 } = defaultStorage;
 // ─── Alerts ──────────────────────────────────────────────────────────────

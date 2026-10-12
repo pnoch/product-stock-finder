@@ -55,3 +55,34 @@ describe("refreshMarketplaceListing", () => {
     expect(out).toEqual({ status: "unavailable" });
   });
 });
+
+describe("shopeeThParser", () => {
+  it("is registered with browser-first escalation", async () => {
+    const { PARSERS } = await import("../lib/scrapers/registry");
+    const p = PARSERS.find((x) => x.id === "shopee-th");
+    expect(p).toBeDefined();
+    expect(p!.useBrowser).toBe(true);
+  });
+
+  it("builds canonical URLs from model keys", async () => {
+    const { shopeeThParser } = await import("../lib/scrapers/shopee-th");
+    expect(shopeeThParser.buildSearchUrl("shopee-th-1950119-28177881956"))
+      .toBe("https://shopee.co.th/product/1950119/28177881956");
+  });
+
+  it("parsePrice returns THB result on fixture HTML", async () => {
+    const { shopeeThParser } = await import("../lib/scrapers/shopee-th");
+    const html = `<html><body><script>{"shopid":1950119,"itemid":28177881956,"price":1190,"stock":5};</script></body></html>`;
+    expect(shopeeThParser.parsePrice(html, "shopee-th-1950119-28177881956"))
+      .toMatchObject({ price: 1190, currency: "THB" });
+  });
+});
+
+describe("isAutomaticProduct", () => {
+  it("includes monitoringStatus automatic", async () => {
+    const { isAutomaticProduct } = await import("../lib/marketplace");
+    expect(isAutomaticProduct({ marketplace: { monitoringStatus: "automatic" }, modelNumber: "shopee-th-1-2" })).toBe(true);
+    expect(isAutomaticProduct({ marketplace: { monitoringStatus: "manual" }, modelNumber: "shopee-th-1-2" })).toBe(false);
+    expect(isAutomaticProduct({ modelNumber: "CRS804" })).toBe(true);
+  });
+});

@@ -57,7 +57,9 @@ export async function refreshMarketplaceListing(
 }
 
 export function isAutomaticProduct(product: { marketplace?: unknown; modelNumber?: string }): boolean {
-  return !product.marketplace && !product.modelNumber?.startsWith("shopee-th-");
+  const marketplace = product.marketplace as { monitoringStatus?: string } | undefined;
+  if (marketplace) return marketplace.monitoringStatus === "automatic";
+  return !product.modelNumber?.startsWith("shopee-th-");
 }
 
 export function parseManualPrice(raw: string): number | null {

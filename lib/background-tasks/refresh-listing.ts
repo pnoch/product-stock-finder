@@ -110,7 +110,7 @@ export async function refreshListing(
       currency: result.currency,
       stockStatus: result.stockStatus,
     };
-    return {
+    const updated: DistributorListing = {
       ...listing,
       price: result.price,
       currency: result.currency,
@@ -124,6 +124,20 @@ export async function refreshListing(
         PRICE_HISTORY_DAYS,
       ),
     };
+    // A variant-matched scrape promotes a manual marketplace product to
+    // automatic so the background pipeline picks it up from here on. Any
+    // mismatch (or no observed variant) leaves the manual status alone, so a
+    // wrong variant's price never enables automatic alerts.
+    const observedVariant = result.variantName?.trim().toLowerCase();
+    const trackedVariant = product.marketplace?.variant.trim().toLowerCase();
+    if (observedVariant && trackedVariant && observedVariant === trackedVariant) {
+      updated.priceSource = undefined;
+      // Lazy like lib/marketplace.ts: storage pulls in AsyncStorage-backed
+      // modules the server/test bundles must not load statically.
+      const { updateMarketplaceStatus } = await import("../storage");
+      await updateMarketplaceStatus(product.id, "automatic");
+    }
+    return updated;
   } catch (error) {
     healthCollector.record(
       parser.id,

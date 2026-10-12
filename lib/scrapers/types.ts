@@ -7,6 +7,10 @@ export interface ScrapeResult {
   expectedDate?: string;
   url: string;
   taxRate?: number; // set by scraper from country map
+  // Observed variant/option name (e.g. Shopee selected model). Additive:
+  // only identity-keyed parsers set it; refreshListing uses it for the
+  // variant-matched automatic-status flip.
+  variantName?: string;
 }
 
 export interface DistributorParser {

@@ -226,6 +226,16 @@ export function createWatchlistStorage(ctx: StorageContext) {
     });
   }
 
+  async function updateMarketplaceStatus(productId: string, status: "automatic" | "manual" | "login_required" | "blocked"): Promise<void> {
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      await persistWatchlist(list.map((p) =>
+        p.id === productId && p.marketplace ? { ...p, marketplace: { ...p.marketplace, monitoringStatus: status } } : p,
+      ));
+      notify("watchlist", productId);
+    });
+  }
+
   async function refreshWatchlistPrices(): Promise<void> {
     await enqueue(KEYS.WATCHLIST, async () => {
       const list = await getWatchlist();
@@ -247,6 +257,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
     updateProductAcquired,
     updateProductListings,
     updateManualMarketplacePrice,
+    updateMarketplaceStatus,
     refreshWatchlistPrices,
   };
 }
