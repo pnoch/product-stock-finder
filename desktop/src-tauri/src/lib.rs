@@ -1527,6 +1527,7 @@ async fn scrape_distributor(
     let result = match distributor_id {
         "server2u" | "server2u-my" => scrapers::server2u::scrape(model, false).await,
         "shopee-th" => scrapers::shopee_th::scrape(model, true).await,
+        "lazada-th" => scrapers::lazada_th::scrape(model, false).await,
         "linitx-uk" => scrapers::linitx::scrape(model, false).await,
         "interprojekt-pl" => scrapers::interprojekt::scrape(model, false).await,
         "nasstore-eu" => scrapers::nasstore::scrape(model, true).await,

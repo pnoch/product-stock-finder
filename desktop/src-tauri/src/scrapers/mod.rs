@@ -10,6 +10,8 @@ pub mod getic;
 pub mod gowifi;
 pub mod hellascom;
 pub mod interprojekt;
+#[path = "lazada-th.rs"]
+pub mod lazada_th;
 pub mod linitx;
 pub mod linktechs;
 pub mod mbsiwav;
