@@ -4,6 +4,19 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.21.0] - 2026-10-12
+
+### Added
+
+- Lazada Thailand marketplace support (Phase 1146), mirroring Shopee TH:
+  short-link import with variant confirmation, `lazada-th` parser
+  (plain-fetch first), on-device price checks with variant-matched upgrade
+  to automatic monitoring, Rust port, and full pipeline exclusion for
+  manual products. 32 distributors / 27 parsers.
+- Shopee TH automatic price checks (Phase 1145): on-device "Check price
+  now" with variant-matched flip to automatic, `shopee-th` parser
+  (browser-first), login-wall handling via Site sessions, Rust port.
+
 ## [5.20.0] - 2026-10-12
 
 ### Changed (app redesign, Phases 1140–1143)
