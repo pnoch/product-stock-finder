@@ -20,6 +20,7 @@ import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
+import { FacebookResultsSection } from "@/components/search/facebook-results-section";
 import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
@@ -175,6 +176,7 @@ export default function SearchScreen() {
   }, []);
   const [bulkVisible, setBulkVisible] = useState(false);
   const [manualVisible, setManualVisible] = useState(false);
+  const [manualPrefill, setManualPrefill] = useState<string | null>(null);
   const {
     watchlist,
     trackedIds,
@@ -644,6 +646,14 @@ export default function SearchScreen() {
               </View>
             )}
 
+            <FacebookResultsSection
+              query={deferredQuery}
+              onTrack={(url) => {
+                setManualPrefill(url);
+                setManualVisible(true);
+              }}
+            />
+
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10, paddingHorizontal: 16 }}>
               <Text
                 style={{
@@ -766,8 +776,11 @@ export default function SearchScreen() {
 
       <ManualAddSheet
         visible={manualVisible}
-        onClose={() => setManualVisible(false)}
-        initialText={query}
+        onClose={() => {
+          setManualVisible(false);
+          setManualPrefill(null);
+        }}
+        initialText={manualPrefill ?? query}
         trackedIds={trackedIds}
         onAdded={handleManualAdded}
       />
