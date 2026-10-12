@@ -16,7 +16,13 @@ export interface LazadaIdentity {
   canonicalUrl: string;
 }
 
-export type MarketplaceIdentity = ShopeeIdentity | LazadaIdentity;
+export interface FacebookIdentity {
+  platform: "facebook";
+  itemId: string; // digits, no leading zero
+  canonicalUrl: string; // https://www.facebook.com/marketplace/item/{itemId}/
+}
+
+export type MarketplaceIdentity = ShopeeIdentity | LazadaIdentity | FacebookIdentity;
 
 export function isMarketplaceKey(modelNumber?: string): boolean {
   return typeof modelNumber === "string" &&
@@ -53,6 +59,18 @@ export function parseMarketplaceUrl(raw: string): MarketplaceUrl {
     const [, itemId, skuId] = lazada;
     return { kind: "product", identity: { platform: "lazada", region: "TH", itemId, skuId, canonicalUrl: `https://www.lazada.co.th${url.pathname.replace(/\/?$/, "")}` } };
   }
+  if (url.hostname === "www.facebook.com" || url.hostname === "web.facebook.com") {
+    if (url.hostname === "www.facebook.com") {
+      const share = url.pathname.match(/^\/share\/[A-Za-z0-9]{5,32}\/?$/);
+      if (share) return { kind: "short_link", url: url.href };
+    }
+    const item = url.pathname.match(/^\/marketplace\/item\/([1-9]\d{0,19})\/?$/);
+    if (item) {
+      const [, itemId] = item;
+      return { kind: "product", identity: { platform: "facebook", itemId, canonicalUrl: `https://www.facebook.com/marketplace/item/${itemId}/` } };
+    }
+    return { kind: "invalid" };
+  }
   if (url.hostname !== "shopee.co.th") return { kind: "invalid" };
   const match = url.pathname.match(/^\/(?:product|opaanlp)\/([1-9]\d{0,19})\/([1-9]\d{0,19})\/?$/)
     ?? url.pathname.match(/^\/[^/]+-i\.([1-9]\d{0,19})\.([1-9]\d{0,19})\/?$/);
@@ -69,12 +87,20 @@ export function isLazadaInput(raw: string): boolean {
   return /lazada/i.test(raw);
 }
 
+export function isFacebookInput(raw: string): boolean {
+  return /facebook/i.test(raw);
+}
+
 export function isMarketplaceInput(raw: string): boolean {
-  return isShopeeInput(raw) || isLazadaInput(raw);
+  return isShopeeInput(raw) || isLazadaInput(raw) || isFacebookInput(raw);
 }
 
 export function marketplaceResolutionMessage(result: Exclude<MarketplaceResolution, { kind: "product" }>, platform: MarketplaceIdentity["platform"] = "shopee"): string {
   if (result.kind === "unsupported") return "This is a Shopee livestream. Share an individual product instead.";
+  if (platform === "facebook") {
+    if (result.kind === "blocked") return "This Facebook Marketplace link could not be resolved safely. Copy the individual Marketplace item link.";
+    return "Couldn't resolve the Facebook Marketplace link. Try again or copy the individual Marketplace item link.";
+  }
   const brand = platform === "lazada" ? "Lazada" : "Shopee";
   if (result.kind === "blocked") return `This ${brand} link could not be resolved safely. Paste the individual product's canonical URL.`;
   return `Couldn't resolve the ${brand} link. Try again or paste the individual product's canonical URL.`;

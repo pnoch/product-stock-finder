@@ -43,7 +43,9 @@ export async function refreshMarketplaceListing(
   }
   const found = marketplace.platform === "lazada"
     ? parseLazadaPrice(html, marketplace.itemId, marketplace.skuId)
-    : parseShopeePrice(html, marketplace.shopId, marketplace.itemId);
+    : marketplace.platform === "shopee"
+      ? parseShopeePrice(html, marketplace.shopId, marketplace.itemId)
+      : null;
   if (!found) {
     const wall = /ต้องเข้าสู่ระบบ|verify\/traffic|is_logged_in=false/.test(html);
     return { status: wall ? "login_required" : "no_price", variantMatched: false };

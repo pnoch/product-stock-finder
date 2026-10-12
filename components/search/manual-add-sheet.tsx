@@ -188,7 +188,9 @@ export function ManualAddSheet({
       ...EMPTY_DRAFT,
       modelNumber: identity.platform === "lazada"
         ? `lazada-th-${identity.itemId}-${identity.skuId}`
-        : `shopee-th-${identity.shopId}-${identity.itemId}`,
+        : identity.platform === "shopee"
+          ? `shopee-th-${identity.shopId}-${identity.itemId}`
+          : `fbmp-${identity.itemId}`,
     });
     setAiFailed(false);
   };
@@ -521,7 +523,9 @@ export function ManualAddSheet({
                   <Text style={{ color: colors.muted, marginBottom: 12 }}>
                     {marketplace.platform === "lazada"
                       ? `Lazada TH · item ${marketplace.itemId} · sku ${marketplace.skuId}`
-                      : `Shopee TH · shop ${marketplace.shopId} · item ${marketplace.itemId}`}{"\n"}
+                      : marketplace.platform === "shopee"
+                        ? `Shopee TH · shop ${marketplace.shopId} · item ${marketplace.itemId}`
+                        : `Facebook Marketplace · item ${marketplace.itemId}`}{"\n"}
                     Confirm the selected variant and seller. Prices are manual;{marketplace.platform === "shopee" ? " Shopee may require login." : ""} No automatic price or stock alerts.
                   </Text>
                   <TextInput value={variant} onChangeText={setVariant} placeholder="Selected variant (or Single option)" accessibilityLabel="Selected variant" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
