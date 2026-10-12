@@ -1,6 +1,7 @@
 import { getBestPrice } from "../../../lib/currency";
 import { formatPrice } from "@shared/currency";
 import type { Product } from "../../../lib/types";
+import { isAutomaticProduct } from "../../../lib/marketplace";
 
 export interface BasketAlertSettings {
   notificationsEnabled?: boolean;
@@ -43,7 +44,7 @@ export async function evaluateBasketAlert(
     return false;
   }
   const currency = settings.displayCurrency ?? "USD";
-  const watchlist = await storage.getWatchlist();
+  const watchlist = (await storage.getWatchlist()).filter(isAutomaticProduct);
   const total = watchlist.reduce(
     (sum, p) => sum + (getBestPrice(p.listings ?? [], currency)?.price ?? 0),
     0,

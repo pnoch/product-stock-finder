@@ -11,12 +11,14 @@ import {
 import type { DistributorListing, PricePoint, Product } from "../types";
 import { breakerStore } from "./instances";
 import type { HealthCollector } from "./health-collector";
+import { isAutomaticProduct } from "../marketplace";
 
 export async function refreshListing(
   product: Product,
   listing: DistributorListing,
   healthCollector: HealthCollector,
 ): Promise<DistributorListing> {
+  if (!isAutomaticProduct(product) || listing.priceSource === "manual") return listing;
   const serverResult = await fetchServerPrice(
     listing.distributorId,
     product.modelNumber,

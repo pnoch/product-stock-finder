@@ -31,7 +31,7 @@ export function applyServerPrice(
   listing: DistributorListing,
   serverResult: ServerPriceResult | null,
 ): DistributorListing {
-  if (!serverResult) return listing;
+  if (!serverResult || listing.priceSource === "manual") return listing;
   const now = new Date().toISOString();
   const mergedHistory = mergePriceHistory(
     listing.priceHistory,
@@ -78,6 +78,7 @@ export function deriveListingQueries(
   listings: DistributorListing[],
 ) {
   return listings.map((listing) => ({
+    enabled: listing.priceSource !== "manual" && !modelNumber.startsWith("shopee-th-"),
     queryKey: ["price", listing.distributorId, modelNumber] as const,
     queryFn: () => resolvePrice(listing.distributorId, modelNumber),
     staleTime: PRICE_STALE_TIME_MS,

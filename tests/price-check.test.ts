@@ -143,6 +143,7 @@ import {
   scheduleHealthRecovery,
 } from "../lib/notifications";
 import * as BackgroundTask from "expo-background-task";
+import { buildMarketplaceProduct } from "../lib/marketplace";
 
 function makeListing(price: number, currency: string, stockStatus: string) {
   return {
@@ -186,6 +187,21 @@ beforeEach(async () => {
 });
 
 describe("checkPriceDropsNow", () => {
+  it("leaves marketplace alerts armed without scraping, notifying or writing automatic prices", async () => {
+    const product = buildMarketplaceProduct({ identity: { platform: "shopee", region: "TH", shopId: "1", itemId: "2", canonicalUrl: "https://shopee.co.th/product/1/2" }, name: "Confirmed", variant: "Single option", seller: "Seller", price: "50" });
+    product.listings[0].stockStatus = "in_stock";
+    state.watchlistStore = [product];
+    state.alertsStore.push(makeAlert({ productId: product.id, currency: "THB" }));
+    const { fetchServerPrice } = await import("../lib/server-prices");
+    const { updateProductListings } = await import("../lib/storage");
+    vi.mocked(fetchServerPrice).mockClear();
+    vi.mocked(updateProductListings).mockClear();
+    await checkPriceDropsNow();
+    expect(state.alertsStore[0].isActive).toBe(true);
+    expect(state.scheduledNotifications).toEqual([]);
+    expect(fetchServerPrice).not.toHaveBeenCalled();
+    expect(updateProductListings).not.toHaveBeenCalled();
+  });
   it("joins an in-flight run instead of scraping everything twice", async () => {
     // A launch check, the background task and a foreground refresh can fire
     // close together; overlapping runs scraped every listing twice.
@@ -199,6 +215,7 @@ describe("checkPriceDropsNow", () => {
     // Gate the first run inside its initial watchlist read, so the second call
     // is guaranteed to arrive while the first is still in flight.
     const { getWatchlist } = await import("../lib/storage");
+    vi.mocked(getWatchlist).mockClear();
     let release!: () => void;
     const gate = new Promise<void>((r) => {
       release = r;

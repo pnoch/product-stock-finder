@@ -1,0 +1,47 @@
+import { useState } from "react";
+import { Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
+import * as Linking from "expo-linking";
+import * as Haptics from "expo-haptics";
+import { useColors } from "@/hooks/use-colors";
+import type { Product } from "@/lib/types";
+import { parseManualPrice } from "@/lib/marketplace";
+import { updateManualMarketplacePrice } from "@/lib/storage";
+import { showAlert } from "@/lib/alert";
+import { formatPrice } from "@shared/currency";
+
+export function MarketplaceCard({ product, onUpdated }: { product: Product; onUpdated: () => Promise<unknown> }) {
+  const colors = useColors();
+  const [price, setPrice] = useState("");
+  const [saving, setSaving] = useState(false);
+  const marketplace = product.marketplace;
+  if (!marketplace) return null;
+  const listing = product.listings[0];
+  const save = async () => {
+    if (saving || parseManualPrice(price) === null) return;
+    setSaving(true);
+    try {
+      await updateManualMarketplacePrice(product.id, price);
+      await onUpdated();
+      setPrice("");
+      if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      showAlert("Couldn't update price", error instanceof Error ? error.message : "Try again.");
+    } finally { setSaving(false); }
+  };
+  return (
+    <View style={{ margin: 16, padding: 16, borderRadius: 16, backgroundColor: colors.surface, gap: 12 }}>
+      <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 18 }}>Shopee TH</Text>
+      <Text style={{ color: colors.foreground }}>Selected variant: {marketplace.variant}{"\n"}Seller: {marketplace.seller}</Text>
+      <Text style={{ color: colors.foreground }}>Manually entered price: {listing ? formatPrice(listing.price, "THB") : "Not entered"}</Text>
+      {listing && <Text style={{ color: colors.muted }}>Entered {new Date(listing.lastChecked).toLocaleString()} · {listing.priceHistory.length} manual price records</Text>}
+      <Text style={{ color: colors.muted }}>Monitoring: {marketplace.monitoringStatus.replace("_", " ")}. Shopee may require login. Price and stock are not automatically verified; automatic alerts are unavailable.</Text>
+      <TouchableOpacity accessibilityRole="link" accessibilityLabel="Visit Shopee product" onPress={() => { void Linking.openURL(marketplace.canonicalUrl).catch(() => showAlert("Couldn't open Shopee", "Please try again.")); }}>
+        <Text style={{ color: colors.primary }}>Visit Shopee product</Text>
+      </TouchableOpacity>
+      <TextInput accessibilityLabel="Updated manual THB price" placeholder="New manual price (THB)" placeholderTextColor={colors.muted} keyboardType="decimal-pad" value={price} onChangeText={setPrice} style={{ color: colors.foreground, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12 }} />
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Save manual price" disabled={saving || parseManualPrice(price) === null} onPress={() => void save()} style={{ opacity: saving || parseManualPrice(price) === null ? 0.5 : 1 }}>
+        <Text style={{ color: colors.primary }}>{saving ? "Saving…" : "Save manual price"}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}

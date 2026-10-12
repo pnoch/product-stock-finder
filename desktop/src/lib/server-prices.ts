@@ -19,6 +19,11 @@ export async function fetchListingsWithTimeout(
 ): Promise<(ServerPriceResult | null)[]> {
   const results: (ServerPriceResult | null)[] = [];
   for (const listing of listings) {
+    if (modelNumber.startsWith("shopee-th-") || listing.priceSource === "manual") {
+      results.push(null);
+      onItem?.();
+      continue;
+    }
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       results.push(

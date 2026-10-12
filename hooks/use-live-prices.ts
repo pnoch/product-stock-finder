@@ -9,6 +9,7 @@ import {
 } from "@/lib/live-prices";
 import { getWatchlist, updateProductListings } from "@/lib/storage";
 import type { DistributorListing, Product } from "@/lib/types";
+import { isAutomaticProduct } from "@/lib/marketplace";
 
 const PERSIST_DEBOUNCE_MS = 500;
 
@@ -65,8 +66,8 @@ export function useLiveProduct(productId: string) {
     null;
 
   const queries = useMemo(
-    () => (modelNumber ? deriveListingQueries(modelNumber, seedListings) : []),
-    [modelNumber, seedListings],
+    () => (modelNumber && (!product || isAutomaticProduct(product)) ? deriveListingQueries(modelNumber, seedListings) : []),
+    [modelNumber, seedListings, product],
   );
 
   const results = useQueries({ queries });
@@ -122,7 +123,7 @@ export function useLiveProduct(productId: string) {
       found?.modelNumber ??
       PRODUCT_CATALOG.find((p) => p.id === productId)?.modelNumber ??
       null;
-    const keys = nextModel
+    const keys = nextModel && (!found || isAutomaticProduct(found))
       ? deriveListingQueries(nextModel, nextSeed).map((q) => q.queryKey)
       : [];
     await Promise.all(
@@ -178,7 +179,7 @@ export function useLiveWatchlist() {
   const queries = useMemo(
     () =>
       products.flatMap((p) =>
-        deriveListingQueries(p.modelNumber, p.listings ?? []),
+        isAutomaticProduct(p) ? deriveListingQueries(p.modelNumber, p.listings ?? []) : [],
       ),
     [products],
   );
@@ -201,6 +202,7 @@ export function useLiveWatchlist() {
     const current = resultsRef.current;
     let idx = 0;
     return products.map((p) => {
+      if (!isAutomaticProduct(p)) return p;
       const count = p.listings?.length ?? 0;
       const productResults = current
         .slice(idx, idx + count)
@@ -231,6 +233,7 @@ export function useLiveWatchlist() {
       const res = resultsRef.current;
       let idx = 0;
       for (const p of ref) {
+        if (!isAutomaticProduct(p)) continue;
         const count = p.listings?.length ?? 0;
         const hasLive = res
           .slice(idx, idx + count)
@@ -251,7 +254,7 @@ export function useLiveWatchlist() {
     const list = await getWatchlist().catch(() => []);
     await reload();
     const keys = list.flatMap((p) =>
-      deriveListingQueries(p.modelNumber, p.listings ?? []).map((q) => q.queryKey),
+      isAutomaticProduct(p) ? deriveListingQueries(p.modelNumber, p.listings ?? []).map((q) => q.queryKey) : [],
     );
     if (keys.length === 0) return true;
     await Promise.all(

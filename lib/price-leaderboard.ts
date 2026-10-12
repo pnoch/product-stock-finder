@@ -1,6 +1,7 @@
 import type { Product } from "@/lib/types";
 import { convertPrice } from "@/lib/currency";
 import { formatPrice } from "@shared/currency";
+import { isAutomaticProduct } from "./marketplace";
 
 export interface PriceDrop {
   productId: string;
@@ -38,7 +39,9 @@ export function computeLocalDrops(
   const drops: PriceDrop[] = [];
 
   for (const product of products) {
+    if (!isAutomaticProduct(product)) continue;
     for (const listing of product.listings ?? []) {
+      if (listing.priceSource === "manual") continue;
       const history = (listing.priceHistory ?? [])
         .filter((p) => !Number.isNaN(Date.parse(p.date)))
         .sort((a, b) => Date.parse(a.date) - Date.parse(b.date));

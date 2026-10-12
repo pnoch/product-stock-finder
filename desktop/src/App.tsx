@@ -13,6 +13,7 @@ import { useTheme } from "./hooks/use-theme";
 import { onPricesChecked, onPriceDropsTriggered, startPricePoller } from "./background";
 import { onNotificationActivated } from "./notifications";
 import { maybeSendDigest } from "../../lib/price-digest";
+import { isAutomaticProduct } from "../../lib/marketplace";
 import { useAuth } from "./hooks/use-auth";
 import { trpc, createTRPCClient, trpcHeaders } from "./lib/trpc";
 import { setDiscoveryHeadersProvider } from "../../lib/llm-discovery";
@@ -435,7 +436,7 @@ export default function App() {
         const prevDigest = await storage.getPriceDigestSnapshot();
         const nextDigest = await maybeSendDigest(
           prevDigest,
-          await storage.getWatchlist(),
+          (await storage.getWatchlist()).filter(isAutomaticProduct),
           settings,
           await storage.getAlerts(),
           async (title, body) => {

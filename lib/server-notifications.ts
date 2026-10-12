@@ -151,7 +151,7 @@ async function runSyncServerNotifications(): Promise<void> {
     // An acquired product is bought; don't upload its alerts/watches, or the
     // server keeps pushing notifications for a part the user already owns.
     const acquiredIds = new Set(
-      watchlist.filter((p) => isAcquired(p)).map((p) => p.id),
+      watchlist.filter((p) => isAcquired(p) || p.marketplace || p.modelNumber?.startsWith("shopee-th-")).map((p) => p.id),
     );
     const activeAlerts = settings.priceAlerts
       ? alerts

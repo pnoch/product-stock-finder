@@ -2,6 +2,7 @@ import { isServerConfigured } from "@/constants/oauth";
 import { getWatchlist } from "./storage";
 import { uploadServerHistory } from "./server-prices";
 import { sanitizeHistoryPoints } from "@shared/history-upload";
+import { isAutomaticProduct } from "./marketplace";
 
 export async function backfillLocalHistory(): Promise<number> {
   if (!isServerConfigured()) return 0;
@@ -9,7 +10,9 @@ export async function backfillLocalHistory(): Promise<number> {
     const watchlist = await getWatchlist();
     let uploaded = 0;
     for (const product of watchlist) {
+      if (!isAutomaticProduct(product)) continue;
       for (const listing of product.listings ?? []) {
+        if (listing.priceSource === "manual") continue;
         // Mirror desktop/src/lib/history-sync.ts: a listing restored without
         // history must be skipped, not abort the whole backfill.
         const history = listing.priceHistory ?? [];

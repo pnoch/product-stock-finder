@@ -86,6 +86,14 @@ vi.mock("../lib/scrapers/resilient", () => ({
 import { refreshListingsWithinBudget } from "../lib/background-tasks/price-check";
 import { createHealthCollector } from "../lib/background-tasks/health-collector";
 import type { Product } from "../lib/types";
+import { buildMarketplaceProduct } from "../lib/marketplace";
+
+it("preserves manual marketplace listings without invoking a refresh", async () => {
+  const p = buildMarketplaceProduct({ identity: { platform: "shopee", region: "TH", shopId: "1", itemId: "2", canonicalUrl: "https://shopee.co.th/product/1/2" }, name: "Confirmed", variant: "Single option", seller: "Seller", price: "100" });
+  const budget = vi.fn(() => false);
+  expect(await refreshListingsWithinBudget(p, createHealthCollector(), budget)).toBe(p.listings);
+  expect(budget).not.toHaveBeenCalled();
+});
 
 function product(listings: number): Product {
   return {

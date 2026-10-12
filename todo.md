@@ -8517,3 +8517,12 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Collapsed filter bar with active-count badge.
 - [x] 16px cards, 56px targets, 28px titles on key screens.
 - [x] Guards. TypeScript: 0 errors.
+
+## Phase 1144: Shopee TH marketplace link import (manual monitoring)
+
+- [x] `shared/marketplace-url.ts` (product/short-link/livestream recognition, redirect-safe resolution contract).
+- [x] `server/marketplace-resolver.ts` + `products.resolveMarketplace` (manual redirects, DNS pinning, hop/loop bounds).
+- [x] `Product.marketplace` identity + `priceSource: "manual"`; confirmation form (name/variant/seller/THB).
+- [x] Marketplace products excluded from all automatic pipelines (mobile + desktop + Rust); manual prices excluded from uploads/digest/Drops.
+- [x] Detail MarketplaceCard (variant/seller/manual price/update/visit); alert/watch affordances hidden for manual products.
+- [x] Sync preserves marketplace metadata + manual history. TypeScript: 0 errors.

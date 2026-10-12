@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { DetailHeader } from "@/components/product/detail-header";
+import { MarketplaceCard } from "@/components/product/marketplace-card";
 import { AlertSection } from "@/components/product/alert-section";
 import { ReminderSection } from "@/components/product/reminder-section";
 import { useColors } from "@/hooks/use-colors";
@@ -755,7 +756,8 @@ export default function ProductDetailScreen() {
       >
         <DetailHeader product={product} bestDeal={bestDeal} scrollY={scrollY} watchingAny={!!stockWatches["*"]} onToggleWatch={() => void toggleAnyWatch()} acquired={isAcquired(product)} onToggleAcquired={() => void handleToggleAcquired()} />
         <View ref={shareRef} collapsable={false}>
-          <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={effectiveCurrency} productImage={productImage} />
+          {product.marketplace ? <MarketplaceCard product={product} onUpdated={refresh} /> : <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={effectiveCurrency} productImage={productImage} />}
+          {!product.marketplace && <>
           {dealScore != null && (
             <View
               style={{
@@ -785,14 +787,17 @@ export default function ProductDetailScreen() {
           {isOutOfStock && product?.category && (
             <AlternativesSection category={product.category} alternatives={alternatives} />
           )}
+          </>}
         </View>
         {/* Notes and distributor targets sit outside the shareRef capture: notes
             are device-private and targets are personal, so neither belongs in a
             shared product image. */}
         <NotesCard productId={product.id} />
+        {!product.marketplace && <>
         <TargetTableCard listings={visibleListings} alerts={alerts} productId={product.id} onSetTarget={handleSetTarget} />
         <AlertSection productId={product.id} productName={product.name} displayCurrency={effectiveCurrency} onAdded={(alert) => setAlerts((prev) => [...prev, alert])} />
         <ReminderSection productId={product.id} distributorId={reminderTarget?.distributorId} productName={product.name} distributorName={reminderTarget ? getDistributorById(reminderTarget.distributorId)?.name ?? "" : ""} onRemind={() => { if (reminderTarget) setReminderListing(reminderTarget); }} />
+        </>}
       </Animated.ScrollView>
       <ReminderDatePickerModal
         visible={!!reminderListing}

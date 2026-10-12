@@ -1,6 +1,7 @@
 import { invokeLLM, type InvokeParams } from "./_core/llm";
 import { tryConsumeBudget } from "./spend-budget";
 import * as cheerio from "cheerio";
+import { isShopeeInput } from "../shared/marketplace-url";
 
 export interface ParsedProduct {
   name: string;
@@ -186,7 +187,7 @@ function parseFromHtml(html: string, url: string): ParsedProduct | null {
  * left a TOCTOU window: a rebinding name could answer public for this check and
  * private for the connection.
  */
-async function resolvePublicAddresses(
+export async function resolvePublicAddresses(
   hostname: string,
 ): Promise<{ address: string; family: number }[] | null> {
   // A literal IP was already checked by isBlockedUrl.
@@ -326,6 +327,7 @@ export async function parseProductText(
   raw: string,
   invoke: LlmInvoke = invokeLLM,
 ): Promise<ParsedProduct | null> {
+  if (isShopeeInput(raw)) return null;
   const urlResult = await tryParseUrl(raw);
   if (urlResult) return urlResult;
   // Only the LLM path is billable; the deterministic URL scrape above is capped

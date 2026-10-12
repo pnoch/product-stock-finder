@@ -22,6 +22,9 @@ import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { track } from "@/lib/telemetry";
 import { DISCOVER_TIMEOUT_MS, manualAddProduct } from "@/lib/manual-add";
 import { fetchParsedProduct } from "@/lib/server-product-parse";
+import { fetchMarketplaceResolution } from "@/lib/server-marketplace";
+import { buildMarketplaceProduct, parseManualPrice } from "@/lib/marketplace";
+import { isShopeeInput, marketplaceResolutionMessage, type ShopeeIdentity } from "@/shared/marketplace-url";
 import {
   customProductSlug,
   discoverListings,
@@ -81,6 +84,10 @@ export function ManualAddSheet({
   const [adding, setAdding] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [aiFailed, setAiFailed] = useState(false);
+  const [marketplace, setMarketplace] = useState<ShopeeIdentity | null>(null);
+  const [variant, setVariant] = useState("");
+  const [seller, setSeller] = useState("");
+  const [manualPrice, setManualPrice] = useState("");
   const activeRef = useRef(true);
 
   const isUrlLike = (s: string) => /^https?:\/\/\S+/i.test(s.trim());
@@ -100,6 +107,10 @@ export function ManualAddSheet({
       setRaw(initialText ?? "");
       setUrlInput("");
       setDraft(null);
+      setMarketplace(null);
+      setVariant("");
+      setSeller("");
+      setManualPrice("");
       setAdding(false);
       setProgress(null);
       setAiFailed(false);
@@ -110,6 +121,7 @@ export function ManualAddSheet({
     setRaw(initialText ?? "");
     setUrlInput("");
     setDraft(null);
+    setMarketplace(null);
     setParsing(false);
     setUrlParsing(false);
     setAdding(false);
@@ -140,6 +152,10 @@ export function ManualAddSheet({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setParsing(true);
     try {
+      if (isShopeeInput(text)) {
+        await handleMarketplaceParse(text);
+        return;
+      }
       const parsed = await fetchParsedProduct(text);
       if (parsed) {
         setDraft(parsed);
@@ -156,6 +172,21 @@ export function ManualAddSheet({
     }
   };
 
+  const handleMarketplaceParse = async (text: string) => {
+    const result = await fetchMarketplaceResolution(text);
+    if (!activeRef.current) return;
+    if (result.kind !== "product") {
+      showAlert("Shopee link import", marketplaceResolutionMessage(result));
+      return;
+    }
+    setMarketplace(result.identity);
+    setVariant("");
+    setSeller("");
+    setManualPrice("");
+    setDraft({ ...EMPTY_DRAFT, modelNumber: `shopee-th-${result.identity.shopId}-${result.identity.itemId}` });
+    setAiFailed(false);
+  };
+
   const handleUrlParse = async () => {
     const text = urlInput.trim();
     if (!text || urlParsing || !isUrlLike(text)) return;
@@ -163,6 +194,10 @@ export function ManualAddSheet({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setUrlParsing(true);
     try {
+      if (isShopeeInput(text)) {
+        await handleMarketplaceParse(text);
+        return;
+      }
       const parsed = await fetchParsedProduct(text);
       if (parsed) {
         setDraft(parsed);
@@ -185,7 +220,16 @@ export function ManualAddSheet({
     const modelNumber = draft.modelNumber.trim();
     if (!name || !modelNumber) return;
 
-    const id = customProductSlug(modelNumber);
+    let marketplaceProduct;
+    if (marketplace) {
+      try {
+        marketplaceProduct = buildMarketplaceProduct({ identity: marketplace, name, variant, seller, price: manualPrice });
+      } catch (error) {
+        showAlert("Check product details", error instanceof Error ? error.message : "Please check the details.");
+        return;
+      }
+    }
+    const id = marketplaceProduct?.id ?? customProductSlug(modelNumber);
     if (trackedIds.has(id)) {
       showAlert(
         "Already Tracked",
@@ -205,6 +249,17 @@ export function ManualAddSheet({
     setAdding(true);
     let active = true;
     try {
+      if (marketplaceProduct) {
+        const added = await addToWatchlist(marketplaceProduct);
+        if (!activeRef.current) return;
+        if (!added) { showAlert("Already Tracked", "This Shopee item is already tracked with a selected variant."); return; }
+        if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showAlert("Product Added", "Saved your manually entered Shopee TH price. Automatic monitoring is unavailable.");
+        reset();
+        onAdded?.();
+        onClose();
+        return;
+      }
       if (active && activeRef.current) setProgress("Searching distributors 0/…");
       const result = await manualAddProduct({
         storage: { addToWatchlist, updateProductListings },
@@ -257,7 +312,8 @@ export function ManualAddSheet({
   const canAdd =
     !!draft &&
     draft.name.trim().length > 0 &&
-    draft.modelNumber.trim().length > 0;
+    draft.modelNumber.trim().length > 0 &&
+    (!marketplace || (!!variant.trim() && !!seller.trim() && parseManualPrice(manualPrice) !== null));
 
   return (
     <>
@@ -321,7 +377,7 @@ export function ManualAddSheet({
                 style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}
               >
                 Paste anything — a model number, product name, or a spec-sheet
-                paragraph. AI cleans it up.
+                paragraph, or Shopee Thailand product link. Shopee imports require manual confirmation.
               </Text>
               <TextInput
                 value={raw}
@@ -354,7 +410,7 @@ export function ManualAddSheet({
                   justifyContent: "center",
                   gap: 8,
                 }}
-                accessibilityLabel="Clean up with AI"
+                accessibilityLabel={isShopeeInput(raw) ? "Resolve Shopee link" : "Clean up with AI"}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: parsing || raw.trim().length === 0 }}
               >
@@ -366,7 +422,7 @@ export function ManualAddSheet({
                     <Text
                       style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
                     >
-                      Clean up with AI
+                       {isShopeeInput(raw) ? "Resolve Shopee Link" : "Clean up with AI"}
                     </Text>
                   </>
                 )}
@@ -377,7 +433,7 @@ export function ManualAddSheet({
                 <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
               </View>
               <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8, fontWeight: "600" }}>
-                Paste distributor URL
+                Paste distributor or Shopee Thailand URL
               </Text>
               <TextInput
                 value={urlInput}
@@ -452,6 +508,18 @@ export function ManualAddSheet({
                 placeholderTextColor={colors.muted}
                 style={fieldStyle(colors)}
               />
+              {marketplace ? (
+                <>
+                  <Text style={{ color: colors.muted, marginBottom: 12 }}>
+                    Shopee TH · shop {marketplace.shopId} · item {marketplace.itemId}{"\n"}
+                    Confirm the selected variant and seller. Prices are manual; Shopee may require login. No automatic price or stock alerts.
+                  </Text>
+                  <TextInput value={variant} onChangeText={setVariant} placeholder="Selected variant (or Single option)" accessibilityLabel="Selected variant" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
+                  <TextInput value={seller} onChangeText={setSeller} placeholder="Seller" accessibilityLabel="Seller" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
+                  <TextInput value={manualPrice} onChangeText={setManualPrice} placeholder="Manually entered price (THB)" accessibilityLabel="Manual THB price" keyboardType="decimal-pad" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
+                </>
+              ) : (
+              <>
               <TextInput
                 value={draft.modelNumber}
                 onChangeText={(v) => setDraft({ ...draft, modelNumber: v })}
@@ -485,6 +553,8 @@ export function ManualAddSheet({
                   textAlignVertical: "top",
                 }}
               />
+              </>
+              )}
               {progress && (
                 <Text
                   style={{
@@ -511,7 +581,7 @@ export function ManualAddSheet({
                   gap: 8,
                   marginBottom: 12,
                 }}
-                accessibilityLabel="Add and search distributors"
+                accessibilityLabel={marketplace ? "Save manual Shopee product" : "Add and search distributors"}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: !canAdd || adding }}
               >
@@ -527,13 +597,13 @@ export function ManualAddSheet({
                     <Text
                       style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
                     >
-                      Add & Search Distributors
+                      {marketplace ? "Save Manual Shopee Product" : "Add & Search Distributors"}
                     </Text>
                   </>
                 )}
               </TouchableOpacity>
               <TouchableOpacity activeOpacity={0.7}
-                onPress={() => setDraft(null)}
+                onPress={() => { setDraft(null); setMarketplace(null); }}
                 disabled={parsing || adding}
                 style={{ alignItems: "center", paddingVertical: 6, opacity: parsing || adding ? 0.5 : 1 }}
                 accessibilityLabel="Back to paste"

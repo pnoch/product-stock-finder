@@ -48,7 +48,7 @@ export function DetailHeader({
       <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>{product.brand} · {product.category} · {product.modelNumber}</Text>
       {region ? <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>{region}</Text> : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
-      <Pressable
+      {!product.marketplace && <Pressable
         onPress={onToggleWatch}
         accessibilityRole="button"
         accessibilityLabel={watchingAny ? "Stop watching all distributors" : "Watch for restock across all distributors"}
@@ -68,7 +68,7 @@ export function DetailHeader({
         <Text style={{ color: watchingAny ? colors.success : colors.primary, fontWeight: "600", fontSize: 13 }}>
           {watchingAny ? "Watching — tap to stop" : "Watch for restock"}
         </Text>
-      </Pressable>
+      </Pressable>}
       <Pressable
         onPress={onToggleAcquired}
         accessibilityRole="button"

@@ -50,6 +50,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
 import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
 import Fuse from "fuse.js";
+import { isShopeeInput } from "@/shared/marketplace-url";
 
 type CatalogSort = "relevance" | "name" | "price" | "brand";
 
@@ -188,6 +189,7 @@ export default function SearchScreen() {
   const handleSearchSubmit = useCallback(async () => {
     if (!query.trim()) return;
     Keyboard.dismiss();
+    if (isShopeeInput(query)) setManualVisible(true);
     setRecentSearches(await recordSearch(query));
   }, [query]);
 
@@ -198,6 +200,7 @@ export default function SearchScreen() {
 
   const handleDiscover = useCallback(async () => {
     if (!query.trim() || discovering) return;
+    if (isShopeeInput(query)) { setManualVisible(true); return; }
     Keyboard.dismiss();
     setDiscovering(true);
     try {
@@ -501,7 +504,7 @@ export default function SearchScreen() {
           Add Product
         </Text>
         <TouchableOpacity activeOpacity={0.7}
-          accessibilityLabel="Add product manually"
+          accessibilityLabel="Add product manually or import Shopee link"
           accessibilityRole="button"
           onPress={() => {
             if (Platform.OS !== "web")
@@ -676,7 +679,7 @@ export default function SearchScreen() {
                 </View>
               ) : (
                 <TouchableOpacity activeOpacity={0.85}
-                  accessibilityLabel="Discover with AI"
+                  accessibilityLabel={isShopeeInput(query) ? "Import Shopee link" : "Discover with AI"}
                   accessibilityRole="button"
                   onPress={handleDiscover}
                   style={{
@@ -704,7 +707,7 @@ export default function SearchScreen() {
                       fontSize: 14,
                     }}
                   >
-                    Discover with AI
+                    {isShopeeInput(query) ? "Import Shopee Link" : "Discover with AI"}
                   </Text>
                 </TouchableOpacity>
               )}

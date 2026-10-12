@@ -1,5 +1,6 @@
 import { withTimeoutReject } from "./with-timeout";
 import type { DistributorListing, Product } from "./types";
+import { isAutomaticProduct } from "./marketplace";
 
 export const DISCOVER_TIMEOUT_MS = 15_000;
 
@@ -99,7 +100,7 @@ export function recordListingAttempt(productId: string, now = Date.now()): void 
 
 export interface MissingListingsStorage extends RediscoverStorage {
   getWatchlist(): Promise<
-    { id: string; modelNumber: string; listings?: DistributorListing[] }[]
+    { id: string; modelNumber: string; marketplace?: Product["marketplace"]; listings?: DistributorListing[] }[]
   >;
 }
 
@@ -126,6 +127,7 @@ export async function rediscoverMissingListings(deps: {
   const watchlist = await storage.getWatchlist();
   const missing = watchlist.filter(
     (product) =>
+      isAutomaticProduct(product) &&
       !!product.modelNumber &&
       (product.listings?.length ?? 0) === 0 &&
       // Rotate: a product attempted recently is skipped so permanently
@@ -161,6 +163,7 @@ export async function rediscoverProduct(deps: {
   timeoutMs?: number;
 }): Promise<{ discovered: number; timedOut: boolean }> {
   const { storage, discover, productId, modelNumber, onProgress, timeoutMs = DISCOVER_TIMEOUT_MS } = deps;
+  if (modelNumber.startsWith("shopee-th-")) return { discovered: 0, timedOut: false };
   let listings: DistributorListing[];
   let timedOut = false;
   try {

@@ -25,6 +25,7 @@ export async function scrapePriceOnDevice(
   distributorId: string,
   modelNumber: string,
 ): Promise<ResolvedPrice | null> {
+  if (modelNumber.startsWith("shopee-th-")) return null;
   const parser = getParserByDistributorId(distributorId);
   if (!parser) return null;
   await scrapeSlots.acquire();
@@ -50,6 +51,7 @@ export async function resolvePrice(
   distributorId: string,
   modelNumber: string,
 ): Promise<ResolvedPrice | null> {
+  if (modelNumber.startsWith("shopee-th-")) return null;
   let server: ServerPriceResult | null = null;
   if (isServerConfigured()) {
     server = await fetchServerPrice(distributorId, modelNumber);

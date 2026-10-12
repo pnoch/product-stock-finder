@@ -149,12 +149,13 @@ async function runSyncDesktopNotifications(): Promise<void> {
     // rediscovered products also get server-side notifications (mobile does the
     // same).
     const watchlist = await storage.getWatchlist();
+    const manualIds = new Set(watchlist.filter((p) => p.marketplace || p.modelNumber?.startsWith("shopee-th-")).map((p) => p.id));
     const modelByProductId = new Map(
       watchlist.map((p) => [p.id, p.modelNumber] as const),
     );
     const activeAlerts = settings.priceAlerts
       ? alerts
-          .filter((a) => a.isActive && !a.triggeredAt)
+          .filter((a) => a.isActive && !a.triggeredAt && !manualIds.has(a.productId))
           .map((a) => ({
             id: a.id,
             productId: a.productId,
@@ -168,7 +169,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
       : [];
     const activeAlertIds = new Set(activeAlerts.map((a) => a.id));
     const stockWatches = settings.stockAlerts
-      ? (await storage.getStockWatches()).map((w) => ({
+      ? (await storage.getStockWatches()).filter((w) => !manualIds.has(w.productId)).map((w) => ({
           id: w.id,
           productId: w.productId,
           modelNumber: modelByProductId.get(w.productId),
@@ -179,7 +180,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
         }))
       : [];
     const dateReminders = (await storage.getBackOrderReminders())
-      .filter((r) => r.reminderType === "date")
+      .filter((r) => r.reminderType === "date" && !manualIds.has(r.productId))
       .map((r) => ({
         id: r.id,
         productId: r.productId,

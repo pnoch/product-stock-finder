@@ -12,6 +12,7 @@ import {
 } from "../lib/server-notifications";
 import type { AppSettings } from "../lib/types";
 import { MAX_UPLOAD_HEALTH_EVENTS } from "../shared/const";
+import { buildMarketplaceProduct } from "../lib/marketplace";
 
 vi.mock("../lib/storage", () => ({
   getWatchlist: vi.fn().mockResolvedValue([]),
@@ -300,6 +301,20 @@ describe("syncServerNotifications respects notification settings", () => {
       createdAt: 1234,
     };
   }
+
+  it("retracts marketplace alerts, restock watches and reminders from automatic server configuration", async () => {
+    const product = buildMarketplaceProduct({ identity: { platform: "shopee", region: "TH", shopId: "1", itemId: "2", canonicalUrl: "https://shopee.co.th/product/1/2" }, name: "Confirmed", variant: "Single option", seller: "Seller", price: "100" });
+    const storage = await import("../lib/storage");
+    vi.mocked(storage.getWatchlist).mockResolvedValue([product]);
+    vi.mocked(storage.getAlerts).mockResolvedValue([{ id: "a", productId: product.id, targetPrice: 200, currency: "THB", isActive: true, createdAt: product.addedAt }]);
+    const reminder = { id: "r", productId: product.id, productName: product.name, distributorId: product.listings[0].distributorId, distributorName: "Shopee TH", reminderDate: product.addedAt, createdAt: product.addedAt };
+    vi.mocked(storage.getStockWatches).mockResolvedValue([{ ...reminder, reminderType: "back_in_stock" }]);
+    vi.mocked(storage.getBackOrderReminders).mockResolvedValue([{ ...reminder, reminderType: "date" }]);
+    const mutate = vi.fn().mockResolvedValue({ accepted: true });
+    mockClient({ uploadConfig: mutate, pull: vi.fn().mockResolvedValue({ events: [] }) });
+    await syncServerNotifications();
+    expect(mutate).toHaveBeenCalledWith(expect.objectContaining({ alerts: [], stockWatches: [], dateReminders: [] }));
+  });
 
   it("uploads an empty config and skips pull when the master toggle is off", async () => {
     const mutate = vi.fn().mockResolvedValue({ accepted: true });

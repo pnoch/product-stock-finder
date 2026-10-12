@@ -29,6 +29,7 @@ export async function discoverListings(
   modelNumber: string,
   opts: DiscoverOptions = {},
 ): Promise<DistributorListing[]> {
+  if (modelNumber.startsWith("shopee-th-")) return [];
   const {
     parserIds = getAllParserIds(),
     productId = customProductSlug(modelNumber),

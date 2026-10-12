@@ -1,4 +1,6 @@
 export const COOKIE_NAME = "app_session_id";
+export const MAX_MARKETPLACE_URL_LENGTH = 2000;
+export const MARKETPLACE_REDIRECT_LIMIT = 5;
 export const ONE_YEAR_MS = 1000 * 60 * 60 * 24 * 365;
 export const SESSION_MS = 1000 * 60 * 60 * 24 * 30;
 export const AXIOS_TIMEOUT_MS = 30_000;

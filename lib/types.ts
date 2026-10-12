@@ -1,3 +1,5 @@
+import type { ShopeeIdentity } from "../shared/marketplace-url";
+
 export type StockStatus =
   | "in_stock"
   | "back_order"
@@ -53,6 +55,7 @@ export interface Distributor {
 }
 
 export interface DistributorListing {
+  priceSource?: "manual";
   distributorId: string;
   productId: string;
   price: number;
@@ -66,6 +69,7 @@ export interface DistributorListing {
 }
 
 export interface PricePoint {
+  priceSource?: "manual";
   date: string;
   price: number;
   currency: string;
@@ -83,6 +87,11 @@ export interface FxRatesResult {
 }
 
 export interface Product {
+  marketplace?: ShopeeIdentity & {
+    variant: string;
+    seller: string;
+    monitoringStatus: "manual" | "login_required" | "blocked";
+  };
   id: string;
   name: string;
   modelNumber: string;

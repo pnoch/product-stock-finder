@@ -1,6 +1,7 @@
 import type { DistributorListing, Product } from "../types";
 import type { StorageContext } from "./context";
 import { MAX_HISTORY_PER_LISTING, maxHistoryPerProduct } from "./adapter";
+import { updateMarketplacePrice } from "../marketplace";
 
 export function createWatchlistStorage(ctx: StorageContext) {
   const { adapter, KEYS, notify, enqueue, readList } = ctx;
@@ -216,6 +217,15 @@ export function createWatchlistStorage(ctx: StorageContext) {
     });
   }
 
+  async function updateManualMarketplacePrice(productId: string, raw: string): Promise<void> {
+    await enqueue(KEYS.WATCHLIST, async () => {
+      const list = await getWatchlist();
+      if (!list.some((p) => p.id === productId)) throw new Error("Product no longer exists.");
+      await persistWatchlist(list.map((p) => p.id === productId ? updateMarketplacePrice(p, raw) : p));
+      notify("watchlist", productId);
+    });
+  }
+
   async function refreshWatchlistPrices(): Promise<void> {
     await enqueue(KEYS.WATCHLIST, async () => {
       const list = await getWatchlist();
@@ -236,6 +246,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
     updateProductSourcing,
     updateProductAcquired,
     updateProductListings,
+    updateManualMarketplacePrice,
     refreshWatchlistPrices,
   };
 }

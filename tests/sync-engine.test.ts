@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createStorage, type Storage } from "../lib/storage";
 import { setupSync, syncNow } from "../lib/sync";
+import { buildMarketplaceProduct } from "../lib/marketplace";
 import type {
   AppSettings,
   BackOrderReminder,
@@ -92,6 +93,16 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 describe("syncNow", () => {
+  it("pulls marketplace metadata and manual history intact", async () => {
+    const product = buildMarketplaceProduct({ identity: { platform: "shopee", region: "TH", shopId: "1", itemId: "2", canonicalUrl: "https://shopee.co.th/product/1/2" }, name: "Confirmed", variant: "Single option", seller: "Seller", price: "100" });
+    const storage = makeStorage();
+    await syncNow({
+      storage, isSignedIn: () => true,
+      pull: async () => ({ lastSyncedAt: 1000, items: [{ collection: "watchlist", id: product.id, data: product, updatedAt: 1000, deletedAt: null }] }),
+      push: async () => ({ accepted: 0, stamped: [] }), now: () => 2000,
+    });
+    expect((await storage.getWatchlist())[0]).toEqual(product);
+  });
   it("no-ops when signed out", async () => {
     const storage = makeStorage();
     const pull = vi.fn();

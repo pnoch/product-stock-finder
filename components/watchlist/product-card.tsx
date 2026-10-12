@@ -381,12 +381,12 @@ export const ProductCard = memo(function ProductCard({
             </Text>
           </Pressable>
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }} numberOfLines={1} ellipsizeMode="tail">
-            {product.modelNumber}
+             {product.marketplace ? `Shopee TH · ${product.marketplace.variant}` : product.modelNumber}
           </Text>
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }} numberOfLines={1} ellipsizeMode="tail">
-            {product.brand} · {product.category}
+             {product.marketplace ? `${product.marketplace.seller} · Manual price` : `${product.brand} · ${product.category}`}
           </Text>
-          {(product.listings ?? []).length === 0 && onFindPrices && (
+          {!product.marketplace && (product.listings ?? []).length === 0 && onFindPrices && (
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={(e) => {

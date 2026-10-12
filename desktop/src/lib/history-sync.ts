@@ -1,5 +1,6 @@
 import { sanitizeHistoryPoints } from "../../../shared/src/history-upload";
 import type { PricePoint, Product } from "../../../lib/types";
+import { isAutomaticProduct } from "../../../lib/marketplace";
 
 export interface HistoryUploadClient {
   prices: {
@@ -25,7 +26,9 @@ export async function backfillLocalHistory(
 ): Promise<number> {
   let uploaded = 0;
   for (const product of watchlist) {
+    if (!isAutomaticProduct(product)) continue;
     for (const listing of product.listings ?? []) {
+      if (listing.priceSource === "manual") continue;
       const history = listing.priceHistory ?? [];
       if (history.length === 0) continue;
       // The server rejects the whole payload over MAX_UPLOAD_HISTORY_POINTS or

@@ -37,6 +37,7 @@ import { track } from "../telemetry";
 import type { AvailableProduct, DistributorListing, Product } from "../types";
 import { createHealthCollector, type HealthCollector } from "./health-collector";
 import { refreshListing } from "./refresh-listing";
+import { isAutomaticProduct } from "../marketplace";
 
 /**
  * Refreshes a product's listings while the budget allows, carrying unprocessed
@@ -49,6 +50,7 @@ export async function refreshListingsWithinBudget(
   healthCollector: HealthCollector,
   isBudgetExhausted: () => boolean,
 ): Promise<DistributorListing[]> {
+  if (!isAutomaticProduct(product)) return product.listings;
   const out: DistributorListing[] = [];
   let exhausted = false;
   for (const listing of product.listings ?? []) {
@@ -84,7 +86,7 @@ async function runPriceCheckCoreInner(opts?: {
   onProgress?: (current: number, total: number) => void;
 }): Promise<void> {
   const { onProgress } = opts ?? {};
-  const watchlist = await getWatchlist();
+  const watchlist = (await getWatchlist()).filter(isAutomaticProduct);
   if (watchlist.length === 0) return;
 
   const healthCollector = createHealthCollector();
@@ -133,7 +135,7 @@ async function runPriceCheckCoreInner(opts?: {
     const coreSettings = await getSettings().catch(() => null);
     const pending = coreSettings?.pendingAlertProductIds ?? [];
     if (pending.length > 0) {
-      const products = await getWatchlist().catch(() => []);
+      const products = (await getWatchlist().catch(() => [])).filter(isAutomaticProduct);
       const displayCurrency = coreSettings?.displayCurrency ?? "USD";
       const { alertsToCreate, remainingIds } = fulfillPendingAlerts(products, pending, displayCurrency);
       const existing = await getAlerts().catch(() => []);
@@ -177,6 +179,7 @@ async function runPriceCheckCoreInner(opts?: {
         // converted to the display currency so maxPrice compares like-for-like.
         const watchlist = await getWatchlist();
         for (const p of watchlist) {
+          if (!isAutomaticProduct(p)) continue;
           const inStock = (p.listings ?? []).filter(
             (l) => l.stockStatus === "in_stock",
           );
@@ -292,7 +295,7 @@ async function runPriceCheckCoreInner(opts?: {
   const prevDigest = await getPriceDigestSnapshot();
   const nextDigest = await maybeSendDigest(
     prevDigest,
-    activeProducts(await getWatchlist()),
+    activeProducts(await getWatchlist()).filter(isAutomaticProduct),
     settings,
     await getAlerts(),
   );
@@ -300,7 +303,7 @@ async function runPriceCheckCoreInner(opts?: {
 
   // Basket value alert (fires once per set threshold, then auto-disables)
   if (settings.notificationsEnabled && settings.basketAlertThreshold) {
-    const fresh = activeProducts(await getWatchlist());
+    const fresh = activeProducts(await getWatchlist()).filter(isAutomaticProduct);
     // The threshold is entered in the user's display currency (the sheet says
     // so), so the total must be computed in that currency too — hardcoding USD
     // compared a USD total against a EUR/GBP/etc threshold.
@@ -383,7 +386,7 @@ async function runPriceCheckCoreInner(opts?: {
   for (const alert of activeAlerts) {
     const product = refreshedWatchlist.find((p) => p.id === alert.productId);
     if (!product?.listings?.length) continue;
-    if (isAcquired(product)) continue;
+    if (isAcquired(product) || !isAutomaticProduct(product)) continue;
 
     const eligibleListings = listingsForAlert(
       product.listings,
