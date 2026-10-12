@@ -8,14 +8,29 @@ export interface ShopeeIdentity {
   canonicalUrl: string;
 }
 
+export interface LazadaIdentity {
+  platform: "lazada";
+  region: "TH";
+  itemId: string;
+  skuId: string;
+  canonicalUrl: string;
+}
+
+export type MarketplaceIdentity = ShopeeIdentity | LazadaIdentity;
+
+export function isMarketplaceKey(modelNumber?: string): boolean {
+  return typeof modelNumber === "string" &&
+    (modelNumber.startsWith("shopee-th-") || modelNumber.startsWith("lazada-th-"));
+}
+
 export type MarketplaceUrl =
-  | { kind: "product"; identity: ShopeeIdentity }
+  | { kind: "product"; identity: MarketplaceIdentity }
   | { kind: "short_link"; url: string }
   | { kind: "livestream" }
   | { kind: "invalid" };
 
 export type MarketplaceResolution =
-  | { kind: "product"; identity: ShopeeIdentity }
+  | { kind: "product"; identity: MarketplaceIdentity }
   | { kind: "unsupported"; reason: "livestream" }
   | { kind: "blocked"; reason: "url" | "dns" | "redirect_limit" | "redirect_loop" }
   | { kind: "error"; reason: "network" | "unresolved" };
@@ -29,6 +44,15 @@ export function parseMarketplaceUrl(raw: string): MarketplaceUrl {
   if (["s.shopee.co.th", "th.shp.ee"].includes(url.hostname) && /^\/[A-Za-z0-9]+\/?$/.test(url.pathname)) {
     return { kind: "short_link", url: url.href };
   }
+  if (url.hostname === "s.lazada.co.th" && /^\/s\.[A-Za-z0-9]{1,64}\/?$/.test(url.pathname)) {
+    return { kind: "short_link", url: url.href };
+  }
+  if (url.hostname === "www.lazada.co.th") {
+    const lazada = url.pathname.match(/^\/products\/(?:[^/]+-)?i([1-9]\d{0,19})-s([1-9]\d{0,19})\.html\/?$/);
+    if (!lazada) return { kind: "invalid" };
+    const [, itemId, skuId] = lazada;
+    return { kind: "product", identity: { platform: "lazada", region: "TH", itemId, skuId, canonicalUrl: `https://www.lazada.co.th${url.pathname.replace(/\/?$/, "")}` } };
+  }
   if (url.hostname !== "shopee.co.th") return { kind: "invalid" };
   const match = url.pathname.match(/^\/(?:product|opaanlp)\/([1-9]\d{0,19})\/([1-9]\d{0,19})\/?$/)
     ?? url.pathname.match(/^\/[^/]+-i\.([1-9]\d{0,19})\.([1-9]\d{0,19})\/?$/);
@@ -41,8 +65,17 @@ export function isShopeeInput(raw: string): boolean {
   return /shopee|shp\.ee/i.test(raw);
 }
 
-export function marketplaceResolutionMessage(result: Exclude<MarketplaceResolution, { kind: "product" }>): string {
+export function isLazadaInput(raw: string): boolean {
+  return /lazada/i.test(raw);
+}
+
+export function isMarketplaceInput(raw: string): boolean {
+  return isShopeeInput(raw) || isLazadaInput(raw);
+}
+
+export function marketplaceResolutionMessage(result: Exclude<MarketplaceResolution, { kind: "product" }>, platform: MarketplaceIdentity["platform"] = "shopee"): string {
   if (result.kind === "unsupported") return "This is a Shopee livestream. Share an individual product instead.";
-  if (result.kind === "blocked") return "This Shopee link could not be resolved safely. Paste the individual product's canonical URL.";
-  return "Couldn't resolve the Shopee link. Try again or paste the individual product's canonical URL.";
+  const brand = platform === "lazada" ? "Lazada" : "Shopee";
+  if (result.kind === "blocked") return `This ${brand} link could not be resolved safely. Paste the individual product's canonical URL.`;
+  return `Couldn't resolve the ${brand} link. Try again or paste the individual product's canonical URL.`;
 }

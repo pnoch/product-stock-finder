@@ -175,8 +175,10 @@ export function ManualAddSheet({
   const handleMarketplaceParse = async (text: string) => {
     const result = await fetchMarketplaceResolution(text);
     if (!activeRef.current) return;
-    if (result.kind !== "product") {
-      showAlert("Shopee link import", marketplaceResolutionMessage(result));
+    if (result.kind !== "product" || result.identity.platform !== "shopee") {
+      showAlert("Shopee link import", result.kind === "product"
+        ? marketplaceResolutionMessage({ kind: "error", reason: "unresolved" }, "lazada")
+        : marketplaceResolutionMessage(result));
       return;
     }
     setMarketplace(result.identity);

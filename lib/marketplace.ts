@@ -77,7 +77,8 @@ export function buildMarketplaceProduct(input: {
   identity: ShopeeIdentity; name: string; variant: string; seller: string; price: string;
 }, now = new Date().toISOString()): Product {
   const parsed = parseMarketplaceUrl(input.identity.canonicalUrl);
-  if (parsed.kind !== "product" || parsed.identity.shopId !== input.identity.shopId || parsed.identity.itemId !== input.identity.itemId) throw new Error("Invalid Shopee identity");
+  if (parsed.kind !== "product" || parsed.identity.platform !== "shopee") throw new Error("Invalid Shopee identity");
+  if (parsed.identity.shopId !== input.identity.shopId || parsed.identity.itemId !== input.identity.itemId) throw new Error("Invalid Shopee identity");
   const name = input.name.trim();
   const variant = input.variant.trim();
   const seller = input.seller.trim();
