@@ -21,6 +21,8 @@ import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { FacebookResultsSection } from "@/components/search/facebook-results-section";
+import { EbayResultsSection } from "@/components/search/ebay-results-section";
+import type { EbaySearchListing } from "@/shared/ebay-search";
 import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
@@ -183,6 +185,7 @@ export default function SearchScreen({
   const [bulkVisible, setBulkVisible] = useState(false);
   const [manualVisible, setManualVisible] = useState(false);
   const [manualPrefill, setManualPrefill] = useState<string | null>(null);
+  const [ebayPrefill, setEbayPrefill] = useState<EbaySearchListing | null>(null);
   const {
     watchlist,
     trackedIds,
@@ -517,6 +520,8 @@ export default function SearchScreen({
           onPress={() => {
             if (Platform.OS !== "web")
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setEbayPrefill(null);
+            setManualPrefill(null);
             setManualVisible(true);
           }}
           style={{ padding: 4 }}
@@ -657,10 +662,17 @@ export default function SearchScreen({
             <FacebookResultsSection
               query={deferredQuery}
               onTrack={(url) => {
+                setEbayPrefill(null);
                 setManualPrefill(url);
                 setManualVisible(true);
               }}
             />
+
+            <EbayResultsSection query={deferredQuery} onTrack={(listing) => {
+              setEbayPrefill(listing);
+              setManualPrefill(listing.url);
+              setManualVisible(true);
+            }} />
 
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10, paddingHorizontal: 16 }}>
               <Text
@@ -790,6 +802,7 @@ export default function SearchScreen({
           setManualPrefill(null);
         }}
         initialText={manualPrefill ?? query}
+        initialEbayListing={ebayPrefill ?? undefined}
         trackedIds={trackedIds}
         onAdded={handleManualAdded}
       />

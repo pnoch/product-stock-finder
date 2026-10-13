@@ -362,7 +362,7 @@ export async function teardownBrowserSession(
 
 export async function fetchWithBrowser(
   url: string,
-  options?: { waitForSelector?: string; timeoutMs?: number },
+  options?: { waitForSelector?: string; timeoutMs?: number; publicSession?: boolean },
 ): Promise<string> {
   const browser = await browserPool.acquire();
   let context: BrowserContext | undefined;
@@ -370,7 +370,9 @@ export async function fetchWithBrowser(
   const domain = extractDomain(url);
 
   try {
-    context = await createStealthContext(browser, url);
+    context = options?.publicSession
+      ? await browser.newContext({ locale: "en-US", viewport: { width: 1280, height: 720 } })
+      : await createStealthContext(browser, url);
     page = await context.newPage();
 
     // Retry navigation once on failure
@@ -412,8 +414,10 @@ export async function fetchWithBrowser(
     }
 
     // Save cookies for future requests
-    const cookies = await context.cookies();
-    await saveCookies(domain, cookies);
+    if (!options?.publicSession) {
+      const cookies = await context.cookies();
+      await saveCookies(domain, cookies);
+    }
 
     return await page.content();
   } finally {

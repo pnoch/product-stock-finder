@@ -117,6 +117,9 @@ vi.mock("@/components/marketplace/facebook-search-sheet", () => ({
 vi.mock("@/components/search/facebook-results-section", () => ({
   FacebookResultsSection: ({ query }: any) => React.createElement("div", null, `FB_RESULTS:${query}`),
 }));
+vi.mock("@/components/search/ebay-results-section", () => ({
+  EbayResultsSection: ({ query }: { query: string }) => React.createElement("div", null, `EBAY_RESULTS:${query}`),
+}));
 vi.mock("@/components/search/catalog-product-card", () => ({
   CatalogProductCard: ({ product }: any) => React.createElement("div", null, product.name),
 }));
@@ -166,6 +169,7 @@ describe("Discover search integration", () => {
 
     await waitFor(() => {
       expect(screen.getByText("FB_RESULTS:rtx5090")).toBeTruthy();
+      expect(screen.getByText("EBAY_RESULTS:rtx5090")).toBeTruthy();
     });
     expect(screen.queryByText("TRENDING_SECTION")).toBeNull();
     expect(screen.queryByText("AVAILABLE_SECTION")).toBeNull();

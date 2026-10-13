@@ -24,7 +24,9 @@ import { DISCOVER_TIMEOUT_MS, manualAddProduct } from "@/lib/manual-add";
 import { fetchParsedProduct } from "@/lib/server-product-parse";
 import { fetchMarketplaceResolution } from "@/lib/server-marketplace";
 import { buildMarketplaceProduct, marketplaceBrandName, marketplaceCurrency, marketplaceShortName, parseManualPrice } from "@/lib/marketplace";
-import { isEbayInput, isFacebookInput, isLazadaInput, isMarketplaceInput, isShopeeInput, marketplaceResolutionMessage, type MarketplaceIdentity } from "@/shared/marketplace-url";
+import { isEbayInput, isFacebookInput, isLazadaInput, isMarketplaceInput, isShopeeInput, marketplaceResolutionMessage, parseMarketplaceUrl, type MarketplaceIdentity } from "@/shared/marketplace-url";
+import type { EbaySearchListing } from "@/shared/ebay-search";
+import { formatPrice } from "@shared/currency";
 import {
   customProductSlug,
   discoverListings,
@@ -82,12 +84,14 @@ export function ManualAddSheet({
   visible,
   onClose,
   initialText,
+  initialEbayListing,
   trackedIds,
   onAdded,
 }: {
   visible: boolean;
   onClose: () => void;
   initialText?: string;
+  initialEbayListing?: EbaySearchListing;
   trackedIds: Set<string>;
   onAdded?: () => void;
 }) {
@@ -132,8 +136,17 @@ export function ManualAddSheet({
       setAdding(false);
       setProgress(null);
       setAiFailed(false);
+      if (initialEbayListing) {
+        const parsed = parseMarketplaceUrl(initialEbayListing.url);
+        if (parsed.kind === "product" && parsed.identity.platform === "ebay" && parsed.identity.itemId === initialEbayListing.itemId) {
+          setMarketplace(parsed.identity);
+          setDraft({ ...EMPTY_DRAFT, name: initialEbayListing.title, modelNumber: `ebay-us-${parsed.identity.itemId}` });
+          setSeller(initialEbayListing.seller ?? "");
+          setManualPrice(initialEbayListing.currency === "USD" && initialEbayListing.price !== null ? String(initialEbayListing.price) : "");
+        }
+      }
     }
-  }, [visible, initialText]);
+  }, [visible, initialText, initialEbayListing]);
 
   const reset = () => {
     setRaw(initialText ?? "");
@@ -555,6 +568,9 @@ export function ManualAddSheet({
                   <Text style={{ color: colors.muted, marginBottom: 12 }}>
                     {marketplaceSummary(marketplace)}{"\n"}
                     {marketplaceConfirmNote(marketplace)}
+                    {initialEbayListing?.price !== null && initialEbayListing?.price !== undefined && initialEbayListing.currency
+                      ? `\nSearch price: ${formatPrice(initialEbayListing.price, initialEbayListing.currency)}${initialEbayListing.currency !== "USD" ? ". This is the displayed search currency. Enter the item's USD price below; do not copy this number as USD." : ". Confirm the current listing price before saving."}`
+                      : ""}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8, fontWeight: "600" }}>
                     Market

@@ -2,6 +2,15 @@ import { MAX_MARKETPLACE_URL_LENGTH } from "../shared/const";
 import type { MarketplaceResolution } from "../shared/marketplace-url";
 import { createTRPCClient } from "./trpc";
 import { withTimeout } from "./with-timeout";
+import { EBAY_SEARCH_QUERY_MAX, type EbaySearchResult } from "../shared/ebay-search";
+
+export async function fetchEbaySearch(query: string): Promise<EbaySearchResult> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2 || trimmed.length > EBAY_SEARCH_QUERY_MAX) return { kind: "unavailable", reason: "unreadable" };
+  try {
+    return (await withTimeout(createTRPCClient().products.searchEbay.query({ query: trimmed }), 45000)) ?? { kind: "unavailable", reason: "network" };
+  } catch { return { kind: "unavailable", reason: "network" }; }
+}
 
 export async function fetchMarketplaceResolution(url: string): Promise<MarketplaceResolution> {
   if (url.trim().length > MAX_MARKETPLACE_URL_LENGTH) return { kind: "blocked", reason: "url" };

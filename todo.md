@@ -8579,3 +8579,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Rust port `desktop/src-tauri/src/scrapers/ebay.rs` (10 in-file tests) + `mod.rs` registration + `lib.rs` dispatch (`scrape(model, true)`); `tests/fixtures/scrapers/ebay-us.html`.
 - [x] Adversarial exemption for `ebay-us` (identity-keyed); cap deliberately bumped 3→4 with justification comment.
 - [x] `tests/ebay-guard.test.ts` + `desktop/tests/ebay-rust-guard.test.ts`; parser count 27→28 + match-row skips. TypeScript: 0 errors.
+
+## Phase 1151: eBay keyword search in Discover
+
+- [x] `shared/ebay-search.ts` (listing/result contracts, caps) + `server/ebay-search.ts` provider: Browse API (server-only OAuth client-credentials, token reuse) with a browser-rendered fallback.
+- [x] Card-scoped search-page extraction (own-card price, placeholder/badge stripping, condition/seller/shipping from attribute rows, dedup, 20 cap); verified empty vs blocked vs unreadable kept distinct.
+- [x] Public anonymous browser session for search (no distributor cookies; `publicSession` option) so a blocked saved session cannot poison results.
+- [x] `products.searchEbay` tRPC query (rate-limited) + `fetchEbaySearch` client wrapper; in-flight coalescing + 5-min cache + concurrency cap.
+- [x] `EbayResultsSection` inline in Discover results (image/title/price/condition/seller/shipping, Track per row, Retry on outage, stale-query guard); Track prefills the confirmation sheet.
+- [x] Tests: `tests/ebay-search.test.ts` (10) + `tests/ebay-results-section.test.tsx` (4) + Discover integration. TypeScript: 0 errors.
+- [ ] **Optional:** set `EBAY_CLIENT_ID` + `EBAY_CLIENT_SECRET` to use the Browse API instead of the browser fallback (structured results, no browser cost).
