@@ -5,7 +5,9 @@ import { fetchPinned, readCapped, resolvePublicAddresses } from "./product-parse
 
 const LAZADA_SHORT_HOST = "s.lazada.co.th";
 const FB_SHARE_HOST = "www.facebook.com";
+const EBAY_SHORT_HOST = "ebay.io";
 const FB_RENDER_TIMEOUT_MS = 20_000;
+const EBAY_RENDER_TIMEOUT_MS = 20_000;
 const LANDING_HTML_CAP = 500_000;
 
 export interface FacebookRenderDeps {
@@ -54,6 +56,63 @@ async function resolveFacebookShare(
   }
 }
 
+// Extracts an eBay item id from a final (post-render) item URL, but only when
+// the host is the canonical www.ebay.com — a short link could otherwise render
+// a lookalike page pointing at another host.
+export function parseEbayItemFromUrl(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url.trim());
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:" || parsed.hostname !== "www.ebay.com") return null;
+  const match = parsed.pathname.match(/^\/itm\/(?:[^/]+\/)?([1-9]\d{0,19})\/?$/);
+  return match ? match[1]! : null;
+}
+
+function ebayFinalUrlFromHtml(html: string): string | null {
+  const canonical =
+    html.match(/<link[^>]+rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)?.[1] ??
+    html.match(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["']canonical["']/i)?.[1];
+  if (canonical) return canonical;
+  const og =
+    html.match(/<meta[^>]+property=["']og:url["'][^>]*content=["']([^"']+)["']/i)?.[1] ??
+    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:url["']/i)?.[1];
+  if (og) return og;
+  const direct = html.match(/https:\/\/www\.ebay\.com\/itm\/[1-9]\d{0,19}/);
+  return direct ? direct[0] : null;
+}
+
+async function resolveEbayShort(
+  shortUrl: string,
+  renderHtml: FacebookRenderDeps["renderHtml"],
+): Promise<MarketplaceResolution> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const html = await Promise.race([
+      renderHtml(shortUrl),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("ebay render timed out")), EBAY_RENDER_TIMEOUT_MS);
+      }),
+    ]);
+    const finalUrl = ebayFinalUrlFromHtml(html);
+    const itemId = finalUrl ? parseEbayItemFromUrl(finalUrl) : null;
+    if (!itemId) return { kind: "error", reason: "unresolved" };
+    // Defense in depth: the extracted id must round-trip through the shared
+    // parser as a canonical www.ebay.com item URL before it is trusted.
+    const validated = parseMarketplaceUrl(`https://www.ebay.com/itm/${itemId}`);
+    if (validated.kind !== "product" || validated.identity.platform !== "ebay") {
+      return { kind: "error", reason: "unresolved" };
+    }
+    return { kind: "product", identity: validated.identity };
+  } catch {
+    return { kind: "error", reason: "network" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function parseLazadaLanding(html: string): MarketplaceIdentity | null {
   const appUrl = html.match(/lazada:\/\/th\/d\?[^"'`\s<>]+/i);
   if (appUrl) {
@@ -84,6 +143,9 @@ export async function resolveMarketplaceLink(
   const initial = parseMarketplaceUrl(raw.trim());
   if (initial.kind === "short_link" && new URL(initial.url).hostname === FB_SHARE_HOST) {
     return resolveFacebookShare(initial.url, deps.renderHtml ?? renderWithBrowser);
+  }
+  if (initial.kind === "short_link" && new URL(initial.url).hostname === EBAY_SHORT_HOST) {
+    return resolveEbayShort(initial.url, deps.renderHtml ?? renderWithBrowser);
   }
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
