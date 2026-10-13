@@ -31,7 +31,7 @@ import { classifyFetchStatus } from "@/lib/scrapers/resilient";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SessionAssistModal } from "@/components/session-assist-modal";
-import { isAssistCandidate } from "@/lib/scrapers/session-assist";
+import { assistUrl, isAssistCandidate } from "@/lib/scrapers/session-assist";
 import { markUnlocked } from "@/lib/scrapers/session-store";
 import { PARSERS } from "@/lib/scrapers/registry";
 
@@ -433,7 +433,7 @@ export default function HealthScreen() {
       {assistParserId && (
         <SessionAssistModal
           visible
-          parser={PARSERS.find((p) => p.id === assistParserId)!}
+          url={assistUrl(PARSERS.find((p) => p.id === assistParserId)!)}
           title={getDistributorById(assistParserId)?.name ?? assistParserId}
           onClose={() => setAssistParserId(null)}
           onDone={() => void handleAssistDone()}

@@ -33,6 +33,7 @@ vi.mock("@/lib/scrapers/session-store", () => ({
   markUnlocked: (id: string) => markUnlocked(id),
 }));
 vi.mock("@/lib/scrapers/session-assist", () => ({
+  assistUrl: (parser: { baseUrl: string }) => parser.baseUrl,
   clearDistributorSession: (a: unknown) => clearDistributorSession(a),
   clearSiteData: () => clearSiteData(),
   isAssistCandidate: (s?: string | null, r?: string | null) =>

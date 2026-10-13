@@ -6,6 +6,7 @@ import { getDistributorById } from "@shared/distributors";
 import { PARSERS } from "@/lib/scrapers/registry";
 import { createHealthService, type DistributorHealth } from "@/lib/scrapers/health";
 import {
+  assistUrl,
   clearDistributorSession,
   clearSiteData,
   isAssistCandidate,
@@ -161,7 +162,7 @@ export function SiteSessionsSection() {
       {assistId && (
         <SessionAssistModal
           visible
-          parser={PARSERS.find((p) => p.id === assistId)!}
+          url={assistUrl(PARSERS.find((p) => p.id === assistId)!)}
           title={getDistributorById(assistId)?.name ?? assistId}
           onClose={() => setAssistId(null)}
           onDone={() => {

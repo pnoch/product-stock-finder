@@ -15,6 +15,7 @@ vi.mock("react-native", async () => {
   const strip = (s: unknown): unknown => (typeof s === "function" ? strip((s as any)({ pressed: false })) : s);
   return {
     Modal: ({ children, visible }: any) => (visible ? React.createElement("div", null, children) : null),
+    Platform: { OS: "ios" },
     View: ({ children, ...r }: any) => React.createElement("div", r, children),
     Text: ({ children, ...r }: any) => React.createElement("span", r, children),
     Pressable: ({ children, onPress, accessibilityLabel, ...r }: any) =>
@@ -27,13 +28,10 @@ vi.mock("@/hooks/use-colors", () => ({
 vi.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+vi.mock("expo-linking", () => ({ openURL: vi.fn(async () => {}) }));
 
 import { SessionAssistModal } from "@/components/session-assist-modal";
-const parser = {
-  id: "pbtech-nz",
-  baseUrl: "https://www.pbtech.co.nz",
-  buildSearchUrl: (m: string) => `https://www.pbtech.co.nz/search?sf=${m}`,
-} as never;
+const url = "https://www.pbtech.co.nz";
 
 describe("SessionAssistModal", () => {
   afterEach(() => cleanup());
@@ -41,8 +39,8 @@ describe("SessionAssistModal", () => {
   it("renders the distributor site and fires Done/Close", () => {
     const onDone = vi.fn();
     const onClose = vi.fn();
-    render(<SessionAssistModal visible parser={parser} title="PB Tech" onDone={onDone} onClose={onClose} />);
-    expect(wv.current.source.uri).toBe("https://www.pbtech.co.nz");
+    render(<SessionAssistModal visible url={url} title="PB Tech" onDone={onDone} onClose={onClose} />);
+    expect(wv.current.source.uri).toBe(url);
     fireEvent.click(screen.getByLabelText("Done"));
     fireEvent.click(screen.getByLabelText("Close"));
     expect(onDone).toHaveBeenCalledTimes(1);
@@ -50,7 +48,7 @@ describe("SessionAssistModal", () => {
   });
 
   it("blocks non-web navigations", () => {
-    render(<SessionAssistModal visible parser={parser} title="PB Tech" onDone={() => {}} onClose={() => {}} />);
+    render(<SessionAssistModal visible url={url} title="PB Tech" onDone={() => {}} onClose={() => {}} />);
     const shouldLoad = wv.current.onShouldStartLoadWithRequest;
     expect(shouldLoad({ url: "https://www.pbtech.co.nz/x" })).toBe(true);
     expect(shouldLoad({ url: "intent://scan" })).toBe(false);
