@@ -27,6 +27,7 @@ import { multilinkParser } from "./multilink";
 import { neobitsParser } from "./neobits";
 import { shopeeThParser } from "./shopee-th";
 import { lazadaThParser } from "./lazada-th";
+import { ebayParser } from "./ebay";
 
 export const PARSERS: DistributorParser[] = [
   server2uParser,
@@ -56,6 +57,7 @@ export const PARSERS: DistributorParser[] = [
   neobitsParser,
   shopeeThParser,
   lazadaThParser,
+  ebayParser,
 ];
 
 export function getParserByDistributorId(
