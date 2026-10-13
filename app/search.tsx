@@ -1,5 +1,5 @@
 import { log } from "@shared/log";
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -154,7 +154,13 @@ function dedupeByIdentity<T extends { brand?: string; modelNumber?: string }>(
   return out;
 }
 
-export default function SearchScreen() {
+export default function SearchScreen({
+  mode = "add",
+  renderBrowse,
+}: {
+  mode?: "add" | "discover";
+  renderBrowse?: (query: string) => ReactNode;
+} = {}) {
   const router = useRouter();
   const colors = useColors();
   const { showToast } = useToast();
@@ -492,18 +498,18 @@ export default function SearchScreen() {
           gap: 12,
         }}
       >
-        <TouchableOpacity activeOpacity={0.7} onPress={() => goBackOrHome(router)} accessibilityLabel="Go back" accessibilityRole="button" style={{ padding: 4 }} hitSlop={12}>
+        {mode === "add" && <TouchableOpacity activeOpacity={0.7} onPress={() => goBackOrHome(router)} accessibilityLabel="Go back" accessibilityRole="button" style={{ padding: 4 }} hitSlop={12}>
           <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
-        </TouchableOpacity>
+        </TouchableOpacity>}
         <Text
           style={{
             color: colors.foreground,
-            fontSize: 20,
+            fontSize: mode === "discover" ? 28 : 20,
             fontWeight: "700",
             flex: 1,
           }}
         >
-          Add Product
+          {mode === "discover" ? "Discover" : "Add Product"}
         </Text>
         <TouchableOpacity activeOpacity={0.7}
           accessibilityLabel="Add product manually or import marketplace link"
@@ -555,7 +561,7 @@ export default function SearchScreen() {
           and squeezed the results list into a ~324px strip at the bottom). */}
       <FlatList showsVerticalScrollIndicator={true}
         style={{ flex: 1 }}
-        data={sortedResults}
+        data={mode === "discover" && !query.trim() ? [] : sortedResults}
         keyExtractor={(item) => item.id}
         initialNumToRender={10}
         windowSize={5}
@@ -564,6 +570,8 @@ export default function SearchScreen() {
         contentContainerStyle={{ paddingBottom: 24 }}
         ListHeaderComponent={
           <View>
+            {renderBrowse?.(query)}
+            {(mode === "add" || !!query.trim()) && <View>
             {query.length === 0 && (
               <RecentSearches
                 searches={recentSearches}
@@ -674,9 +682,10 @@ export default function SearchScreen() {
                 </View>
               )}
             </View>
+            </View>}
           </View>
         }
-        ListEmptyComponent={<SearchEmptyState query={query} selectedTagIds={selectedTagIds} />}
+        ListEmptyComponent={mode === "discover" && !query.trim() ? null : <SearchEmptyState query={query} selectedTagIds={selectedTagIds} />}
         ListFooterComponent={
           query.trim().length > 0 ? (
             <View style={{ paddingHorizontal: 16 }}>

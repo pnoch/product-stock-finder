@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
 import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
@@ -18,7 +18,7 @@ interface SearchPlan {
   query: string;
 }
 
-export function FacebookSearchSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function FacebookSearchSheet({ visible, onClose, initialQuery = "" }: { visible: boolean; onClose: () => void; initialQuery?: string }) {
   const colors = useColors();
   const {
     preferences,
@@ -30,6 +30,10 @@ export function FacebookSearchSheet({ visible, onClose }: { visible: boolean; on
   const [area, setArea] = useState(preferences.requestedArea);
   const [radius, setRadius] = useState<number>(preferences.requestedRadiusKm);
   const [searchPlan, setSearchPlan] = useState<SearchPlan | null>(null);
+
+  useEffect(() => {
+    if (visible) setKeyword(initialQuery);
+  }, [visible, initialQuery]);
 
   const persistPreferences = async () => {
     await setPreferences({

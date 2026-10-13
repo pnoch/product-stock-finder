@@ -24,8 +24,11 @@ describe("redesign navigation wiring", () => {
   });
 
   it("discover screen composes search + trending + available", () => {
+    // Plan 5.24: Discover now renders the shared SearchScreen (mode="discover")
+    // and passes Trending/Available as browse content, so the catalog search
+    // engine, Facebook results, and marketplace sheet all share one query.
     const src = read("app/(tabs)/discover.tsx");
-    expect(src).toContain("CatalogSearchBar");
+    expect(src).toContain('SearchScreen mode="discover"');
     expect(src).toContain("TrendingSection");
     expect(src).toContain("AvailableSection");
   });

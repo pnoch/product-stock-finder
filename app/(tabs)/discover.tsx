@@ -1,14 +1,13 @@
 import { useState } from "react";
-import { ScrollView, View, Text, RefreshControl, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
+import { View, Text, TouchableOpacity } from "react-native";
 import { useColors } from "@/hooks/use-colors";
-import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
+import SearchScreen from "@/app/search";
 import { TrendingSection } from "@/components/home/trending-section";
 import { AvailableSection } from "@/components/home/available-section";
 import { FacebookSearchSheet } from "@/components/marketplace/facebook-search-sheet";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
-function FacebookSearchEntry() {
+function FacebookSearchEntry({ query }: { query: string }) {
   const colors = useColors();
   const [visible, setVisible] = useState(false);
   return (
@@ -33,60 +32,27 @@ function FacebookSearchEntry() {
           </Text>
         </View>
       </TouchableOpacity>
-      <FacebookSearchSheet visible={visible} onClose={() => setVisible(false)} />
+      <FacebookSearchSheet visible={visible} initialQuery={query} onClose={() => setVisible(false)} />
     </View>
   );
 }
 
 export default function DiscoverScreen() {
-  const colors = useColors();
-  const router = useRouter();
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [query, setQuery] = useState("");
-
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            setRefreshKey((k) => k + 1);
-            setRefreshing(false);
-          }}
-        />
-      }
-    >
-      <View style={{ paddingTop: 16 }}>
-        <Text
-          style={{
-            color: colors.foreground,
-            fontSize: 28,
-            fontWeight: "700",
-            marginBottom: 12,
-            paddingHorizontal: 16,
-          }}
-        >
-          Discover
-        </Text>
-        <CatalogSearchBar
-          key={`search-${refreshKey}`}
-          query={query}
-          onQueryChange={setQuery}
-          onSearchSubmit={() => router.push("/search")}
-        />
+    <SearchScreen mode="discover" renderBrowse={(query) => (
+      <View>
+        <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+          <FacebookSearchEntry query={query} />
+        </View>
+        {!query.trim() && <View>
+          <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
+            <TrendingSection />
+          </View>
+          <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
+            <AvailableSection />
+          </View>
+        </View>}
       </View>
-      <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-        <FacebookSearchEntry />
-      </View>
-      <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
-        <TrendingSection key={`trending-${refreshKey}`} />
-      </View>
-      <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
-        <AvailableSection key={`available-${refreshKey}`} />
-      </View>
-    </ScrollView>
+    )} />
   );
 }
