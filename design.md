@@ -2,7 +2,7 @@
 
 ## App Overview
 
-A professional mobile app for tracking product availability and prices across 32 global electronics distributors (27 live parsers + 5 without a registered parser — health dashboard/classifyFetchStatus surfaces live status; resilientFetch escalates plain→browser with circuit breakers). Target users are IT professionals, procurement teams, and electronics enthusiasts who need to monitor hard-to-find products globally.
+A professional mobile app for tracking product availability and prices across 33 global electronics distributors (28 live parsers + 5 without a registered parser — health dashboard/classifyFetchStatus surfaces live status; resilientFetch escalates plain→browser with circuit breakers). Target users are IT professionals, procurement teams, and electronics enthusiasts who need to monitor hard-to-find products globally.
 
 ## Brand Identity
 
@@ -143,7 +143,7 @@ Stack screens (outside tabs): `product/[id]` (detail), `compare/[id]` (multi-dis
 - 🔴 Red pill: "Out of Stock"
 - ⚪ Gray pill: "Unknown"
 
-## Pre-loaded Distributor Database (32 sites)
+## Pre-loaded Distributor Database (33 sites)
 
 Regions covered: USA, Europe (UK, Germany, Poland, Greece, Czech Republic, EU), Asia-Pacific (Malaysia, Singapore, Hong Kong, Australia, New Zealand, Thailand), Middle East (UAE), Africa (South Africa)
 
@@ -181,6 +181,7 @@ Key distributors pre-loaded:
 - Steam (USA)
 - Shopee TH (Thailand, marketplace)
 - Lazada TH (Thailand, marketplace)
+- eBay (USA, marketplace)
 
 ## Pre-loaded Product Catalog
 

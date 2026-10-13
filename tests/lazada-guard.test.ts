@@ -26,11 +26,13 @@ describe("lazada guards", () => {
   });
 
   it("brands the marketplace card for Lazada", () => {
-    const src = readFileSync(
+    const card = readFileSync(
       "components/product/marketplace-card.tsx",
       "utf8",
     );
-    expect(src).toContain("Lazada TH");
+    const labels = readFileSync("lib/marketplace.ts", "utf8");
+    expect(card).toContain("marketplaceShortName");
+    expect(labels).toContain("Lazada TH");
   });
 
   it("resolves lazada short links server-side", () => {

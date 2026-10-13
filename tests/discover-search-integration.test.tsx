@@ -141,7 +141,7 @@ vi.mock("@/lib/server-product-parse", () => ({ fetchParsedProduct: vi.fn() }));
 vi.mock("@/lib/server-marketplace", () => ({ fetchMarketplaceResolution: vi.fn() }));
 vi.mock("@/lib/marketplace", () => ({ buildMarketplaceProduct: vi.fn(), parseManualPrice: () => 1, isMarketplaceKey: () => false }));
 vi.mock("@/shared/marketplace-url", () => ({
-  isFacebookInput: () => false, isLazadaInput: () => false, isShopeeInput: () => false, isMarketplaceInput: () => false,
+  isFacebookInput: () => false, isLazadaInput: () => false, isShopeeInput: () => false, isEbayInput: () => false, isMarketplaceInput: () => false,
 }));
 vi.mock("@/lib/entitlements", () => ({ shouldEnforceFreeLimits: () => false, track: vi.fn() }));
 vi.mock("@/lib/telemetry", () => ({ track: vi.fn() }));

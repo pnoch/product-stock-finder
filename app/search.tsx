@@ -51,7 +51,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
 import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
 import Fuse from "fuse.js";
-import { isFacebookInput, isLazadaInput, isMarketplaceInput, isShopeeInput } from "@/shared/marketplace-url";
+import { isEbayInput, isFacebookInput, isLazadaInput, isMarketplaceInput, isShopeeInput } from "@/shared/marketplace-url";
 
 type CatalogSort = "relevance" | "name" | "price" | "brand";
 
@@ -698,7 +698,7 @@ export default function SearchScreen({
                 </View>
               ) : (
                 <TouchableOpacity activeOpacity={0.85}
-                  accessibilityLabel={isFacebookInput(query) ? "Import Facebook link" : isLazadaInput(query) ? "Import Lazada link" : isShopeeInput(query) ? "Import Shopee link" : "Discover with AI"}
+                  accessibilityLabel={isFacebookInput(query) ? "Import Facebook link" : isLazadaInput(query) ? "Import Lazada link" : isShopeeInput(query) ? "Import Shopee link" : isEbayInput(query) ? "Import eBay link" : "Discover with AI"}
                   accessibilityRole="button"
                   onPress={handleDiscover}
                   style={{
@@ -726,7 +726,7 @@ export default function SearchScreen({
                       fontSize: 14,
                     }}
                   >
-                    {isFacebookInput(query) ? "Import Facebook Link" : isLazadaInput(query) ? "Import Lazada Link" : isShopeeInput(query) ? "Import Shopee Link" : "Discover with AI"}
+                    {isFacebookInput(query) ? "Import Facebook Link" : isLazadaInput(query) ? "Import Lazada Link" : isShopeeInput(query) ? "Import Shopee Link" : isEbayInput(query) ? "Import eBay Link" : "Discover with AI"}
                   </Text>
                 </TouchableOpacity>
               )}

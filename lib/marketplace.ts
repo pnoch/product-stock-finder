@@ -13,6 +13,28 @@ const MARKETPLACE_CURRENCY: Record<MarketplaceIdentity["platform"], string> = {
   ebay: "USD",
 };
 
+export function marketplaceBrandName(platform: string): string {
+  switch (platform) {
+    case "lazada": return "Lazada";
+    case "facebook": return "Facebook Marketplace";
+    case "ebay": return "eBay";
+    default: return "Shopee";
+  }
+}
+
+export function marketplaceShortName(platform: string): string {
+  switch (platform) {
+    case "lazada": return "Lazada TH";
+    case "facebook": return "Facebook Marketplace";
+    case "ebay": return "eBay";
+    default: return "Shopee TH";
+  }
+}
+
+export function marketplaceCurrency(platform: string): string {
+  return platform === "ebay" ? "USD" : "THB";
+}
+
 export interface MarketplaceRefresh {
   status: "updated" | "login_required" | "unavailable" | "no_price";
   /** True when the observed variant matches the tracked variant (both non-empty, case-insensitive). */

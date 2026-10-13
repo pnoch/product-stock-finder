@@ -23,8 +23,8 @@ import { track } from "@/lib/telemetry";
 import { DISCOVER_TIMEOUT_MS, manualAddProduct } from "@/lib/manual-add";
 import { fetchParsedProduct } from "@/lib/server-product-parse";
 import { fetchMarketplaceResolution } from "@/lib/server-marketplace";
-import { buildMarketplaceProduct, parseManualPrice } from "@/lib/marketplace";
-import { isFacebookInput, isLazadaInput, isMarketplaceInput, isShopeeInput, marketplaceResolutionMessage, type MarketplaceIdentity } from "@/shared/marketplace-url";
+import { buildMarketplaceProduct, marketplaceBrandName, marketplaceCurrency, marketplaceShortName, parseManualPrice } from "@/lib/marketplace";
+import { isEbayInput, isFacebookInput, isLazadaInput, isMarketplaceInput, isShopeeInput, marketplaceResolutionMessage, type MarketplaceIdentity } from "@/shared/marketplace-url";
 import {
   customProductSlug,
   discoverListings,
@@ -45,6 +45,24 @@ const EMPTY_DRAFT: Draft = {
   category: "",
   description: "",
 };
+
+function marketplaceSummary(marketplace: MarketplaceIdentity): string {
+  switch (marketplace.platform) {
+    case "lazada": return `Lazada TH · item ${marketplace.itemId} · sku ${marketplace.skuId}`;
+    case "shopee": return `Shopee TH · shop ${marketplace.shopId} · item ${marketplace.itemId}`;
+    case "ebay": return `eBay · item ${marketplace.itemId}`;
+    default: return `Facebook Marketplace · item ${marketplace.itemId}`;
+  }
+}
+
+function marketplaceConfirmNote(marketplace: MarketplaceIdentity): string {
+  switch (marketplace.platform) {
+    case "facebook": return "Confirm the seller. The variant field is optional. Prices are manual; Facebook may require login for a price check. No automatic price or stock alerts.";
+    case "shopee": return "Confirm the selected variant and seller. Prices are manual; Shopee may require login. No automatic price or stock alerts.";
+    case "ebay": return "Confirm the seller. The variant field is optional. Prices are manual; eBay may require login for a price check. No automatic price or stock alerts.";
+    default: return "Confirm the selected variant and seller. Prices are manual. No automatic price or stock alerts.";
+  }
+}
 
 function fieldStyle(colors: ReturnType<typeof useColors>) {
   return {
@@ -179,8 +197,10 @@ export function ManualAddSheet({
       ? "facebook"
       : isLazadaInput(text)
         ? "lazada"
-        : "shopee";
-    const brand = platform === "facebook" ? "Facebook Marketplace" : platform === "lazada" ? "Lazada" : "Shopee";
+        : isEbayInput(text)
+          ? "ebay"
+          : "shopee";
+    const brand = marketplaceBrandName(platform);
     if (result.kind !== "product") {
       showAlert(`${brand} link import`, marketplaceResolutionMessage(result, platform));
       return;
@@ -196,7 +216,9 @@ export function ManualAddSheet({
         ? `lazada-th-${identity.itemId}-${identity.skuId}`
         : identity.platform === "shopee"
           ? `shopee-th-${identity.shopId}-${identity.itemId}`
-          : `fbmp-${identity.itemId}`,
+          : identity.platform === "ebay"
+            ? `ebay-us-${identity.itemId}`
+            : `fbmp-${identity.itemId}`,
     });
     setAiFailed(false);
   };
@@ -266,8 +288,8 @@ export function ManualAddSheet({
       if (marketplaceProduct) {
         const added = await addToWatchlist(marketplaceProduct);
         if (!activeRef.current) return;
-        const mpBrand = marketplace?.platform === "lazada" ? "Lazada" : marketplace?.platform === "facebook" ? "Facebook Marketplace" : "Shopee";
-        const mpShort = marketplace?.platform === "lazada" ? "Lazada TH" : marketplace?.platform === "facebook" ? "Facebook Marketplace" : "Shopee TH";
+        const mpBrand = marketplaceBrandName(marketplace?.platform ?? "");
+        const mpShort = marketplaceShortName(marketplace?.platform ?? "");
         if (!added) { showAlert("Already Tracked", `This ${mpBrand} item is already tracked with a selected variant.`); return; }
         if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showAlert("Product Added", `Saved your manually entered ${mpShort} price. Automatic monitoring is unavailable.`);
@@ -330,7 +352,7 @@ export function ManualAddSheet({
     draft.name.trim().length > 0 &&
     draft.modelNumber.trim().length > 0 &&
     (!marketplace ||
-      ((marketplace.platform === "facebook" || !!variant.trim()) &&
+      ((marketplace.platform === "facebook" || marketplace.platform === "ebay" || !!variant.trim()) &&
         !!seller.trim() &&
         parseManualPrice(manualPrice) !== null));
 
@@ -397,7 +419,7 @@ export function ManualAddSheet({
               >
                 Paste anything — a model number, product name, or a spec-sheet
                 paragraph, or a Shopee Thailand / Lazada Thailand / Facebook
-                Marketplace product link. Marketplace imports require manual confirmation.
+                Marketplace / eBay product link. Marketplace imports require manual confirmation.
               </Text>
               <TextInput
                 value={raw}
@@ -430,7 +452,7 @@ export function ManualAddSheet({
                   justifyContent: "center",
                   gap: 8,
                 }}
-                accessibilityLabel={isFacebookInput(raw) ? "Import Facebook link" : isLazadaInput(raw) ? "Resolve Lazada link" : isShopeeInput(raw) ? "Resolve Shopee link" : "Clean up with AI"}
+                accessibilityLabel={isFacebookInput(raw) ? "Import Facebook link" : isLazadaInput(raw) ? "Resolve Lazada link" : isShopeeInput(raw) ? "Resolve Shopee link" : isEbayInput(raw) ? "Resolve eBay link" : "Clean up with AI"}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: parsing || raw.trim().length === 0 }}
               >
@@ -442,7 +464,7 @@ export function ManualAddSheet({
                     <Text
                       style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
                     >
-                       {isFacebookInput(raw) ? "Import Facebook Link" : isLazadaInput(raw) ? "Resolve Lazada Link" : isShopeeInput(raw) ? "Resolve Shopee Link" : "Clean up with AI"}
+                       {isFacebookInput(raw) ? "Import Facebook Link" : isLazadaInput(raw) ? "Resolve Lazada Link" : isShopeeInput(raw) ? "Resolve Shopee Link" : isEbayInput(raw) ? "Resolve eBay Link" : "Clean up with AI"}
                     </Text>
                   </>
                 )}
@@ -453,7 +475,7 @@ export function ManualAddSheet({
                 <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
               </View>
               <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8, fontWeight: "600" }}>
-                Paste distributor, Shopee Thailand, Lazada Thailand, or Facebook Marketplace URL
+                Paste distributor, Shopee Thailand, Lazada Thailand, Facebook Marketplace, or eBay URL
               </Text>
               <TextInput
                 value={urlInput}
@@ -531,22 +553,14 @@ export function ManualAddSheet({
               {marketplace ? (
                 <>
                   <Text style={{ color: colors.muted, marginBottom: 12 }}>
-                    {marketplace.platform === "lazada"
-                      ? `Lazada TH · item ${marketplace.itemId} · sku ${marketplace.skuId}`
-                      : marketplace.platform === "shopee"
-                        ? `Shopee TH · shop ${marketplace.shopId} · item ${marketplace.itemId}`
-                        : `Facebook Marketplace · item ${marketplace.itemId}`}{"\n"}
-                    {marketplace.platform === "facebook"
-                      ? "Confirm the seller. The variant field is optional. Prices are manual; Facebook may require login for a price check. No automatic price or stock alerts."
-                      : marketplace.platform === "shopee"
-                        ? "Confirm the selected variant and seller. Prices are manual; Shopee may require login. No automatic price or stock alerts."
-                        : "Confirm the selected variant and seller. Prices are manual. No automatic price or stock alerts."}
+                    {marketplaceSummary(marketplace)}{"\n"}
+                    {marketplaceConfirmNote(marketplace)}
                   </Text>
                   <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8, fontWeight: "600" }}>
                     Market
                   </Text>
                   <View
-                    accessibilityLabel="Market: Thailand, Thai baht"
+                    accessibilityLabel={`Market: ${marketplace.platform === "ebay" ? "United States, US dollar" : "Thailand, Thai baht"}`}
                     style={{
                       backgroundColor: colors.surface,
                       borderRadius: 14,
@@ -558,12 +572,12 @@ export function ManualAddSheet({
                     }}
                   >
                     <Text style={{ color: colors.foreground, fontSize: 14 }}>
-                      Thailand · THB
+                      {marketplace.platform === "ebay" ? "United States · USD" : "Thailand · THB"}
                     </Text>
                   </View>
-                  <TextInput value={variant} onChangeText={setVariant} placeholder={marketplace.platform === "facebook" ? "Variant (optional)" : "Selected variant (or Single option)"} accessibilityLabel="Selected variant" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
+                  <TextInput value={variant} onChangeText={setVariant} placeholder={marketplace.platform === "facebook" || marketplace.platform === "ebay" ? "Variant (optional)" : "Selected variant (or Single option)"} accessibilityLabel="Selected variant" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
                   <TextInput value={seller} onChangeText={setSeller} placeholder="Seller" accessibilityLabel="Seller" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
-                  <TextInput value={manualPrice} onChangeText={setManualPrice} placeholder="Manually entered price (THB)" accessibilityLabel="Manual THB price" keyboardType="decimal-pad" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
+                  <TextInput value={manualPrice} onChangeText={setManualPrice} placeholder={`Manually entered price (${marketplaceCurrency(marketplace.platform)})`} accessibilityLabel={`Manual ${marketplaceCurrency(marketplace.platform)} price`} keyboardType="decimal-pad" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
                 </>
               ) : (
               <>
@@ -628,7 +642,7 @@ export function ManualAddSheet({
                   gap: 8,
                   marginBottom: 12,
                 }}
-                accessibilityLabel={marketplace ? `Save manual ${marketplace.platform === "lazada" ? "Lazada" : marketplace.platform === "facebook" ? "Facebook Marketplace" : "Shopee"} product` : "Add and search distributors"}
+                accessibilityLabel={marketplace ? `Save manual ${marketplaceBrandName(marketplace.platform)} product` : "Add and search distributors"}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: !canAdd || adding }}
               >
@@ -644,7 +658,7 @@ export function ManualAddSheet({
                     <Text
                       style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
                     >
-                      {marketplace ? `Save Manual ${marketplace.platform === "lazada" ? "Lazada" : marketplace.platform === "facebook" ? "Facebook Marketplace" : "Shopee"} Product` : "Add & Search Distributors"}
+                      {marketplace ? `Save Manual ${marketplaceBrandName(marketplace.platform)} Product` : "Add & Search Distributors"}
                     </Text>
                   </>
                 )}

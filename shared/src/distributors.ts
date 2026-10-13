@@ -584,6 +584,18 @@ export const DISTRIBUTORS: Distributor[] = [
     paymentMethods: ["Credit Card", "Bank Transfer", "Cash on Delivery"],
     notes: "Marketplace — tracked per listing; plain-fetch first",
   },
+  {
+    id: "ebay-us",
+    name: "eBay",
+    taxMode: "origin",
+    currency: "USD",
+    country: "United States",
+    countryCode: "US",
+    region: "North America",
+    website: "https://www.ebay.com",
+    paymentMethods: ["Credit Card", "PayPal"],
+    notes: "Marketplace — tracked per listing; browser-first checks",
+  },
 ];
 
 export function getDistributorById(id: string): Distributor | undefined {

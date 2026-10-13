@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { useMarketplaceConnections } from "@/hooks/use-marketplace-connections";
 import type { Product } from "@/lib/types";
-import { parseManualPrice, refreshMarketplaceListing } from "@/lib/marketplace";
+import { marketplaceBrandName, marketplaceCurrency, marketplaceShortName, parseManualPrice, refreshMarketplaceListing } from "@/lib/marketplace";
 import { updateManualMarketplacePrice } from "@/lib/storage";
 import { showAlert } from "@/lib/alert";
 import { formatPrice } from "@shared/currency";
@@ -19,8 +19,8 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
   const marketplace = product.marketplace;
-  const brand = marketplace?.platform === "lazada" ? "Lazada" : marketplace?.platform === "facebook" ? "Facebook Marketplace" : "Shopee";
-  const shortName = marketplace?.platform === "lazada" ? "Lazada TH" : marketplace?.platform === "facebook" ? "Facebook Marketplace" : "Shopee TH";
+  const brand = marketplaceBrandName(marketplace?.platform ?? "");
+  const shortName = marketplaceShortName(marketplace?.platform ?? "");
   const visitLabel = marketplace?.platform === "facebook" ? "Open Facebook listing" : `Visit ${brand} product`;
   const check = async () => {
     if (checking) return;
@@ -50,7 +50,9 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
           "No price found",
           marketplace?.platform === "facebook"
             ? "The listing may have changed or been removed — reconfirm it, or re-import the link."
-            : "The page loaded but no variant price was readable. Try again later.",
+            : marketplace?.platform === "ebay"
+              ? "The page loaded but no price was readable — the listing may have changed. Try again later."
+              : "The page loaded but no variant price was readable. Try again later.",
         );
       } else {
         showAlert("Check unavailable", "On-device price check isn't available on this platform.");
@@ -79,7 +81,7 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
     <View style={{ margin: 16, padding: 16, borderRadius: 16, backgroundColor: colors.surface, gap: 12 }}>
       <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 18 }}>{shortName}</Text>
       <Text style={{ color: colors.foreground }}>Selected variant: {marketplace.variant}{"\n"}Seller: {marketplace.seller}</Text>
-      <Text style={{ color: colors.foreground }}>Manually entered price: {listing ? formatPrice(listing.price, "THB") : "Not entered"}</Text>
+      <Text style={{ color: colors.foreground }}>Manually entered price: {listing ? formatPrice(listing.price, listing.currency) : "Not entered"}</Text>
       {listing && <Text style={{ color: colors.muted }}>Entered {new Date(listing.lastChecked).toLocaleString()} · {listing.priceHistory.length} manual price records</Text>}
       <Text style={{ color: colors.muted }}>Monitoring: {marketplace.monitoringStatus.replace("_", " ")}. {brand === "Shopee" ? "Shopee may require login. " : ""}{brand === "Facebook Marketplace" ? "Facebook requires login. " : ""}Price and stock are not automatically verified; automatic alerts are unavailable.</Text>
       <TouchableOpacity accessibilityRole="link" accessibilityLabel={visitLabel} onPress={() => { void Linking.openURL(marketplace.canonicalUrl).catch(() => showAlert(`Couldn't open ${brand}`, "Please try again.")); }}>
@@ -103,7 +105,7 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
       <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Check current ${brand} price`} disabled={checking} onPress={() => void check()}>
         <Text style={{ color: colors.primary }}>{checking ? "Checking…" : "Check current price"}</Text>
       </TouchableOpacity>
-      <TextInput accessibilityLabel="Updated manual THB price" placeholder="New manual price (THB)" placeholderTextColor={colors.muted} keyboardType="decimal-pad" value={price} onChangeText={setPrice} style={{ color: colors.foreground, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12 }} />
+      <TextInput accessibilityLabel={`Updated manual ${marketplaceCurrency(marketplace.platform)} price`} placeholder={`New manual price (${marketplaceCurrency(marketplace.platform)})`} placeholderTextColor={colors.muted} keyboardType="decimal-pad" value={price} onChangeText={setPrice} style={{ color: colors.foreground, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12 }} />
       <TouchableOpacity accessibilityRole="button" accessibilityLabel="Save manual price" disabled={saving || parseManualPrice(price) === null} onPress={() => void save()} style={{ opacity: saving || parseManualPrice(price) === null ? 0.5 : 1 }}>
         <Text style={{ color: colors.primary }}>{saving ? "Saving…" : "Save manual price"}</Text>
       </TouchableOpacity>
