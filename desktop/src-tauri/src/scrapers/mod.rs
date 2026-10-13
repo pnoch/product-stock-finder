@@ -4,6 +4,8 @@ pub mod bhphoto;
 pub mod breaker;
 pub mod browser;
 pub mod duxtel;
+#[path = "ebay.rs"]
+pub mod ebay;
 pub mod flytec;
 pub mod gearup;
 pub mod getic;

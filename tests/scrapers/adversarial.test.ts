@@ -36,6 +36,10 @@ const CANNOT_PARSE_SYNTHETIC = new Set<string>([
   // catalog-style model names carries no signal it can verify. Covered by
   // lazada-th.test.ts.
   "lazada-th",
+  // ebay-us is identity-keyed too (ebay-us-{itemId} matched against the page's
+  // `/itm/{id}` reference + JSON-LD), so this synthetic card markup carries no
+  // signal it can verify. Covered by ebay.test.ts.
+  "ebay-us",
 ]);
 
 describe("parser wrong-product guard (adversarial two-product page)", () => {
@@ -60,13 +64,13 @@ describe("parser wrong-product guard (adversarial two-product page)", () => {
   it("keeps the exception list explicit and small", () => {
     // Every parser must be exercised by the loop above; the only ones allowed
     // to skip are the documented exceptions, and they must be real parser ids.
-    // Cap is 3 (deliberate bump from 2): getic reads attributes, and the two
-    // marketplace parsers are identity-keyed — a fourth exemption needs a new
-    // justification here, not a silent cap bump.
+    // Cap is 4 (deliberate bump from 3): getic reads attributes, and the three
+    // marketplace parsers (shopee/lazada/ebay) are identity-keyed — a fifth
+    // exemption needs a new justification here, not a silent cap bump.
     const ids = new Set(PARSERS.map((p) => p.id));
     for (const id of CANNOT_PARSE_SYNTHETIC) {
       expect(ids.has(id), `${id} is not a registered parser`).toBe(true);
     }
-    expect(CANNOT_PARSE_SYNTHETIC.size).toBeLessThanOrEqual(3);
+    expect(CANNOT_PARSE_SYNTHETIC.size).toBeLessThanOrEqual(4);
   });
 });

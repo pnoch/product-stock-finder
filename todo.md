@@ -8568,3 +8568,14 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] `/connected-marketplaces` screen + You entry + card/search reconnect actions + search retry-once.
 - [x] Tests (68 across 6 files) + `pnpm verify` exit 0. TypeScript: 0 errors.
 - [ ] **Pending:** signed-in Android verification (login, shared-session access, expiry, disconnect) — see `docs/superpowers/evidence/2026-10-13-connected-marketplaces.md`.
+
+## Phase 1150: eBay Integration (fourth marketplace platform)
+
+- [x] `EbayIdentity` + canonical (`/itm/{id}`, slug form) and `ebay.io/m/{code}` short-link recognition; `isEbayInput`, `isMarketplaceInput`, `isMarketplaceKey("ebay-us-")`, resolution messages.
+- [x] `ebay.io` short links resolve via the bounded headed render (final URL → `www.ebay.com` item id, host-checked + round-tripped); canonical URLs validate inline.
+- [x] `parseEbayPrice` reads JSON-LD (array or object Product; price/currency/availability/itemCondition, `<wbr/>` stripped), identity-guarded and error-page aware.
+- [x] `ebay-us` parser (browser-first, 60s rate limit) + registry; builder/refresh with a per-platform currency map (USD); auto-flip on identity+price (no variant).
+- [x] Platform-aware labels + `ebay-us` catalog entry (33 distributors / 28 parsers) + docs counts.
+- [x] Rust port `desktop/src-tauri/src/scrapers/ebay.rs` (10 in-file tests) + `mod.rs` registration + `lib.rs` dispatch (`scrape(model, true)`); `tests/fixtures/scrapers/ebay-us.html`.
+- [x] Adversarial exemption for `ebay-us` (identity-keyed); cap deliberately bumped 3→4 with justification comment.
+- [x] `tests/ebay-guard.test.ts` + `desktop/tests/ebay-rust-guard.test.ts`; parser count 27→28 + match-row skips. TypeScript: 0 errors.
