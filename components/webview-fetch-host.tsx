@@ -5,7 +5,10 @@ import { BrowserUnavailableError } from "@/lib/scrapers/resilient";
 import {
   buildClearStorageJS,
   buildInjectedJS,
+  buildSnapshotJS,
+  parseSnapshotMessage,
   setWebViewHost,
+  type MarketplacePageSnapshot,
   type WebViewHost,
   type WebViewLoadOptions,
 } from "@/lib/scrapers/webview-host";
@@ -18,13 +21,15 @@ const MAX_QUEUE = 25;
 // native browser instance.
 const POOL_SIZE = 2;
 
+type PendingValue = string | MarketplacePageSnapshot;
+
 interface PendingRequest {
   id: number;
   url: string;
-  mode: "html" | "clear";
+  mode: "html" | "clear" | "snapshot";
   waitForSelector?: string;
   timeoutMs: number;
-  resolve: (html: string) => void;
+  resolve: (value: PendingValue) => void;
   reject: (err: Error) => void;
 }
 
@@ -75,7 +80,7 @@ export function WebViewFetchHost() {
     (
       slot: number,
       req: PendingRequest,
-      html: string | null,
+      value: PendingValue | null,
       error: Error | null,
     ) => {
       if (slotsRef.current[slot] !== req) return;
@@ -85,7 +90,7 @@ export function WebViewFetchHost() {
       timersRef.current[slot] = null;
       setSlots([...slotsRef.current]);
       if (error) req.reject(error);
-      else req.resolve(html ?? "");
+      else req.resolve(value ?? "");
       pump();
     },
     [pump],
@@ -99,10 +104,10 @@ export function WebViewFetchHost() {
     const timers = timersRef.current;
     function enqueue(
       url: string,
-      mode: "html" | "clear",
+      mode: "html" | "clear" | "snapshot",
       opts?: WebViewLoadOptions,
-    ): Promise<string> {
-      return new Promise<string>((resolve, reject) => {
+    ): Promise<PendingValue> {
+      return new Promise<PendingValue>((resolve, reject) => {
         if (queue.length >= MAX_QUEUE) {
           reject(new BrowserUnavailableError("webview queue full"));
           return;
@@ -120,8 +125,18 @@ export function WebViewFetchHost() {
       });
     }
     const host: WebViewHost = {
-      load: (url, opts) => enqueue(url, "html", opts),
+      load: (url, opts) =>
+        enqueue(url, "html", opts).then((value) =>
+          typeof value === "string" ? value : "",
+        ),
       clearStorage: (url) => enqueue(url, "clear").then(() => undefined),
+      snapshot: (url, opts) =>
+        enqueue(url, "snapshot", opts).then((value) => {
+          if (typeof value === "string") {
+            throw new BrowserUnavailableError("snapshot unavailable");
+          }
+          return value;
+        }),
     };
     setWebViewHost(host);
     return () => {
@@ -167,13 +182,27 @@ export function WebViewFetchHost() {
             injectedJavaScript={
               req.mode === "clear"
                 ? buildClearStorageJS()
-                : buildInjectedJS({
-                    waitForSelector: req.waitForSelector,
-                    timeoutMs: req.timeoutMs,
-                    settleMs: SETTLE_MS,
-                  })
+                : req.mode === "snapshot"
+                  ? buildSnapshotJS({
+                      timeoutMs: req.timeoutMs,
+                      settleMs: SETTLE_MS,
+                    })
+                  : buildInjectedJS({
+                      waitForSelector: req.waitForSelector,
+                      timeoutMs: req.timeoutMs,
+                      settleMs: SETTLE_MS,
+                    })
             }
-            onMessage={(event) => finish(slot, req, event.nativeEvent.data, null)}
+            onMessage={(event) => {
+              if (req.mode !== "snapshot") {
+                finish(slot, req, event.nativeEvent.data, null);
+                return;
+              }
+              // Validate at the native boundary; ignore any non-snapshot
+              // message (page-injected chatter) until the real one arrives.
+              const snapshot = parseSnapshotMessage(event.nativeEvent.data);
+              if (snapshot) finish(slot, req, snapshot, null);
+            }}
             onError={(event) =>
               finish(
                 slot,
