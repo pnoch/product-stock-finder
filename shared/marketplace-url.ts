@@ -22,11 +22,18 @@ export interface FacebookIdentity {
   canonicalUrl: string; // https://www.facebook.com/marketplace/item/{itemId}/
 }
 
-export type MarketplaceIdentity = ShopeeIdentity | LazadaIdentity | FacebookIdentity;
+export interface EbayIdentity {
+  platform: "ebay";
+  region: "US";
+  itemId: string; // digits, no leading zero
+  canonicalUrl: string; // https://www.ebay.com/itm/{itemId}
+}
+
+export type MarketplaceIdentity = ShopeeIdentity | LazadaIdentity | FacebookIdentity | EbayIdentity;
 
 export function isMarketplaceKey(modelNumber?: string): boolean {
   return typeof modelNumber === "string" &&
-    (modelNumber.startsWith("shopee-th-") || modelNumber.startsWith("lazada-th-") || modelNumber.startsWith("fbmp-"));
+    (modelNumber.startsWith("shopee-th-") || modelNumber.startsWith("lazada-th-") || modelNumber.startsWith("fbmp-") || modelNumber.startsWith("ebay-us-"));
 }
 
 export type MarketplaceUrl =
@@ -71,6 +78,17 @@ export function parseMarketplaceUrl(raw: string): MarketplaceUrl {
     }
     return { kind: "invalid" };
   }
+  if (url.hostname === "ebay.io") {
+    if (/^\/m\/[A-Za-z0-9_-]{1,64}\/?$/.test(url.pathname)) return { kind: "short_link", url: url.href };
+    return { kind: "invalid" };
+  }
+  if (url.hostname === "www.ebay.com") {
+    const item = url.pathname.match(/^\/itm\/([1-9]\d{0,19})\/?$/)
+      ?? url.pathname.match(/^\/itm\/[^/]+\/([1-9]\d{0,19})\/?$/);
+    if (!item) return { kind: "invalid" };
+    const [, itemId] = item;
+    return { kind: "product", identity: { platform: "ebay", region: "US", itemId, canonicalUrl: `https://www.ebay.com/itm/${itemId}` } };
+  }
   if (url.hostname !== "shopee.co.th") return { kind: "invalid" };
   const match = url.pathname.match(/^\/(?:product|opaanlp)\/([1-9]\d{0,19})\/([1-9]\d{0,19})\/?$/)
     ?? url.pathname.match(/^\/[^/]+-i\.([1-9]\d{0,19})\.([1-9]\d{0,19})\/?$/);
@@ -91,8 +109,12 @@ export function isFacebookInput(raw: string): boolean {
   return /facebook/i.test(raw);
 }
 
+export function isEbayInput(raw: string): boolean {
+  return /ebay/i.test(raw);
+}
+
 export function isMarketplaceInput(raw: string): boolean {
-  return isShopeeInput(raw) || isLazadaInput(raw) || isFacebookInput(raw);
+  return isShopeeInput(raw) || isLazadaInput(raw) || isFacebookInput(raw) || isEbayInput(raw);
 }
 
 export function marketplaceResolutionMessage(result: Exclude<MarketplaceResolution, { kind: "product" }>, platform: MarketplaceIdentity["platform"] = "shopee"): string {
@@ -100,6 +122,10 @@ export function marketplaceResolutionMessage(result: Exclude<MarketplaceResoluti
   if (platform === "facebook") {
     if (result.kind === "blocked") return "This Facebook Marketplace link could not be resolved safely. Copy the individual Marketplace item link.";
     return "Couldn't resolve the Facebook Marketplace link. Try again or copy the individual Marketplace item link.";
+  }
+  if (platform === "ebay") {
+    if (result.kind === "blocked") return "This eBay link could not be resolved safely. Copy the individual item link.";
+    return "Couldn't resolve the eBay link. Try again or copy the individual item link.";
   }
   const brand = platform === "lazada" ? "Lazada" : "Shopee";
   if (result.kind === "blocked") return `This ${brand} link could not be resolved safely. Paste the individual product's canonical URL.`;
