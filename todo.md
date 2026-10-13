@@ -8558,3 +8558,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Inline "Facebook Marketplace (N)" section in Discover search results (session-gated).
 - [x] Track → confirmation sheet prefill; login/unavailable/empty states distinct.
 - [x] Guards. TypeScript: 0 errors.
+
+## Phase 1149: Connected Marketplaces
+
+- [x] `lib/marketplace/connections.ts` — device-local verification states, per-site generations, shared Facebook preferences, subscriptions.
+- [x] Visible session browser generalized to a URL prop (distributor callers migrated); marketplace navigation policy + external-browser fallback.
+- [x] `WebViewHost.snapshot()` + card-scoped extraction; page classification (login dialog vs header link, verified empty vs unreadable); observed-vs-requested scope.
+- [x] `lib/marketplace/session-clear.ts` + `use-marketplace-connections` hook; scoped disconnect with stale-check protection; clear-all-data integration.
+- [x] `/connected-marketplaces` screen + You entry + card/search reconnect actions + search retry-once.
+- [x] Tests (68 across 6 files) + `pnpm verify` exit 0. TypeScript: 0 errors.
+- [ ] **Pending:** signed-in Android verification (login, shared-session access, expiry, disconnect) — see `docs/superpowers/evidence/2026-10-13-connected-marketplaces.md`.
