@@ -4,6 +4,19 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.25.0] - 2026-10-13
+
+### Added
+
+- eBay keyword search in Discover (Phase 1151): typing a query now shows an
+  "eBay listings" section inline with catalog results, with image, title,
+  price, condition, seller, and shipping, and a Track button per row. The
+  server uses the eBay Browse API when `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET`
+  are set, and falls back to a browser-rendered search page otherwise (an
+  anonymous session that never touches distributor cookies). Verified empty
+  results, blocked pages, and unreadable pages stay distinct, so a failed
+  search is never shown as "no matches".
+
 ## [5.24.0] - 2026-10-13
 
 ### Added
