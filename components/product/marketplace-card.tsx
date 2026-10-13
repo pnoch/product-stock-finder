@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
 import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
+import { useMarketplaceConnections } from "@/hooks/use-marketplace-connections";
 import type { Product } from "@/lib/types";
 import { parseManualPrice, refreshMarketplaceListing } from "@/lib/marketplace";
 import { updateManualMarketplacePrice } from "@/lib/storage";
@@ -11,6 +13,8 @@ import { formatPrice } from "@shared/currency";
 
 export function MarketplaceCard({ product, onUpdated }: { product: Product; onUpdated: () => Promise<unknown> }) {
   const colors = useColors();
+  const router = useRouter();
+  const { connections } = useMarketplaceConnections();
   const [price, setPrice] = useState("");
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -54,6 +58,10 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
     } finally { setChecking(false); }
   };
   if (!marketplace) return null;
+  const verification = connections.find(
+    (connection) => connection.site === marketplace.platform,
+  )?.verification;
+  const connectLabel = verification?.kind === "ready" ? "Reconnect" : "Connect";
   const listing = product.listings[0];
   const save = async () => {
     if (saving || parseManualPrice(price) === null) return;
@@ -76,6 +84,21 @@ export function MarketplaceCard({ product, onUpdated }: { product: Product; onUp
       <Text style={{ color: colors.muted }}>Monitoring: {marketplace.monitoringStatus.replace("_", " ")}. {brand === "Shopee" ? "Shopee may require login. " : ""}{brand === "Facebook Marketplace" ? "Facebook requires login. " : ""}Price and stock are not automatically verified; automatic alerts are unavailable.</Text>
       <TouchableOpacity accessibilityRole="link" accessibilityLabel={visitLabel} onPress={() => { void Linking.openURL(marketplace.canonicalUrl).catch(() => showAlert(`Couldn't open ${brand}`, "Please try again.")); }}>
         <Text style={{ color: colors.primary }}>{visitLabel}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`${connectLabel} ${brand}`}
+        onPress={() => {
+          if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          // Carry the tracked product so the connection screen verifies this
+          // exact listing instead of a generic navigation probe.
+          router.push({
+            pathname: "/connected-marketplaces",
+            params: { site: marketplace.platform, productId: product.id },
+          });
+        }}
+      >
+        <Text style={{ color: colors.primary }}>{connectLabel} {brand} session</Text>
       </TouchableOpacity>
       <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Check current ${brand} price`} disabled={checking} onPress={() => void check()}>
         <Text style={{ color: colors.primary }}>{checking ? "Checking…" : "Check current price"}</Text>

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 
 import { useColors } from "@/hooks/use-colors";
@@ -13,13 +14,33 @@ import {
   buildFbSearchUrl,
   searchFbMarketplace,
   type FbSearchState,
+  type ObservedSearchScope,
 } from "@/lib/marketplace/fb-search";
+import {
+  getMarketplaceConnectionsService,
+  type FacebookSearchPreference,
+} from "@/lib/marketplace/connections";
 
-const FB_LOCATION = "Bangkok";
-const FB_RADIUS_KM = 64;
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 500;
 const MAX_ROWS = 5;
+
+function requestedScopeLabel(preferences: FacebookSearchPreference): string {
+  const area = preferences.requestedArea.trim();
+  return `Requested: ${area || "location not set"} · ${preferences.requestedRadiusKm} km`;
+}
+
+function observedScopeLabel(observed: ObservedSearchScope): string {
+  const area = observed.area?.trim();
+  const parts: string[] = [];
+  parts.push(area ? `Location: ${area}` : "Location not confirmed");
+  parts.push(
+    observed.radiusKm != null
+      ? `Radius: ${observed.radiusKm} km`
+      : "Radius not confirmed",
+  );
+  return parts.join(" · ");
+}
 
 export function FacebookResultsSection({
   query,
@@ -29,9 +50,55 @@ export function FacebookResultsSection({
   onTrack: (url: string) => void;
 }) {
   const colors = useColors();
+  const router = useRouter();
+  const service = useMemo(() => getMarketplaceConnectionsService(), []);
   const [state, setState] = useState<FbSearchState | null>(null);
   const [loading, setLoading] = useState(false);
+  const [preferences, setPreferences] = useState<FacebookSearchPreference>(
+    () => service.preferences(),
+  );
+  const [retryToken, setRetryToken] = useState(0);
   const trimmed = query.trim();
+  const trimmedRef = useRef(trimmed);
+  const retriedAtRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    trimmedRef.current = trimmed;
+  }, [trimmed]);
+
+  useEffect(() => {
+    let active = true;
+    void service
+      .load()
+      .then(() => {
+        if (active) setPreferences(service.preferences());
+      })
+      .catch(() => {});
+    const unsubscribe = service.subscribe((event) => {
+      if (event.type === "preferences") {
+        setPreferences(event.preferences);
+        return;
+      }
+      // A completed Facebook search verification means the sign-in flow
+      // succeeded: re-run the retained query exactly once. Failed checks never
+      // reach here, and a query change no longer matches the retained query.
+      if (
+        event.type === "verification" &&
+        event.site === "facebook" &&
+        event.verification.kind === "ready" &&
+        event.verification.capability.kind === "search" &&
+        event.verification.capability.query.trim() === trimmedRef.current &&
+        event.verification.checkedAt !== retriedAtRef.current
+      ) {
+        retriedAtRef.current = event.verification.checkedAt;
+        setRetryToken((token) => token + 1);
+      }
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [service]);
 
   useEffect(() => {
     if (trimmed.length < MIN_QUERY_LENGTH) {
@@ -44,8 +111,8 @@ export function FacebookResultsSection({
     const timer = setTimeout(() => {
       void searchFbMarketplace({
         query: trimmed,
-        location: FB_LOCATION,
-        radiusKm: FB_RADIUS_KM,
+        location: preferences.requestedArea,
+        radiusKm: preferences.requestedRadiusKm,
       })
         .then((result) => {
           if (!active) return;
@@ -62,9 +129,39 @@ export function FacebookResultsSection({
       active = false;
       clearTimeout(timer);
     };
-  }, [trimmed]);
+  }, [
+    trimmed,
+    preferences.requestedArea,
+    preferences.requestedRadiusKm,
+    retryToken,
+  ]);
 
   if (trimmed.length < MIN_QUERY_LENGTH) return null;
+
+  const connectButton = (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel="Connect Facebook"
+      onPress={() =>
+        router.push({
+          pathname: "/connected-marketplaces",
+          params: { site: "facebook", keyword: trimmed },
+        })
+      }
+      style={{
+        marginTop: 8,
+        alignSelf: "flex-start",
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: colors.primary,
+      }}
+    >
+      <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>
+        Connect Facebook
+      </Text>
+    </TouchableOpacity>
+  );
 
   if (loading) {
     return (
@@ -104,17 +201,46 @@ export function FacebookResultsSection({
         <Text style={{ color: colors.muted, fontSize: 12 }}>
           Facebook Marketplace — sign in in the app browser to see local listings
         </Text>
+        {connectButton}
+      </View>
+    );
+  }
+
+  if (state.kind === "unverified") {
+    return (
+      <View
+        style={{
+          marginHorizontal: 16,
+          marginBottom: 12,
+          padding: 12,
+          borderRadius: 12,
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
+      >
+        <Text style={{ color: colors.muted, fontSize: 12 }}>
+          Facebook Marketplace results couldn&apos;t be read this time. This is
+          not a confirmed empty result.
+        </Text>
+        {connectButton}
       </View>
     );
   }
 
   if (state.kind !== "listings") return null;
 
-  const { listings } = state;
+  const { listings, observedScope } = state;
+  const requestedArea = preferences.requestedArea.trim();
+  const observedArea = observedScope.area?.trim() ?? null;
+  const areaMismatch =
+    requestedArea !== "" &&
+    observedArea !== null &&
+    observedArea.toLowerCase() !== requestedArea.toLowerCase();
   const seeAllUrl = buildFbSearchUrl({
     query: trimmed,
-    location: FB_LOCATION,
-    radiusKm: FB_RADIUS_KM,
+    location: preferences.requestedArea,
+    radiusKm: preferences.requestedRadiusKm,
   });
 
   return (
@@ -134,11 +260,32 @@ export function FacebookResultsSection({
           color: colors.foreground,
           fontWeight: "700",
           fontSize: 15,
-          marginBottom: 10,
+          marginBottom: 6,
         }}
       >
         Facebook Marketplace ({listings.length})
       </Text>
+
+      <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 2 }}>
+        {requestedScopeLabel(preferences)}
+      </Text>
+      <Text
+        style={{
+          color: observedArea === null ? colors.warning : colors.muted,
+          fontSize: 12,
+          marginBottom: 10,
+        }}
+      >
+        {observedArea === null
+          ? "Location not confirmed — Facebook chose the search area"
+          : observedScopeLabel(observedScope)}
+      </Text>
+      {areaMismatch && (
+        <Text style={{ color: colors.warning, fontSize: 12, marginBottom: 10 }}>
+          Facebook searched {observedArea}, not your requested {requestedArea}.
+          Change the location in Facebook to match.
+        </Text>
+      )}
 
       {listings.slice(0, MAX_ROWS).map((item, index) => (
         <TouchableOpacity

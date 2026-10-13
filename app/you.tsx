@@ -5,10 +5,11 @@ import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { IconSymbol, type IconSymbolName } from "@/components/ui/icon-symbol";
 
-const ROWS: { icon: IconSymbolName; title: string; subtitle: string; href: "/stats" | "/(tabs)/rates" | "/health" | "/diagnostics" | "/(tabs)/settings" }[] = [
+const ROWS: { icon: IconSymbolName; title: string; subtitle: string; href: "/stats" | "/(tabs)/rates" | "/health" | "/diagnostics" | "/connected-marketplaces" | "/(tabs)/settings" }[] = [
   { icon: "chart.bar.fill", title: "Statistics", subtitle: "Movers, basket, insights", href: "/stats" },
   { icon: "dollarsign.circle.fill", title: "Exchange rates", subtitle: "Currency trends", href: "/(tabs)/rates" },
   { icon: "heart.fill", title: "Distributor health", subtitle: "Scraper status", href: "/health" },
+  { icon: "globe", title: "Connected marketplaces", subtitle: "Facebook, Shopee, Lazada sessions", href: "/connected-marketplaces" },
   { icon: "bell.badge.fill", title: "Push diagnostics", subtitle: "Delivery status per device", href: "/diagnostics" },
   { icon: "gearshape.fill", title: "Settings", subtitle: "Account, sync, notifications", href: "/(tabs)/settings" },
 ];
