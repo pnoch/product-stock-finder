@@ -4,6 +4,24 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.24.0] - 2026-10-13
+
+### Added
+
+- eBay support (Phase 1150): import `ebay.io` short links or canonical
+  `ebay.com/itm/{id}` links, track as USD listings (displayed in THB via FX),
+  and check prices on-device (browser-first, since datacenter fetches are
+  blocked). The parser reads JSON-LD price, currency, availability, and
+  condition. eBay listings upgrade to automatic monitoring on a verified
+  identity and price. 33 distributors / 28 parsers, with a Rust port.
+
+### Fixed
+
+- Discover now renders the shared search engine, so typing a query shows
+  catalog and Facebook Marketplace results in place. Trending and Available
+  Now appear only when the query is empty, and the Facebook search sheet
+  inherits the current query.
+
 ## [5.23.0] - 2026-10-13
 
 ### Added
