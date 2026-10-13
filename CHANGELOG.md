@@ -4,6 +4,24 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.23.0] - 2026-10-13
+
+### Added
+
+- Connected Marketplaces (Phase 1149): a visible login browser for Facebook,
+  Shopee TH, and Lazada TH; evidence-based connection status (ready, sign-in
+  required, couldn't verify, unavailable) with timestamps; scoped disconnect
+  that clears only the selected site and reports failures; shared Facebook
+  search location and radius with observed-vs-requested scope; and search
+  recovery that retries the retained query once after a verified reconnect.
+
+### Changed
+
+- Marketplace page extraction now binds each listing to its own card, so
+  neighbouring listings cannot exchange titles, prices, or locations. A header
+  login link is no longer treated as a login wall, and unreadable results are
+  distinct from a verified empty result set.
+
 ## [5.22.0] - 2026-10-12
 
 ### Added
