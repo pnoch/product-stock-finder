@@ -16,6 +16,10 @@ import { createSyncMetaStorage } from "./sync-meta";
 import { createNotificationsStorage } from "./notifications";
 import { createDiscoveryStorage, createBackgroundTaskStorage } from "./discovery";
 import { bumpSyncGeneration } from "@/lib/sync-gate";
+import {
+  FACEBOOK_SEARCH_PREFERENCES_KEY,
+  MARKETPLACE_CONNECTIONS_KEY,
+} from "../marketplace/connections";
 
 export { DISTRIBUTOR_BREAKER_KEY };
 export type { StorageAdapter };
@@ -162,6 +166,11 @@ export function createStorage(
       STORAGE_KEYS.BACKGROUND_TASK_INTERVAL,
       STORAGE_KEYS.LAST_BACKGROUND_RUN,
       STORAGE_KEYS.LAST_SEEN_AT,
+      // Device-local marketplace connection metadata and Facebook search
+      // preferences. Added only here (not to clearAccountData): signing out is
+      // not a marketplace disconnect, so these survive an account sign-out.
+      MARKETPLACE_CONNECTIONS_KEY,
+      FACEBOOK_SEARCH_PREFERENCES_KEY,
       // Quarantined corrupt payloads hold raw user data.
       ...(await ctx.listQuarantinedKeys()),
       QUARANTINE_INDEX_KEY,
