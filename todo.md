@@ -8589,3 +8589,11 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] `EbayResultsSection` inline in Discover results (image/title/price/condition/seller/shipping, Track per row, Retry on outage, stale-query guard); Track prefills the confirmation sheet.
 - [x] Tests: `tests/ebay-search.test.ts` (10) + `tests/ebay-results-section.test.tsx` (4) + Discover integration. TypeScript: 0 errors.
 - [ ] **Optional:** set `EBAY_CLIENT_ID` + `EBAY_CLIENT_SECRET` to use the Browse API instead of the browser fallback (structured results, no browser cost).
+
+## Phase 1152: Discover search fixes + emulator self-testing
+
+- [x] Trending products are searchable: `filterTrending` (shared) + a "Trending matches" section in results; the Add path delegates to the shared `ensureWatchlistProduct` so a trending product outside the static catalog is addable (was "Not yet available").
+- [x] Category/Brand chips collapse behind a "Filters" toggle while searching (they consumed the whole screen and buried results).
+- [x] Empty state reads "No catalog matches" / "Check the marketplace results above" instead of a contradictory "No results"; results label is "N catalog results".
+- [x] `.claude/skills/verify/` emulator self-testing skill (`drive.sh` + feature map) — doctor/launch/drive/evidence/cleanup; proven end-to-end on emulator-5554.
+- [x] Emulator run found: release builds ignore a loopback API URL (`constants/oauth.ts`), so server features need a non-loopback URL or a debug build; eBay search needs `PSF_BROWSER_HEADED=1`. TypeScript: 0 errors.
