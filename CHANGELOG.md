@@ -4,6 +4,24 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.26.0] - 2026-10-14
+
+### Fixed
+
+- Discover search for a trending product (for example "dgx spark") returned
+  zero results. Trending products are now searchable: a "Trending matches"
+  section appears in the results, and the Add button tracks any trending
+  product instead of rejecting one that is not in the static catalog. The
+  Category and Brand filter chips collapse behind a "Filters" toggle while
+  searching so results are no longer pushed below the fold, and the empty state
+  reads "No catalog matches" instead of a contradictory "No results".
+
+### Added
+
+- A project verification skill (`.claude/skills/verify/`) that drives the
+  Android app in an emulator and captures screenshots, with a feature map for
+  Discover search, Watchlist, Product detail, Alerts, and onboarding.
+
 ## [5.25.0] - 2026-10-13
 
 ### Added
