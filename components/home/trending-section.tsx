@@ -10,13 +10,12 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingProduct, type DistributorListing } from "@/lib/types";
-import { fetchTrending } from "@shared/trending";
+import { TrendingProduct } from "@/lib/types";
+import { fetchTrending, filterTrending } from "@shared/trending";
+import { ensureWatchlistProduct } from "@/lib/ensure-watchlist-product";
 import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { addToWatchlist, getWatchlist } from "@/lib/storage";
-import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
-import { track } from "@/lib/telemetry";
+import { getWatchlist } from "@/lib/storage";
 import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import { formatPrice } from "@shared/currency";
@@ -25,7 +24,6 @@ import { fetchProductImage } from "@/lib/server-images";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useToast } from "@/components/ui/toast";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
-import { SAMPLE_LISTINGS } from "@/lib/sample-data";
 
 function TrendingSkeletonCard() {
   const colors = useColors();
@@ -199,7 +197,11 @@ const TrendingProductRow = memo(function TrendingProductRow({
 });
 TrendingProductRow.displayName = "TrendingProductRow";
 
-export const TrendingSection = memo(function TrendingSection() {
+export const TrendingSection = memo(function TrendingSection({
+  query = "",
+}: {
+  query?: string;
+} = {}) {
   const colors = useColors();
   const router = useRouter();
   const { showToast } = useToast();
@@ -257,37 +259,21 @@ export const TrendingSection = memo(function TrendingSection() {
   // product detail screen (which reads the watchlist) can't resolve them until
   // they're added. Both the Add button and the card body must therefore add
   // first; the card body then navigates to the detail it just made resolvable.
-  const ensureWatchlistProduct = useCallback(
+  // Delegates to the shared helper so a trending product that is not in the
+  // static catalog is still addable (its name becomes the search term) instead
+  // of being rejected as "Not yet available".
+  const addTrendingProduct = useCallback(
     async (product: TrendingProduct): Promise<boolean> => {
-      const catalogProduct = PRODUCT_CATALOG.find((p) => p.id === product.id);
-      if (!catalogProduct && !(product as unknown as { modelNumber?: string }).modelNumber) {
-        showToast("Not yet available", "info");
+      if (watchlistIds.has(product.id)) return true;
+      const result = await ensureWatchlistProduct(
+        { ...product, modelNumber: product.name },
+        isPro,
+      );
+      if (result.paywall) {
+        setPaywallVisible(true);
         return false;
       }
-      if (!watchlistIds.has(product.id)) {
-        const count = (await getWatchlist().catch(() => [])).length;
-        if (shouldEnforceFreeLimits() && !canAddToWatchlist(count, isPro)) {
-          track("paywall_shown");
-          setPaywallVisible(true);
-          return false;
-        }
-      }
-      const fallbackListings: DistributorListing[] = SAMPLE_LISTINGS[product.id] ?? [];
-      const newProduct = {
-        id: product.id,
-        name: product.name,
-        modelNumber: catalogProduct?.modelNumber ?? (product as unknown as { modelNumber?: string }).modelNumber ?? product.id,
-        brand: product.brand,
-        category: product.category,
-        description: catalogProduct?.description ?? "",
-        isWatched: true,
-        addedAt: new Date().toISOString(),
-        listings: fallbackListings,
-        tags: [] as string[],
-      };
-      try {
-        await addToWatchlist(newProduct);
-      } catch {
+      if (!result.ok) {
         showToast("Couldn't add to watchlist", "error");
         return false;
       }
@@ -302,24 +288,30 @@ export const TrendingSection = memo(function TrendingSection() {
       if (Platform.OS !== "web") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      if (!(await ensureWatchlistProduct(product))) return;
+      if (!(await addTrendingProduct(product))) return;
       showToast("Added — tap tag to organize", "success");
       setPickerProduct(product);
     },
-    [ensureWatchlistProduct, showToast],
+    [addTrendingProduct, showToast],
   );
 
   const handlePress = useCallback(
     async (product: TrendingProduct) => {
       if (!watchlistIds.has(product.id)) {
-        if (!(await ensureWatchlistProduct(product))) return;
+        if (!(await addTrendingProduct(product))) return;
       }
       router.push(`/product/${product.id}`);
     },
-    [ensureWatchlistProduct, router, watchlistIds],
+    [addTrendingProduct, router, watchlistIds],
   );
 
-  const visibleProducts = useMemo(() => products?.slice(0, 3) ?? [], [products]);
+  const visibleProducts = useMemo(() => {
+    const trimmed = query.trim();
+    if (!trimmed) return products?.slice(0, 3) ?? [];
+    // Searching should find a trending product the user can already see, not
+    // just the static catalog.
+    return filterTrending(products ?? [], trimmed);
+  }, [products, query]);
 
   const entryAnims = useMemo(() => Array.from({ length: 3 }, () => new Animated.Value(0)), []);
 
@@ -410,6 +402,7 @@ export const TrendingSection = memo(function TrendingSection() {
     );
   }
   if (!products || products.length === 0) return null;
+  if (query.trim().length > 0 && visibleProducts.length === 0) return null;
 
   return (
     <View style={{ marginBottom: 16 }}>
@@ -422,10 +415,12 @@ export const TrendingSection = memo(function TrendingSection() {
           marginBottom: 4,
         }}
       >
-        Trending Now
+        {query.trim().length > 0 ? "Trending matches" : "Trending Now"}
       </Text>
       <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>
-        Hard-to-find products from the community
+        {query.trim().length > 0
+          ? "Hard-to-find products matching your search"
+          : "Hard-to-find products from the community"}
       </Text>
       {visibleProducts.map((product, idx) => (
         <Animated.View

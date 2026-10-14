@@ -108,6 +108,23 @@ const FALLBACK_TRENDING: TrendingProduct[] = [
   },
 ];
 
+/**
+ * Filters trending products by a free-text query, matching every word against
+ * name, brand, and category. Used so a product the user can see in Trending is
+ * also findable by search instead of returning zero catalog results.
+ */
+export function filterTrending(
+  products: TrendingProduct[],
+  query: string,
+): TrendingProduct[] {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return products;
+  return products.filter((product) => {
+    const haystack = `${product.name} ${product.brand} ${product.category}`.toLowerCase();
+    return words.every((word) => haystack.includes(word));
+  });
+}
+
 export async function fetchTrending(): Promise<TrendingProduct[]> {
   try {
     // tRPC query: trending.get — response is superjson-wrapped {json: [...]}

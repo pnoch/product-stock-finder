@@ -21,7 +21,7 @@ describe("trending card navigation", () => {
     // The press handler must not push a detail route without first ensuring
     // the product is in the watchlist.
     const pressHandler = src.slice(src.indexOf("const handlePress"));
-    expect(pressHandler).toMatch(/ensureWatchlistProduct/);
+    expect(pressHandler).toMatch(/addTrendingProduct/);
     expect(pressHandler).toMatch(/router\.push\(`\/product\/\$\{product\.id\}`\)/);
   });
 
@@ -29,12 +29,13 @@ describe("trending card navigation", () => {
     const src = stripComments(
       await readFile("components/home/trending-section.tsx", "utf8"),
     );
-    expect(src).toMatch(/const ensureWatchlistProduct = useCallback/);
-    // The section's Add handler (not the row's handleAddPress) must route
-    // through the shared helper.
+    // One helper both entry points call, delegating to the shared lib so a
+    // trending product outside the static catalog is still addable.
+    expect(src).toMatch(/const addTrendingProduct = useCallback/);
+    expect(src).toMatch(/ensureWatchlistProduct\(/);
     const addStart = src.indexOf("const handleAdd = useCallback");
     expect(addStart).toBeGreaterThan(-1);
     const addHandler = src.slice(addStart, addStart + 400);
-    expect(addHandler).toMatch(/ensureWatchlistProduct\(product\)/);
+    expect(addHandler).toMatch(/addTrendingProduct\(product\)/);
   });
 });

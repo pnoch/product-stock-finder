@@ -106,7 +106,12 @@ vi.mock("@/components/search/catalog-search-bar", () => ({
     });
   },
 }));
-vi.mock("@/components/home/trending-section", () => ({ TrendingSection: () => React.createElement("div", null, "TRENDING_SECTION") }));
+vi.mock("@/components/home/trending-section", () => ({
+  // Distinguishes the browse section (no query) from the search-results
+  // "Trending matches" section (query present).
+  TrendingSection: ({ query = "" }: { query?: string }) =>
+    React.createElement("div", null, query ? `TRENDING_MATCHES:${query}` : "TRENDING_SECTION"),
+}));
 vi.mock("@/components/home/available-section", () => ({ AvailableSection: () => React.createElement("div", null, "AVAILABLE_SECTION") }));
 vi.mock("@/components/marketplace/facebook-search-sheet", () => ({
   FacebookSearchSheet: ({ visible, initialQuery }: any) => {
@@ -162,7 +167,7 @@ describe("Discover search integration", () => {
   });
   afterEach(() => cleanup());
 
-  it("typing a query shows facebook results and hides browse sections", async () => {
+  it("typing a query shows marketplace results and hides the browse sections", async () => {
     render(<DiscoverScreen />);
     const input = screen.getByLabelText("Catalog search");
     fireEvent.change(input, { target: { value: "rtx5090" } });
@@ -171,8 +176,10 @@ describe("Discover search integration", () => {
       expect(screen.getByText("FB_RESULTS:rtx5090")).toBeTruthy();
       expect(screen.getByText("EBAY_RESULTS:rtx5090")).toBeTruthy();
     });
+    // Browse Trending/Available hide; Trending reappears as "Trending matches".
     expect(screen.queryByText("TRENDING_SECTION")).toBeNull();
     expect(screen.queryByText("AVAILABLE_SECTION")).toBeNull();
+    expect(screen.getByText("TRENDING_MATCHES:rtx5090")).toBeTruthy();
   });
 
   it("passes the query into the facebook sheet when opened", async () => {

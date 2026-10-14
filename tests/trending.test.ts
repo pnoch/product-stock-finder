@@ -1,5 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchTrending } from "@shared/trending";
+import { fetchTrending, filterTrending } from "@shared/trending";
+
+describe("filterTrending", () => {
+  const products = [
+    { id: "nvidia-dgx-spark", name: "NVIDIA DGX Spark", brand: "NVIDIA", category: "Server" },
+    { id: "nvidia-rtx-5090", name: "NVIDIA RTX 5090", brand: "NVIDIA", category: "GPU" },
+    { id: "nintendo-switch-2", name: "Nintendo Switch 2", brand: "Nintendo", category: "Gaming Console" },
+  ] as never[];
+
+  it("finds a trending product by multi-word name", () => {
+    expect(filterTrending(products, "dgx spark").map((p) => p.id)).toEqual(["nvidia-dgx-spark"]);
+  });
+
+  it("matches brand and category too", () => {
+    expect(filterTrending(products, "nvidia").map((p) => p.id)).toEqual(["nvidia-dgx-spark", "nvidia-rtx-5090"]);
+    expect(filterTrending(products, "gaming").map((p) => p.id)).toEqual(["nintendo-switch-2"]);
+  });
+
+  it("returns everything for an empty query and nothing for a miss", () => {
+    expect(filterTrending(products, "  ")).toHaveLength(3);
+    expect(filterTrending(products, "playstation")).toEqual([]);
+  });
+});
 
 describe("fetchTrending", () => {
   beforeEach(() => {

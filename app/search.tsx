@@ -22,6 +22,7 @@ import { BulkImportModal } from "@/components/search/bulk-import-modal";
 import { ManualAddSheet } from "@/components/search/manual-add-sheet";
 import { FacebookResultsSection } from "@/components/search/facebook-results-section";
 import { EbayResultsSection } from "@/components/search/ebay-results-section";
+import { TrendingSection } from "@/components/home/trending-section";
 import type { EbaySearchListing } from "@/shared/ebay-search";
 import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
@@ -178,6 +179,7 @@ export default function SearchScreen({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [catalogSort, setCatalogSort] = useState<CatalogSort>("relevance");
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   useEffect(() => {
     void getRecentSearches().then(setRecentSearches);
@@ -603,9 +605,41 @@ export default function SearchScreen({
               />
             )}
 
-            {/* Category / Brand filters — pill rows (RegionFilterRow pattern) */}
-            <PillFilterRow label="Category" options={categories} selected={selectedCategory} onSelect={setSelectedCategory} colors={colors} />
-            <PillFilterRow label="Brand" options={brands} selected={selectedBrand} onSelect={setSelectedBrand} colors={colors} />
+            {/* Category / Brand filters — collapsed behind a toggle while
+                searching so the ~40 chips don't push results below the fold. */}
+            {query.trim().length > 0 && !filtersExpanded ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Show filters"
+                onPress={() => {
+                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setFiltersExpanded(true);
+                }}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingBottom: 10 }}
+              >
+                <IconSymbol name="slider.horizontal.3" size={16} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+                  Filters{(selectedCategory || selectedBrand) ? " · active" : ""}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <PillFilterRow label="Category" options={categories} selected={selectedCategory} onSelect={setSelectedCategory} colors={colors} />
+                <PillFilterRow label="Brand" options={brands} selected={selectedBrand} onSelect={setSelectedBrand} colors={colors} />
+                {query.trim().length > 0 && (
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel="Hide filters"
+                    onPress={() => setFiltersExpanded(false)}
+                    style={{ paddingHorizontal: 16, paddingBottom: 10 }}
+                  >
+                    <Text style={{ color: colors.muted, fontSize: 13, fontWeight: "600" }}>Hide filters</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
 
             {/* Catalog sort bar — parity with watchlist SortGroupBar */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingBottom: 10, flexWrap: "wrap" }}>
@@ -674,6 +708,12 @@ export default function SearchScreen({
               setManualVisible(true);
             }} />
 
+            {query.trim().length > 0 && (
+              <View style={{ paddingHorizontal: 16 }}>
+                <TrendingSection query={deferredQuery} />
+              </View>
+            )}
+
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10, paddingHorizontal: 16 }}>
               <Text
                 style={{
@@ -685,7 +725,7 @@ export default function SearchScreen({
                 }}
               >
                 {query.trim()
-                  ? `${sortedResults.length} result${sortedResults.length !== 1 ? "s" : ""}`
+                  ? `${sortedResults.length} catalog result${sortedResults.length !== 1 ? "s" : ""}`
                   : "All Products"}
               </Text>
               {query.trim().length > 0 && sortedResults.length > 0 && (
@@ -697,7 +737,7 @@ export default function SearchScreen({
             </View>}
           </View>
         }
-        ListEmptyComponent={mode === "discover" && !query.trim() ? null : <SearchEmptyState query={query} selectedTagIds={selectedTagIds} />}
+        ListEmptyComponent={mode === "discover" && !query.trim() ? null : <SearchEmptyState query={query} selectedTagIds={selectedTagIds} hasMarketplaceResults={query.trim().length >= 2} />}
         ListFooterComponent={
           query.trim().length > 0 ? (
             <View style={{ paddingHorizontal: 16 }}>

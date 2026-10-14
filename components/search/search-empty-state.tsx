@@ -5,9 +5,11 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 interface SearchEmptyStateProps {
   query: string;
   selectedTagIds: string[];
+  /** True when marketplace sections (eBay, Facebook, trending) rendered above. */
+  hasMarketplaceResults?: boolean;
 }
 
-export function SearchEmptyState({ query, selectedTagIds }: SearchEmptyStateProps) {
+export function SearchEmptyState({ query, selectedTagIds, hasMarketplaceResults = false }: SearchEmptyStateProps) {
   const colors = useColors();
 
   return (
@@ -37,7 +39,9 @@ export function SearchEmptyState({ query, selectedTagIds }: SearchEmptyStateProp
         {selectedTagIds.length > 0
           ? "No products match these tags"
           : query.trim().length > 0
-            ? `No results for "${query.trim().slice(0, 30)}"`
+            ? hasMarketplaceResults
+              ? "No catalog matches"
+              : `No results for "${query.trim().slice(0, 30)}"`
             : "No results found"}
       </Text>
       <Text
@@ -51,7 +55,9 @@ export function SearchEmptyState({ query, selectedTagIds }: SearchEmptyStateProp
       >
         {selectedTagIds.length > 0
           ? "Try a different tag combination"
-          : "Try a different model number or brand name"}
+          : hasMarketplaceResults
+            ? "Check the marketplace results above, or try a different model number"
+            : "Try a different model number or brand name"}
       </Text>
       {selectedTagIds.length === 0 && (
         <View
