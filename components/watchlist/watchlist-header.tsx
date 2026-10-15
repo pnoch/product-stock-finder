@@ -130,7 +130,8 @@ export function WatchlistHeader({
   }
 
   return (
-    <View className="px-5 pt-4 pb-2 flex-row items-center justify-between" style={{ flexWrap: "wrap", gap: 8 }}>
+    <View className="px-5 pt-4 pb-2">
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
       <View style={{ flexShrink: 1 }}>
         <Text style={{ fontSize: 28, fontWeight: "700", color: colors.foreground }}>Watchlist</Text>
         <Text className="text-muted text-sm">
@@ -138,7 +139,71 @@ export function WatchlistHeader({
           {filteredCount !== undefined && filteredCount !== watchlistLength ? ` · ${filteredCount} shown` : ""}
         </Text>
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <TouchableOpacity activeOpacity={0.85}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              width: 40,
+              minHeight: 40,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onShare?.();
+            }}
+            accessibilityLabel="Share watchlist"
+            accessibilityRole="button"
+          >
+          <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
+        </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.85}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 20,
+              width: 40,
+              minHeight: 40,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onImport?.();
+            }}
+            accessibilityLabel="Import CSV"
+            accessibilityRole="button"
+          >
+          <IconSymbol name="square.and.arrow.down" size={18} color={colors.primary} />
+        </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.85}
+            style={{
+              backgroundColor: colors.primary,
+              borderRadius: 20,
+              width: 40,
+              minHeight: 40,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onAdd();
+            }}
+            accessibilityLabel="Add product"
+            accessibilityRole="button"
+          >
+          <IconSymbol name="plus" size={22} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
           <TouchableOpacity activeOpacity={0.85}
             onPress={() => {
               if (Platform.OS !== "web")
@@ -242,67 +307,6 @@ export function WatchlistHeader({
                 : "Check Now"}
             </Text>
           )}
-        </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.85}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 20,
-              width: 40,
-              minHeight: 40,
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onShare?.();
-            }}
-            accessibilityLabel="Share watchlist"
-            accessibilityRole="button"
-          >
-          <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
-        </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.85}
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 20,
-              width: 40,
-              minHeight: 40,
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onImport?.();
-            }}
-            accessibilityLabel="Import CSV"
-            accessibilityRole="button"
-          >
-          <IconSymbol name="square.and.arrow.down" size={18} color={colors.primary} />
-        </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.85}
-            style={{
-              backgroundColor: colors.primary,
-              borderRadius: 20,
-              width: 40,
-              minHeight: 40,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onAdd();
-            }}
-            accessibilityLabel="Add product"
-            accessibilityRole="button"
-          >
-          <IconSymbol name="plus" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
