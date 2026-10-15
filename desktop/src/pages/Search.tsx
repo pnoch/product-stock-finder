@@ -429,19 +429,32 @@ export function Search() {
           const isTracked = trackedIds.has(product.id);
           const pending = pendingTags[product.id] ?? [];
           return (
-            <div key={product.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-sm transition-all">
+            <div
+              key={product.id}
+              onClick={() => navigate(`/product/${product.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate(`/product/${product.id}`);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Open ${product.name}`}
+              className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-sm transition-all cursor-pointer"
+            >
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <ProductImage productId={product.id} />
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-sm truncate">{product.name}</div>
                   <div className="text-xs text-gray-500 truncate">{product.brand} · {product.category} · {product.modelNumber}</div>
                   {Object.keys(tagDefinitions).length > 0 && !isTracked && (
-                    <button onClick={() => setTagPickerFor(product.id)} className="mt-1 text-xs text-brand-600 hover:underline">{pending.length ? `${pending.length} tag${pending.length !== 1 ? "s" : ""}` : "Assign tags"}</button>
+                    <button onClick={(e) => { e.stopPropagation(); setTagPickerFor(product.id); }} className="mt-1 text-xs text-brand-600 hover:underline">{pending.length ? `${pending.length} tag${pending.length !== 1 ? "s" : ""}` : "Assign tags"}</button>
                   )}
                   {pending.length > 0 && <div className="flex gap-1 mt-1 flex-wrap">{pending.map((tid) => { const d = tagDefinitions[tid]; if (!d) return null; return <span key={tid} className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: d.color }}>{d.name}</span>; })}</div>}
                 </div>
               </div>
-              {isTracked ? <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium ml-2"><Check className="w-4 h-4" /> Tracked</span> : <button onClick={() => handleAdd(product)} className="ml-2 px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700 flex items-center gap-1"><Plus className="w-3 h-3" /> Add</button>}
+              {isTracked ? <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium ml-2"><Check className="w-4 h-4" /> Tracked</span> : <button onClick={(e) => { e.stopPropagation(); void handleAdd(product); }} className="ml-2 px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700 flex items-center gap-1"><Plus className="w-3 h-3" /> Add</button>}
             </div>
           );
         })}

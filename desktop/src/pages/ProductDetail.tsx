@@ -18,6 +18,7 @@ import {
   Copy,
   Download,
   CheckCircle,
+  Plus,
 } from "lucide-react";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
@@ -27,6 +28,7 @@ import { getBestPrice, convertPrice } from "@/lib/currency";
 import { formatLastRefreshed, getLastRefreshedColor } from "../../../lib/last-refreshed";
 import { computePriceVsAverage } from "../../../lib/price-average";
 import { DISTRIBUTORS } from "@shared/distributors";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
   getAllRegions,
   filterListingsByRegion,
@@ -149,6 +151,8 @@ export function ProductDetail() {
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isTracked, setIsTracked] = useState(true);
+  const [addingToWatchlist, setAddingToWatchlist] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertPrice, setAlertPrice] = useState("");
   const [alertCurrency, setAlertCurrency] = useState("USD");
@@ -228,7 +232,18 @@ export function ProductDetail() {
       ]);
       if (loadIdRef.current !== myId) return;
       const found = products.find((p) => p.id === id);
-      if (loadIdRef.current === myId) setProduct(found ?? null);
+      if (loadIdRef.current === myId) {
+        // Fall back to the catalog so a search result can be previewed before
+        // it is added (mobile's useLiveProduct does the same).
+        const catalogEntry = found ? null : PRODUCT_CATALOG.find((p) => p.id === id);
+        setProduct(
+          found ??
+            (catalogEntry
+              ? { ...catalogEntry, addedAt: "", isWatched: false, listings: [] }
+              : null),
+        );
+        setIsTracked(!!found);
+      }
       if (loadIdRef.current !== myId) return;
       if (loadIdRef.current === myId) {
         setDisplayCurrency(settings.displayCurrency ?? "USD");
@@ -452,6 +467,26 @@ export function ProductDetail() {
       setFindingPrices(false);
     }
   }, [product?.id, product?.modelNumber, findingPrices, loadProduct, showToast]);
+
+  const handleAddToWatchlist = useCallback(async () => {
+    if (!product || addingToWatchlist) return;
+    setAddingToWatchlist(true);
+    try {
+      await storage.addToWatchlist({
+        ...product,
+        addedAt: new Date().toISOString(),
+        isWatched: true,
+        listings: product.listings ?? [],
+        tags: product.tags ?? [],
+      });
+      showToast("Added to watchlist");
+      await loadProduct();
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setAddingToWatchlist(false);
+    }
+  }, [product, addingToWatchlist, loadProduct, showToast]);
 
   useEffect(() => {
     if (!product?.id) return;
@@ -910,6 +945,45 @@ export function ProductDetail() {
         <div className="h-64 rounded-xl skeleton-shimmer" />
       </div>
     );
+
+  if (product && !isTracked) {
+    return (
+      <div className="p-6 space-y-6 max-w-4xl">
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          aria-label="Go back"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <div className="flex items-start gap-4">
+          <ProductImage productId={product.id} size={96} />
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">{product.name}</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {product.brand} · {product.category} · {product.modelNumber}
+            </p>
+            {product.description && (
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{product.description}</p>
+            )}
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-3">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            This product isn&apos;t in your watchlist yet. Add it to track prices across distributors.
+          </p>
+          <button
+            onClick={() => void handleAddToWatchlist()}
+            disabled={addingToWatchlist}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
+            aria-label="Add to watchlist"
+          >
+            <Plus className="w-4 h-4" /> {addingToWatchlist ? "Adding…" : "Add to Watchlist"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
