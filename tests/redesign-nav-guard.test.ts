@@ -28,7 +28,8 @@ describe("redesign navigation wiring", () => {
     // and passes Trending/Available as browse content, so the catalog search
     // engine, Facebook results, and marketplace sheet all share one query.
     const src = read("app/(tabs)/discover.tsx");
-    expect(src).toContain('SearchScreen mode="discover"');
+    expect(src).toContain("SearchScreen");
+    expect(src).toContain('mode="discover"');
     expect(src).toContain("TrendingSection");
     expect(src).toContain("AvailableSection");
   });

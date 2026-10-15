@@ -4,6 +4,27 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.26.1] - 2026-10-15
+
+### Fixed
+
+- A release APK built with a loopback API URL ran in Local mode, so every
+  server-backed feature (eBay search, sync) failed with a generic error. An
+  opt-in `PSF_ANDROID_HTTP_TEST_API=1` build now scopes cleartext HTTP to the
+  configured API host only, and the eBay section reports a distinct
+  "no reachable API server was configured" state instead of a retryable
+  network error.
+- The Facebook Marketplace section vanished silently after the "Checking…"
+  spinner when the on-device check failed. It now shows reconnect guidance,
+  and renders only for a verified-ready session: signed-out users see a
+  results-only search with no spinner or nag card.
+
+### Changed
+
+- "Search Facebook Marketplace" (the location and radius sheet) moved from
+  Discover into Settings → Connected marketplaces, so Discover search stays
+  results-only.
+
 ## [5.26.0] - 2026-10-14
 
 ### Fixed

@@ -3137,7 +3137,7 @@ dependencies = [
 
 [[package]]
 name = "product-stock-finder"
-version = "5.26.0"
+version = "5.26.1"
 dependencies = [
  "futures",
  "notify-rust",
