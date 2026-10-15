@@ -855,15 +855,11 @@ export function Compare() {
               Showing all available history
             </p>
           )}
-          {chartSeries.length >= 2 ? (
-            <SeriesChart series={chartSeries} displayCurrency={displayCurrency} />
-          ) : (
-            <div className="text-center py-6">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Select at least 2 distributors with price history to compare</p>
-              <div className="mt-4">
-                <SeriesChart series={chartSeries} displayCurrency={displayCurrency} />
-              </div>
-            </div>
+          <SeriesChart series={chartSeries} displayCurrency={displayCurrency} />
+          {chartSeries.length === 1 && (
+            <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Add another distributor to compare
+            </p>
           )}
         </div>
       ) : (

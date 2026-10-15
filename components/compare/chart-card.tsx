@@ -103,7 +103,7 @@ export function ChartCard({
           Showing all available history
         </Text>
       )}
-      {chartSeries.length >= 2 ? (
+      {chartSeries.length >= 1 ? (
         <MultiLineChart
           series={chartSeries}
           width={chartWidth}
@@ -131,10 +131,14 @@ export function ChartCard({
               textAlign: "center",
             }}
           >
-            Select at least 2 distributors{"\n"}with price history to
-            compare
+            Select a distributor with price history{"\n"}to see its chart
           </Text>
         </View>
+      )}
+      {chartSeries.length === 1 && (
+        <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8, textAlign: "center" }}>
+          Add another distributor to compare
+        </Text>
       )}
       {chartSeries.length > 0 && (
         <View
