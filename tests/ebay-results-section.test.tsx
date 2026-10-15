@@ -25,6 +25,13 @@ const result: EbaySearchResult = { kind: "results", source: "api", listings: [li
 async function debounce() { await act(async () => { await vi.advanceTimersByTimeAsync(700); }); }
 
 describe("eBay inline search", () => {
+  it("explains a missing backend without offering a pointless retry", async () => {
+    state.fetch.mockResolvedValueOnce({ kind: "unavailable", reason: "not_configured" });
+    render(<EbayResultsSection query="msi dgx spark" onTrack={() => {}} />);
+    await debounce();
+    expect(screen.getByText(/no reachable API server was configured/)).toBeTruthy();
+    expect(screen.queryByLabelText("Retry eBay search")).toBeNull();
+  });
   beforeEach(() => { vi.useFakeTimers(); state.fetch.mockReset(); state.fetch.mockResolvedValue(result); });
   afterEach(() => { cleanup(); vi.useRealTimers(); });
 

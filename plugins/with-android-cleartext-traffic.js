@@ -33,7 +33,21 @@ const NETWORK_SECURITY_CONFIG = `<?xml version="1.0" encoding="utf-8"?>
 </network-security-config>
 `;
 
-function withAndroidCleartextTraffic(config) {
+function buildNetworkSecurityConfig(apiBaseUrl, allowHttpApi = false) {
+  if (!allowHttpApi) return NETWORK_SECURITY_CONFIG;
+  const url = new URL(apiBaseUrl);
+  if (url.protocol !== "http:" || url.username || url.password || !/^[a-zA-Z0-9.-]+$/.test(url.hostname)) {
+    throw new Error("The HTTP test API requires a plain HTTP URL with a valid host and no credentials.");
+  }
+  if (["localhost", "127.0.0.1", "10.0.2.2"].includes(url.hostname)) return NETWORK_SECURITY_CONFIG;
+  return NETWORK_SECURITY_CONFIG.replace(
+    "  </domain-config>",
+    `    <domain includeSubdomains="false">${url.hostname}</domain>\n  </domain-config>`,
+  );
+}
+
+function withAndroidCleartextTraffic(config, options = {}) {
+  const networkSecurityConfig = buildNetworkSecurityConfig(options.apiBaseUrl, options.allowHttpApi);
   config = withAndroidManifest(config, (config) => {
     const application = config.modResults.manifest.application?.[0];
     if (application) {
@@ -54,7 +68,7 @@ function withAndroidCleartextTraffic(config) {
         NSC_RELATIVE_PATH,
       );
       await fs.promises.mkdir(path.dirname(target), { recursive: true });
-      await fs.promises.writeFile(target, NETWORK_SECURITY_CONFIG);
+      await fs.promises.writeFile(target, networkSecurityConfig);
       return config;
     },
   ]);
@@ -65,3 +79,4 @@ function withAndroidCleartextTraffic(config) {
 module.exports = withAndroidCleartextTraffic;
 module.exports.NETWORK_SECURITY_CONFIG = NETWORK_SECURITY_CONFIG;
 module.exports.NSC_RELATIVE_PATH = NSC_RELATIVE_PATH;
+module.exports.buildNetworkSecurityConfig = buildNetworkSecurityConfig;

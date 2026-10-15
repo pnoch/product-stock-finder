@@ -37,8 +37,10 @@ export function EbayResultsSection({ query, onTrack }: { query: string; onTrack:
       {loading && <View style={{ flexDirection: "row", gap: 8, paddingVertical: 12 }}><ActivityIndicator color={colors.primary} /><Text style={{ color: colors.muted }}>Searching eBay…</Text></View>}
       {result?.kind === "empty" && <Text style={{ color: colors.muted, paddingTop: 8 }}>No eBay matches for this search.</Text>}
       {result?.kind === "unavailable" && <View style={{ paddingTop: 8 }}>
-        <Text style={{ color: colors.muted }}>Could not search eBay. {result.reason === "busy" ? "The search service is busy." : "Please try again."}</Text>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Retry eBay search" onPress={() => setRetry((value) => value + 1)} style={{ paddingVertical: 12 }}><Text style={{ color: colors.primary }}>Retry</Text></TouchableOpacity>
+        <Text style={{ color: colors.muted }}>{result.reason === "not_configured"
+          ? "Online marketplace search is unavailable in this build because no reachable API server was configured."
+          : `Could not search eBay. ${result.reason === "busy" ? "The search service is busy." : "Check your connection and try again."}`}</Text>
+        {result.reason !== "not_configured" && <TouchableOpacity accessibilityRole="button" accessibilityLabel="Retry eBay search" onPress={() => setRetry((value) => value + 1)} style={{ paddingVertical: 12 }}><Text style={{ color: colors.primary }}>Retry</Text></TouchableOpacity>}
       </View>}
       {result?.kind === "results" && <>
         <Text style={{ color: colors.muted, fontSize: 12, paddingTop: 4 }}>Observed offers for your query. Confirm model, condition, and shipping before tracking.</Text>

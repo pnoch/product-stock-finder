@@ -16,4 +16,4 @@ export interface EbaySearchListing {
 export type EbaySearchResult =
   | { kind: "results"; source: "api" | "browser"; listings: EbaySearchListing[] }
   | { kind: "empty"; source: "api" | "browser" }
-  | { kind: "unavailable"; reason: "network" | "blocked" | "busy" | "credentials" | "unreadable" };
+  | { kind: "unavailable"; reason: "network" | "blocked" | "busy" | "credentials" | "unreadable" | "not_configured" };

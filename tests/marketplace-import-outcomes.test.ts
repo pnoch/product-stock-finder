@@ -3,6 +3,7 @@ import { MAX_MARKETPLACE_URL_LENGTH } from "../shared/const";
 import { marketplaceResolutionMessage, type MarketplaceResolution } from "../shared/marketplace-url";
 const query = vi.hoisted(() => vi.fn());
 vi.mock("../lib/trpc", () => ({ createTRPCClient: () => ({ products: { resolveMarketplace: { query } } }) }));
+vi.mock("@/constants/oauth", () => ({ isServerConfigured: () => true }));
 import { fetchMarketplaceResolution } from "../lib/server-marketplace";
 
 describe("marketplace import outcomes", () => {

@@ -122,7 +122,10 @@ const config: ExpoConfig = {
     "./plugins/with-android-release-signing",
     // Allows cleartext HTTP for dev backends (localhost / 10.0.2.2). Android 9+
     // blocks it by default, silently failing every fetch in release builds.
-    "./plugins/with-android-cleartext-traffic",
+    ["./plugins/with-android-cleartext-traffic", {
+      apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL,
+      allowHttpApi: process.env.PSF_ANDROID_HTTP_TEST_API === "1",
+    }],
     // Drops the RN-overlay SYSTEM_ALERT_WINDOW permission from release, scopes
     // the legacy storage permissions, and disables adb/cloud backup.
     "./plugins/with-android-hardening",

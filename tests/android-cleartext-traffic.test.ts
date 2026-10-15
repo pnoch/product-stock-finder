@@ -27,6 +27,14 @@ async function runManifestMod(application?: ManifestApplication) {
 }
 
 describe("with-android-cleartext-traffic", () => {
+  it("adds only the configured host for an explicitly opted-in HTTP test build", () => {
+    const xml = plugin.buildNetworkSecurityConfig("http://172.23.194.22:3000", true);
+    expect(xml).toContain('<base-config cleartextTrafficPermitted="false"');
+    expect(xml).toContain('<domain includeSubdomains="false">172.23.194.22</domain>');
+    expect(plugin.buildNetworkSecurityConfig("http://172.23.194.22:3000", false)).toBe(NSC_XML);
+    expect(() => plugin.buildNetworkSecurityConfig("http://user:secret@example.com", true)).toThrow();
+    expect(() => plugin.buildNetworkSecurityConfig("file:///tmp/api", true)).toThrow();
+  });
   it("points the application at the scoped network-security config", async () => {
     const manifest = await runManifestMod({ $: { "android:name": ".MainApplication" } });
     expect(manifest.application?.[0].$["android:networkSecurityConfig"]).toBe(
