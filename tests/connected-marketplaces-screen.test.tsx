@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import React from "react";
 
@@ -117,5 +117,30 @@ describe("FacebookResultsSection reconnect retry", () => {
     });
     await new Promise((r) => setTimeout(r, 700));
     expect(searchFbMarketplace).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("FacebookResultsSection unavailable state", () => {
+  beforeEach(() => {
+    listeners.clear();
+    searchFbMarketplace.mockReset();
+  });
+  afterEach(() => cleanup());
+
+  it("shows guidance with Connect instead of vanishing when the check fails", async () => {
+    searchFbMarketplace.mockResolvedValue({ kind: "unavailable" });
+    render(<FacebookResultsSection query="mac pro" onTrack={() => {}} />);
+    await waitFor(() => {
+      expect(screen.getByText(/couldn't be checked right now/i)).toBeTruthy();
+    });
+    expect(screen.getByLabelText("Connect Facebook")).toBeTruthy();
+  });
+
+  it("renders nothing for a verified empty result (no noise)", async () => {
+    searchFbMarketplace.mockResolvedValue({ kind: "empty" });
+    render(<FacebookResultsSection query="mac pro" onTrack={() => {}} />);
+    await waitFor(() => expect(searchFbMarketplace).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByLabelText("Connect Facebook")).toBeNull();
   });
 });

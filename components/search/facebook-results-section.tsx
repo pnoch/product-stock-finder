@@ -185,6 +185,31 @@ export function FacebookResultsSection({
 
   if (!state) return null;
 
+  // The hidden WebView couldn't render Facebook at all (no session yet,
+  // renderer busy, page didn't load). Say so and offer Connect — rendering
+  // nothing would hide the feature entirely.
+  if (state.kind === "unavailable") {
+    return (
+      <View
+        style={{
+          marginHorizontal: 16,
+          marginBottom: 12,
+          padding: 12,
+          borderRadius: 12,
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
+      >
+        <Text style={{ color: colors.muted, fontSize: 12 }}>
+          Facebook Marketplace couldn&apos;t be checked right now. Connect your
+          Facebook session to see local listings.
+        </Text>
+        {connectButton}
+      </View>
+    );
+  }
+
   if (state.kind === "login_required") {
     return (
       <View

@@ -41,6 +41,8 @@ export default function DiscoverScreen() {
   return (
     <SearchScreen mode="discover" renderBrowse={(query) => (
       <View>
+        {/* Action entry (opens the location/radius sheet); the inline results
+            section below handles actual search results. */}
         <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
           <FacebookSearchEntry query={query} />
         </View>
