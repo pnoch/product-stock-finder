@@ -25,8 +25,9 @@ describe("facebook marketplace wiring", () => {
     expect(src).toContain('platform !== "facebook"');
   });
 
-  it("discover exposes the facebook search sheet", () => {
-    expect(read("app/(tabs)/discover.tsx")).toContain("FacebookSearchSheet");
+  it("settings owns the facebook search sheet; discover stays results-only", () => {
+    expect(read("app/connected-marketplaces.tsx")).toContain("FacebookSearchSheet");
+    expect(read("app/(tabs)/discover.tsx")).not.toContain("FacebookSearchSheet");
   });
 
   it("facebook products stay out of automatic pipelines", async () => {

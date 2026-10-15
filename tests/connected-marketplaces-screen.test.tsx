@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import React from "react";
 
@@ -127,20 +127,36 @@ describe("FacebookResultsSection unavailable state", () => {
   });
   afterEach(() => cleanup());
 
-  it("shows guidance with Connect instead of vanishing when the check fails", async () => {
+  it("shows reconnect guidance instead of vanishing when the check fails", async () => {
     searchFbMarketplace.mockResolvedValue({ kind: "unavailable" });
-    render(<FacebookResultsSection query="mac pro" onTrack={() => {}} />);
+    // Connected (ready) session, but the check itself failed.
+    listeners.add(() => {});
+    const { FacebookResultsSection: Section } = await import("@/components/search/facebook-results-section");
+    render(<Section query="mac pro" onTrack={() => {}} />);
+    // Simulate a ready connection so the section renders at all.
+    act(() => {
+      emit({
+        type: "verification",
+        site: "facebook",
+        verification: {
+          kind: "ready",
+          checkedAt: "2026-10-13T00:00:00.000Z",
+          capability: { kind: "search", query: "mac pro" },
+        },
+      });
+    });
     await waitFor(() => {
       expect(screen.getByText(/couldn't be checked right now/i)).toBeTruthy();
     });
-    expect(screen.getByLabelText("Connect Facebook")).toBeTruthy();
+    expect(screen.getByText(/Reconnect in Settings/i)).toBeTruthy();
   });
 
-  it("renders nothing for a verified empty result (no noise)", async () => {
-    searchFbMarketplace.mockResolvedValue({ kind: "empty" });
-    render(<FacebookResultsSection query="mac pro" onTrack={() => {}} />);
-    await waitFor(() => expect(searchFbMarketplace).toHaveBeenCalledTimes(1));
+  it("renders nothing while signed out — no spinner, no nag card", async () => {
+    searchFbMarketplace.mockResolvedValue({ kind: "unavailable" });
+    const { FacebookResultsSection: Section } = await import("@/components/search/facebook-results-section");
+    render(<Section query="mac pro" onTrack={() => {}} />);
     await new Promise((r) => setTimeout(r, 50));
-    expect(screen.queryByLabelText("Connect Facebook")).toBeNull();
+    expect(screen.queryByText(/couldn't be checked right now/i)).toBeNull();
+    expect(screen.queryByText(/Checking Facebook Marketplace/i)).toBeNull();
   });
 });

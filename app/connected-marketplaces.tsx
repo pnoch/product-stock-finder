@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { SessionAssistModal } from "@/components/session-assist-modal";
+import { FacebookSearchSheet } from "@/components/marketplace/facebook-search-sheet";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useMarketplaceConnections } from "@/hooks/use-marketplace-connections";
@@ -176,6 +177,7 @@ export default function ConnectedMarketplacesScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [openPlan, setOpenPlan] = useState<ProbePlan | null>(null);
   const [disconnecting, setDisconnecting] = useState<MarketplaceSite[]>([]);
+  const [fbSearchVisible, setFbSearchVisible] = useState(false);
   const [guidance, setGuidance] = useState<
     Partial<Record<MarketplaceSite, string>>
   >({});
@@ -528,6 +530,26 @@ export default function ConnectedMarketplacesScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
+
+                {site === "facebook" && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Search Facebook Marketplace"
+                    onPress={() => setFbSearchVisible(true)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      alignSelf: "flex-start",
+                    }}
+                  >
+                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+                      Search Facebook Marketplace…
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             );
           })}
@@ -544,6 +566,11 @@ export default function ConnectedMarketplacesScreen() {
           onDone={handleDone}
         />
       )}
+
+      <FacebookSearchSheet
+        visible={fbSearchVisible}
+        onClose={() => setFbSearchVisible(false)}
+      />
     </ScreenContainer>
   );
 }

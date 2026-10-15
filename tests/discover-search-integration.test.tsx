@@ -182,15 +182,11 @@ describe("Discover search integration", () => {
     expect(screen.getByText("TRENDING_MATCHES:rtx5090")).toBeTruthy();
   });
 
-  it("passes the query into the facebook sheet when opened", async () => {
+  it("search shows no facebook entry card; results come only when connected", () => {
     render(<DiscoverScreen />);
-    const input = screen.getByLabelText("Catalog search");
-    fireEvent.change(input, { target: { value: "rtx5090" } });
-
-    fireEvent.click(screen.getByLabelText("Search Facebook Marketplace"));
-    await waitFor(() => {
-      expect(screen.getByText("FB_SHEET:rtx5090")).toBeTruthy();
-    });
+    expect(screen.queryByLabelText("Search Facebook Marketplace")).toBeNull();
+    expect(screen.getByText("TRENDING_SECTION")).toBeTruthy();
+    expect(screen.getByText("AVAILABLE_SECTION")).toBeTruthy();
   });
 
   it("shows browse sections only when the query is empty", () => {

@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 
 import { useColors } from "@/hooks/use-colors";
@@ -50,13 +49,13 @@ export function FacebookResultsSection({
   onTrack: (url: string) => void;
 }) {
   const colors = useColors();
-  const router = useRouter();
   const service = useMemo(() => getMarketplaceConnectionsService(), []);
   const [state, setState] = useState<FbSearchState | null>(null);
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState<FacebookSearchPreference>(
     () => service.preferences(),
   );
+  const [connected, setConnected] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
   const trimmed = query.trim();
   const trimmedRef = useRef(trimmed);
@@ -71,13 +70,18 @@ export function FacebookResultsSection({
     void service
       .load()
       .then(() => {
-        if (active) setPreferences(service.preferences());
+        if (!active) return;
+        setPreferences(service.preferences());
+        setConnected(service.current("facebook").kind === "ready");
       })
       .catch(() => {});
     const unsubscribe = service.subscribe((event) => {
       if (event.type === "preferences") {
         setPreferences(event.preferences);
         return;
+      }
+      if (event.type === "verification" && event.site === "facebook") {
+        setConnected(event.verification.kind === "ready");
       }
       // A completed Facebook search verification means the sign-in flow
       // succeeded: re-run the retained query exactly once. Failed checks never
@@ -136,32 +140,10 @@ export function FacebookResultsSection({
     retryToken,
   ]);
 
-  if (trimmed.length < MIN_QUERY_LENGTH) return null;
-
-  const connectButton = (
-    <TouchableOpacity
-      accessibilityRole="button"
-      accessibilityLabel="Connect Facebook"
-      onPress={() =>
-        router.push({
-          pathname: "/connected-marketplaces",
-          params: { site: "facebook", keyword: trimmed },
-        })
-      }
-      style={{
-        marginTop: 8,
-        alignSelf: "flex-start",
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 999,
-        backgroundColor: colors.primary,
-      }}
-    >
-      <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>
-        Connect Facebook
-      </Text>
-    </TouchableOpacity>
-  );
+  // Search shows Facebook results only for a connected session. When signed
+  // out the section stays out of the way — connection lives in Settings →
+  // Connected marketplaces.
+  if (!connected) return null;
 
   if (loading) {
     return (
@@ -185,9 +167,9 @@ export function FacebookResultsSection({
 
   if (!state) return null;
 
-  // The hidden WebView couldn't render Facebook at all (no session yet,
-  // renderer busy, page didn't load). Say so and offer Connect — rendering
-  // nothing would hide the feature entirely.
+  // The hidden WebView couldn't render Facebook at all (session may have
+  // expired, renderer busy, page didn't load). Say so — rendering nothing
+  // would look identical to "no matches".
   if (state.kind === "unavailable") {
     return (
       <View
@@ -202,10 +184,9 @@ export function FacebookResultsSection({
         }}
       >
         <Text style={{ color: colors.muted, fontSize: 12 }}>
-          Facebook Marketplace couldn&apos;t be checked right now. Connect your
-          Facebook session to see local listings.
+          Facebook Marketplace couldn&apos;t be checked right now. Reconnect in
+          Settings → Connected marketplaces.
         </Text>
-        {connectButton}
       </View>
     );
   }
@@ -224,9 +205,9 @@ export function FacebookResultsSection({
         }}
       >
         <Text style={{ color: colors.muted, fontSize: 12 }}>
-          Facebook Marketplace — sign in in the app browser to see local listings
+          Facebook session expired — reconnect in Settings → Connected
+          marketplaces to see local listings.
         </Text>
-        {connectButton}
       </View>
     );
   }
@@ -248,7 +229,6 @@ export function FacebookResultsSection({
           Facebook Marketplace results couldn&apos;t be read this time. This is
           not a confirmed empty result.
         </Text>
-        {connectButton}
       </View>
     );
   }
