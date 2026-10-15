@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { fetchEbaySearch } from "@/lib/server-marketplace";
+import { convertPrice } from "@/lib/currency";
+import { getSettings } from "@/lib/storage";
 import { formatPrice } from "@shared/currency";
 import { EBAY_SEARCH_QUERY_MAX, type EbaySearchListing, type EbaySearchResult } from "@/shared/ebay-search";
 
@@ -10,6 +12,18 @@ export function EbayResultsSection({ query, onTrack }: { query: string; onTrack:
   const [result, setResult] = useState<EbaySearchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [retry, setRetry] = useState(0);
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  useEffect(() => {
+    let active = true;
+    void getSettings()
+      .then((settings) => {
+        if (active) setDisplayCurrency(settings?.displayCurrency ?? "USD");
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   const trimmed = query.trim();
   const eligible = trimmed.length >= 2 && trimmed.length <= EBAY_SEARCH_QUERY_MAX && !/^https?:\/\//i.test(trimmed);
   useEffect(() => {
@@ -44,17 +58,28 @@ export function EbayResultsSection({ query, onTrack }: { query: string; onTrack:
       </View>}
       {result?.kind === "results" && <>
         <Text style={{ color: colors.muted, fontSize: 12, paddingTop: 4 }}>Observed offers for your query. Confirm model, condition, and shipping before tracking.</Text>
-        {result.listings.map((item) => <View key={item.itemId} style={{ flexDirection: "row", gap: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border, paddingVertical: 12 }}>
+        {result.listings.map((item) => {
+          // eBay returns the seller's native currency; show the converted amount
+          // too so offers are comparable with the rest of the app.
+          const converted =
+            item.price !== null && item.currency && item.currency !== displayCurrency
+              ? convertPrice(item.price, item.currency, displayCurrency)
+              : null;
+          return (
+            <View key={item.itemId} style={{ flexDirection: "row", gap: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border, paddingVertical: 12 }}>
           {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={{ width: 56, height: 56, borderRadius: 8 }} accessibilityLabel={item.title} />}
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.foreground, fontWeight: "600" }} numberOfLines={2}>{item.title}</Text>
             <Text style={{ color: colors.primary, paddingTop: 4 }}>{item.price !== null && item.currency ? formatPrice(item.price, item.currency) : "Price not available"}</Text>
+            {converted !== null && <Text style={{ color: colors.muted, fontSize: 12 }}>≈ {formatPrice(converted, displayCurrency)}</Text>}
             {item.condition && <Text style={{ color: colors.muted, fontSize: 12 }}>{item.condition}</Text>}
             {item.seller && <Text style={{ color: colors.muted, fontSize: 12 }}>Seller: {item.seller}</Text>}
             {item.shipping && <Text style={{ color: colors.muted, fontSize: 12 }}>Shipping: {item.shipping}</Text>}
           </View>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Track eBay listing ${item.title}`} onPress={() => onTrack(item)} style={{ alignSelf: "center", padding: 10 }}><Text style={{ color: colors.primary, fontWeight: "700" }}>Track</Text></TouchableOpacity>
-        </View>)}
+            </View>
+          );
+        })}
       </>}
     </View>
   );
