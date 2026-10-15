@@ -5,7 +5,7 @@ import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { formatPrice } from "@shared/currency";
 import type { PriceAlert } from "@/lib/types";
-import type { PriceDrop } from "@/lib/price-leaderboard";
+import { formatDropPct, type PriceDrop } from "@/lib/price-leaderboard";
 
 function CardShell({
   accent,
@@ -165,7 +165,7 @@ export const DropCard = memo(function DropCard({
             </View>
             <View style={{ alignItems: "flex-end" }}>
               <Text style={{ fontSize: 14, fontWeight: "700", color: colors.success }}>
-                {`\u2212${drop.dropPct.toFixed(0)}%`}
+                {formatDropPct(drop.dropPct)}
               </Text>
               <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }}>
                 {`\u2212${formatPrice(drop.dropAbs, drop.currency)}`}

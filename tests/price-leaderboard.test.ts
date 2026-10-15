@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   computeLocalDrops,
   buildDropShareText,
+  formatDropPct,
   type PriceDrop,
 } from "@/lib/price-leaderboard";
 import type { Product } from "@/lib/types";
@@ -419,6 +420,30 @@ describe("computeLocalDrops", () => {
     } as any);
 
     expect(computeLocalDrops([product], "7d", "USD")).toEqual([]);
+  });
+});
+
+describe("formatDropPct", () => {
+  it("never renders a nonsensical -0%", () => {
+    expect(formatDropPct(0.35)).toBe("\u22120.3%");
+    expect(formatDropPct(0.3)).toBe("\u22120.3%");
+    expect(formatDropPct(0.04)).toBe("\u2212<0.1%");
+    expect(formatDropPct(0)).toBe("\u2212<0.1%");
+  });
+
+  it("keeps one decimal below 10%", () => {
+    expect(formatDropPct(1)).toBe("\u22121.0%");
+    expect(formatDropPct(9.94)).toBe("\u22129.9%");
+  });
+
+  it("rounds to whole percent at 10% and above", () => {
+    expect(formatDropPct(10)).toBe("\u221210%");
+    expect(formatDropPct(25)).toBe("\u221225%");
+    expect(formatDropPct(12.6)).toBe("\u221213%");
+  });
+
+  it("uses the magnitude so positive inputs render as drops", () => {
+    expect(formatDropPct(-25)).toBe(formatDropPct(25));
   });
 });
 

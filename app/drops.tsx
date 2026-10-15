@@ -19,6 +19,7 @@ import { useToast } from "@/components/ui/toast";
 import {
   buildDropShareText,
   computeLocalDrops,
+  formatDropPct,
   type DropSortBy,
   type DropWindow,
   type PriceDrop,
@@ -55,7 +56,7 @@ function DropRow({
   onPress: () => void;
 }) {
   const colors = useColors();
-  const pctText = `\u2212${drop.dropPct.toFixed(0)}%`;
+  const pctText = formatDropPct(drop.dropPct);
   const absText = `\u2212${formatPrice(drop.dropAbs, drop.currency)}`;
   const priceLine = `${formatPrice(drop.previousPrice, drop.currency)} \u2192 ${formatPrice(drop.currentPrice, drop.currency)}`;
   const subtitle = drop.modelNumber

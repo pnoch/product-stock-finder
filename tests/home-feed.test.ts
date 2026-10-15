@@ -47,6 +47,32 @@ describe("buildFeedItems", () => {
     expect(items.map((i) => i.kind)).toEqual(["alerts", "drops", "restocks"]);
   });
 
+  it("shows one drop row per product (not one per distributor)", () => {
+    const now = Date.now();
+    const older = new Date(now - 3 * 86400000).toISOString();
+    const newer = new Date(now - 86400000).toISOString();
+    const listing = (distributorId: string, from: number, to: number) => ({
+      distributorId, distributorName: distributorId, price: to, currency: "USD",
+      stockStatus: "in_stock", url: "", lastChecked: newer,
+      priceHistory: [
+        { date: older, price: from, currency: "USD" },
+        { date: newer, price: to, currency: "USD" },
+      ],
+    });
+    const products = [{
+      id: "p1", name: "W", modelNumber: "W1", brand: "T", category: "Switch",
+      description: "", isWatched: true, addedAt: newer,
+      listings: [listing("d1", 100, 80), listing("d2", 100, 70)],
+    }] as unknown as Product[];
+
+    const items = buildFeedItems({ alerts: [], products, awaySummary: null, displayCurrency: "USD" });
+    const drops = items.find((i) => i.kind === "drops");
+    expect(drops).toBeDefined();
+    if (drops?.kind !== "drops") throw new Error("expected drops");
+    expect(drops.drops).toHaveLength(1);
+    expect(drops.drops[0].distributorId).toBe("d2");
+  });
+
   it("omits empty sections", () => {
     const items = buildFeedItems({ alerts: [alert()], products: [], awaySummary: null, displayCurrency: "USD" });
     // alert without triggeredAt is not fired; nothing else -> quiet

@@ -14,6 +14,9 @@ export function DetailHeader({
   onToggleWatch,
   acquired,
   onToggleAcquired,
+  isTracked = true,
+  addingToWatchlist = false,
+  onAddToWatchlist,
 }: {
   product: Product;
   bestDeal: BestDeal | null;
@@ -22,6 +25,9 @@ export function DetailHeader({
   onToggleWatch: () => void;
   acquired: boolean;
   onToggleAcquired: () => void;
+  isTracked?: boolean;
+  addingToWatchlist?: boolean;
+  onAddToWatchlist?: () => void;
 }) {
   const colors = useColors();
   const region = bestDeal
@@ -48,6 +54,32 @@ export function DetailHeader({
       <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>{product.brand} · {product.category} · {product.modelNumber}</Text>
       {region ? <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>{region}</Text> : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
+      {!isTracked ? (
+        <Pressable
+          onPress={onAddToWatchlist}
+          disabled={addingToWatchlist}
+          accessibilityRole="button"
+          accessibilityLabel="Add to watchlist"
+          accessibilityState={{ disabled: addingToWatchlist }}
+          style={{
+            alignSelf: "flex-start",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 16,
+            backgroundColor: colors.primary,
+            opacity: addingToWatchlist ? 0.6 : 1,
+          }}
+        >
+          <IconSymbol name="plus" size={14} color="#fff" />
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
+            {addingToWatchlist ? "Adding…" : "Add to Watchlist"}
+          </Text>
+        </Pressable>
+      ) : (
+        <>
       {!product.marketplace && <Pressable
         onPress={onToggleWatch}
         accessibilityRole="button"
@@ -91,6 +123,8 @@ export function DetailHeader({
           {acquired ? "Acquired — tap to undo" : "Mark as acquired"}
         </Text>
       </Pressable>
+        </>
+      )}
       </View>
       {bestDeal ? <View style={{ marginTop: 8 }}><StockBadge status="in_stock" /></View> : null}
     </View>

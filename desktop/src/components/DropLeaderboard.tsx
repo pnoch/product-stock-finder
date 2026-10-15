@@ -4,6 +4,7 @@ import { TrendingDown } from "lucide-react";
 import { formatPrice } from "@shared/currency";
 import {
   computeLocalDrops,
+  formatDropPct,
   type DropSortBy,
   type DropWindow,
 } from "../../../lib/price-leaderboard";
@@ -104,7 +105,7 @@ export function DropLeaderboard() {
               </div>
               <div className="text-right shrink-0">
                 <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                  −{drop.dropPct.toFixed(0)}%
+                  {formatDropPct(drop.dropPct)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   −{formatPrice(drop.dropAbs, drop.currency)}

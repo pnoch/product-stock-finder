@@ -266,7 +266,7 @@ export function ProductInfoCard({
           </Text>
           <Text
             style={{
-              color: colors.success,
+              color: inStockCount > 0 ? colors.success : colors.muted,
               fontWeight: "700",
               fontSize: 20,
             }}

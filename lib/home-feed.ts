@@ -27,7 +27,16 @@ export function buildFeedItems(input: {
   const fired = alerts.filter((a) => a.triggeredAt != null);
   if (fired.length > 0) items.push({ kind: "alerts", alerts: fired });
 
-  const drops = computeLocalDrops(products, "7d", displayCurrency, "pct", 3);
+  // The Home card is a summary, so surface the biggest drop per product
+  // instead of the same product repeated once per distributor.
+  const seenProducts = new Set<string>();
+  const drops = computeLocalDrops(products, "7d", displayCurrency, "pct", 20)
+    .filter((d) => {
+      if (seenProducts.has(d.productId)) return false;
+      seenProducts.add(d.productId);
+      return true;
+    })
+    .slice(0, 3);
   if (drops.length > 0) items.push({ kind: "drops", drops });
 
   const restocks = awaySummary?.restocks ?? [];

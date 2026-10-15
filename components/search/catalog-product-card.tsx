@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
-import { Text, View, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
+import { Text, View, TouchableOpacity, Pressable, ActivityIndicator, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -12,6 +12,7 @@ interface CatalogProductCardProps {
   isAdding: boolean;
   onAdd: (item: Product) => void;
   onTagPress: (item: Product) => void;
+  onOpen?: (item: Product) => void;
 }
 
 export const CatalogProductCard = memo(function CatalogProductCard({
@@ -20,6 +21,7 @@ export const CatalogProductCard = memo(function CatalogProductCard({
   isAdding,
   onAdd,
   onTagPress,
+  onOpen,
 }: CatalogProductCardProps) {
   const colors = useColors();
   const containerStyle = useMemo(() => ({
@@ -34,13 +36,20 @@ export const CatalogProductCard = memo(function CatalogProductCard({
     minHeight: 78,
   }), [colors.surface, colors.border]);
   const handleAdd = useCallback(() => onAdd(product), [onAdd, product]);
+  const handleOpen = useCallback(() => onOpen?.(product), [onOpen, product]);
   const handleTag = useCallback(() => {
     if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onTagPress(product);
   }, [onTagPress, product]);
 
   return (
-    <View style={containerStyle}>
+    <Pressable
+      onPress={handleOpen}
+      disabled={!onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${product.name}`}
+      style={containerStyle}
+    >
       <ProductImage productId={product.id} />
       <View style={{ flex: 1, marginRight: 12, justifyContent: "center" }}>
         <Text
@@ -131,7 +140,7 @@ export const CatalogProductCard = memo(function CatalogProductCard({
           <IconSymbol name="plus" size={20} color="#fff" />
         )}
       </TouchableOpacity>
-    </View>
+    </Pressable>
   );
 });
 CatalogProductCard.displayName = "CatalogProductCard";

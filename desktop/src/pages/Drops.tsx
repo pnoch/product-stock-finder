@@ -5,6 +5,7 @@ import { formatPrice } from "@shared/currency";
 import {
   buildDropShareText,
   computeLocalDrops,
+  formatDropPct,
   type DropSortBy,
   type DropWindow,
   type PriceDrop,
@@ -245,7 +246,7 @@ export function Drops() {
                     </span>
                   </span>
                   <span className="md:hidden ml-auto text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                    −{drop.dropPct.toFixed(0)}%
+                    {formatDropPct(drop.dropPct)}
                   </span>
                 </span>
                 <span className="text-sm text-gray-600 dark:text-gray-300 truncate">
@@ -256,7 +257,7 @@ export function Drops() {
                   {formatPrice(drop.currentPrice, drop.currency)}
                 </span>
                 <span className="hidden md:block text-sm font-bold text-emerald-600 dark:text-emerald-400 text-right">
-                  −{drop.dropPct.toFixed(0)}%
+                  {formatDropPct(drop.dropPct)}
                 </span>
                 <span className="hidden md:block text-sm text-gray-500 dark:text-gray-400 text-right">
                   −{formatPrice(drop.dropAbs, drop.currency)}

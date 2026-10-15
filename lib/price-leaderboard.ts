@@ -95,6 +95,14 @@ export function computeLocalDrops(
   return sorted.slice(0, limit);
 }
 
+// Sub-1% drops rounded to whole percent rendered as a nonsensical "−0%".
+// Keep one decimal below 10% and fall back to "<0.1%" for near-zero drops.
+export function formatDropPct(pct: number): string {
+  const abs = Math.abs(pct);
+  if (abs < 0.1) return "\u2212<0.1%";
+  return `\u2212${abs < 10 ? abs.toFixed(1) : Math.round(abs)}%`;
+}
+
 export function buildDropShareText(
   drops: PriceDrop[],
   window: DropWindow,
@@ -103,7 +111,7 @@ export function buildDropShareText(
   const windowLabel = { "24h": "24h", "7d": "7d", "30d": "30d" }[window];
   const sortLabel = sortBy === "pct" ? "%" : "$";
   const lines = drops.slice(0, 10).map((d, i) => {
-    const pct = `\u2212${d.dropPct.toFixed(0)}%`;
+    const pct = formatDropPct(d.dropPct);
     const abs = `\u2212${formatPrice(d.dropAbs, d.currency)}`;
     return `${i + 1}. ${d.productName} (${d.distributorName}) \u2014 ${formatPrice(d.previousPrice, d.currency)} \u2192 ${formatPrice(d.currentPrice, d.currency)} (${pct}, ${abs})`;
   });

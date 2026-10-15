@@ -15,7 +15,7 @@ import { buildShareText } from "@/lib/price-share";
 import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
 import * as Linking from "expo-linking";
 import { captureAndShareImage } from "@/lib/share-image";
-import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings, updateSettings, getWatchlist, updateProductAcquired } from "@/lib/storage";
+import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings, updateSettings, getWatchlist, updateProductAcquired, addToWatchlist } from "@/lib/storage";
 import { isAcquired } from "@/lib/acquired";
 import { pickAlternatives, localAlternatives, type Alternative } from "@/lib/alternatives";
 import { fetchAvailable } from "@/lib/server-catalog";
@@ -63,7 +63,7 @@ export default function ProductDetailScreen() {
     : distributor;
   const colors = useColors();
   const { showToast } = useToast();
-  const { product, listings, loaded, lastUpdatedAt, refresh } = useLiveProduct(id ?? "");
+  const { product, isTracked, listings, loaded, lastUpdatedAt, refresh } = useLiveProduct(id ?? "", { allowCatalog: true });
   const [findingPrices, setFindingPrices] = useState(false);
   const handleFindPrices = useCallback(async () => {
     if (!product?.modelNumber || findingPrices) return;
@@ -129,6 +129,7 @@ export default function ProductDetailScreen() {
   // notifications, and the first's id was orphaned (replaced) so it could never
   // be cancelled.
   const [togglingWatch, setTogglingWatch] = useState(false);
+  const [addingToWatchlist, setAddingToWatchlist] = useState(false);
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!id) {
@@ -485,6 +486,27 @@ export default function ProductDetailScreen() {
     }
   }, [product, refresh]);
 
+  const handleAddToWatchlist = useCallback(async () => {
+    if (!product || addingToWatchlist) return;
+    setAddingToWatchlist(true);
+    try {
+      await addToWatchlist({
+        ...product,
+        addedAt: new Date().toISOString(),
+        isWatched: true,
+        listings: product.listings ?? [],
+        tags: product.tags ?? [],
+      });
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast("Added to watchlist", "success");
+      await refresh();
+    } catch {
+      showAlert("Couldn't add", "Please try again.");
+    } finally {
+      setAddingToWatchlist(false);
+    }
+  }, [product, addingToWatchlist, refresh, showToast]);
+
   const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
     if (!id || togglingWatch) return;
     const isWatched = stockWatches[listing.distributorId];
@@ -754,7 +776,7 @@ export default function ProductDetailScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
       >
-        <DetailHeader product={product} bestDeal={bestDeal} scrollY={scrollY} watchingAny={!!stockWatches["*"]} onToggleWatch={() => void toggleAnyWatch()} acquired={isAcquired(product)} onToggleAcquired={() => void handleToggleAcquired()} />
+        <DetailHeader product={product} bestDeal={bestDeal} scrollY={scrollY} watchingAny={!!stockWatches["*"]} onToggleWatch={() => void toggleAnyWatch()} acquired={isAcquired(product)} onToggleAcquired={() => void handleToggleAcquired()} isTracked={isTracked} addingToWatchlist={addingToWatchlist} onAddToWatchlist={() => void handleAddToWatchlist()} />
         <View ref={shareRef} collapsable={false}>
           {product.marketplace ? <MarketplaceCard product={product} onUpdated={refresh} /> : <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={effectiveCurrency} productImage={productImage} />}
           {!product.marketplace && <>
@@ -792,8 +814,8 @@ export default function ProductDetailScreen() {
         {/* Notes and distributor targets sit outside the shareRef capture: notes
             are device-private and targets are personal, so neither belongs in a
             shared product image. */}
-        <NotesCard productId={product.id} />
-        {!product.marketplace && <>
+        {isTracked && <NotesCard productId={product.id} />}
+        {isTracked && !product.marketplace && <>
         <TargetTableCard listings={visibleListings} alerts={alerts} productId={product.id} onSetTarget={handleSetTarget} />
         <AlertSection productId={product.id} productName={product.name} displayCurrency={effectiveCurrency} onAdded={(alert) => setAlerts((prev) => [...prev, alert])} />
         <ReminderSection productId={product.id} distributorId={reminderTarget?.distributorId} productName={product.name} distributorName={reminderTarget ? getDistributorById(reminderTarget.distributorId)?.name ?? "" : ""} onRemind={() => { if (reminderTarget) setReminderListing(reminderTarget); }} />

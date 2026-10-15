@@ -793,6 +793,7 @@ export default function SearchScreen({
               isAdding={adding === item.id}
               onAdd={handleAdd}
               onTagPress={handleTagPress}
+              onOpen={(p) => router.push(`/product/${p.id}`)}
             />
           </View>
         )}

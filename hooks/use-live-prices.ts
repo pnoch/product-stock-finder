@@ -13,12 +13,25 @@ import { isAutomaticProduct } from "@/lib/marketplace";
 
 const PERSIST_DEBOUNCE_MS = 500;
 
-export function useLiveProduct(productId: string) {
+// A catalog entry lacks the watchlist-only fields; synthesize a full Product so
+// the detail screen can preview an untracked product before it is added.
+function catalogProductFor(productId: string): Product | null {
+  const entry = PRODUCT_CATALOG.find((p) => p.id === productId);
+  if (!entry) return null;
+  return { ...entry, addedAt: "", isWatched: false, listings: [] };
+}
+
+export function useLiveProduct(
+  productId: string,
+  options?: { allowCatalog?: boolean },
+) {
   const queryClient = useQueryClient();
   const generationRef = useRef(0);
   const [product, setProduct] = useState<Product | null>(null);
+  const [isTracked, setIsTracked] = useState(false);
   const [seedListings, setSeedListings] = useState<DistributorListing[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const allowCatalog = options?.allowCatalog ?? false;
 
   const loadSeed = useCallback(async () => {
     const gen = ++generationRef.current;
@@ -44,13 +57,15 @@ export function useLiveProduct(productId: string) {
         seed = mergeSampleHistory(base, sample);
       }
       setProduct(found);
+      setIsTracked(true);
     } else {
       seed = sample;
-      setProduct(null);
+      setProduct(allowCatalog ? catalogProductFor(productId) : null);
+      setIsTracked(false);
     }
     setSeedListings(seed);
     setLoaded(true);
-  }, [productId]);
+  }, [productId, allowCatalog]);
 
   useEffect(() => {
     void loadSeed();
@@ -144,6 +159,7 @@ export function useLiveProduct(productId: string) {
 
   return {
     product,
+    isTracked,
     listings,
     loaded,
     isRefreshingAny,

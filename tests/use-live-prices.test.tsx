@@ -201,6 +201,37 @@ describe("useLiveProduct", () => {
     expect(calledId).toBe("p1");
     expect(calledListings[0].price).toBe(90);
   });
+
+  it("marks a watchlist product as tracked", async () => {
+    const { result } = renderHook(() => useLiveProduct("p1"), {
+      wrapper: makeWrapper(),
+    });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.isTracked).toBe(true);
+  });
+
+  it("falls back to the catalog product for an untracked id when allowCatalog is set", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue([]);
+    const { result } = renderHook(
+      () => useLiveProduct("mikrotik-crs804-4ddq-hrm", { allowCatalog: true }),
+      { wrapper: makeWrapper() },
+    );
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.isTracked).toBe(false);
+    expect(result.current.product?.name).toBe("MikroTik CRS804-4DDQ-hRM");
+    expect(result.current.product?.listings).toEqual([]);
+  });
+
+  it("returns null for an untracked id without allowCatalog", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue([]);
+    const { result } = renderHook(
+      () => useLiveProduct("mikrotik-crs804-4ddq-hrm"),
+      { wrapper: makeWrapper() },
+    );
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.product).toBeNull();
+    expect(result.current.isTracked).toBe(false);
+  });
 });
 
 describe("useLiveWatchlist", () => {
