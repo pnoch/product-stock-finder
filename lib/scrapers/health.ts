@@ -207,6 +207,7 @@ export function computeHealthSummary(
 export interface TimelineSegment {
   status: HealthStatus;
   weight: number;
+  reason?: string;
 }
 
 export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
@@ -214,14 +215,19 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
   const sorted = [...samples].sort(
     (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
   );
-  if (sorted.length === 1) return [{ status: sorted[0].status, weight: 1 }];
+  if (sorted.length === 1)
+    return [{ status: sorted[0].status, weight: 1, reason: sorted[0].reason }];
   const times = sorted.map((s) => new Date(s.at).getTime());
   const total = times[times.length - 1]! - times[0]!;
   // `total <= 0` is false for NaN (a corrupt sample with an invalid `at`), and
   // clamping NaN weights doesn't fix them — the timeline strip would collapse.
   // Treat a non-finite span as a flat distribution.
   if (!Number.isFinite(total) || total <= 0) {
-    return sorted.map((s) => ({ status: s.status, weight: 1 / sorted.length }));
+    return sorted.map((s) => ({
+      status: s.status,
+      weight: 1 / sorted.length,
+      reason: s.reason,
+    }));
   }
   // Trapezoidal (nearest-neighbor) intervals: each sample owns half the gap
   // on either side, so weights always sum to 1. The old scheme reused the
@@ -230,7 +236,11 @@ export function timelineSegments(samples: HealthSample[]): TimelineSegment[] {
     const prev = i === 0 ? times[i]! : times[i - 1]!;
     const next = i === times.length - 1 ? times[i]! : times[i + 1]!;
     const weight = (next - prev) / 2 / total;
-    return { status: s.status, weight: Math.min(Math.max(weight, 0), 1) };
+    return {
+      status: s.status,
+      weight: Math.min(Math.max(weight, 0), 1),
+      reason: s.reason,
+    };
   });
 }
 

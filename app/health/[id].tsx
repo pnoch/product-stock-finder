@@ -19,6 +19,7 @@ import {
   timelineSegments,
 } from "@/lib/scrapers/health";
 import { getDistributorById } from "@shared/distributors";
+import { healthStatusColor } from "@/lib/health-status";
 
 const healthService = createHealthService(AsyncStorage);
 
@@ -29,15 +30,10 @@ export default function HealthDetailScreen() {
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const [samples, setSamples] = useState<HealthSample[]>([]);
   const [currentStatus, setCurrentStatus] = useState<HealthStatus | null>(null);
+  const [currentReason, setCurrentReason] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const distributor = id ? getDistributorById(id) : undefined;
-
-  const statusColors: Record<HealthStatus, string> = {
-    working: colors.success,
-    blocked: colors.warning,
-    error: colors.error,
-  };
 
   // Generation guard: `id` comes from the route params, so navigating from one
   // distributor's health page to another re-runs this while the previous load is
@@ -57,6 +53,7 @@ export default function HealthDetailScreen() {
       if (gen !== loadGenRef.current) return;
       const entry = health.find((h) => h.distributorId === id);
       setCurrentStatus(entry?.status ?? null);
+      setCurrentReason(entry?.reason ?? null);
     } finally {
       if (gen === loadGenRef.current) setLoading(false);
     }
@@ -166,7 +163,7 @@ export default function HealthDetailScreen() {
                 height: 10,
                 borderRadius: 5,
                 backgroundColor: currentStatus
-                  ? statusColors[currentStatus]
+                  ? healthStatusColor(currentStatus, currentReason, colors)
                   : colors.muted,
                 marginRight: 8,
               }}
@@ -222,7 +219,7 @@ export default function HealthDetailScreen() {
                   key={i}
                   style={{
                     flex: seg.weight,
-                    backgroundColor: statusColors[seg.status],
+                    backgroundColor: healthStatusColor(seg.status, seg.reason, colors),
                   }}
                 />
               ))}
@@ -264,7 +261,7 @@ export default function HealthDetailScreen() {
                 width: 10,
                 height: 10,
                 borderRadius: 5,
-                backgroundColor: statusColors[s.status] ?? colors.muted,
+                backgroundColor: healthStatusColor(s.status, s.reason, colors),
                 marginRight: 10,
               }}
             />

@@ -23,11 +23,10 @@ import {
   createHealthService,
   DistributorHealth,
   HealthStats,
-  HealthStatus,
   sanitizeResponseTimeMs,
 } from "@/lib/scrapers/health";
 import { getDistributorById } from "@shared/distributors";
-import { classifyFetchStatus } from "@/lib/scrapers/resilient";
+import { healthStatusColor } from "@/lib/health-status";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SessionAssistModal } from "@/components/session-assist-modal";
@@ -95,16 +94,8 @@ export default function HealthScreen() {
     };
   }, []);
 
-  const statusColors: Record<HealthStatus, string> = {
-    working: colors.success,
-    blocked: colors.warning,
-    error: colors.error,
-  };
-
   function resolveStatusColor(h: DistributorHealth): string {
-    if (h.status === "blocked") return colors.warning;
-    if (h.reason && classifyFetchStatus(h.reason) === "blocked") return colors.warning;
-    return statusColors[h.status];
+    return healthStatusColor(h.status, h.reason, colors);
   }
 
   const loadHealth = useCallback(async () => {
