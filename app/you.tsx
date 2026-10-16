@@ -1,8 +1,10 @@
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
+import { goBackOrHome } from "@/lib/navigation";
 import { IconSymbol, type IconSymbolName } from "@/components/ui/icon-symbol";
 
 const ROWS: { icon: IconSymbolName; title: string; subtitle: string; href: "/stats" | "/(tabs)/rates" | "/health" | "/diagnostics" | "/connected-marketplaces" | "/(tabs)/settings" }[] = [
@@ -26,7 +28,29 @@ export default function YouScreen() {
         showsVerticalScrollIndicator={true}
         contentContainerStyle={{ paddingBottom: 24 }}
       >
-        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            paddingHorizontal: 16,
+            paddingTop: 16,
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={0.7}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+            onPress={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              goBackOrHome(router);
+            }}
+            style={{ padding: 4 }}
+            hitSlop={12}
+          >
+            <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
+          </TouchableOpacity>
           <Text style={{ color: colors.foreground, fontSize: 28, fontWeight: "700" }}>
             You
           </Text>
