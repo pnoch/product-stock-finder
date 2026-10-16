@@ -142,7 +142,7 @@ export function SiteSessionsSection() {
           style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
         >
           <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>
-            {showAll ? "Show relevant" : "Show all 25"}
+            {showAll ? "Show relevant" : `Show all ${PARSERS.length}`}
           </Text>
         </Pressable>
         <Pressable

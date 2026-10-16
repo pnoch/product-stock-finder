@@ -24,4 +24,13 @@ describe("distributor-count copy", () => {
   it("tracks more than the old hardcoded 25", () => {
     expect(DISTRIBUTORS.length).toBeGreaterThan(25);
   });
+
+  it("derives the site-sessions 'Show all' count from PARSERS", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "components/settings/site-sessions-section.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("Show all ${PARSERS.length}");
+    expect(src).not.toMatch(/Show all 25/);
+  });
 });

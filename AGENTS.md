@@ -159,7 +159,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - `Product` has many `DistributorListing`s; each listing has a `priceHistory: PricePoint[]`
 - `PriceAlert` — target price threshold, deactivates on trigger, stores `triggeredAt`/`triggeredPrice`
 - `BackOrderReminder` — reused for both date-based reminders and back-in-stock watches (discriminated by `reminderType`)
-- `AppSettings` — theme, displayCurrency (USD/EUR/GBP/MYR/AUD/NZD/CAD/ZAR/THB/SGD/HKD/AED), checkInterval, notification toggles
+- `AppSettings` — theme, displayCurrency (44 currencies — see `CURRENCIES` in `shared/src/currency.ts`), checkInterval, notification toggles
 - `SyncItem` — `{ collection, id, data, updatedAt, deletedAt }`; `Collection` = watchlist | alerts | reminders | settings
 
 ## AsyncStorage Keys (lib/storage/)
