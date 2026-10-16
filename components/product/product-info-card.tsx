@@ -151,7 +151,7 @@ export function ProductInfoCard({
             marginHorizontal: -16,
             marginTop: -16,
             marginBottom: 14,
-            height: 190,
+            height: 96,
             backgroundColor: colors.border + "66",
             alignItems: "center",
             justifyContent: "center",
@@ -159,7 +159,7 @@ export function ProductInfoCard({
             borderBottomColor: colors.border,
           }}
         >
-          <IconSymbol name="photo" size={28} color={colors.muted} />
+          <IconSymbol name="photo" size={24} color={colors.muted} />
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }} numberOfLines={1} ellipsizeMode="tail">
             No image
           </Text>

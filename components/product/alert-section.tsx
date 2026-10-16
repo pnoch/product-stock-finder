@@ -6,7 +6,7 @@ import { ensureNotificationPermission, schedulePriceAlert } from "@/lib/notifica
 import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
-import { formatPrice } from "@shared/currency";
+import { CURRENCY_SYMBOLS, formatPrice } from "@shared/currency";
 import type { PriceAlert } from "@/lib/types";
 
 export function AlertSection({ productId, productName, displayCurrency = "USD", onAdded }: { productId: string; productName?: string; displayCurrency?: string; onAdded?: (alert: PriceAlert) => void }) {
@@ -60,7 +60,10 @@ export function AlertSection({ productId, productName, displayCurrency = "USD", 
   return (
     <View style={{ padding: 16 }}>
       <Text style={{ color: colors.foreground, fontWeight: "600", marginBottom: 8 }}>Price Alert</Text>
-      <TextInput value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="Target price" placeholderTextColor={colors.muted} returnKeyType="done" onSubmitEditing={onAdd} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, color: colors.foreground }} />
+      <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 10 }}>
+        <Text style={{ color: colors.muted, fontSize: 14 }}>{CURRENCY_SYMBOLS[currency] ?? currency}</Text>
+        <TextInput value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="Target price" placeholderTextColor={colors.muted} returnKeyType="done" onSubmitEditing={onAdd} style={{ flex: 1, paddingVertical: 10, marginLeft: 6, color: colors.foreground }} />
+      </View>
       <TouchableOpacity activeOpacity={0.85} onPress={onAdd} style={{ backgroundColor: colors.primary, borderRadius: 8, padding: 10, marginTop: 10, alignItems: "center" }} accessibilityLabel="Add price alert" accessibilityRole="button"><Text style={{ color: "#fff", fontWeight: "600" }}>Add Alert</Text></TouchableOpacity>
     </View>
   );
