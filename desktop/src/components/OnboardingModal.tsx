@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Bell, ShoppingCart, Sparkles } from "lucide-react";
 import { Modal } from "./Modal";
 import { hasSeenOnboarding, setOnboardingSeen } from "../../../lib/onboarding";
+import { DISTRIBUTORS } from "@shared/distributors";
 
 // Icons, not emoji: emoji glyphs depend on a system emoji font, which is absent
 // on many Linux desktops and renders as an empty "tofu" box in the tour.
@@ -9,7 +10,7 @@ const SLIDES = [
   {
     icon: ShoppingCart,
     title: "Find It Anywhere",
-    body: "One search across 25 global distributors — see who actually has it in stock.",
+    body: `One search across ${DISTRIBUTORS.length} global distributors — see who actually has it in stock.`,
   },
   {
     icon: Sparkles,

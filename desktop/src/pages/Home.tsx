@@ -16,7 +16,7 @@ import { getBestPrice, convertPrice } from "@/lib/currency";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { countActiveAlerts } from "../../../lib/alert-state";
 import { storage } from "../storage";
-import { getDistributorById } from "@shared/distributors";
+import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
 import { StockBadge } from "../components/StockBadge";
 import { ConnectionBadge } from "../components/ConnectionBadge";
 import { useConnection } from "../hooks/use-connection";
@@ -199,7 +199,7 @@ export function Home() {
         <EmptyState
           icon={<Package className="w-8 h-8" />}
           title="Nothing on the radar yet"
-          description="Click Add Product and paste a model number — we'll check all 25 distributors and alert you the moment it's in stock."
+          description={`Click Add Product and paste a model number — we'll check all ${DISTRIBUTORS.length} distributors and alert you the moment it's in stock.`}
         />
         <div className="flex justify-center mt-3">
           <p className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-amber-300/40 bg-amber-50 dark:bg-amber-900/20 text-xs text-gray-500 dark:text-gray-400">

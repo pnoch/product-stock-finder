@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import type { StatusFilter } from "@/lib/watchlist-org";
+import { DISTRIBUTORS } from "@shared/distributors";
 
 export function EmptyState({
   query,
@@ -91,7 +92,7 @@ export function EmptyState({
           ? "All your watched parts are marked as acquired. Turn on \"Show acquired\" to see them."
           : hasFilters
             ? "Try adjusting your filters or search — or add a new product to track."
-            : "Add a part and we'll watch all 25 distributors — alerting you the moment it's in stock or cheaper."}
+            : `Add a part and we'll watch all ${DISTRIBUTORS.length} distributors — alerting you the moment it's in stock or cheaper.`}
       </Text>
       {!hasFilters && !allAcquired && (
         <View

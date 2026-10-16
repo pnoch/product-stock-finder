@@ -1,6 +1,7 @@
 import type { Product } from "@/lib/types";
 import { convertPrice } from "@/lib/currency";
 import { formatPrice } from "@shared/currency";
+import { getDistributorById } from "@shared/distributors";
 import { isAutomaticProduct } from "./marketplace";
 
 export interface PriceDrop {
@@ -68,7 +69,9 @@ export function computeLocalDrops(
         productName: product.name ?? product.modelNumber,
         modelNumber: product.modelNumber,
         distributorId: listing.distributorId,
-        distributorName: listing.distributorId,
+        distributorName:
+          getDistributorById(listing.distributorId)?.name ??
+          listing.distributorId,
         previousPrice: prevPrice,
         currentPrice: currPrice,
         currency: displayCurrency,

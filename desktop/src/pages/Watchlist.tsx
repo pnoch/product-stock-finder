@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { log } from "@shared/log";
+import { DISTRIBUTORS } from "@shared/distributors";
 import { useNavigate, useSearchParams, Link } from "react-router";
 import {
   RefreshCw,
@@ -772,7 +773,7 @@ export function Watchlist() {
         <EmptyState
           icon={<Package className="w-8 h-8" />}
           title="No products yet"
-          description="Add a part and we'll watch all 25 distributors — alerting you the moment it's in stock or cheaper."
+          description={`Add a part and we'll watch all ${DISTRIBUTORS.length} distributors — alerting you the moment it's in stock or cheaper.`}
           action={{ label: "Browse Products", to: "/search" }}
         />
         <div className="flex justify-center">

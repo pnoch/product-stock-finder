@@ -17,6 +17,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { CountryPicker } from "@/components/ui/country-picker";
 import { updateSettings } from "@/lib/storage";
 import { getCountry } from "@shared/countries";
+import { DISTRIBUTORS } from "@shared/distributors";
 
 function localeRegion(): string | null {
   try {
@@ -34,7 +35,7 @@ const SLIDES = [
   {
     icon: "cart.fill",
     title: "Find It Anywhere",
-    body: "One search across 25 global distributors — see who actually has it in stock.",
+    body: `One search across ${DISTRIBUTORS.length} global distributors — see who actually has it in stock.`,
   },
   {
     icon: "sparkles",

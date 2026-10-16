@@ -37,6 +37,7 @@ import { useConnection } from "@/hooks/use-connection";
 import { useMonitoringHealth } from "@/hooks/use-monitoring-health";
 import { showAlert } from "@/lib/alert";
 import { greetingFor, buildFeedItems } from "@/lib/home-feed";
+import { DISTRIBUTORS } from "@shared/distributors";
 import {
   AlertFiredCard,
   DropCard,
@@ -360,7 +361,7 @@ export default function HomeScreen() {
                 Nothing on the radar yet
               </Text>
               <Text className="text-muted text-sm text-center mt-1 px-2">
-                Tap + and paste a model number — we&apos;ll check all 25 distributors and alert you the moment it&apos;s in stock.
+                Tap + and paste a model number — we&apos;ll check all {DISTRIBUTORS.length} distributors and alert you the moment it&apos;s in stock.
               </Text>
               <View
                 style={{

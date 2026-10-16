@@ -352,6 +352,23 @@ describe("computeLocalDrops", () => {
     expect(drops[0].distributorName).toBe("d-abc");
   });
 
+  it("resolves a known distributor's display name", () => {
+    const product = makeProduct({
+      listings: [
+        {
+          distributorId: "linitx-uk",
+          priceHistory: [
+            makePricePoint(daysAgo(2), 100),
+            makePricePoint(hoursAgo(1), 80),
+          ],
+        },
+      ],
+    } as any);
+
+    const drops = computeLocalDrops([product], "7d", "USD");
+    expect(drops[0].distributorName).toBe("Linitx");
+  });
+
   it("works with 24h window", () => {
     const product = makeProduct({
       listings: [
