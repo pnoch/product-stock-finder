@@ -71,6 +71,20 @@ export function SortGroupBar({
           </Text>
           <IconSymbol name="chevron.down" size={12} color={colors.muted} />
         </TouchableOpacity>
+      </View>
+
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          marginTop: 8,
+        }}
+      >
+        <Text style={{ color: colors.muted, fontSize: 13, fontWeight: "600" }}>
+          Group:
+        </Text>
         {GROUP_OPTIONS.map((opt) => {
           const active = groupMode === opt.key;
           return (
