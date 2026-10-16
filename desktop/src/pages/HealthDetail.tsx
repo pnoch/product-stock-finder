@@ -12,6 +12,7 @@ import {
   timelineSegments,
 } from "../../../lib/scrapers/health";
 import type { StorageAdapter } from "../../../lib/storage/adapter";
+import { healthStatusColor } from "../../../lib/health-status";
 
 const localAdapter: StorageAdapter = {
   getItem: async (k: string) => localStorage.getItem(k),
@@ -27,16 +28,20 @@ export function HealthDetail() {
   const navigate = useNavigate();
   const [samples, setSamples] = useState<HealthSample[]>([]);
   const [currentStatus, setCurrentStatus] = useState<HealthStatus | null>(null);
+  const [currentReason, setCurrentReason] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const distributor = id ? getDistributorById(id) : undefined;
 
-  const statusColors: Record<HealthStatus, string> = {
-    working: "#00C896",
-    blocked: "#F59E0B",
-    error: "#EF4444",
-  };
+  // Shared with the dashboard (and mobile) so an error whose reason names a
+  // block renders amber, not red.
+  const statusColor = (status: HealthStatus, reason?: string | null) =>
+    healthStatusColor(status, reason, {
+      success: "#00C896",
+      warning: "#F59E0B",
+      error: "#EF4444",
+    });
 
   // Generation guard: `id` comes from the route, so navigating from one
   // distributor's health page to another re-runs this while the previous load is
@@ -57,6 +62,7 @@ export function HealthDetail() {
       if (gen !== loadGenRef.current) return;
       const entry = health.find((h) => h.distributorId === id);
       setCurrentStatus((entry?.status as HealthStatus) ?? null);
+      setCurrentReason(entry?.reason ?? null);
     } catch (e) {
       if (gen !== loadGenRef.current) return;
       setLoadError(e instanceof Error ? e.message : "Couldn't load health history");
@@ -119,7 +125,7 @@ export function HealthDetail() {
       )}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: currentStatus ? statusColors[currentStatus] : "#9ca3af" }} title={currentStatus ?? "No data"} />
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: currentStatus ? statusColor(currentStatus, currentReason) : "#9ca3af" }} title={currentStatus ?? "No data"} />
           <span className="text-sm font-semibold">{currentStatus ?? "No data"}</span>
         </div>
         {stats ? (
@@ -134,7 +140,7 @@ export function HealthDetail() {
         {segments.length > 0 && (
           <div className="flex h-2 rounded-full overflow-hidden mt-4" role="img" aria-label={`Health timeline: ${segments.map((seg) => `${seg.status}`).join(", ")}`}>
             {segments.map((seg, i) => (
-              <div key={i} style={{ flex: seg.weight, backgroundColor: statusColors[seg.status] }} title={seg.status} />
+              <div key={i} style={{ flex: seg.weight, backgroundColor: statusColor(seg.status, seg.reason) }} title={seg.status} />
             ))}
           </div>
         )}
@@ -151,7 +157,7 @@ export function HealthDetail() {
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
               {g.samples.map((s, i) => (
                 <div key={`${s.at}-${i}`} className="flex items-center gap-3 px-4 py-3">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: statusColors[s.status] }} title={`${s.status} · ${new Date(s.at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}`} />
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: statusColor(s.status, s.reason) }} title={`${s.status} · ${new Date(s.at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{new Date(s.at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{s.reason || s.status}{sanitizeResponseTimeMs(s.responseTimeMs) != null ? ` · ${sanitizeResponseTimeMs(s.responseTimeMs)}ms` : ""}</p>

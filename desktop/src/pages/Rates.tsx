@@ -116,7 +116,7 @@ export function Rates() {
         <div>
           <h1 className="text-2xl font-bold">Exchange Rates</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {lastUpdated ? `Last updated ${formatLastRefreshed(new Date(lastUpdated).toISOString())}` : "No data yet — rates update hourly"}
+            {lastUpdated ? `Last updated ${formatLastRefreshed(new Date(lastUpdated).toISOString())}` : "Using built-in rates — live rates update hourly"}
           </p>
           {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
         </div>

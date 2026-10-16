@@ -647,18 +647,24 @@ export function Stats() {
               <p className="text-[11px] text-gray-400">Low · Medium · High</p>
             </div>
           </div>
-          {insights.products.filter((p) => p.atAllTimeLow).slice(0, 3).length > 0 && (
-            <div className="mt-2 space-y-1">
-              {insights.products
-                .filter((p) => p.atAllTimeLow)
-                .slice(0, 3)
-                .map((p) => (
+          {(() => {
+            const lows = insights.products.filter((p) => p.atAllTimeLow).slice(0, 3);
+            if (lows.length === 0) return null;
+            return (
+              <div className="mt-2 space-y-1">
+                {lows.map((p) => (
                   <p key={p.productId} className="text-xs text-emerald-600 truncate">
                     {p.name} is at its all-time low
                   </p>
                 ))}
-            </div>
-          )}
+                {insights.allTimeLows > lows.length && (
+                  <p className="text-xs text-gray-400">
+                    +{insights.allTimeLows - lows.length} more at all-time low
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 
