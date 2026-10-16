@@ -2,20 +2,37 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-// updateProductListings replaces the whole listings array, so rebuilding it
-// from the mount-time `products` snapshot reverted every price/status/history
-// change recorded since Settings opened (silent data loss). The handler must
-// read the current watchlist first — as the mobile screen does.
-describe("distributor re-enable reads fresh data", () => {
-  it("does not rebuild listings from the mount-time snapshot", () => {
+// "Re-enable" exists to clear a distributor's circuit breaker so the next
+// fetch is attempted again. It must NOT stamp `lastChecked`: that field means
+// "last successful check" (refresh-listing.ts only writes it on a successful
+// parse), so stamping it fabricated a success the UI then reported as
+// "OK / Last checked: today" with no prices fetched.
+function handlerBlock(src: string): string {
+  const start = src.indexOf("const handleReenableDistributor");
+  expect(start).toBeGreaterThan(-1);
+  return src.slice(start, src.indexOf("}, [reenabling]);", start));
+}
+
+describe("distributor re-enable does not fabricate freshness", () => {
+  it("mobile handler never stamps lastChecked or rewrites listings", () => {
+    const src = readFileSync(
+      join(process.cwd(), "..", "app/(tabs)/settings.tsx"),
+      "utf8",
+    );
+    const block = handlerBlock(src);
+    expect(block).toContain("clearDistributorBreaker(distributorId");
+    expect(block).not.toContain("lastChecked: nowIso");
+    expect(block).not.toContain("updateProductListings");
+  });
+
+  it("desktop handler never stamps lastChecked or rewrites listings", () => {
     const src = readFileSync(
       join(process.cwd(), "src/pages/Settings.tsx"),
       "utf8",
     );
-    const start = src.indexOf("const handleReenableDistributor");
-    expect(start).toBeGreaterThan(-1);
-    const block = src.slice(start, src.indexOf("}, [reenabling]);", start));
-    expect(block).toContain("const fresh = await storage.getWatchlist()");
-    expect(block).not.toContain("products\n        .filter");
+    const block = handlerBlock(src);
+    expect(block).toContain("clearDistributorBreaker(distributorId");
+    expect(block).not.toContain("lastChecked: nowIso");
+    expect(block).not.toContain("updateProductListings");
   });
 });

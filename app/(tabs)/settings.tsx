@@ -18,12 +18,11 @@ import {
   getSettings,
   updateSettings,
   getWatchlist,
-  updateProductListings,
   getSyncMeta,
 } from "@/lib/storage";
 import { formatSyncStatus, getSyncSetup } from "@/lib/sync";
 import { maybeRefreshFxRates } from "@/lib/fx";
-import { AppSettings, Product, DistributorListing, SyncMeta } from "@/lib/types";
+import { AppSettings, Product, SyncMeta } from "@/lib/types";
 import { showAlert } from "@/lib/alert";
 import { shareText } from "@/lib/share-text";
 import { sendTestNotification } from "@/lib/notifications";
@@ -621,32 +620,13 @@ export default function SettingsScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setReenabling(true);
       try {
-        // Clear the circuit breaker too: updating lastChecked alone left the
-        // distributor in cooldown (still skipped) while the UI showed "OK".
+        // Only clear the circuit breaker so the next price check attempts the
+        // fetch again. Do NOT stamp lastChecked here: that field means "last
+        // successful check" (refresh-listing.ts writes it only on a successful
+        // parse), so stamping it made a Failed distributor show "OK / Last
+        // checked: today" with no prices actually fetched.
         const { clearDistributorBreaker } = await import("@/lib/scrapers/breaker-clear");
         await clearDistributorBreaker(distributorId);
-        const nowIso = new Date().toISOString();
-        // updateProductListings replaces the whole listings array, so building it
-        // from the mount-time `products` snapshot reverted every price/status/
-        // history change since Settings opened. Read the current list instead.
-        const fresh = await getWatchlist();
-        const tasks = fresh
-          .filter((p) => p.listings?.some((l) => l.distributorId === distributorId))
-          .map((product) => {
-            const updatedListings: DistributorListing[] = product.listings.map((l) =>
-              l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
-            );
-            return updateProductListings(product.id, updatedListings);
-          });
-        await Promise.all(tasks);
-        setProducts(
-          fresh.map((p) => ({
-            ...p,
-            listings: p.listings?.map((l) =>
-              l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
-            ),
-          })),
-        );
       } catch (e) {
         log.error("[Settings] handleReenableDistributor failed", e);
         showAlert("Failed", "Could not re-enable distributor. Please try again.");

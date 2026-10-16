@@ -48,7 +48,7 @@ import { getSyncSetup, formatSyncStatus, type SyncStatus } from "../../../lib/sy
 import type { DeviceInfo } from "../../../server/devices";
 import { buildBackup, parseBackup, applyBackup } from "../../../lib/backup";
 import { watchlistToCsv } from "../../../lib/csv";
-import type { AppSettings, Product, DistributorListing, SyncMeta } from "../../../lib/types";
+import type { AppSettings, Product, SyncMeta } from "../../../lib/types";
 import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "../../../lib/scrapers/registry";
 import { requestWebNotificationPermission } from "../../../lib/web-notifications";
@@ -892,38 +892,16 @@ export function Settings() {
     if (reenabling) return;
     setReenabling(true);
     try {
-      const nowIso = new Date().toISOString();
-      // updateProductListings replaces the whole listings array, so building it
-      // from the mount-time `products` snapshot reverted every price, status and
-      // history change the poller recorded since Settings opened. Read the
-      // current list instead (mobile does the same).
-      const fresh = await storage.getWatchlist();
-      const tasks = fresh
-        .filter((p) => p.listings?.some((l) => l.distributorId === distributorId))
-        .map((product) => {
-          const updatedListings: DistributorListing[] = (product.listings ?? []).map((l) =>
-            l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
-          );
-          return storage.updateProductListings(product.id, updatedListings);
-        });
-      await Promise.all(tasks);
-      // Clear the circuit breaker too. The health probe stores it through a
-      // localStorage adapter; refreshing lastChecked alone left the distributor
-      // in cooldown (still skipped) while the UI showed "OK" (mobile does the
-      // same via clearDistributorBreaker).
+      // Only clear the circuit breaker so the next price check attempts the
+      // fetch again. Do NOT stamp lastChecked: that field means "last
+      // successful check" (refresh-listing.ts writes it only on a successful
+      // parse), so stamping it made a Failed distributor show "OK / Last
+      // checked: today" with no prices actually fetched.
       const breakerAdapter: Pick<StorageAdapter, "getItem" | "setItem"> = {
         getItem: async (k: string) => localStorage.getItem(k),
         setItem: async (k: string, v: string) => localStorage.setItem(k, v),
       };
       await clearDistributorBreaker(distributorId, breakerAdapter).catch(() => {});
-      setProducts(
-        fresh.map((p) => ({
-          ...p,
-          listings: p.listings?.map((l) =>
-            l.distributorId === distributorId ? { ...l, lastChecked: nowIso } : l,
-          ),
-        })),
-      );
       showToast("Distributor re-enabled");
     } catch {
       showToast("Could not re-enable distributor");
