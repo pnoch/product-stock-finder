@@ -27,7 +27,10 @@ export const DropCalendarCard = memo(function DropCalendarCard({
   const cellSize = useMemo(() => {
     const available = windowWidth - 32 - 32 - 6 * 4;
     const ideal = Math.floor(available / 7);
-    return Math.max(28, Math.min(34, ideal));
+    // Cap so a tablet doesn't get absurd cells, but high enough that a phone
+    // fills the row: a lower cap left the 7-cell header narrower than the
+    // wrapping grid, which then packed 9 cells per row.
+    return Math.max(28, Math.min(48, ideal));
   }, [windowWidth]);
   const [now, setNow] = useState(() => nowProp ?? Date.now());
   useFocusEffect(
@@ -37,6 +40,13 @@ export const DropCalendarCard = memo(function DropCalendarCard({
   );
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const cells = useMemo(() => buildGridCells(days, now), [days, now]);
+  // Chunk into explicit weeks so the grid always has 7 columns and lines up
+  // with the weekday header (a wrapping row packed more than 7 on wide phones).
+  const gridRows = useMemo(() => {
+    const rows: (number | null)[][] = [];
+    for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+    return rows;
+  }, [cells]);
   const selected: DropDay | undefined = useMemo(
     () => (selectedKey ? result.byDay.get(selectedKey) : undefined),
     [selectedKey, result.byDay],
@@ -120,33 +130,37 @@ export const DropCalendarCard = memo(function DropCalendarCard({
         ))}
       </View>
 
-      <View style={{ flexWrap: "wrap", flexDirection: "row", gap: 4 }}>
-        {cells.map((ts, i) =>
-          ts === null ? (
-            <View
-              key={`blank-${i}`}
-              style={{ width: cellSize, height: cellSize, marginBottom: 4 }}
-            />
-          ) : (
-            <TouchableOpacity
-              activeOpacity={result.byDay.get(dateKey(ts)) ? 0.7 : 1}
-              key={ts}
-              disabled={!result.byDay.get(dateKey(ts))}
-              onPress={() => handleSelect(ts)}
-              style={cellStyle(ts)}
-              accessibilityLabel={
-                result.byDay.get(dateKey(ts))
-                  ? `Price drops on ${new Date(ts).toLocaleDateString()}`
-                  : `${new Date(ts).toLocaleDateString()}, no price drops`
-              }
-              accessibilityRole={result.byDay.get(dateKey(ts)) ? "button" : "text"}
-            >
-              <Text style={{ color: colors.foreground, fontSize: 11 }}>
-                {new Date(ts).getDate()}
-              </Text>
-            </TouchableOpacity>
-          ),
-        )}
+      <View>
+        {gridRows.map((row, ri) => (
+          <View key={ri} testID={`drop-cal-row-${ri}`} style={{ flexDirection: "row", gap: 4 }}>
+            {row.map((ts, i) =>
+              ts === null ? (
+                <View
+                  key={`blank-${ri}-${i}`}
+                  style={{ width: cellSize, height: cellSize, marginBottom: 4 }}
+                />
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={result.byDay.get(dateKey(ts)) ? 0.7 : 1}
+                  key={ts}
+                  disabled={!result.byDay.get(dateKey(ts))}
+                  onPress={() => handleSelect(ts)}
+                  style={cellStyle(ts)}
+                  accessibilityLabel={
+                    result.byDay.get(dateKey(ts))
+                      ? `Price drops on ${new Date(ts).toLocaleDateString()}`
+                      : `${new Date(ts).toLocaleDateString()}, no price drops`
+                  }
+                  accessibilityRole={result.byDay.get(dateKey(ts)) ? "button" : "text"}
+                >
+                  <Text style={{ color: colors.foreground, fontSize: 11 }}>
+                    {new Date(ts).getDate()}
+                  </Text>
+                </TouchableOpacity>
+              ),
+            )}
+          </View>
+        ))}
       </View>
 
       {selected && (

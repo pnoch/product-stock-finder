@@ -82,6 +82,11 @@ export const InsightsCard = memo(function InsightsCard({ result }: { result: Pro
               {p.name} is at its all-time low
             </Text>
           ))}
+          {result.allTimeLows > lows.length && (
+            <Text style={{ color: colors.muted, fontSize: 12, paddingVertical: 2 }}>
+              +{result.allTimeLows - lows.length} more at all-time low
+            </Text>
+          )}
         </View>
       )}
     </View>
