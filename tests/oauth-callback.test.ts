@@ -1,8 +1,21 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import {
   parseOAuthCallbackParams,
   redeemOAuthTicket,
 } from "../lib/oauth-callback";
+
+describe("OAuth callback error state", () => {
+  it("offers a way back instead of stranding the user", () => {
+    const src = readFileSync(
+      path.join(process.cwd(), "app/oauth/callback.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("Back to Settings");
+    expect(src).toContain('router.replace("/(tabs)/settings")');
+  });
+});
 
 describe("parseOAuthCallbackParams", () => {
   it("rejects raw session tokens from URLs (login CSRF)", () => {

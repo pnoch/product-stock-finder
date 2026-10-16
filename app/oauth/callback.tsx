@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   setSessionToken,
@@ -128,6 +129,25 @@ export default function OAuthCallback() {
       >
         {error}
       </Text>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Back to Settings"
+        onPress={() => {
+          if (Platform.OS !== "web")
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.replace("/(tabs)/settings");
+        }}
+        style={{
+          marginTop: 20,
+          paddingHorizontal: 20,
+          paddingVertical: 10,
+          borderRadius: 12,
+          backgroundColor: colors.primary,
+        }}
+      >
+        <Text style={{ color: "#fff", fontWeight: "700" }}>Back to Settings</Text>
+      </TouchableOpacity>
     </View>
   );
 }
