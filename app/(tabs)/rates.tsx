@@ -110,7 +110,7 @@ export default function RatesScreen() {
         >
           {lastUpdated
             ? `Last updated ${formatLastRefreshed(new Date(lastUpdated).toISOString())}`
-            : "No data yet — rates update hourly"}
+            : "Using built-in rates — live rates update hourly"}
         </Text>
         <View style={{ flexDirection: "row", gap: 4, marginBottom: 12 }}>
           {FX_WINDOWS.map((r) => {
