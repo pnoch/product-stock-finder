@@ -63,3 +63,26 @@ Evidence screenshots under `/tmp/opencode/psf-evidence/`.
 ## Out of scope
 
 - Server sync paths (local-only emulator), notification delivery, desktop flow.
+
+## Execution evidence
+
+The installed release APK on `emulator-5566` completed the catalog workflow:
+search `crs518`, open the untracked preview, add to Watchlist, create a USD 900
+drop alert, force-stop, and relaunch. After relaunch, Watchlist still contains
+CRS518 and Alerts shows exactly one active alert with target `$900.00`.
+Notification permission was initially denied; it was enabled before creating
+the alert. Notification delivery itself was not tested.
+
+Screenshots in `/tmp/opencode/psf-evidence/`:
+
+- `wf-07-untracked-preview.png`: preview before adding.
+- `wf-08-tracked.png`: tracked detail controls after adding.
+- `wf-09-alert-before-restart.png`: alert before force-stop.
+- `wf-10-watchlist-after-restart.png`: saved product after relaunch.
+- `wf-11-alert-after-restart.png`: active USD 900 alert after relaunch.
+
+The automated test verifies a fresh storage instance over the same adapter
+reads both records and preserves their association, target, currency, and
+active state. It does not exercise UI navigation or simulate a native process;
+the emulator run supplies that evidence. The test passed on its first run;
+no failing regression or production-code fix was required.
