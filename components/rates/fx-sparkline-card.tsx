@@ -5,7 +5,7 @@ import { useColors } from "@/hooks/use-colors";
 interface FxSparklineCardProps {
   currency: string;
   rate: number;
-  change: number;
+  change: number | null;
   history: (number | null)[];
 }
 
@@ -16,7 +16,10 @@ export function FxSparklineCard({
   history,
 }: FxSparklineCardProps) {
   const colors = useColors();
-  const changeColor = change > 0 ? colors.success : change < 0 ? colors.error : colors.muted;
+  // `change === null` means the selected window holds fewer than two valid
+  // points (getFxWindowChange). Rendering 0.00% there claimed measured
+  // stability where nothing was measured.
+  const changeColor = change === null ? colors.muted : change > 0 ? colors.success : change < 0 ? colors.error : colors.muted;
 
   const filtered = history.filter((v): v is number => v !== null && Number.isFinite(v));
   const sparklinePoints = filtered.length >= 2
@@ -59,12 +62,13 @@ export function FxSparklineCard({
         <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }}>
           {currency}
         </Text>
+        <Text style={{ color: colors.muted, fontSize: 10 }}>per 1 USD</Text>
       </View>
       <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "600", marginTop: 4 }}>
         {rate >= 10 ? rate.toFixed(2) : rate >= 1 ? rate.toFixed(3) : rate.toFixed(4)}
       </Text>
       <Text style={{ color: changeColor, fontSize: 12, fontWeight: "600", marginTop: 2 }}>
-        {change > 0 ? "+" : ""}{change.toFixed(2)}%
+        {change === null ? "No history" : `${change > 0 ? "+" : ""}${change.toFixed(2)}%`}
       </Text>
       {sparklinePoints ? (
         <Svg width={60} height={24} style={{ marginTop: 6 }}>

@@ -30,7 +30,10 @@ export function FxRateGrid({ currentRates, history, change }: FxRateGridProps) {
               key={code}
               currency={code}
               rate={currentRates[code] ?? EXCHANGE_RATES[code] ?? 1}
-              change={change[code] ?? 0}
+              // Pass null through: the card renders "No history" for a window
+              // with fewer than two valid points. Coercing to 0 claimed
+              // measured stability where nothing was measured.
+              change={change[code] ?? null}
               history={history[code] ?? []}
             />
           ))}
