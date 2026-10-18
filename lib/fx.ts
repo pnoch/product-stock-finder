@@ -12,7 +12,7 @@ export async function loadFxRates(storage: Storage = defaultStorage): Promise<vo
   if (stored) setExchangeRates(stored.rates);
 }
 
-const refreshInFlight = new WeakMap<Storage, Promise<void>>();
+const refreshInFlight = new WeakMap<Storage, Promise<boolean>>();
 
 function ratesEqual(a: Record<string, number>, b: Record<string, number>): boolean {
   const aKeys = Object.keys(a);
@@ -25,14 +25,14 @@ function ratesEqual(a: Record<string, number>, b: Record<string, number>): boole
   return true;
 }
 
-export function refreshFxRates(storage: Storage = defaultStorage): Promise<void> {
+export function refreshFxRates(storage: Storage = defaultStorage): Promise<boolean> {
   const doRefresh = async () => {
     const result = await fetchFxRates();
-    if (!result || typeof result.fetchedAt !== "number" || result.fetchedAt <= 0) return;
+    if (!result || typeof result.fetchedAt !== "number" || !Number.isFinite(result.fetchedAt) || result.fetchedAt <= 0) return false;
     const stored = await storage.getFxRates();
     if (stored && stored.fetchedAt === result.fetchedAt && ratesEqual(stored.rates, result.rates)) {
       setExchangeRates(result.rates);
-      return;
+      return true;
     }
     await storage.saveFxRates({
       rates: result.rates,
@@ -42,6 +42,7 @@ export function refreshFxRates(storage: Storage = defaultStorage): Promise<void>
     const existingHistory = await storage.getFxHistory();
     const updatedHistory = appendFxHistory(existingHistory, result.rates, result.fetchedAt);
     await storage.saveFxHistory(updatedHistory);
+    return true;
   };
 
   const existing = refreshInFlight.get(storage);

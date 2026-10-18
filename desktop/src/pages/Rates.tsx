@@ -48,6 +48,7 @@ export function Rates() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [range, setRange] = useState<FxWindow>("All");
 
   const loadData = useCallback(async () => {
@@ -70,11 +71,15 @@ export function Rates() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     setError(null);
+    setRefreshError(null);
     try {
-      await refreshFxRates(storage);
+      if (!(await refreshFxRates(storage))) {
+        setRefreshError("Couldn't refresh exchange rates. Showing saved or built-in rates.");
+        return;
+      }
       await loadData();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Refresh failed");
+      setRefreshError(e instanceof Error ? e.message : "Refresh failed");
     } finally {
       setRefreshing(false);
     }
@@ -118,7 +123,7 @@ export function Rates() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {lastUpdated ? `Last updated ${formatLastRefreshed(new Date(lastUpdated).toISOString())}` : "Using built-in rates — live rates update hourly"}
           </p>
-          {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
+          {(refreshError || error) && <p role="alert" className="text-sm text-red-500 mt-1">{refreshError || error}</p>}
         </div>
         <button
           onClick={onRefresh}

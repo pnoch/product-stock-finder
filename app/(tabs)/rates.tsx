@@ -15,6 +15,7 @@ export default function RatesScreen() {
   const colors = useColors();
   const [history, setHistory] = useState<FxHistory | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [range, setRange] = useState<FxWindow>("All");
 
   // Generation guard: the mount effect fires loadData() immediately and again
@@ -37,11 +38,17 @@ export default function RatesScreen() {
   const onRefresh = useCallback(async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
+    setRefreshError(null);
     try {
-      await refreshFxRates();
+      if (!(await refreshFxRates())) {
+        setRefreshError("Couldn't refresh exchange rates. Showing saved or built-in rates.");
+        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
       await loadData();
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
+      setRefreshError("Couldn't refresh exchange rates. Showing saved or built-in rates.");
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setRefreshing(false);
@@ -112,6 +119,11 @@ export default function RatesScreen() {
             ? `Last updated ${formatLastRefreshed(new Date(lastUpdated).toISOString())}`
             : "Using built-in rates — live rates update hourly"}
         </Text>
+        {refreshError && (
+          <Text accessibilityRole="alert" style={{ color: colors.error, fontSize: 13, marginBottom: 12 }}>
+            {refreshError}
+          </Text>
+        )}
         <View style={{ flexDirection: "row", gap: 4, marginBottom: 12 }}>
           {FX_WINDOWS.map((r) => {
             const active = r === range;
@@ -145,5 +157,4 @@ export default function RatesScreen() {
     </ScreenContainer>
   );
 }
-
 

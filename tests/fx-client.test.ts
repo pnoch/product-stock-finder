@@ -59,14 +59,14 @@ describe("fx client", () => {
 
   it("refreshFxRates fetches, persists, and applies live rates", async () => {
     mockQuery({ rates: { EUR: 0.88 }, fetchedAt: 2000 });
-    await refreshFxRates();
+    expect(await refreshFxRates()).toBe(true);
     expect(JSON.parse(store.get("fx_rates")!).rates.EUR).toBe(0.88);
     expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(88);
   });
 
-  it("refreshFxRates is a no-op when the fetch fails", async () => {
+  it("refreshFxRates reports failure without replacing rates when the fetch fails", async () => {
     mockQuery(new Error("network down"));
-    await refreshFxRates();
+    expect(await refreshFxRates()).toBe(false);
     expect(store.has("fx_rates")).toBe(false);
     expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(92);
   });
@@ -103,7 +103,7 @@ describe("fx client", () => {
       } as never);
       const promise = refreshFxRates();
       await vi.advanceTimersByTimeAsync(4000);
-      await promise;
+      expect(await promise).toBe(false);
       expect(store.has("fx_rates")).toBe(false);
     } finally {
       vi.useRealTimers();
@@ -112,7 +112,7 @@ describe("fx client", () => {
 
   it("refreshFxRates treats a malformed response as a failure", async () => {
     mockQuery({ rates: null, fetchedAt: Date.now() });
-    await refreshFxRates();
+    expect(await refreshFxRates()).toBe(false);
     expect(store.has("fx_rates")).toBe(false);
     expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(92);
   });
@@ -124,7 +124,7 @@ describe("fx client", () => {
     );
     setExchangeRates({ EUR: 0.9 });
     mockQuery({ rates: { EUR: 0.92 }, fetchedAt: null });
-    await refreshFxRates();
+    expect(await refreshFxRates()).toBe(false);
     expect(JSON.parse(store.get("fx_rates")!).rates.EUR).toBe(0.9);
     expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(90);
   });
@@ -145,7 +145,7 @@ describe("fx client", () => {
       JSON.stringify({ rates: { EUR: 0.9 }, fetchedAt: 2000 }),
     );
     mockQuery({ rates: { EUR: 0.9 }, fetchedAt: 2000 });
-    await refreshFxRates();
+    expect(await refreshFxRates()).toBe(true);
     expect(convertPrice(100, "USD", "EUR")!).toBeCloseTo(90);
     expect(store.has("fx_rate_history")).toBe(false);
   });
