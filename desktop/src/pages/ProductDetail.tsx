@@ -1520,7 +1520,7 @@ export function ProductDetail() {
             </div>
           </div>
         )}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
@@ -2356,5 +2356,4 @@ export function ProductDetail() {
     </div>
   );
 }
-
 

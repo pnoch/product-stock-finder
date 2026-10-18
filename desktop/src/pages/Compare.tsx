@@ -599,14 +599,14 @@ export function Compare() {
           {toast}
         </div>
       )}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">Compare Prices</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {product.name} · {product.brand} {product.modelNumber}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             to="/watchlist"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
