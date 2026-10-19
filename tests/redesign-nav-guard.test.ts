@@ -16,7 +16,10 @@ describe("redesign navigation wiring", () => {
     const src = read("app/(tabs)/_layout.tsx");
     expect(src).toContain('name="rates"');
     expect(src).toContain('name="settings"');
-    expect(src).toContain("href: null");
+    // expo-router 58 redirects away from `href: null` tabs, so hide the button
+    // instead while keeping the route navigable.
+    expect(src).toContain("tabBarButton: () => null");
+    expect(src).toContain('tabBarItemStyle: { display: "none" }');
   });
 
   it("drops tab re-exports the drops screen", () => {

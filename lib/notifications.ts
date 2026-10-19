@@ -1,4 +1,5 @@
 import * as Notifications from "expo-notifications";
+import { AndroidImportance } from "expo-notifications";
 import { Platform } from "react-native";
 import { HEALTH_ALERT_THRESHOLD, HealthStatus } from "./scrapers/health";
 import { recordDisplayedEventId, recordNotificationEvent, getSettings } from "./storage";
@@ -12,7 +13,6 @@ import { LOG_ERROR } from "@shared/log";
 if (Platform.OS !== "web") {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
       shouldShowBanner: true,
@@ -72,7 +72,7 @@ export async function setupAndroidNotificationChannel(): Promise<void> {
   await Notifications.setNotificationChannelAsync("stock-alerts", {
     name: "Stock Alerts",
     description: "Notifications when tracked products come back in stock",
-    importance: Notifications.AndroidImportance.HIGH,
+    importance: AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: "#1E6FD9",
     sound: "default",
@@ -80,7 +80,7 @@ export async function setupAndroidNotificationChannel(): Promise<void> {
   await Notifications.setNotificationChannelAsync("price-alerts", {
     name: "Price Alerts",
     description: "Alerts when a watched part restocks or drops below your target price.",
-    importance: Notifications.AndroidImportance.HIGH,
+    importance: AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: "#10B981",
     sound: "default",
@@ -88,7 +88,7 @@ export async function setupAndroidNotificationChannel(): Promise<void> {
   await Notifications.setNotificationChannelAsync("digest", {
     name: "Price Digest",
     description: "Daily or weekly price digest summary",
-    importance: Notifications.AndroidImportance.DEFAULT,
+    importance: AndroidImportance.DEFAULT,
     vibrationPattern: [0, 250],
     lightColor: "#6366F1",
     sound: "default",

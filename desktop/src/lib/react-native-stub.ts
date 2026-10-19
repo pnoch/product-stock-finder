@@ -26,6 +26,13 @@ export const Linking = {
 
 export const AsyncStorage = {};
 
+// expo-asset resolves require()'d images through this registry. Desktop never
+// renders native assets, so an empty registry is enough for the bundler.
+export const AssetRegistry = {
+  registerAsset: () => 0,
+  getAssetByID: () => undefined,
+};
+
 // expo-modules-core's requireNativeModule imports these from react-native.
 // Desktop never loads native modules — dead exports satisfy the bundler.
 export const TurboModuleRegistry = {

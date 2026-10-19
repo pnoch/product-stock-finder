@@ -80,7 +80,6 @@ const config: ExpoConfig = {
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
   userInterfaceStyle: "automatic",
-  newArchEnabled: true,
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
@@ -100,7 +99,6 @@ const config: ExpoConfig = {
       backgroundImage: "./assets/images/android-icon-background.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
-    edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
     permissions: ["POST_NOTIFICATIONS"],
@@ -129,6 +127,8 @@ const config: ExpoConfig = {
     // Drops the RN-overlay SYSTEM_ALERT_WINDOW permission from release, scopes
     // the legacy storage permissions, and disables adb/cloud backup.
     "./plugins/with-android-hardening",
+    // Keeps Room's generated database constructor so WorkManager survives R8.
+    "./plugins/with-android-r8-keep-rules",
     // Required for expo-background-task on iOS: injects UIBackgroundModes
     // ("processing") and BGTaskSchedulerPermittedIdentifiers. Without it the
     // native module's hasBackgroundModeEnabled check fails and

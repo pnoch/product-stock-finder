@@ -52,7 +52,13 @@ describe("with-android-hardening", () => {
       "32",
     );
     expect(byName["android.permission.WRITE_EXTERNAL_STORAGE"]["android:maxSdkVersion"]).toBe(
-      "28",
+      "32",
+    );
+    expect(byName["android.permission.READ_EXTERNAL_STORAGE"]["tools:replace"]).toBe(
+      "android:maxSdkVersion",
+    );
+    expect(byName["android.permission.WRITE_EXTERNAL_STORAGE"]["tools:replace"]).toBe(
+      "android:maxSdkVersion",
     );
   });
 
@@ -73,5 +79,16 @@ describe("with-android-hardening", () => {
     expect(src).toContain("./plugins/with-android-hardening");
     expect(src).toContain("enableMinifyInReleaseBuilds: true");
     expect(src).toContain("enableShrinkResourcesInReleaseBuilds: true");
+  });
+
+  it("registers the Room R8 keep-rule plugin", async () => {
+    const config = await readFile("app.config.ts", "utf8");
+    expect(config).toContain("./plugins/with-android-r8-keep-rules");
+    const pluginSrc = await readFile(
+      "plugins/with-android-r8-keep-rules.js",
+      "utf8",
+    );
+    expect(pluginSrc).toContain("androidx.room.RoomDatabase");
+    expect(pluginSrc).toContain("<init>();");
   });
 });

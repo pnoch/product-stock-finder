@@ -45,7 +45,7 @@ export function TagPickerSheet({
   const [loadFailed, setLoadFailed] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const firstTagRef = useRef<View | null>(null);
-  const newTagInputRef = useRef<TextInput | null>(null);
+  const newTagInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 

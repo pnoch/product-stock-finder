@@ -3,10 +3,10 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { SymbolViewProps, SymbolWeight } from "expo-symbols";
 import { ComponentProps } from "react";
-import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
+import { type ColorValue, type StyleProp, type TextStyle } from "react-native";
 type IconMapping = Partial<
   Record<
-    SymbolViewProps["name"],
+    Extract<SymbolViewProps["name"], string>,
     ComponentProps<typeof MaterialIcons>["name"]
   >
 >;
@@ -122,13 +122,17 @@ export function IconSymbol({
 }: {
   name: IconSymbolName;
   size?: number;
-  color: string | OpaqueColorValue;
+  color: ColorValue;
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
+  const resolvedColor =
+    typeof color === "number"
+      ? `#${color.toString(16).padStart(8, "0")}`
+      : (color ?? undefined);
   return (
     <MaterialIcons
-      color={color}
+      color={resolvedColor}
       size={size}
       name={MAPPING[name] ?? "help-outline"}
       style={style}

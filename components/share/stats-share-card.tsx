@@ -10,7 +10,7 @@ export interface StatsShareDrop {
 }
 
 export const StatsShareCard = forwardRef<
-  View,
+  React.ComponentRef<typeof View>,
   {
     basketTotal: number;
     productCount: number;

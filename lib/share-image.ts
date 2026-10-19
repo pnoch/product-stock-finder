@@ -5,7 +5,7 @@ import { captureRef } from "react-native-view-shot";
 type CaptureRef = typeof captureRef;
 
 export async function captureAndShareImage(
-  viewRef: React.RefObject<View | null>,
+  viewRef: React.RefObject<React.ComponentRef<typeof View> | null>,
   fileName: string,
   capture: CaptureRef = captureRef,
 ): Promise<boolean> {

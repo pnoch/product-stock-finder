@@ -618,7 +618,7 @@ export default function ProductDetailScreen() {
     }
   }, [id, product, reminderListing, reminderDate, showToast]);
 
-  const shareRef = useRef<View>(null);
+  const shareRef = useRef<React.ComponentRef<typeof View>>(null);
 
   const handleShare = useCallback(async () => {
     if (!product || !id) return;
@@ -640,7 +640,7 @@ export default function ProductDetailScreen() {
     const deepLink = Linking.createURL(`/product/${encodeURIComponent(id)}`, { scheme: "productstockfinder" });
     const message = `${shareText}\n\n${deepLink}`;
     try {
-      const imageShared = await captureAndShareImage(shareRef as React.RefObject<View | null>, `product-${id}`);
+      const imageShared = await captureAndShareImage(shareRef, `product-${id}`);
       if (imageShared) {
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         return;

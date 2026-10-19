@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs } from "expo-router/js-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
@@ -84,13 +84,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="rates"
         options={{
-          href: null,
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: "none" },
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          href: null,
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: "none" },
         }}
       />
     </Tabs>

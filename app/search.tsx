@@ -737,7 +737,7 @@ export default function SearchScreen({
             </View>}
           </View>
         }
-        ListEmptyComponent={mode === "discover" && !query.trim() ? null : <SearchEmptyState query={query} selectedTagIds={selectedTagIds} hasMarketplaceResults={query.trim().length >= 2} />}
+        ListEmptyComponent={mode === "discover" && !query.trim() ? undefined : <SearchEmptyState query={query} selectedTagIds={selectedTagIds} hasMarketplaceResults={query.trim().length >= 2} />}
         ListFooterComponent={
           query.trim().length > 0 ? (
             <View style={{ paddingHorizontal: 16 }}>
@@ -783,7 +783,7 @@ export default function SearchScreen({
                 </TouchableOpacity>
               )}
             </View>
-          ) : null
+          ) : undefined
         }
         renderItem={({ item }) => (
           <View style={{ paddingHorizontal: 16 }}>

@@ -13,6 +13,11 @@ Everything here runs from the repo root unless noted. `android/`, `ios/`,
 
 ## 0. One-time setup (do once per machine / org)
 
+### Node
+
+Expo SDK 58 requires Node **>= 22.13.0** (`package.json` → `engines`). CI and
+the release workflow use Node 22.
+
 ### Android signing keystore
 
 ```bash
@@ -113,7 +118,9 @@ pnpm build:apk                                 # cd android && ./gradlew assembl
 
 Output: `android/app/build/outputs/apk/release/app-release.apk` (signed with
 `credentials/release.keystore`, R8-minified, hardened: scoped cleartext,
-no `SYSTEM_ALERT_WINDOW`, `allowBackup=false`, scoped storage perms).
+`SYSTEM_ALERT_WINDOW` kept for the overlay renderer, `allowBackup=false`,
+scoped storage perms). Prebuild also regenerates Gradle 9.4.1 and applies the
+Room constructor keep rule (`plugins/with-android-r8-keep-rules`).
 
 Verify before uploading:
 

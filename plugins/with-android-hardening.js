@@ -14,12 +14,14 @@ const { withAndroidManifest } = require("@expo/config-plugins");
 const REMOVED_PERMISSIONS = [];
 const SCOPED_PERMISSIONS = [
   { name: "android.permission.READ_EXTERNAL_STORAGE", maxSdkVersion: "32" },
-  { name: "android.permission.WRITE_EXTERNAL_STORAGE", maxSdkVersion: "28" },
+  { name: "android.permission.WRITE_EXTERNAL_STORAGE", maxSdkVersion: "32" },
 ];
 
 function withAndroidHardening(config) {
   return withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
+    manifest.$ = manifest.$ ?? {};
+    manifest.$["xmlns:tools"] = "http://schemas.android.com/tools";
 
     const application = manifest.application?.[0];
     if (application) {
@@ -37,9 +39,14 @@ function withAndroidHardening(config) {
       );
       if (existing) {
         existing.$["android:maxSdkVersion"] = maxSdkVersion;
+        existing.$["tools:replace"] = "android:maxSdkVersion";
       } else {
         kept.push({
-          $: { "android:name": name, "android:maxSdkVersion": maxSdkVersion },
+          $: {
+            "android:name": name,
+            "android:maxSdkVersion": maxSdkVersion,
+            "tools:replace": "android:maxSdkVersion",
+          },
         });
       }
     }

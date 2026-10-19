@@ -31,6 +31,20 @@ export default defineConfig([
     },
   },
   {
+    // eslint-plugin-react-hooks 7 (pulled in by eslint-config-expo 58) enables
+    // the React Compiler rules as errors. The existing tree predates them, so
+    // disable them until the existing tree is migrated incrementally.
+    rules: {
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/static-components": "off",
+      "react-hooks/immutability": "off",
+      "react-hooks/incompatible-library": "off",
+    },
+  },
+  {
     // Framework-level code: `themeConfig` intentionally mixes a default and a
     // named export, and the tree uses `Array<T>` style; do not edit _core to
     // satisfy stylistic lint rules.

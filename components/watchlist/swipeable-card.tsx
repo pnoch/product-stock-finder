@@ -1,11 +1,143 @@
 import { useCallback, useRef } from "react";
-import { Animated, Platform, Text, View } from "react-native";
-import { RectButton, Swipeable } from "react-native-gesture-handler";
+import { Platform, Text, View } from "react-native";
+import { RectButton } from "react-native-gesture-handler";
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from "react-native-gesture-handler/ReanimatedSwipeable";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  type SharedValue,
+} from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 const ACTION_WIDTH = 72;
+
+type RightActionsProps = {
+  translation: SharedValue<number>;
+  width: number;
+  colors: ReturnType<typeof useColors>;
+  showAlert: boolean;
+  showAcquired: boolean;
+  hasAlert: boolean;
+  isAcquired: boolean;
+  onClose: () => void;
+  onToggleAlert?: () => void;
+  onToggleAcquired?: () => void;
+  onDelete: () => void;
+};
+
+function RightActions({
+  translation,
+  width,
+  colors,
+  showAlert,
+  showAcquired,
+  hasAlert,
+  isAcquired,
+  onClose,
+  onToggleAlert,
+  onToggleAcquired,
+  onDelete,
+}: RightActionsProps) {
+  const animatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(
+      translation.value,
+      [-width, -20, 0],
+      [1, 0.85, 0.7],
+      "clamp",
+    );
+    const opacity = interpolate(
+      translation.value,
+      [-width, -40, 0],
+      [1, 0.6, 0],
+      "clamp",
+    );
+    return { opacity, transform: [{ scale }] };
+  });
+
+  const actionStyle = {
+    width: ACTION_WIDTH,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 4,
+  };
+  const labelStyle = { fontSize: 12, fontWeight: "600" as const };
+
+  return (
+    <Animated.View
+      style={[
+        {
+          width,
+          marginLeft: 8,
+          borderRadius: 16,
+          overflow: "hidden",
+          flexDirection: "row",
+        },
+        animatedStyle,
+      ]}
+    >
+      {showAlert && (
+        <RectButton
+          accessible
+          accessibilityLabel={hasAlert ? "Manage price alert" : "Set price alert"}
+          accessibilityRole="button"
+          accessibilityHint="Opens this product to set a price alert"
+          onPress={() => {
+            if (Platform.OS !== "web")
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onClose();
+            onToggleAlert?.();
+          }}
+          style={{ ...actionStyle, backgroundColor: colors.primary + "1A" }}
+        >
+          <IconSymbol name="bell.fill" size={20} color={colors.primary} />
+          <Text style={{ ...labelStyle, color: colors.primary }}>
+            {hasAlert ? "Muted" : "Alert"}
+          </Text>
+        </RectButton>
+      )}
+      {showAcquired && (
+        <RectButton
+          accessible
+          accessibilityLabel={isAcquired ? "Mark as not acquired" : "Mark as acquired"}
+          accessibilityRole="button"
+          accessibilityHint="Toggles whether you own this product"
+          onPress={() => {
+            if (Platform.OS !== "web")
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onClose();
+            onToggleAcquired?.();
+          }}
+          style={{ ...actionStyle, backgroundColor: colors.success + "1A" }}
+        >
+          <IconSymbol name="checkmark.circle.fill" size={20} color={colors.success} />
+          <Text style={{ ...labelStyle, color: colors.success }}>
+            {isAcquired ? "Owned" : "Want"}
+          </Text>
+        </RectButton>
+      )}
+      <RectButton
+        accessible
+        accessibilityLabel="Remove from watchlist"
+        accessibilityRole="button"
+        accessibilityHint="Removes this product from your watchlist"
+        onPress={() => {
+          if (Platform.OS !== "web")
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          onClose();
+          onDelete();
+        }}
+        style={{ ...actionStyle, backgroundColor: colors.error }}
+      >
+        <IconSymbol name="trash.fill" size={20} color="#fff" />
+        <Text style={{ ...labelStyle, color: "#fff" }}>Remove</Text>
+      </RectButton>
+    </Animated.View>
+  );
+}
 
 export function SwipeableCard({
   children,
@@ -25,7 +157,7 @@ export function SwipeableCard({
   enabled?: boolean;
 }) {
   const colors = useColors();
-  const swipeableRef = useRef<Swipeable>(null);
+  const swipeableRef = useRef<SwipeableMethods>(null);
 
   const showAlert = onToggleAlert != null;
   const showAcquired = onToggleAcquired != null;
@@ -36,103 +168,27 @@ export function SwipeableCard({
   }, []);
 
   const renderRightActions = useCallback(
-    (_progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
-      const scale = dragX.interpolate({
-        inputRange: [-width, -20, 0],
-        outputRange: [1, 0.85, 0.7],
-        extrapolate: "clamp",
-      });
-      const opacity = dragX.interpolate({
-        inputRange: [-width, -40, 0],
-        outputRange: [1, 0.6, 0],
-        extrapolate: "clamp",
-      });
-      const actionStyle = {
-        width: ACTION_WIDTH,
-        alignItems: "center" as const,
-        justifyContent: "center" as const,
-        gap: 4,
-      };
-      const labelStyle = { fontSize: 12, fontWeight: "600" as const };
-      return (
-        <Animated.View
-          style={{
-            width,
-            marginLeft: 8,
-            borderRadius: 16,
-            overflow: "hidden",
-            flexDirection: "row",
-            opacity,
-            transform: [{ scale }],
-          }}
-        >
-          {showAlert && (
-            <RectButton
-              accessible
-              accessibilityLabel={hasAlert ? "Manage price alert" : "Set price alert"}
-              accessibilityRole="button"
-              accessibilityHint="Opens this product to set a price alert"
-              onPress={() => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                swipeableRef.current?.close();
-                onToggleAlert?.();
-              }}
-              style={{ ...actionStyle, backgroundColor: colors.primary + "1A" }}
-            >
-              <IconSymbol name="bell.fill" size={20} color={colors.primary} />
-              <Text style={{ ...labelStyle, color: colors.primary }}>
-                {hasAlert ? "Muted" : "Alert"}
-              </Text>
-            </RectButton>
-          )}
-          {showAcquired && (
-            <RectButton
-              accessible
-              accessibilityLabel={isAcquired ? "Mark as not acquired" : "Mark as acquired"}
-              accessibilityRole="button"
-              accessibilityHint="Toggles whether you own this product"
-              onPress={() => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                swipeableRef.current?.close();
-                onToggleAcquired?.();
-              }}
-              style={{ ...actionStyle, backgroundColor: colors.success + "1A" }}
-            >
-              <IconSymbol name="checkmark.circle.fill" size={20} color={colors.success} />
-              <Text style={{ ...labelStyle, color: colors.success }}>
-                {isAcquired ? "Owned" : "Want"}
-              </Text>
-            </RectButton>
-          )}
-          <RectButton
-            accessible
-            accessibilityLabel="Remove from watchlist"
-            accessibilityRole="button"
-            accessibilityHint="Removes this product from your watchlist"
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-              swipeableRef.current?.close();
-              onDelete();
-            }}
-            style={{ ...actionStyle, backgroundColor: colors.error }}
-          >
-            <IconSymbol name="trash.fill" size={20} color="#fff" />
-            <Text style={{ ...labelStyle, color: "#fff" }}>
-              Remove
-            </Text>
-          </RectButton>
-        </Animated.View>
-      );
-    },
-    [colors.error, colors.primary, colors.success, hasAlert, isAcquired, onDelete, onToggleAcquired, onToggleAlert, showAcquired, showAlert, width],
+    (_progress: SharedValue<number>, translation: SharedValue<number>) => (
+      <RightActions
+        translation={translation}
+        width={width}
+        colors={colors}
+        showAlert={showAlert}
+        showAcquired={showAcquired}
+        hasAlert={hasAlert ?? false}
+        isAcquired={isAcquired ?? false}
+        onClose={() => swipeableRef.current?.close()}
+        onToggleAlert={onToggleAlert}
+        onToggleAcquired={onToggleAcquired}
+        onDelete={onDelete}
+      />
+    ),
+    [colors, hasAlert, isAcquired, onDelete, onToggleAcquired, onToggleAlert, showAcquired, showAlert, width],
   );
 
   return (
     <View style={{ borderRadius: 16, overflow: "hidden", marginBottom: 0, backgroundColor: colors.error + "18" }}>
-      <Swipeable
+      <ReanimatedSwipeable
         ref={swipeableRef}
         enabled={enabled}
         renderRightActions={renderRightActions}
@@ -142,7 +198,7 @@ export function SwipeableCard({
         onSwipeableWillOpen={handleWillOpen}
       >
         {children}
-      </Swipeable>
+      </ReanimatedSwipeable>
     </View>
   );
 }

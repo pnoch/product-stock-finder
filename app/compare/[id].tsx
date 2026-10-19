@@ -290,7 +290,7 @@ export default function CompareScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const stickyOpacity = scrollY.interpolate({ inputRange: [80, 140], outputRange: [0, 1], extrapolate: "clamp" });
   const shareScale = useRef(new Animated.Value(1)).current;
-  const shareRef = useRef<View>(null);
+  const shareRef = useRef<React.ComponentRef<typeof View>>(null);
   const handleShare = useCallback(async () => {
     if (!product || !id) return;
     if (Platform.OS !== "web") {
@@ -304,7 +304,7 @@ export default function CompareScreen() {
     const deepLink = Linking.createURL(`/product/${encodeURIComponent(id)}`, { scheme: "productstockfinder" });
     const message = `${shareText}\n\n${deepLink}`;
     try {
-      const imageShared = await captureAndShareImage(shareRef as React.RefObject<View | null>, `compare-${id}`);
+      const imageShared = await captureAndShareImage(shareRef, `compare-${id}`);
       if (imageShared) {
         if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         return;

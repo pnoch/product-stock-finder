@@ -215,7 +215,7 @@ export function NotificationCenter({
               </TouchableOpacity>
             )}
           </View>
-        ) : null
+        ) : undefined
       }
       ListEmptyComponent={
         loading ? (

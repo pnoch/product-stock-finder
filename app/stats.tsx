@@ -159,7 +159,7 @@ export default function StatsScreen() {
   const stockHealth = useMemo(() => computeStockHealth(watchlist), [watchlist]);
   const freshness = useMemo(() => computeDataFreshness(watchlist), [watchlist]);
 
-  const shareCardRef = useRef<View>(null);
+  const shareCardRef = useRef<React.ComponentRef<typeof View>>(null);
 
   const shareAsText = async () => {
     const result = await shareText(

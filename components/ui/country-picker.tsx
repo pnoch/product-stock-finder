@@ -7,8 +7,7 @@ import {
   Text,
   TextInput,
   View,
-  type NativeSyntheticEvent,
-  type TextInputChangeEventData,
+  type TextInputChangeEvent,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 
@@ -36,9 +35,7 @@ export function CountryPicker({
     if (visible) setQuery("");
   }, [visible]);
 
-  const handleQueryChange = (
-    e: NativeSyntheticEvent<TextInputChangeEventData>,
-  ) => {
+  const handleQueryChange = (e: TextInputChangeEvent) => {
     const target = (e as unknown as { target?: { value?: string } }).target;
     setQuery(e.nativeEvent?.text ?? target?.value ?? "");
   };

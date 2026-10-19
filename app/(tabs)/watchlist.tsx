@@ -987,7 +987,7 @@ export default function WatchlistScreen() {
         refreshControl={
           <RefreshControl
             refreshing={isRefreshingAny}
-            onRefresh={refreshAll}
+            onRefresh={() => void refreshAll()}
             tintColor={colors.primary}
             colors={[colors.primary]}
             progressBackgroundColor={colors.surface}

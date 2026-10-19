@@ -301,7 +301,7 @@ export default function AlertsScreen() {
                 ctaLabel="Browse Products"
                 onCtaPress={() => router.push("/search")}
               />
-            ) : null
+            ) : undefined
           }
           renderItem={({ item }) => {
             if (item.kind === "active") {
