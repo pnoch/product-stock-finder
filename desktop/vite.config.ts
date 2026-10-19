@@ -38,6 +38,13 @@ export default defineConfig(({ mode }) => ({
         replacement: path.resolve(__dirname, "../shared/src"),
       },
       {
+        // shared/src/fx.ts imports "@/lib/trpc" (the mobile client, which on
+        // web falls back to the window origin). Point it at the desktop client
+        // so FX requests go to VITE_API_BASE_URL, not the app's own origin.
+        find: /^@\/lib\/trpc$/,
+        replacement: path.resolve(__dirname, "./src/lib/trpc.ts"),
+      },
+      {
         find: "@",
         replacement: path.resolve(__dirname, ".."),
       },
