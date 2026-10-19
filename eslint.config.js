@@ -32,8 +32,10 @@ export default defineConfig([
   },
   {
     // eslint-plugin-react-hooks 7 (pulled in by eslint-config-expo 58) enables
-    // the React Compiler rules as errors. The existing tree predates them, so
-    // disable them until the existing tree is migrated incrementally.
+    // the React Compiler rules as errors. `set-state-in-effect` stays off: it
+    // flags the app's async data-loading effects (setLoading/setError around a
+    // fetch), which would need a broader React Query/useSyncExternalStore
+    // migration. The other six rules are enabled.
     rules: {
       "react-hooks/set-state-in-effect": "off",
     },

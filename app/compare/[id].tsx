@@ -85,6 +85,8 @@ export default function CompareScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const [chartWidth, setChartWidth] = useState(windowWidth - 64);
   useEffect(() => {
+    // Keep the chart in sync with window resizes; the container's onLayout
+    // refines this after the first paint.
     setChartWidth(windowWidth - 64);
   }, [windowWidth]);
 

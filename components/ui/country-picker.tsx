@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Modal,
   Platform,
@@ -31,10 +31,6 @@ export function CountryPicker({
 
   const results = useMemo(() => searchCountries(query), [query]);
 
-  useEffect(() => {
-    if (visible) setQuery("");
-  }, [visible]);
-
   const handleQueryChange = (e: TextInputChangeEvent) => {
     const target = (e as unknown as { target?: { value?: string } }).target;
     setQuery(e.nativeEvent?.text ?? target?.value ?? "");
@@ -53,6 +49,7 @@ export function CountryPicker({
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      onShow={() => setQuery("")}
     >
       <View
         style={{

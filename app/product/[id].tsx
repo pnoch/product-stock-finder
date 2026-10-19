@@ -185,9 +185,6 @@ export default function ProductDetailScreen() {
   ]);
 
   useEffect(() => {
-    setInsight(null);
-    setInsightLoading(true);
-    setProductImage(null);
     const signal = { cancelled: false };
     void loadData(signal);
     return () => { signal.cancelled = true; };

@@ -8,6 +8,8 @@ export function useColorScheme() {
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
+    // Hydration marker: the server renders "light", then the client switches
+    // to the real scheme after mount. This is the documented pattern.
     setHasHydrated(true);
   }, []);
 
