@@ -65,15 +65,17 @@ export default function ProductDetailScreen() {
   const { showToast } = useToast();
   const { product, isTracked, listings, loaded, lastUpdatedAt, refresh } = useLiveProduct(id ?? "", { allowCatalog: true });
   const [findingPrices, setFindingPrices] = useState(false);
+  const productId = product?.id;
+  const productModelNumber = product?.modelNumber;
   const handleFindPrices = useCallback(async () => {
-    if (!product?.modelNumber || findingPrices) return;
+    if (!productModelNumber || findingPrices) return;
     setFindingPrices(true);
     try {
       const { discovered, timedOut } = await rediscoverProduct({
         storage: { updateProductListings },
         discover: discoverListings,
-        productId: product.id,
-        modelNumber: product.modelNumber,
+        productId: productId ?? "",
+        modelNumber: productModelNumber,
       });
       await refresh();
       if (discovered > 0) {
@@ -92,7 +94,7 @@ export default function ProductDetailScreen() {
     } finally {
       setFindingPrices(false);
     }
-  }, [product?.id, product?.modelNumber, findingPrices, refresh]);
+  }, [productId, productModelNumber, findingPrices, refresh]);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
   const [productImage, setProductImage] = useState<string | null>(null);
@@ -166,7 +168,21 @@ export default function ProductDetailScreen() {
     if (insightData) setInsight(insightData.insight);
     setInsightLoading(false);
     if (imageData) setProductImage(imageData.imageUrl);
-  }, [id]);
+  }, [
+    id,
+    setAlertCurrency,
+    setAlerts,
+    setDisplayCurrency,
+    setIncludeImportEstimate,
+    setInsight,
+    setInsightLoading,
+    setProductImage,
+    setSettingsLoaded,
+    setShipToCountry,
+    setShippingRegion,
+    setStockWatches,
+    setTaxExempt,
+  ]);
 
   useEffect(() => {
     setInsight(null);
@@ -316,14 +332,14 @@ export default function ProductDetailScreen() {
     } finally {
       setCreatingAlert(false);
     }
-  }, [id, product, showToast, creatingAlert]);
+  }, [id, product, setAlerts, showToast, creatingAlert]);
 
   const handleSetTarget = useCallback((distributorId: string) => {
     setAlertDistributorId(distributorId);
     setAlertDirection("drop");
     setAlertPrice("");
     setAlertModalVisible(true);
-  }, []);
+  }, [setAlertDirection, setAlertDistributorId, setAlertModalVisible, setAlertPrice]);
 
   const handleSelectCountry = useCallback((code: string) => {
     setShipToCountry(code);
@@ -383,7 +399,7 @@ export default function ProductDetailScreen() {
     } finally {
       setCreatingAlert(false);
     }
-  }, [id, product, alertPrice, alertCurrency, alertDistributorId, alertDirection, showToast, creatingAlert]);
+  }, [id, product, alertPrice, alertCurrency, alertDistributorId, alertDirection, setAlertModalVisible, setAlertPrice, setAlerts, showToast, creatingAlert]);
 
   const alertSuggestions = useMemo(
     // Use the live listings, not `product.listings` (which the hook only seeds
@@ -616,7 +632,7 @@ export default function ProductDetailScreen() {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showAlert("Couldn't set reminder", "We couldn't save your reminder. Please try again.");
     }
-  }, [id, product, reminderListing, reminderDate, showToast]);
+  }, [id, product, reminderListing, reminderDate, setReminderListing, setShowDatePicker, showToast]);
 
   const shareRef = useRef<React.ComponentRef<typeof View>>(null);
 

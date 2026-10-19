@@ -442,9 +442,11 @@ export function ProductDetail() {
   const [alertError, setAlertError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
   const [findingPrices, setFindingPrices] = useState(false);
+  const productId = product?.id;
+  const productModelNumber = product?.modelNumber;
 
   const handleFindPrices = useCallback(async () => {
-    if (!product?.modelNumber || findingPrices) return;
+    if (!productModelNumber || findingPrices) return;
     setFindingPrices(true);
     try {
       const { discovered, timedOut } = await rediscoverProduct({
@@ -453,8 +455,8 @@ export function ProductDetail() {
             storage.updateProductListings(pid, listings),
         },
         discover: discoverListings,
-        productId: product.id,
-        modelNumber: product.modelNumber,
+        productId: productId ?? "",
+        modelNumber: productModelNumber,
       });
       await loadProduct();
       if (discovered > 0) {
@@ -470,7 +472,7 @@ export function ProductDetail() {
     } finally {
       setFindingPrices(false);
     }
-  }, [product?.id, product?.modelNumber, findingPrices, loadProduct, showToast]);
+  }, [productId, productModelNumber, findingPrices, loadProduct, showToast]);
 
   const handleAddToWatchlist = useCallback(async () => {
     if (!product || addingToWatchlist) return;
