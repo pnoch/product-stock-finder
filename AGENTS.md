@@ -15,7 +15,7 @@ Guidance for AI coding agents working in this repository. Read this before touch
 
 | Layer              | Tech                                                                                                                                    |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework          | Expo SDK 54, React Native 0.81, React 19, Expo Router 6 (typed routes, react compiler enabled)                                          |
+| Framework          | Expo SDK 58, React Native 0.88, React 19.3, Expo Router 58 (typed routes, react compiler enabled)                                        |
 | Language           | TypeScript 5.9 (strict)                                                                                                                 |
 | Styling            | NativeWind 4 (Tailwind) + inline styles. Theme tokens in `theme.config.js`, surfaced via `lib/_core/theme.ts` and `hooks/use-colors.ts` |
 | State              | AsyncStorage (`lib/storage/`) as local source of truth + backend sync (`lib/sync.ts`). React Query + tRPC v11 client (`lib/trpc.ts`) |
@@ -23,6 +23,7 @@ Guidance for AI coding agents working in this repository. Read this before touch
 | Charts             | react-native-svg (hand-rolled SVG polylines — no chart library)                                                                         |
 | Scraping           | `lib/scrapers/` — typed parsers per distributor, `resilientFetch` (retry/backoff, plain→browser escalation, circuit breaker, blocked detection) |
 | Backend            | Express + tRPC v11 + Drizzle (MySQL) + email/password auth. See `server/README.md`. Routers: sync, prices, fx, insights, images, notifications, devices |
+| Runtime            | Node >= 22.13.0 (Expo SDK 58 requirement; CI and release use Node 22)                                                                  |
 | Package manager    | pnpm (via corepack; `packageManager: pnpm@9.12.0`). Node linker hoisted (`.npmrc`).                                                     |
 
 ## Commands
@@ -136,7 +137,7 @@ desktop/              Tauri desktop app (Vite + React 19 + Tailwind 4) — versi
                       lockstep with root package.json; `desktop/src/` mirrors mobile
                       surfaces (Watchlist, Settings, Rates), `desktop/tests/` vitest suite
 shared/               Cross-platform types/consts; shared/_core/ — don't modify
-tests/                vitest (~544 files: ~495 root + 49 scrapers, ~4100 tests, incl. per-scraper tests under tests/scrapers/)
+tests/                vitest (~578 files: ~529 root + 49 scrapers, ~4145 tests, incl. per-scraper tests under tests/scrapers/)
 docs/superpowers/     Design specs (specs/) + implementation plans (plans/)
 scripts/              load-env.js, generate_qr.mjs, reset-project.js
 references/           periodic-updates.md (reference docs)
@@ -191,7 +192,7 @@ Anything under `lib/_core/`, `server/_core/`, or `shared/_core/` is framework-le
 - **No comments** unless explaining non-obvious logic. Existing code uses `// ─── Section ───` banners in storage/notifications — match that style for section dividers.
 - **Client/server payload caps:** Any server-side `.max()`/limit on a payload the client sends must live in `shared/const.ts` (e.g. `MAX_UPLOAD_ALERTS`, `SYNC_PUSH_MAX_ITEMS`) and the client must trim/batch to it before sending. A server cap the client doesn't respect rejects the whole payload, silently disabling the feature (see Phases 211/213).
 - **Commit style:** Checkpoint commits follow `Checkpoint: vX.Y: <features>. TypeScript: 0 errors.` — match this when committing.
-- **Tests:** vitest. ~544 test files under `tests/` (~495 root + 49 scrapers, ~4100 tests), plus 76 files / ~343 tests in `desktop/tests/` (`pnpm --filter desktop test`). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
+- **Tests:** vitest. ~578 test files under `tests/` (~529 root + 49 scrapers, ~4145 tests), plus 78 files / 349 tests in `desktop/tests/` (`pnpm --filter desktop test`). DB-backed tests are gated on `RUN_DB_TESTS` + `TEST_DATABASE_URL`. Add new tests mirroring existing `*.test.ts`.
 
 ## Brand / Theme (theme.config.js)
 
