@@ -4,6 +4,27 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.27.0] - 2026-10-20
+
+### Changed
+
+- Upgraded to Expo SDK 58 (React Native 0.88, React 19.3, Expo Router 58,
+  expo-notifications 58.1.5). Requires Node >= 22.13.0.
+- Migrated watchlist swipe actions to `ReanimatedSwipeable`.
+- Hidden tabs (`rates`, `settings`) now use `tabBarButton: null` because
+  expo-router 58 redirects away from `href: null` tabs.
+- Desktop React aligned to 19.3.0; desktop production build fixed.
+- Re-enabled six of the seven React Compiler lint rules.
+
+### Fixed
+
+- Android notifications now deliver on SDK 58 (the previous expo-notifications
+  build failed with `NotSerializableException: android.net.Uri$HierarchicalUri`).
+- R8 no longer strips Room's generated database constructor, which crashed
+  WorkManager at startup in release builds.
+- Gradle 9 compatibility: removed `jcenter()` from the cookies dependency via a
+  pnpm patch; updated the Android project to Gradle 9.4.1 / AGP 9.
+
 ## [5.26.1] - 2026-10-15
 
 ### Fixed
