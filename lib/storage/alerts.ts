@@ -29,13 +29,27 @@ export function createAlertsStorage(ctx: StorageContext) {
     });
   }
 
-  async function addAlert(alert: PriceAlert): Promise<void> {
-    await enqueue(KEYS.ALERTS, async () => {
+  // Returns false when an identical active alert already exists. A double-tap
+  // (or the button plus onSubmitEditing) mints a new id but the same
+  // product/target/currency/direction, which previously left duplicate alerts.
+  async function addAlert(alert: PriceAlert): Promise<boolean> {
+    const added = await enqueue(KEYS.ALERTS, async () => {
       const alerts = await getAlerts();
+      const duplicate = alerts.some(
+        (a) =>
+          a.isActive &&
+          a.productId === alert.productId &&
+          a.targetPrice === alert.targetPrice &&
+          a.currency === alert.currency &&
+          a.direction === alert.direction,
+      );
+      if (duplicate) return false;
       alerts.unshift(alert);
       await persistAlerts(alerts);
       notify("alerts", alert.id);
+      return true;
     });
+    return added === true;
   }
 
   async function removeAlert(alertId: string): Promise<void> {

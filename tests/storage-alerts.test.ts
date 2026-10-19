@@ -40,17 +40,33 @@ function byId(alerts: PriceAlert[], id: string): PriceAlert | undefined {
 describe("alert CRUD", () => {
   it("unshifts new alerts (newest first) and notifies", async () => {
     const { storage, notify } = makeStorage();
-    await storage.addAlert(alert("a1"));
-    await storage.addAlert(alert("a2"));
+    await storage.addAlert(alert("a1", { targetPrice: 500 }));
+    await storage.addAlert(alert("a2", { targetPrice: 400 }));
     const alerts = await storage.getAlerts();
     expect(alerts.map((a) => a.id)).toEqual(["a2", "a1"]);
     expect(notify).toHaveBeenCalledWith("alerts", "a2");
   });
 
+  it("does not add an identical active alert twice", async () => {
+    const { storage } = makeStorage();
+    expect(await storage.addAlert(alert("a1"))).toBe(true);
+    // A double-tap mints a new id but the same product/target/currency/direction.
+    expect(await storage.addAlert(alert("a2"))).toBe(false);
+    expect((await storage.getAlerts()).map((a) => a.id)).toEqual(["a1"]);
+  });
+
+  it("allows the same target again once the previous alert is inactive", async () => {
+    const { storage } = makeStorage();
+    await storage.addAlert(alert("a1"));
+    await storage.toggleAlert("a1");
+    expect(await storage.addAlert(alert("a2"))).toBe(true);
+    expect((await storage.getAlerts()).map((a) => a.id)).toEqual(["a2", "a1"]);
+  });
+
   it("removes an alert and notifies", async () => {
     const { storage, notify } = makeStorage();
-    await storage.addAlert(alert("a1"));
-    await storage.addAlert(alert("a2"));
+    await storage.addAlert(alert("a1", { targetPrice: 500 }));
+    await storage.addAlert(alert("a2", { targetPrice: 400 }));
     await storage.removeAlert("a1");
     expect((await storage.getAlerts()).map((a) => a.id)).toEqual(["a2"]);
     expect(notify).toHaveBeenCalledWith("alerts", "a1");

@@ -42,7 +42,12 @@ export function AlertSection({ productId, productName, displayCurrency = "USD", 
         return;
       }
       const alert = { id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, productId, targetPrice, currency, isActive: true, createdAt: new Date().toISOString(), direction: "drop" as const };
-      await addAlert(alert);
+      const added = await addAlert(alert);
+      if (!added) {
+        setPrice("");
+        showToast("That alert already exists", "info");
+        return;
+      }
       // Let the parent refresh its alerts state so the Distributor Targets
       // table reflects this product-wide target immediately.
       onAdded?.(alert);

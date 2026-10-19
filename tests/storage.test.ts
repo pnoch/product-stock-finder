@@ -271,8 +271,8 @@ describe("watchlist", () => {
 
 describe("alerts", () => {
   it("addAlert prepends and saveAlerts persists", async () => {
-    await addAlert(makeAlert("a1"));
-    await addAlert(makeAlert("a2"));
+    await addAlert(makeAlert("a1", { targetPrice: 100 }));
+    await addAlert(makeAlert("a2", { targetPrice: 90 }));
     const alerts = await getAlerts();
     expect(alerts).toHaveLength(2);
     expect(alerts[0]!.id).toBe("a2");
