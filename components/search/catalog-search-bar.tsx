@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { TouchableOpacity, TextInput, Keyboard, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -16,7 +16,7 @@ export function CatalogSearchBar({
 }: CatalogSearchBarProps) {
   const colors = useColors();
   const [focused, setFocused] = useState(false);
-  const borderAnim = useRef(new Animated.Value(0)).current;
+  const borderAnim = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
     Animated.timing(borderAnim, {

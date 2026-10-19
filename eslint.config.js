@@ -35,7 +35,6 @@ export default defineConfig([
     // the React Compiler rules as errors. The existing tree predates them, so
     // disable them until the existing tree is migrated incrementally.
     rules: {
-      "react-hooks/refs": "off",
       "react-hooks/set-state-in-effect": "off",
     },
   },

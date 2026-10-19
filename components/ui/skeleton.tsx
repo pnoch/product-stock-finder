@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { AccessibilityInfo, Animated, View, ViewStyle } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useColors } from "@/hooks/use-colors";
@@ -15,7 +15,7 @@ export function SkeletonBox({
   style?: ViewStyle;
 }) {
   const colors = useColors();
-  const opacity = useRef(new Animated.Value(0.35)).current;
+  const opacity = useState(() => new Animated.Value(0.35))[0];
   const reduceMotionEnabled = useReducedMotion();
 
   useEffect(() => {

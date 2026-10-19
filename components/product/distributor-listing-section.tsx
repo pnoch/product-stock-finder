@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Switch,
   Text,
@@ -56,7 +56,7 @@ interface DistributorListingSectionProps {
 
 function InsightSkeleton() {
   const colors = useColors();
-  const shimmer = useRef(new Animated.Value(0)).current;
+  const shimmer = useState(() => new Animated.Value(0))[0];
   useEffect(() => {
     const anim = Animated.loop(
       Animated.sequence([
@@ -88,7 +88,7 @@ function InsightSkeleton() {
 
 function BestDealSkeleton() {
   const colors = useColors();
-  const shimmer = useRef(new Animated.Value(0)).current;
+  const shimmer = useState(() => new Animated.Value(0))[0];
   useEffect(() => {
     const anim = Animated.loop(
       Animated.sequence([

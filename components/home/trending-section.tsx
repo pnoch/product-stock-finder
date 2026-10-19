@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useRef, useEffect } from "react";
+import React, { memo, useCallback, useMemo, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -27,7 +27,7 @@ import { TagPickerSheet } from "@/components/tag-picker-sheet";
 
 function TrendingSkeletonCard() {
   const colors = useColors();
-  const shimmer = useRef(new Animated.Value(0)).current;
+  const shimmer = useState(() => new Animated.Value(0))[0];
   useEffect(() => {
     const anim = Animated.loop(
       Animated.sequence([

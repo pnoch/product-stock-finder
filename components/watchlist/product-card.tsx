@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { memo, useState, useEffect, useMemo, useCallback } from "react";
 import {
   Text,
   View,
@@ -64,7 +64,7 @@ export const ProductCard = memo(function ProductCard({
 }) {
   const colors = useColors();
   const acquired = isAcquired(product);
-  const cardOpacity = useRef(new Animated.Value(acquired ? 0.55 : 1)).current;
+  const cardOpacity = useState(() => new Animated.Value(acquired ? 0.55 : 1))[0];
   useEffect(() => {
     Animated.timing(cardOpacity, {
       toValue: acquired ? 0.55 : 1,
@@ -136,11 +136,11 @@ export const ProductCard = memo(function ProductCard({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const imageOpacity = useRef(new Animated.Value(0)).current;
-  const pressScale = useRef(new Animated.Value(1)).current;
-  const sparklineOpacity = useRef(new Animated.Value(1)).current;
-  const selectionAnim = useRef(new Animated.Value(selectionMode ? 1 : 0)).current;
-  const selectedPop = useRef(new Animated.Value(selected ? 1 : 0)).current;
+  const imageOpacity = useState(() => new Animated.Value(0))[0];
+  const pressScale = useState(() => new Animated.Value(1))[0];
+  const sparklineOpacity = useState(() => new Animated.Value(1))[0];
+  const selectionAnim = useState(() => new Animated.Value(selectionMode ? 1 : 0))[0];
+  const selectedPop = useState(() => new Animated.Value(selected ? 1 : 0))[0];
   const selectedScale = selectedPop.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.015],

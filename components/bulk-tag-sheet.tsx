@@ -39,8 +39,8 @@ export function BulkTagSheet({
   const [newTagName, setNewTagName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const firstTagRef = useRef<View | null>(null);
-  const sheetAnim = useRef(new Animated.Value(0)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const sheetAnim = useState(() => new Animated.Value(0))[0];
+  const backdropAnim = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
     if (!visible) return;

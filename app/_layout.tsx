@@ -252,7 +252,9 @@ export default function RootLayout() {
 
   const { isAuthenticated, refresh } = useAuth();
   const isAuthenticatedRef = useRef(isAuthenticated);
-  isAuthenticatedRef.current = isAuthenticated;
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
   const syncRef = useRef<SyncSetup | null>(null);
 
   useEffect(() => {

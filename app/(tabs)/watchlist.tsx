@@ -156,7 +156,7 @@ export default function WatchlistScreen() {
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkingRef = useRef(false);
   const regions = useMemo(() => getAllRegions(), []);
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = useState(() => new Animated.Value(0))[0];
   const headerCollapse = scrollY.interpolate({ inputRange: [0, 80], outputRange: [1, 0], extrapolate: "clamp" });
   const connection = useConnection();
   const [queuedCount, setQueuedCount] = useState(0);
@@ -800,8 +800,12 @@ export default function WatchlistScreen() {
 
   const sortModeRef = useRef(sortMode);
   const groupModeRef = useRef(groupMode);
-  sortModeRef.current = sortMode;
-  groupModeRef.current = groupMode;
+  useEffect(() => {
+    sortModeRef.current = sortMode;
+  }, [sortMode]);
+  useEffect(() => {
+    groupModeRef.current = groupMode;
+  }, [groupMode]);
   const persistViewPrefs = useCallback(
     async (sort: WatchlistSort, group: WatchlistGroup) => {
       // Serialized updateSettings shares the storage write queue with the

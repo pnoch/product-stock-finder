@@ -298,7 +298,9 @@ export default function App() {
   const [trpcClient] = useState(() => createTRPCClient());
   const { isAuthenticated } = useAuth();
   const isAuthenticatedRef = useRef(isAuthenticated);
-  isAuthenticatedRef.current = isAuthenticated;
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
   const syncRef = useRef<SyncSetup | null>(null);
 
   useEffect(() => {

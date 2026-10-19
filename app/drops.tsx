@@ -161,13 +161,9 @@ export default function DropsScreen() {
   const [globalDrops, setGlobalDrops] = useState<PriceDrop[]>([]);
   const [globalLoading, setGlobalLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const clientRef = useRef<ReturnType<typeof createTRPCClient> | null>(null);
   const failedKeysRef = useRef<Set<string>>(new Set());
 
-  const client = useMemo(() => {
-    if (!clientRef.current) clientRef.current = createTRPCClient();
-    return clientRef.current;
-  }, []);
+  const [client] = useState(() => createTRPCClient());
 
   useFocusEffect(
     useCallback(() => {

@@ -51,8 +51,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     type: "success",
     visible: false,
   });
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(20)).current;
+  const opacity = useState(() => new Animated.Value(0))[0];
+  const translateY = useState(() => new Animated.Value(20))[0];
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback(

@@ -1,5 +1,5 @@
 import { log } from "@shared/log";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -64,7 +64,9 @@ export default function StatsScreen() {
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadedRef = useRef(loaded);
-  loadedRef.current = loaded;
+  useEffect(() => {
+    loadedRef.current = loaded;
+  }, [loaded]);
 
   const load = useCallback(async () => {
     const isFirst = !loadedRef.current;

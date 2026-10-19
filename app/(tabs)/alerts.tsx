@@ -8,7 +8,7 @@ import {
   Platform,
   Animated,
 } from "react-native";
-import { useCallback, useState, useRef, useMemo, useEffect } from "react";
+import { useCallback, useState, useMemo, useEffect } from "react";
 import type { PriceAlert, CriterionWatch } from "@/lib/types";
 import { PriceAlertModal } from "@/components/product/price-alert-modal";
 import * as Haptics from "expo-haptics";
@@ -92,7 +92,7 @@ export default function AlertsScreen() {
     [loadCriterionWatches],
   );
 
-  const fabScale = useRef(new Animated.Value(1)).current;
+  const fabScale = useState(() => new Animated.Value(1))[0];
   const handleFabPressIn = useCallback(() => {
     Animated.spring(fabScale, { toValue: 0.92, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
   }, [fabScale]);

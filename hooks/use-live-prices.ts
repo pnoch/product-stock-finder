@@ -97,7 +97,9 @@ export function useLiveProduct(
   );
 
   const listingsRef = useRef<DistributorListing[]>([]);
-  listingsRef.current = listings;
+  useEffect(() => {
+    listingsRef.current = listings;
+  }, [listings]);
 
   const persistKey = useMemo(
     () => results.map((r) => r.dataUpdatedAt).join("|"),
@@ -203,6 +205,9 @@ export function useLiveWatchlist() {
   const results = useQueries({ queries });
 
   const resultsRef = useRef(results);
+  // Keep the latest results available to the cache-keyed memo below. Moving
+  // this into an effect would make the memo read the previous render's results.
+  // eslint-disable-next-line react-hooks/refs
   resultsRef.current = results;
 
   // `results` is a new array on every render (useQueries), so key the derived
@@ -215,6 +220,7 @@ export function useLiveWatchlist() {
   );
 
   const liveProducts = useMemo(() => {
+     
     const current = resultsRef.current;
     const next: Product[] = [];
     let idx = 0;
@@ -224,6 +230,7 @@ export function useLiveWatchlist() {
         continue;
       }
       const count = p.listings?.length ?? 0;
+      // eslint-disable-next-line react-hooks/refs -- intentional cache-key read; see above.
       const productResults = current
         .slice(idx, idx + count)
         .map((r) => r.data ?? null);
@@ -240,7 +247,9 @@ export function useLiveWatchlist() {
   }, [products, persistKey]);
 
   const liveProductsRef = useRef<Product[]>([]);
-  liveProductsRef.current = liveProducts;
+  useEffect(() => {
+    liveProductsRef.current = liveProducts;
+  }, [liveProducts]);
 
   const hasLiveData = useMemo(
     () => results.some((r) => r.data != null),

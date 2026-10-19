@@ -77,7 +77,9 @@ export function useSettings() {
   // Mirrors `settings` so `update` (with stable deps) can capture the
   // pre-patch value for a revert without going stale.
   const settingsRef = useRef<AppSettings | null>(null);
-  settingsRef.current = settings;
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   const refresh = useCallback(async () => {
     setLoading(true);

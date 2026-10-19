@@ -110,9 +110,9 @@ export default function ProductDetailScreen() {
   const regions = useMemo(() => getAllRegions(), []);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
   const [alternatives, setAlternatives] = useState<Alternative[]>([]);
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = useState(() => new Animated.Value(0))[0];
   const stickyOpacity = scrollY.interpolate({ inputRange: [80, 140], outputRange: [0, 1], extrapolate: "clamp" });
-  const shareScale = useRef(new Animated.Value(1)).current;
+  const shareScale = useState(() => new Animated.Value(1))[0];
   const [reminderListing, setReminderListing] = useState<DistributorListing | null>(null);
   const [reminderDate, setReminderDate] = useState(() => new Date(Date.now() + 7 * 86400000));
   const [editingProduct, setEditingProduct] = useState(false);

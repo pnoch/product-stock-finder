@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect, useState, useCallback } from "react";
+import { useMemo, useEffect, useState, useCallback } from "react";
 import {
   Text,
   TouchableOpacity,
@@ -40,7 +40,7 @@ export function ProductInfoCard({
 }: ProductInfoCardProps) {
   const colors = useColors();
   const [imageError, setImageError] = useState(false);
-  const imageOpacity = useRef(new Animated.Value(0)).current;
+  const imageOpacity = useState(() => new Animated.Value(0))[0];
   useEffect(() => {
     setImageError(false);
     imageOpacity.setValue(0);

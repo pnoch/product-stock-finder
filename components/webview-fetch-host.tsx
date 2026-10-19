@@ -76,7 +76,9 @@ export function WebViewFetchHost() {
     }
     if (changed) setSlots([...slotsRef.current]);
   }, []);
-  pumpRef.current = pump;
+  useEffect(() => {
+    pumpRef.current = pump;
+  }, [pump]);
 
   const finish = useCallback(
     (

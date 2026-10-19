@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { View, Text, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -79,7 +79,7 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
   );
   const [imageError, setImageError] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const opacity = useRef(new Animated.Value(0)).current;
+  const opacity = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
     let active = true;

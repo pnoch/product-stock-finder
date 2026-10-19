@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Text, View, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
@@ -9,7 +9,7 @@ import { cheapestByRegion } from "@shared/compare-utils";
 
 export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { listings: DistributorListing[]; displayCurrency?: string }) {
   const colors = useColors();
-  const pulse = useRef(new Animated.Value(1)).current;
+  const pulse = useState(() => new Animated.Value(1))[0];
   useEffect(() => {
     const anim = Animated.loop(
       Animated.sequence([

@@ -287,9 +287,9 @@ export default function CompareScreen() {
 
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = useState(() => new Animated.Value(0))[0];
   const stickyOpacity = scrollY.interpolate({ inputRange: [80, 140], outputRange: [0, 1], extrapolate: "clamp" });
-  const shareScale = useRef(new Animated.Value(1)).current;
+  const shareScale = useState(() => new Animated.Value(1))[0];
   const shareRef = useRef<React.ComponentRef<typeof View>>(null);
   const handleShare = useCallback(async () => {
     if (!product || !id) return;

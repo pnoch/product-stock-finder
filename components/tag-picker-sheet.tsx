@@ -46,8 +46,8 @@ export function TagPickerSheet({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const firstTagRef = useRef<View | null>(null);
   const newTagInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
-  const sheetAnim = useRef(new Animated.Value(0)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const sheetAnim = useState(() => new Animated.Value(0))[0];
+  const backdropAnim = useState(() => new Animated.Value(0))[0];
 
   const syncedProductIdRef = useRef<string | null>(null);
 
