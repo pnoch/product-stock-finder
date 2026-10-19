@@ -146,6 +146,10 @@ async function createPriceAlert(input: {
   return { ok: true, id, alert };
 }
 
+function createStockWatchId() {
+  return `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -855,7 +859,7 @@ export function ProductDetail() {
           return;
         }
         await storage.addStockWatch({
-          id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          id: createStockWatchId(),
           productId: product.id,
           productName: product.name,
           distributorId: listing.distributorId,

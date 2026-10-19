@@ -51,6 +51,7 @@ export function WebViewFetchHost() {
     Array<null>(POOL_SIZE).fill(null),
   );
   const nextIdRef = useRef(0);
+  const pumpRef = useRef<() => void>(() => {});
 
   // Fill every free slot from the queue. Each slot owns its own timeout so a
   // slow page only blocks its own renderer.
@@ -69,12 +70,13 @@ export function WebViewFetchHost() {
         timersRef.current[i] = null;
         setSlots([...slotsRef.current]);
         next.reject(new BrowserUnavailableError("webview render timed out"));
-        pump();
+        pumpRef.current();
       }, next.timeoutMs);
       changed = true;
     }
     if (changed) setSlots([...slotsRef.current]);
   }, []);
+  pumpRef.current = pump;
 
   const finish = useCallback(
     (

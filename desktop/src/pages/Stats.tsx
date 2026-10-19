@@ -54,6 +54,7 @@ function ChartSkeleton() {
 
 export function Stats() {
   const [products, setProducts] = useState<Product[] | null>(null);
+  const [now] = useState(() => Date.now());
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [digest, setDigest] = useState<DigestResult | null>(null);
   const [digestFrequency, setDigestFrequency] = useState("off");
@@ -183,7 +184,7 @@ export function Stats() {
     [products, displayCurrency],
   );
   // Leading blanks so the columns align to weekdays, like mobile's grid.
-  const dropCalendarCells = useMemo(() => buildGridCells(30, Date.now()), []);
+  const dropCalendarCells = useMemo(() => buildGridCells(30, now), [now]);
 
   const chartData = useMemo(() => {
     if (!products || products.length === 0) return { data: [], distributors: [], distributorColors: [] };

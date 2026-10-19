@@ -211,7 +211,7 @@ export default function SearchScreen({
     setRecentSearches([]);
   }, []);
 
-  const handleDiscover = useCallback(async () => {
+  async function handleDiscover() {
     if (!query.trim() || discovering) return;
     if (isMarketplaceInput(query)) { setManualVisible(true); return; }
     Keyboard.dismiss();
@@ -303,7 +303,7 @@ export default function SearchScreen({
     } finally {
       setDiscovering(false);
     }
-  }, [query, discovering, loadData, router, showToast, watchlist, isPro]);
+  }
 
   const deferredQuery = useDeferredValue(query);
   const [discoveredProducts, setDiscoveredProducts] = useState<

@@ -61,6 +61,7 @@ function SharedLinksList() {
   const revokeMutation = trpc.sharedWatchlists.revoke.useMutation();
   const membersOnlyMutation = trpc.sharedWatchlists.setMembersOnly.useMutation();
   const [busyToken, setBusyToken] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
 
   const links = listQuery.data?.links ?? [];
 
@@ -115,7 +116,7 @@ function SharedLinksList() {
     <View style={{ gap: 8, marginTop: 4 }}>
       {links.map((link) => {
         const busy = busyToken === link.token;
-        const expired = link.expiresAt ? new Date(link.expiresAt).getTime() < Date.now() : false;
+        const expired = link.expiresAt ? new Date(link.expiresAt).getTime() < now : false;
         return (
           <View
             key={link.token}

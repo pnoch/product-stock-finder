@@ -419,6 +419,9 @@ export function Watchlist() {
 
   const rows = useMemo(() => flattenWatchlistRows(groupMode, sorted, sections), [groupMode, sorted, sections]);
 
+  // TanStack Virtual returns non-memoizable functions by design; the compiler
+  // skipping this component is expected.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,

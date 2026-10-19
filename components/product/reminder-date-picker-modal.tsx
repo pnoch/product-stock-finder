@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Text,
   View,
@@ -36,6 +37,7 @@ export function ReminderDatePickerModal({
   productName,
 }: ReminderDatePickerModalProps) {
   const colors = useColors();
+  const [minimumDate] = useState(() => new Date(Date.now() + 86400000));
 
   return (
     <Modal
@@ -141,7 +143,7 @@ export function ReminderDatePickerModal({
             <ScrollView style={{ maxHeight: 380, marginBottom: 12 }} showsVerticalScrollIndicator={false}>
               <CrossPlatformDatePicker
                 value={reminderDate}
-                minimumDate={new Date(Date.now() + 86400000)}
+                minimumDate={minimumDate}
                 onChange={(selected) => {
                   setShowDatePicker(Platform.OS === "ios");
                   setReminderDate(selected);

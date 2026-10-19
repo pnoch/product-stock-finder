@@ -75,6 +75,7 @@ function SharedLinksList() {
   const revokeMutation = trpc.sharedWatchlists.revoke.useMutation();
   const membersOnlyMutation = trpc.sharedWatchlists.setMembersOnly.useMutation();
   const [busyToken, setBusyToken] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
   const links = ((listQuery.data?.links ?? []) as SharedLink[]);
 
   const setMembersOnly = async (token: string, next: boolean) => {
@@ -128,7 +129,7 @@ function SharedLinksList() {
     <div className="mt-3 space-y-2">
       {links.map((link) => {
         const busy = busyToken === link.token;
-        const expired = link.expiresAt ? new Date(link.expiresAt).getTime() < Date.now() : false;
+        const expired = link.expiresAt ? new Date(link.expiresAt).getTime() < now : false;
         return (
           <div key={link.token} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
             <p className="text-sm font-semibold truncate">{link.title}</p>
@@ -874,11 +875,11 @@ export function Settings() {
 
   // Status glyphs are a coloured dot, not an emoji: emoji depend on a system
   // emoji font and render as empty boxes on many Linux desktops.
-  const getDistributorHealth = (lastSuccess: string | null): { label: string; dot: string } => {
+  const getDistributorHealth = (lastSuccess: string | null, nowMs: number): { label: string; dot: string } => {
     if (!lastSuccess) {
       return { label: "Never Checked", dot: "bg-gray-400" };
     }
-    const hoursSince = (Date.now() - new Date(lastSuccess).getTime()) / (1000 * 60 * 60);
+    const hoursSince = (nowMs - new Date(lastSuccess).getTime()) / (1000 * 60 * 60);
     if (hoursSince < 24) {
       return { label: "OK", dot: "bg-emerald-500" };
     }
@@ -1468,7 +1469,7 @@ export function Settings() {
             .filter(([id]) => getDistributorById(id))
             .map(([id, status]) => {
               const distributor = getDistributorById(id)!;
-              const health = getDistributorHealth(status.lastSuccess);
+              const health = getDistributorHealth(status.lastSuccess, now);
               return (
                 <div key={id} className="flex items-center justify-between py-2.5">
                   <div className="min-w-0">

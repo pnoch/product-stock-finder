@@ -777,8 +777,9 @@ function AlertRow({
   onSnooze: (id: string, days: number) => void;
   onEdit: (alert: PriceAlert) => void;
 }) {
+  const [now] = useState(() => Date.now());
   const isTriggered = !alert.isActive && alert.triggeredAt;
-  const isSnoozed = !!alert.snoozedUntil && new Date(alert.snoozedUntil).getTime() > Date.now();
+  const isSnoozed = !!alert.snoozedUntil && new Date(alert.snoozedUntil).getTime() > now;
   const [showSnooze, setShowSnooze] = useState(false);
   return (
     <div

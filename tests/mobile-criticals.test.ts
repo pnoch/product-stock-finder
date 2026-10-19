@@ -464,8 +464,8 @@ describe("edit product sheet handles save failure", () => {
 describe("AI discovery adds the product to the watchlist", () => {
   it("calls addToWatchlist before navigating", () => {
     const src = readFileSync(path.join(process.cwd(), "app/search.tsx"), "utf8");
-    const start = src.indexOf("const handleDiscover");
-    const block = src.slice(start, src.indexOf("}, [query, discovering", start));
+    const start = src.indexOf("function handleDiscover");
+    const block = src.slice(start, src.indexOf("const deferredQuery", start));
     expect(block).toContain("await addToWatchlist({");
     expect(block).toContain("router.push(`/product/${result.product.id}`)");
   });

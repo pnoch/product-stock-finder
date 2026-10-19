@@ -216,19 +216,24 @@ export function useLiveWatchlist() {
 
   const liveProducts = useMemo(() => {
     const current = resultsRef.current;
+    const next: Product[] = [];
     let idx = 0;
-    return products.map((p) => {
-      if (!isAutomaticProduct(p)) return p;
+    for (const p of products) {
+      if (!isAutomaticProduct(p)) {
+        next.push(p);
+        continue;
+      }
       const count = p.listings?.length ?? 0;
       const productResults = current
         .slice(idx, idx + count)
         .map((r) => r.data ?? null);
       idx += count;
-      return {
+      next.push({
         ...p,
         listings: composeLiveListings(p.listings ?? [], productResults),
-      };
-    });
+      });
+    }
+    return next;
     // `persistKey` is an intentional cache key: the callback reads `results`
     // through `resultsRef`, so the rule cannot see the dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
