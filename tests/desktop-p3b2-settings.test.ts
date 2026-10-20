@@ -9,7 +9,10 @@ describe("desktop P3b-2 settings", () => {
   });
 
   it("has a scraper status section with re-enable", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/scraper-status-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("Scraper Status");
     // Re-enable clears the circuit breaker; it must not stamp lastChecked
     // (that field means "last successful check" — stamping it fabricated

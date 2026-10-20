@@ -1010,7 +1010,10 @@ describe("desktop chart guard", () => {
   // boundaries used emoji, which render as empty "tofu" boxes without a system
   // emoji font. They are now a coloured dot / icon.
   it("renders health status and error states without emoji", async () => {
-    const desktop = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const desktop = await readFile(
+      "desktop/src/components/settings/scraper-status-section.tsx",
+      "utf8",
+    );
     expect(desktop).toContain('dot: "bg-emerald-500"');
     expect(desktop).not.toContain('emoji: "❓"');
     const mobile = await readFile(
@@ -1358,7 +1361,10 @@ describe("desktop chart guard", () => {
   // cleared the circuit breaker, so the distributor stayed in cooldown while the
   // UI showed "OK" (mobile clears it via clearDistributorBreaker).
   it("clears the circuit breaker when re-enabling on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/scraper-status-section.tsx",
+      "utf8",
+    );
     const start = text.indexOf("const handleReenableDistributor");
     const block = text.slice(start, text.indexOf("showToast(\"Distributor re-enabled\")", start));
     expect(block).toContain("clearDistributorBreaker(distributorId");

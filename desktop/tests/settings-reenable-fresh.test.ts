@@ -10,7 +10,8 @@ import { join } from "path";
 function handlerBlock(src: string): string {
   const start = src.indexOf("const handleReenableDistributor");
   expect(start).toBeGreaterThan(-1);
-  return src.slice(start, src.indexOf("}, [reenabling]);", start));
+  const end = src.indexOf("\n  }, [", start);
+  return src.slice(start, end);
 }
 
 describe("distributor re-enable does not fabricate freshness", () => {
@@ -27,7 +28,7 @@ describe("distributor re-enable does not fabricate freshness", () => {
 
   it("desktop handler never stamps lastChecked or rewrites listings", () => {
     const src = readFileSync(
-      join(process.cwd(), "src/pages/Settings.tsx"),
+      join(process.cwd(), "src/components/settings/scraper-status-section.tsx"),
       "utf8",
     );
     const block = handlerBlock(src);
