@@ -70,9 +70,8 @@ import {
   countTagMatches,
   type StatusFilter,
 } from "@/lib/watchlist-org";
-import { ProductCard } from "@/components/watchlist/product-card";
+import { WatchlistRow } from "@/components/watchlist/watchlist-row";
 import { isAcquired } from "@/lib/acquired";
-import { SwipeableCard } from "@/components/watchlist/swipeable-card";
 import { WatchlistHeader } from "@/components/watchlist/watchlist-header";
 import { EmptyState } from "@/components/watchlist/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
@@ -756,38 +755,32 @@ export default function WatchlistScreen() {
   // use-live-prices this keeps the SectionList cheap on large watchlists.
   const renderItem = useCallback(
     ({ item }: { item: Product & { _sectionKey?: string } }) => (
-      <SwipeableCard
-        enabled={!selectionMode}
-        onDelete={() => handleDelete(item)}
-        onToggleAlert={() => handleSwipeAlert(item)}
-        onToggleAcquired={() => void handleToggleAcquired(item)}
-        isAcquired={isAcquired(item)}
+      <WatchlistRow
+        product={item}
+        displayCurrency={displayCurrency}
+        selectionMode={selectionMode}
+        insight={
+          insightMap.has(item.id)
+            ? {
+                atAllTimeLow: insightMap.get(item.id)!.atAllTimeLow,
+                dropStreak: insightMap.get(item.id)!.dropStreak,
+              }
+            : undefined
+        }
+        dealScore={dealScoreMap.get(item.id) ?? undefined}
+        selected={selectedIds.has(item.id)}
+        findingPrices={findingIds.has(item.id)}
         hasAlert={alertProductIds.has(item.id)}
-      >
-        <ProductCard
-          product={item}
-          displayCurrency={displayCurrency}
-          selectionMode={selectionMode}
-          insight={
-            insightMap.has(item.id)
-              ? {
-                  atAllTimeLow: insightMap.get(item.id)!.atAllTimeLow,
-                  dropStreak: insightMap.get(item.id)!.dropStreak,
-                }
-              : undefined
-          }
-          dealScore={dealScoreMap.get(item.id) ?? undefined}
-          selected={selectedIds.has(item.id)}
-          onPress={() => handleProductPress(item)}
-          onLongPress={() => handleProductLongPress(item)}
-          onDelete={() => handleDelete(item)}
-          onTagPress={() => setPickerProduct(item)}
-          onFindPrices={() => handleFindPrices(item)}
-          findingPrices={findingIds.has(item.id)}
-          tagDefinitions={tagDefinitions}
-          onToggleAcquired={() => void handleToggleAcquired(item)}
-        />
-      </SwipeableCard>
+        isAcquired={isAcquired(item)}
+        tagDefinitions={tagDefinitions}
+        onPress={() => handleProductPress(item)}
+        onLongPress={() => handleProductLongPress(item)}
+        onDelete={() => handleDelete(item)}
+        onTagPress={() => setPickerProduct(item)}
+        onFindPrices={() => handleFindPrices(item)}
+        onToggleAcquired={() => void handleToggleAcquired(item)}
+        onToggleAlert={() => handleSwipeAlert(item)}
+      />
     ),
     [
       selectionMode,
