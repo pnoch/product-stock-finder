@@ -656,7 +656,10 @@ describe("desktop chart guard", () => {
   // domain lib/legal-links.ts warns may not be registered; mobile derives them
   // from the configured web base / EXPO_PUBLIC_SUPPORT_EMAIL.
   it("derives the desktop legal links from lib/legal-links", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/about-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("getPrivacyPolicyUrl()");
     expect(text).toContain("getSupportMailtoUrl()");
     expect(text).not.toContain("https://productstockfinder.app/privacy");

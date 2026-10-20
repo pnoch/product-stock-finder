@@ -30,7 +30,7 @@ describe("desktop auto-update wiring", () => {
 
   it("exposes a check-for-updates control in Settings", () => {
     expect(read("desktop/src/lib/app-updater.ts")).toContain("checkForUpdates");
-    const settings = read("desktop/src/pages/Settings.tsx");
+    const settings = read("desktop/src/components/settings/about-section.tsx");
     const updates = read("desktop/src/components/settings/app-updates-row.tsx");
     expect(settings).toContain("AppUpdatesRow");
     expect(updates).toContain('aria-label="Check for updates"');
