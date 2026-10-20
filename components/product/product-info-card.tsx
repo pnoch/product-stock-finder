@@ -9,7 +9,7 @@ import {
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
-import { convertPrice, getBestPrice } from "@/lib/currency";
+import { convertPrice, getBestPrice, selectBestListing } from "@/lib/currency";
 import {
   formatLastRefreshed,
   getLastRefreshedColor,
@@ -93,25 +93,12 @@ export function ProductInfoCard({
   ]);
 
   const currencyConverterData = useMemo(() => {
-    const available = visibleListings.filter(
-      (l) => l.stockStatus === "in_stock" && l.price > 0,
-    );
-    if (!available.length) return null;
-    const bestListing = available.reduce((best, curr) => {
-      const cPrice = convertPrice(curr.price, curr.currency, displayCurrency);
-      const bPrice = convertPrice(best.price, best.currency, displayCurrency);
-      if (cPrice === null) return best;
-      if (bPrice === null) return curr;
-      return cPrice < bPrice ? curr : best;
+    const best = selectBestListing(visibleListings, {
+      currency: displayCurrency,
+      stock: "in_stock",
     });
-    if (bestListing.currency === displayCurrency) return null;
-    const convertedPrice = convertPrice(
-      bestListing.price,
-      bestListing.currency,
-      displayCurrency,
-    );
-    if (convertedPrice === null) return null;
-    return { bestListing, convertedPrice };
+    if (!best || best.listing.currency === displayCurrency) return null;
+    return { bestListing: best.listing, convertedPrice: best.price };
   }, [displayCurrency, visibleListings]);
 
   return (

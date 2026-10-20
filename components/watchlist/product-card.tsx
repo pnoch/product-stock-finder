@@ -11,9 +11,8 @@ import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { Product, TagDefinition } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
-import { convertPrice, getBestPrice } from "@/lib/currency";
+import { convertPrice, getBestPrice, selectBestListing } from "@/lib/currency";
 import { computePriceChange } from "@/lib/price-change";
-import { findCheapestInStockListing } from "@/lib/best-deal";
 import { StockBadge } from "@/components/stock-badge";
 import { ScarcityBadge } from "@/components/watchlist/scarcity-badge";
 import { computeAvailability } from "@/lib/availability";
@@ -95,12 +94,11 @@ export const ProductCard = memo(function ProductCard({
     // The Buy button opens the store, so require a url — an in-stock listing
     // without one would render a dead button (the Visit CTA guards the same way).
     () =>
-      findCheapestInStockListing(
-        (product.listings ?? []).filter(
-          (l) => l.stockStatus === "in_stock" && l.price > 0 && !!l.url,
-        ),
+      selectBestListing(product.listings ?? [], {
         currency,
-      ),
+        stock: "in_stock",
+        requireUrl: true,
+      })?.listing ?? null,
     [product.listings, currency],
   );
   const bestStatus = useMemo(() => productStatus(product), [product]);

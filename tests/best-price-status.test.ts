@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getBestPrice } from "../lib/currency";
+import { getBestPrice, selectBestListing } from "../lib/currency";
 import { getBestPrice as sharedGetBestPrice } from "@shared/currency";
 
 describe("getBestPrice stock-status semantics", () => {
@@ -48,5 +48,50 @@ describe("getBestPrice stock-status semantics", () => {
         `price ${price} is not rounded`,
       ).toBe(shared?.price);
     }
+  });
+});
+
+describe("selectBestListing", () => {
+  const listings = [
+    { id: "unknown", price: 10, currency: "USD", stockStatus: "unknown", url: "u" },
+    { id: "back", price: 20, currency: "USD", stockStatus: "back_order", url: "u" },
+    { id: "stock", price: 30, currency: "USD", stockStatus: "in_stock", url: "u" },
+  ];
+
+  it("orderable accepts in_stock and back_order", () => {
+    expect(selectBestListing(listings, { currency: "USD" })?.listing.id).toBe("back");
+  });
+
+  it("in_stock excludes back_order", () => {
+    expect(
+      selectBestListing(listings, { currency: "USD", stock: "in_stock" })?.listing.id,
+    ).toBe("stock");
+  });
+
+  it("any preserves a caller's own filter", () => {
+    expect(
+      selectBestListing(listings, { currency: "USD", stock: "any" })?.listing.id,
+    ).toBe("unknown");
+  });
+
+  it("requireUrl skips a listing without a store link", () => {
+    const noUrl = [
+      { id: "no-url", price: 1, currency: "USD", stockStatus: "in_stock" },
+      { id: "with-url", price: 2, currency: "USD", stockStatus: "in_stock", url: "u" },
+    ];
+    expect(
+      selectBestListing(noUrl, { currency: "USD", stock: "in_stock", requireUrl: true })
+        ?.listing.id,
+    ).toBe("with-url");
+  });
+
+  it("returns the converted, rounded price and keeps the first tie", () => {
+    const tie = [
+      { id: "first", price: 100, currency: "USD", stockStatus: "in_stock" },
+      { id: "second", price: 100, currency: "USD", stockStatus: "in_stock" },
+    ];
+    const best = selectBestListing(tie, { currency: "MYR" });
+    expect(best?.listing.id).toBe("first");
+    expect(best?.price).toBe(Math.round(best!.price * 100) / 100);
   });
 });

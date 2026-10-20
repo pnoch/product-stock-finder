@@ -1,6 +1,6 @@
 import type { DistributorListing } from "./types";
 import { getDistributorById } from "@shared/distributors";
-import { convertPrice } from "./currency";
+import { convertPrice, selectBestListing } from "./currency";
 
 export interface BestDeal {
   distributorId: string;
@@ -98,31 +98,22 @@ export function findCheapestInStockListing(
   listings: DistributorListing[],
   displayCurrency: string,
 ): DistributorListing | null {
-  let best: DistributorListing | null = null;
-  let bestPrice = Infinity;
-
-  for (const listing of listings) {
-    const converted = convertPrice(
-      listing.price,
-      listing.currency,
-      displayCurrency,
-    );
-    if (converted === null || !Number.isFinite(converted)) continue;
-    if (converted < bestPrice) {
-      bestPrice = converted;
-      best = listing;
-    }
-  }
-
-  return best;
+  return (
+    selectBestListing(listings, {
+      currency: displayCurrency,
+      stock: "any",
+    })?.listing ?? null
+  );
 }
 
 export function findBestInStockListing(
   listings: DistributorListing[],
   targetCurrency: string,
 ): DistributorListing | null {
-  return findCheapestInStockListing(
-    listings.filter((l) => l.stockStatus === "in_stock" && l.price > 0),
-    targetCurrency,
+  return (
+    selectBestListing(listings, {
+      currency: targetCurrency,
+      stock: "in_stock",
+    })?.listing ?? null
   );
 }

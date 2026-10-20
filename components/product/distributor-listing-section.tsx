@@ -3,8 +3,8 @@ import { Switch, Text, View, TouchableOpacity } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
+import { selectBestListing } from "@/lib/currency";
 import { formatEstimate } from "@/lib/estimate-format";
-import { findCheapestInStockListing } from "@/lib/best-deal";
 import { getDistributorById } from "@shared/distributors";
 import { BestDistributorCard } from "@/components/best-distributor-card";
 import type { Product } from "@/lib/types";
@@ -145,7 +145,12 @@ export function DistributorListingSection({
       (l) => l.stockStatus === "in_stock" || l.stockStatus === "back_order",
     );
     if (orderable.length === 0) return null;
-    return findCheapestInStockListing(orderable, displayCurrency ?? "USD");
+    return (
+      selectBestListing(orderable, {
+        currency: displayCurrency ?? "USD",
+        stock: "any",
+      })?.listing ?? null
+    );
   })();
 
   return (

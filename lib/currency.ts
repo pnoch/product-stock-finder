@@ -51,6 +51,50 @@ export function getExchangeRate(currency: string): number | null {
   return typeof rate === "number" ? rate : null;
 }
 
+export type StockFilter = "orderable" | "in_stock" | "any";
+
+/**
+ * The one best-listing selector. `orderable` accepts in_stock + back_order
+ * (the app's default for digest/basket/sort decisions); `in_stock` is for
+ * Buy/alert paths that must not crown a back-order; `any` preserves callers
+ * that pre-filter their own list.
+ */
+export function selectBestListing<
+  T extends {
+    price: number;
+    currency: string;
+    stockStatus: string;
+    url?: string;
+  },
+>(
+  listings: T[],
+  opts: { currency: string; stock?: StockFilter; requireUrl?: boolean },
+): { listing: T; price: number } | null {
+  const stock = opts.stock ?? "orderable";
+  let best: { listing: T; price: number } | null = null;
+  for (const listing of listings) {
+    if (!(listing.price > 0)) continue;
+    if (
+      stock === "orderable" &&
+      listing.stockStatus !== "in_stock" &&
+      listing.stockStatus !== "back_order"
+    ) {
+      continue;
+    }
+    if (stock === "in_stock" && listing.stockStatus !== "in_stock") continue;
+    if (opts.requireUrl && !listing.url) continue;
+    const converted = convertPrice(
+      listing.price,
+      listing.currency,
+      opts.currency,
+    );
+    if (converted === null || !Number.isFinite(converted)) continue;
+    const price = roundMoney(converted);
+    if (!best || price < best.price) best = { listing, price };
+  }
+  return best;
+}
+
 // Cheapest purchasable listing: in_stock and back_order are orderable, while
 // out_of_stock is unavailable and unknown-availability must not anchor digest,
 // basket, or sort decisions. Alert detection (price-check.ts) independently
@@ -59,20 +103,9 @@ export function getBestPrice(
   listings: { price: number; currency: string; stockStatus: string }[],
   displayCurrency: string,
 ): { price: number; currency: string } | null {
-  const available = listings.filter(
-    (l) =>
-      (l.stockStatus === "in_stock" || l.stockStatus === "back_order") &&
-      l.price > 0,
-  );
-  if (!available.length) return null;
-  const converted = available
-    .map((l) => {
-      const price = convertPrice(l.price, l.currency, displayCurrency);
-      return price === null
-        ? null
-        : { price: roundMoney(price), currency: displayCurrency };
-    })
-    .filter((v): v is { price: number; currency: string } => v !== null);
-  if (!converted.length) return null;
-  return converted.reduce((best, curr) => (curr.price < best.price ? curr : best));
+  const best = selectBestListing(listings, {
+    currency: displayCurrency,
+    stock: "orderable",
+  });
+  return best ? { price: best.price, currency: displayCurrency } : null;
 }

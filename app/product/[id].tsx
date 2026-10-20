@@ -29,7 +29,8 @@ import { AvailabilityCard } from "@/components/product/availability-card";
 import { computeAvailability } from "@/lib/availability";
 import { computePriceVsAverage } from "@/lib/price-average";
 import { computeDealScore, dealBandLabel } from "@/lib/deal-score";
-import { findBestDeal, findCheapestInStockListing } from "@/lib/best-deal";
+import { findBestDeal } from "@/lib/best-deal";
+import { selectBestListing } from "@/lib/currency";
 import { rankByLandedCost } from "@/lib/landed-cost";
 import { resolveDestination, landedCostOptions } from "@/lib/destination";
 import { suggestAlertPrices } from "@/lib/alert-suggestions";
@@ -237,10 +238,10 @@ export default function ProductDetailScreen() {
   const isSettingsLoaded = settingsLoaded;
   const bestInStockListing = useMemo(
     () =>
-      findCheapestInStockListing(
-        visibleListings.filter((l) => l.stockStatus === "in_stock"),
-        effectiveCurrency,
-      ),
+      selectBestListing(visibleListings, {
+        currency: effectiveCurrency,
+        stock: "in_stock",
+      })?.listing ?? null,
     [visibleListings, effectiveCurrency],
   );
   // `bestInStockListing` is a new object identity every render (listings
@@ -250,10 +251,10 @@ export default function ProductDetailScreen() {
   // filter, is the dead end that warrants alternatives.
   const isOutOfStock = useMemo(
     () =>
-      findCheapestInStockListing(
-        listings.filter((l) => l.stockStatus === "in_stock"),
-        effectiveCurrency,
-      ) == null,
+      selectBestListing(listings, {
+        currency: effectiveCurrency,
+        stock: "in_stock",
+      }) == null,
     [listings, effectiveCurrency],
   );
   useEffect(() => {
