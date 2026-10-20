@@ -61,13 +61,13 @@ describe("server <-> client contract parity", () => {
   });
 
   it("the sync pusher honours the item and byte caps", () => {
-    const sync = read("lib/sync.ts");
+    const sync = read("lib/sync/serialize.ts");
     for (const cap of [
       "SYNC_PUSH_MAX_ITEMS",
       "SYNC_PUSH_MAX_BYTES",
       "SYNC_PUSH_ITEM_MAX_BYTES",
     ]) {
-      expect(usesConstant(sync, cap), `lib/sync.ts must honour ${cap}`).toBe(
+      expect(usesConstant(sync, cap), `lib/sync/serialize.ts must honour ${cap}`).toBe(
         true,
       );
     }
