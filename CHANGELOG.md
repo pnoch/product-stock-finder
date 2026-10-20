@@ -4,6 +4,14 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.27.3] - 2026-10-20
+
+### Fixed
+
+- Configured the Tauri updater signing key (public key in `tauri.conf.json`,
+  private key in the `TAURI_SIGNING_PRIVATE_KEY` repo secret), unblocking the
+  signed desktop release.
+
 ## [5.27.2] - 2026-10-20
 
 ### Fixed
