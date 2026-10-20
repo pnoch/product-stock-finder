@@ -1119,7 +1119,7 @@ describe("desktop chart guard", () => {
   // Phase 537: members-only shares + the "shared with me" list.
   it("wires members-only gating and the shared-with-me list", async () => {
     for (const file of [
-      "app/(tabs)/settings.tsx",
+      "components/settings/shared-links.tsx",
       "desktop/src/components/settings/shared-links.tsx",
     ]) {
       const src = await readFile(file, "utf8");
@@ -1139,7 +1139,7 @@ describe("desktop chart guard", () => {
   // Phase 536: invite-by-email + roster management for shared watchlists.
   it("wires invite-by-email and the member roster on both platforms", async () => {
     for (const file of [
-      "app/(tabs)/settings.tsx",
+      "components/settings/shared-links.tsx",
       "desktop/src/components/settings/shared-links.tsx",
     ]) {
       const src = await readFile(file, "utf8");
