@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop P3b-2 settings", () => {
   it("has an LLM provider section", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/llm-settings-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("llmProvider");
     expect(text).toContain("ollama-local");
   });

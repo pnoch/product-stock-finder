@@ -55,7 +55,10 @@ describe("BYO-LLM connection test", () => {
     expect(mobile).toContain("Test connection");
     expect(mobile).toContain('provider !== "forge"');
 
-    const desktop = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const desktop = await readFile(
+      "desktop/src/components/settings/llm-settings-section.tsx",
+      "utf8",
+    );
     expect(desktop).toContain("testLlmConnection()");
     expect(desktop).toContain("Test connection");
   });
