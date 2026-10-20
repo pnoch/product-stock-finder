@@ -10,8 +10,12 @@ describe("desktop notes and edit", () => {
 
   it("edits product details in place", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const header = await readFile(
+      "desktop/src/components/product/ProductHeader.tsx",
+      "utf8",
+    );
     expect(text).toContain("updateProductDetails");
-    expect(text).toContain("Edit product");
+    expect(header).toContain("Edit product");
   });
 
   it("surfaces save failures instead of false success toasts", async () => {

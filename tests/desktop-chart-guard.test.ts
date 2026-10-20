@@ -1217,11 +1217,11 @@ describe("desktop chart guard", () => {
   // QA round 267: mobile's DetailHeader shows an In Stock badge when a best deal
   // exists; the desktop product header omitted it.
   it("shows the in-stock badge in the desktop product header", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    const start = text.indexOf("Product Header");
-    expect(start).toBeGreaterThan(-1);
-    const block = text.slice(start, text.indexOf("headerConversion", start));
-    expect(block).toContain('<StockBadge status="in_stock" />');
+    const text = await readFile(
+      "desktop/src/components/product/ProductHeader.tsx",
+      "utf8",
+    );
+    expect(text).toContain('<StockBadge status="in_stock" />');
   });
 
   // QA round 266: mobile exposes which chip is active on its filter/sort/theme/
@@ -1369,7 +1369,10 @@ describe("desktop chart guard", () => {
   // QA round 187: mobile's DetailHeader shows the product region; desktop's
   // header omitted it.
   it("shows the product region on the desktop header", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/ProductHeader.tsx",
+      "utf8",
+    );
     expect(text).toContain("Mobile's DetailHeader shows the product region");
     expect(text).toMatch(/d\.id === bestDeal\.distributorId\)\?\.region/);
   });
@@ -1377,7 +1380,10 @@ describe("desktop chart guard", () => {
   // QA round 186: mobile's ProductInfoCard shows Distributors / In Stock /
   // Best Price; desktop's header only had the Best Price card.
   it("shows the Distributors and In Stock stats on desktop", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/ProductHeader.tsx",
+      "utf8",
+    );
     expect(text).toContain("Stats row — mobile's ProductInfoCard");
     expect(text).toMatch(/>Distributors</);
     expect(text).toMatch(/>In Stock</);
