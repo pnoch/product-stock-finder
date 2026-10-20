@@ -678,7 +678,10 @@ describe("desktop chart guard", () => {
   // QA round 202: mobile's data rows describe each action; desktop's buttons
   // had no descriptions (added as tooltips).
   it("describes the desktop data buttons", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/data-settings-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("Save watchlist as CSV (prices in display currency)");
     expect(text).toContain("Save watchlist, alerts and settings to a file");
     expect(text).toContain("Restore from a backup file (merges by id)");
@@ -687,7 +690,10 @@ describe("desktop chart guard", () => {
   // QA round 201: mobile's data buttons are "Export Backup" / "Import Backup";
   // desktop's were "Export full backup" / "Import backup".
   it("titles the desktop backup buttons like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/data-settings-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("Export Backup");
     expect(text).toContain("Import Backup");
     expect(text).not.toContain("Export full backup");
@@ -735,7 +741,10 @@ describe("desktop chart guard", () => {
   // QA round 196: mobile's data section title is "Data"; desktop's was "Data
   // Management".
   it("titles the desktop data section Data", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/data-settings-section.tsx",
+      "utf8",
+    );
     expect(text).toContain(">Data</h2>");
     expect(text).not.toContain("Data Management");
   });

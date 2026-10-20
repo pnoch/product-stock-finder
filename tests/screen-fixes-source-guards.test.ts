@@ -139,7 +139,7 @@ describe("screen-level fixes", () => {
   it("backup import re-reads and merges at save time, stamping per collection", () => {
     for (const file of [
       "components/settings/data-section.tsx",
-      "desktop/src/pages/Settings.tsx",
+      "desktop/src/components/settings/data-settings-section.tsx",
     ]) {
       const src = read(file);
       // The snapshot taken before the confirm dialog is stale by the time the
