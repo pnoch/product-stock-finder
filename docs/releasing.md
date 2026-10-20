@@ -67,6 +67,7 @@ server/remote push no-ops.
 #   desktop/src-tauri/tauri.conf.json, desktop/src-tauri/Cargo.toml
 # then reconcile the lock:
 cargo check --manifest-path desktop/src-tauri/Cargo.toml   # updates Cargo.lock
+# Android: increment `android.versionCode` in app.config.ts for every Play upload.
 ```
 
 Add a `CHANGELOG.md` section headed `## [<version>] - <date>`. Verify:
