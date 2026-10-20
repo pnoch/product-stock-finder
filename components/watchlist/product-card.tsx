@@ -19,6 +19,7 @@ import { ScarcityBadge } from "@/components/watchlist/scarcity-badge";
 import { computeAvailability } from "@/lib/availability";
 import { PriceSparkline } from "@/components/price-sparkline";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { IconActionButton } from "@/components/ui/icon-action-button";
 import { fetchProductImage } from "@/lib/server-images";
 import {
   formatLastRefreshed,
@@ -73,7 +74,7 @@ export const ProductCard = memo(function ProductCard({
     }).start();
   }, [acquired, cardOpacity]);
   const handleToggleAcquired = useCallback(
-    (e: { stopPropagation?: () => void }) => {
+    (e?: { stopPropagation?: () => void }) => {
       if (Platform.OS === "web") e?.stopPropagation?.();
       if (Platform.OS !== "web") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -167,7 +168,7 @@ export const ProductCard = memo(function ProductCard({
     [colors.primary, colors.surface, colors.border, selected, selectionMode, pressScale, selectedScale],
   );
   const handleTagPress = useCallback(
-    (e: { stopPropagation?: () => void }) => {
+    (e?: { stopPropagation?: () => void }) => {
       if (Platform.OS === "web") e?.stopPropagation?.();
       if (Platform.OS !== "web") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -177,7 +178,7 @@ export const ProductCard = memo(function ProductCard({
     [onTagPress],
   );
   const handleDeletePress = useCallback(
-    (e: { stopPropagation?: () => void }) => {
+    (e?: { stopPropagation?: () => void }) => {
       if (Platform.OS === "web") e?.stopPropagation?.();
       if (Platform.OS !== "web") {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -619,44 +620,32 @@ export const ProductCard = memo(function ProductCard({
           );
         })()}
         {onToggleAcquired && (
-          <TouchableOpacity activeOpacity={0.7}
-            onPress={handleToggleAcquired}
-            hitSlop={8}
-            style={{ padding: 4, marginRight: 4 }}
-            accessibilityLabel={acquired ? "Mark as not acquired" : "Mark as acquired"}
-            accessibilityRole="button"
-            accessibilityState={{ selected: acquired }}
-          >
-            <IconSymbol
-              name="checkmark.circle.fill"
-              size={16}
-              color={acquired ? colors.success : colors.muted}
-            />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity activeOpacity={0.7}
-          onPress={handleTagPress}
-          hitSlop={8}
-          style={{ padding: 4, marginRight: 4 }}
-          accessibilityLabel="Edit tags"
-          accessibilityRole="button"
-        >
-          <IconSymbol
-            name="tag.fill"
+          <IconActionButton
+            name="checkmark.circle.fill"
             size={16}
-            color={(product.tags?.length ?? 0) > 0 ? colors.primary : colors.muted}
+            color={acquired ? colors.success : colors.muted}
+            onPress={handleToggleAcquired}
+            accessibilityLabel={acquired ? "Mark as not acquired" : "Mark as acquired"}
+            accessibilityState={{ selected: acquired }}
+            style={{ marginRight: 4 }}
           />
-        </TouchableOpacity>
-        <TouchableOpacity activeOpacity={0.7}
+        )}
+        <IconActionButton
+          name="tag.fill"
+          size={16}
+          color={(product.tags?.length ?? 0) > 0 ? colors.primary : colors.muted}
+          onPress={handleTagPress}
+          accessibilityLabel="Edit tags"
+          style={{ marginRight: 4 }}
+        />
+        <IconActionButton
+          name="trash.fill"
+          size={16}
+          color={colors.error}
           onPress={handleDeletePress}
-          hitSlop={8}
-          style={{ padding: 4 }}
           accessibilityLabel="Delete product"
-          accessibilityRole="button"
           accessibilityHint="Removes this product from your watchlist"
-        >
-          <IconSymbol name="trash.fill" size={16} color={colors.error} />
-        </TouchableOpacity>
+        />
       </View>
       </Animated.View>
     </Pressable>

@@ -3,35 +3,10 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Card } from "@/components/ui/card";
 import { formatPrice } from "@shared/currency";
 import type { PriceAlert } from "@/lib/types";
 import { formatDropPct, type PriceDrop } from "@/lib/price-leaderboard";
-
-function CardShell({
-  accent,
-  children,
-}: {
-  accent: string;
-  children: React.ReactNode;
-}) {
-  const colors = useColors();
-  return (
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderLeftWidth: 4,
-        borderLeftColor: accent,
-      }}
-    >
-      {children}
-    </View>
-  );
-}
 
 function CardTitle({
   icon,
@@ -69,7 +44,7 @@ export const AlertFiredCard = memo(function AlertFiredCard({
 }) {
   const colors = useColors();
   return (
-    <CardShell accent={colors.error}>
+    <Card accent={colors.error} style={{ marginBottom: 12 }}>
       <CardTitle icon="bell.fill" iconColor={colors.error} title="Alerts fired" />
       <View style={{ marginTop: 8 }}>
         {alerts.map((alert, index) => (
@@ -116,7 +91,7 @@ export const AlertFiredCard = memo(function AlertFiredCard({
           </View>
         ))}
       </View>
-    </CardShell>
+    </Card>
   );
 });
 
@@ -128,7 +103,7 @@ export const DropCard = memo(function DropCard({
   const colors = useColors();
   const router = useRouter();
   return (
-    <CardShell accent={colors.success}>
+    <Card accent={colors.success} style={{ marginBottom: 12 }}>
       <CardTitle icon="chart.line.downtrend.xyaxis" iconColor={colors.success} title="Biggest drops" />
       <View style={{ marginTop: 8 }}>
         {drops.map((drop, index) => (
@@ -184,7 +159,7 @@ export const DropCard = memo(function DropCard({
           See all →
         </Text>
       </TouchableOpacity>
-    </CardShell>
+    </Card>
   );
 });
 
@@ -199,7 +174,7 @@ export const RestockCard = memo(function RestockCard({
 }) {
   const colors = useColors();
   return (
-    <CardShell accent={colors.success}>
+    <Card accent={colors.success} style={{ marginBottom: 12 }}>
       <CardTitle icon="checkmark.circle.fill" iconColor={colors.success} title="Back in stock" />
       <View style={{ marginTop: 8 }}>
         {productIds.map((id, index) => (
@@ -233,7 +208,7 @@ export const RestockCard = memo(function RestockCard({
           </TouchableOpacity>
         ))}
       </View>
-    </CardShell>
+    </Card>
   );
 });
 

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, Animated, View, ViewStyle } from "react-native";
-import { useReducedMotion } from "react-native-reanimated";
 import { useColors } from "@/hooks/use-colors";
 
 export function SkeletonBox({
@@ -16,14 +15,10 @@ export function SkeletonBox({
 }) {
   const colors = useColors();
   const opacity = useState(() => new Animated.Value(0.35))[0];
-  const reduceMotionEnabled = useReducedMotion();
 
   useEffect(() => {
-    if (reduceMotionEnabled) {
-      opacity.setValue(0.6);
-      return;
-    }
-    // Fallback to AccessibilityInfo when reanimated hook is unavailable / web sync check
+    // AccessibilityInfo is the single source of truth here; the reanimated
+    // hook made this module unusable in tests and duplicated the same check.
     let anim: Animated.CompositeAnimation | null = null;
     let cancelled = false;
     const startLoop = () => {
@@ -61,7 +56,7 @@ export function SkeletonBox({
     }
     startLoop();
     return () => anim?.stop();
-  }, [opacity, reduceMotionEnabled]);
+  }, [opacity]);
 
   return (
     <Animated.View

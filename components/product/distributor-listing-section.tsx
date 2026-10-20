@@ -1,11 +1,5 @@
-import { useEffect, useState } from "react";
-import {
-  Switch,
-  Text,
-  View,
-  TouchableOpacity,
-  Animated,
-} from "react-native";
+import { useState } from "react";
+import { Switch, Text, View, TouchableOpacity } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
@@ -17,6 +11,7 @@ import type { Product } from "@/lib/types";
 import type { BestDeal } from "@/lib/best-deal";
 import type { Destination } from "@/lib/landed-cost";
 import { CountryPicker } from "@/components/ui/country-picker";
+import { SkeletonBox } from "@/components/ui/skeleton";
 import { getCountry } from "@shared/countries";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { openListingUrl } from "@/lib/listing-utils";
@@ -56,54 +51,28 @@ interface DistributorListingSectionProps {
 
 function InsightSkeleton() {
   const colors = useColors();
-  const shimmer = useState(() => new Animated.Value(0))[0];
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 800, useNativeDriver: true }),
-        Animated.timing(shimmer, { toValue: 0, duration: 800, useNativeDriver: true }),
-      ]),
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [shimmer]);
-  const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
   return (
-    <Animated.View
+    <View
       style={{
-        opacity,
         backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 16,
         marginTop: 12,
       }}
     >
-      <View style={{ height: 10, width: 72, borderRadius: 6, backgroundColor: colors.border }} />
-      <View style={{ height: 12, borderRadius: 6, backgroundColor: colors.border, marginTop: 10, width: "94%" }} />
-      <View style={{ height: 12, borderRadius: 6, backgroundColor: colors.border, marginTop: 8, width: "78%" }} />
-      <View style={{ height: 12, borderRadius: 6, backgroundColor: colors.border, marginTop: 8, width: "62%" }} />
-    </Animated.View>
+      <SkeletonBox width={72} height={10} borderRadius={6} />
+      <SkeletonBox width="94%" height={12} borderRadius={6} style={{ marginTop: 10 }} />
+      <SkeletonBox width="78%" height={12} borderRadius={6} style={{ marginTop: 8 }} />
+      <SkeletonBox width="62%" height={12} borderRadius={6} style={{ marginTop: 8 }} />
+    </View>
   );
 }
 
 function BestDealSkeleton() {
   const colors = useColors();
-  const shimmer = useState(() => new Animated.Value(0))[0];
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 900, useNativeDriver: true }),
-        Animated.timing(shimmer, { toValue: 0, duration: 900, useNativeDriver: true }),
-      ]),
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [shimmer]);
-  const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
   return (
-    <Animated.View
+    <View
       style={{
-        opacity,
         backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 16,
@@ -112,17 +81,24 @@ function BestDealSkeleton() {
         borderColor: colors.border,
       }}
     >
-      <View style={{ height: 10, width: 140, borderRadius: 6, backgroundColor: colors.border }} />
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
-        <View style={{ height: 16, width: 120, borderRadius: 6, backgroundColor: colors.border }} />
-        <View style={{ height: 20, width: 80, borderRadius: 10, backgroundColor: colors.border }} />
+      <SkeletonBox width={140} height={10} borderRadius={6} />
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 12,
+        }}
+      >
+        <SkeletonBox width={120} height={16} borderRadius={6} />
+        <SkeletonBox width={80} height={20} borderRadius={10} />
       </View>
       <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
-        <View style={{ height: 10, flex: 1, borderRadius: 6, backgroundColor: colors.border }} />
-        <View style={{ height: 10, flex: 1, borderRadius: 6, backgroundColor: colors.border }} />
-        <View style={{ height: 10, flex: 1, borderRadius: 6, backgroundColor: colors.border }} />
+        <SkeletonBox width="30%" height={10} borderRadius={6} />
+        <SkeletonBox width="30%" height={10} borderRadius={6} />
+        <SkeletonBox width="30%" height={10} borderRadius={6} />
       </View>
-    </Animated.View>
+    </View>
   );
 }
 

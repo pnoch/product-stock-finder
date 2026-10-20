@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useEffect, useState } from "react";
+import React, { memo, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -22,35 +22,33 @@ import { formatPrice } from "@shared/currency";
 import { useFocusEffect, useRouter } from "expo-router";
 import { fetchProductImage } from "@/lib/server-images";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { SkeletonBox } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 
 function TrendingSkeletonCard() {
   const colors = useColors();
-  const shimmer = useState(() => new Animated.Value(0))[0];
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmer, { toValue: 1, duration: 850, useNativeDriver: true }),
-        Animated.timing(shimmer, { toValue: 0, duration: 850, useNativeDriver: true }),
-      ]),
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [shimmer]);
-  const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
   return (
-    <Animated.View style={{ opacity, backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 8, borderWidth: 1, borderColor: colors.border }}>
+    <View
+      style={{
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: colors.border }} />
+        <SkeletonBox width={40} height={40} borderRadius={8} />
         <View style={{ flex: 1, gap: 8 }}>
-          <View style={{ height: 14, borderRadius: 6, backgroundColor: colors.border, width: "68%" }} />
-          <View style={{ height: 11, borderRadius: 6, backgroundColor: colors.border, width: "42%" }} />
-          <View style={{ height: 11, borderRadius: 6, backgroundColor: colors.border, width: "52%" }} />
+          <SkeletonBox width="68%" height={14} borderRadius={6} />
+          <SkeletonBox width="42%" height={11} borderRadius={6} />
+          <SkeletonBox width="52%" height={11} borderRadius={6} />
         </View>
-        <View style={{ width: 54, height: 28, borderRadius: 8, backgroundColor: colors.border }} />
+        <SkeletonBox width={54} height={28} borderRadius={8} />
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
