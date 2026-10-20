@@ -18,8 +18,8 @@ import { getAllBrands, getAllCategories } from "@shared/catalog";
 import { formatPrice } from "@shared/currency";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { getBestPrice } from "@/lib/currency";
+import { useSettings } from "@/lib/settings-provider";
 import {
-  getSettings,
   getWatchlist,
   addCriterionWatch,
 } from "@/lib/storage";
@@ -179,23 +179,13 @@ export default function AvailableScreen() {
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [brand, setBrand] = useState<string | undefined>(undefined);
   const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
-  const [currency, setCurrency] = useState("USD");
+  const { settings, loading: settingsLoading } = useSettings();
+  const currency = settings.displayCurrency;
   const [fallbackRows, setFallbackRows] = useState<Row[]>([]);
   const [paywallVisible, setPaywallVisible] = useState(false);
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const settings = await getSettings();
-      if (active) setCurrency(settings?.displayCurrency ?? "USD");
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const query = useQuery<AvailableProduct[]>({
     queryKey: [
@@ -207,7 +197,7 @@ export default function AvailableScreen() {
     ],
     queryFn: () => fetchAvailable({ currency, category, brand, maxPrice }),
     staleTime: 60_000,
-    enabled: configured,
+    enabled: configured && !settingsLoading,
   });
 
   useEffect(() => {

@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -33,7 +32,8 @@ import { CurrentPricesTable } from "@/components/compare/current-prices-table";
 import { CrossAlertCTA } from "@/components/compare/cross-alert-cta";
 import { DistributorSelector } from "@/components/compare/distributor-selector";
 import { useLiveProduct } from "@/hooks/use-live-prices";
-import { addAlert, getSettings } from "@/lib/storage";
+import { addAlert } from "@/lib/storage";
+import { useSettings } from "@/lib/settings-provider";
 import {
   schedulePriceAlert,
   ensureNotificationPermission,
@@ -74,7 +74,8 @@ export default function CompareScreen() {
   const [userSelected, setUserSelected] = useState<Set<string> | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("3M");
   const [sortBy, setSortBy] = useState<SortBy>("trend");
-  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const { settings } = useSettings();
+  const displayCurrency = settings.displayCurrency;
   // Guards against a double-tap creating two identical cross-distributor alerts.
   const [creatingAlert, setCreatingAlert] = useState(false);
   const { product, listings, loaded, isRefreshingAny, refresh } =
@@ -87,16 +88,6 @@ export default function CompareScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const [measuredChartWidth, setMeasuredChartWidth] = useState<number | null>(null);
   const chartWidth = measuredChartWidth ?? windowWidth - 64;
-
-  useEffect(() => {
-    getSettings()
-      .then((s) => {
-        if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
-      })
-      .catch(() => {
-        // keep the default currency on a storage read failure
-      });
-  }, []);
 
   const computedDefault = useMemo(() => {
     if (!loaded || !id) return new Set<string>();

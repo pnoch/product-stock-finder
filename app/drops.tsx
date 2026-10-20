@@ -24,7 +24,8 @@ import {
   type DropWindow,
   type PriceDrop,
 } from "@/lib/price-leaderboard";
-import { getSettings, getWatchlist } from "@/lib/storage";
+import { getWatchlist } from "@/lib/storage";
+import { useSettings } from "@/lib/settings-provider";
 import { createTRPCClient } from "@/lib/trpc";
 import { shareText } from "@/lib/share-text";
 import { formatPrice } from "@shared/currency";
@@ -154,7 +155,8 @@ export default function DropsScreen() {
   const { isAuthenticated } = useAuth();
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
-  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const { settings } = useSettings();
+  const displayCurrency = settings.displayCurrency;
   const [window, setWindow] = useState<DropWindow>("7d");
   const [sortBy, setSortBy] = useState<DropSortBy>("pct");
   const [tab, setTab] = useState<DropsTab>("your");
@@ -170,13 +172,9 @@ export default function DropsScreen() {
       let active = true;
       const load = async () => {
         try {
-          const [watchlist, settings] = await Promise.all([
-            getWatchlist(),
-            getSettings(),
-          ]);
+          const watchlist = await getWatchlist();
           if (!active) return;
           setProducts(watchlist);
-          setDisplayCurrency(settings?.displayCurrency ?? "USD");
         } catch {
           // storage read failure — keep existing state
         } finally {

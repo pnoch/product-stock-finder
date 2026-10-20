@@ -10,12 +10,13 @@ import { MarketplaceCard } from "@/components/product/marketplace-card";
 import { AlertSection } from "@/components/product/alert-section";
 import { ReminderSection } from "@/components/product/reminder-section";
 import { useColors } from "@/hooks/use-colors";
+import { useSettings } from "@/lib/settings-provider";
 import { useLiveProduct } from "@/hooks/use-live-prices";
 import { buildShareText } from "@/lib/price-share";
 import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
 import * as Linking from "expo-linking";
 import { captureAndShareImage } from "@/lib/share-image";
-import { getSettings, getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings, updateSettings, getWatchlist, updateProductAcquired, addToWatchlist } from "@/lib/storage";
+import { getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings, getWatchlist, updateProductAcquired, addToWatchlist } from "@/lib/storage";
 import { isAcquired } from "@/lib/acquired";
 import { pickAlternatives, localAlternatives, type Alternative } from "@/lib/alternatives";
 import { fetchAvailable } from "@/lib/server-catalog";
@@ -64,6 +65,11 @@ export default function ProductDetailScreen() {
     : distributor;
   const colors = useColors();
   const { showToast } = useToast();
+  const {
+    settings,
+    loading: settingsLoading,
+    updateSetting,
+  } = useSettings();
   const { product, isTracked, listings, loaded, lastUpdatedAt, refresh } = useLiveProduct(id ?? "", { allowCatalog: true });
   const [findingPrices, setFindingPrices] = useState(false);
   const productId = product?.id;
@@ -99,14 +105,11 @@ export default function ProductDetailScreen() {
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(true);
   const [productImage, setProductImage] = useState<string | null>(null);
-  const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
-  const [shippingRegion, setShippingRegion] = useState<string | null>(null);
-  const [shipToCountry, setShipToCountry] = useState<string | null>(null);
-  const [taxExempt, setTaxExempt] = useState(false);
-  const [includeImportEstimate, setIncludeImportEstimate] = useState(false);
-  // Explicit flag: gating the skeleton on the settings *values* meant a failed
-  // settings read (or a missing id) hung the screen forever.
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const displayCurrency = settings.displayCurrency;
+  const shippingRegion = settings.shippingRegion;
+  const shipToCountry = settings.shipToCountry ?? null;
+  const taxExempt = settings.taxExempt === true;
+  const includeImportEstimate = settings.includeImportEstimate === true;
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
   const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
@@ -125,7 +128,9 @@ export default function ProductDetailScreen() {
   const [alertDistributorId, setAlertDistributorId] = useState<string | null>(null);
   const [alertDirection, setAlertDirection] = useState<"drop" | "rise">("drop");
   const [alertPrice, setAlertPrice] = useState("");
-  const [alertCurrency, setAlertCurrency] = useState("USD");
+  const [alertCurrencyOverride, setAlertCurrencyOverride] = useState<string | null>(null);
+  const alertCurrency = alertCurrencyOverride ?? settings.displayCurrency;
+  const setAlertCurrency = setAlertCurrencyOverride;
   // Guards against a double-tap / Enter+button double-submit creating two alerts.
   const [creatingAlert, setCreatingAlert] = useState(false);
   // Guards the restock-watch toggle: a double-tap scheduled two confirmation
@@ -135,31 +140,20 @@ export default function ProductDetailScreen() {
   const [addingToWatchlist, setAddingToWatchlist] = useState(false);
 
   const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
-    if (!id) {
-      setSettingsLoaded(true);
-      return;
-    }
+    if (!id) return;
     setInsight(null);
     setInsightLoading(true);
     setProductImage(null);
     // Storage reads can reject; without a catch the setters below never run and
     // the screen hangs on the loading skeleton forever.
-    const [settingsData, stockWatchesData, insightData, imageData, alertsData] =
+    const [stockWatchesData, insightData, imageData, alertsData] =
       await Promise.all([
-        getSettings().catch(() => null),
         getStockWatches().catch(() => []),
         fetchPriceInsight(id).catch(() => null),
         fetchProductImage(id).catch(() => null),
         getAlerts().catch(() => []),
       ]);
     if (signal?.cancelled) return;
-    if (settingsData?.displayCurrency) setDisplayCurrency(settingsData.displayCurrency);
-    if (settingsData?.shippingRegion) setShippingRegion(settingsData.shippingRegion);
-    setShipToCountry(settingsData?.shipToCountry ?? null);
-    setTaxExempt(settingsData?.taxExempt === true);
-    setIncludeImportEstimate(settingsData?.includeImportEstimate === true);
-    if (settingsData?.displayCurrency) setAlertCurrency(settingsData.displayCurrency);
-    setSettingsLoaded(true);
     setAlerts(alertsData);
     const watchMap: Record<string, boolean> = {};
     for (const w of stockWatchesData) {
@@ -169,21 +163,7 @@ export default function ProductDetailScreen() {
     if (insightData) setInsight(insightData.insight);
     setInsightLoading(false);
     if (imageData) setProductImage(imageData.imageUrl);
-  }, [
-    id,
-    setAlertCurrency,
-    setAlerts,
-    setDisplayCurrency,
-    setIncludeImportEstimate,
-    setInsight,
-    setInsightLoading,
-    setProductImage,
-    setSettingsLoaded,
-    setShipToCountry,
-    setShippingRegion,
-    setStockWatches,
-    setTaxExempt,
-  ]);
+  }, [id, setAlerts, setInsight, setInsightLoading, setProductImage, setStockWatches]);
 
   useEffect(() => {
     const signal = { cancelled: false };
@@ -235,7 +215,7 @@ export default function ProductDetailScreen() {
   );
   const effectiveCurrency = displayCurrency ?? "USD";
   const effectiveShippingRegion = shippingRegion ?? "Asia-Pacific";
-  const isSettingsLoaded = settingsLoaded;
+  const isSettingsLoaded = !settingsLoading;
   const bestInStockListing = useMemo(
     () =>
       selectBestListing(visibleListings, {
@@ -337,22 +317,30 @@ export default function ProductDetailScreen() {
     setAlertModalVisible(true);
   }, [setAlertDirection, setAlertDistributorId, setAlertModalVisible, setAlertPrice]);
 
-  const handleSelectCountry = useCallback((code: string) => {
-    setShipToCountry(code);
-    void updateSettings({ shipToCountry: code });
-  }, []);
+  const handleSelectCountry = useCallback(
+    (code: string) => {
+      void updateSetting("shipToCountry", code);
+    },
+    [updateSetting],
+  );
 
-  const handleToggleTaxExempt = useCallback((value: boolean) => {
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setTaxExempt(value);
-    void updateSettings({ taxExempt: value });
-  }, []);
+  const handleToggleTaxExempt = useCallback(
+    (value: boolean) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void updateSetting("taxExempt", value);
+    },
+    [updateSetting],
+  );
 
-  const handleToggleImportEstimate = useCallback((value: boolean) => {
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIncludeImportEstimate(value);
-    void updateSettings({ includeImportEstimate: value });
-  }, []);
+  const handleToggleImportEstimate = useCallback(
+    (value: boolean) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void updateSetting("includeImportEstimate", value);
+    },
+    [updateSetting],
+  );
 
   const handleSetAlert = useCallback(async () => {
     if (!id || creatingAlert) return;

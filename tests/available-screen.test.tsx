@@ -39,6 +39,14 @@ vi.mock("@/constants/oauth", () => ({
   isServerConfigured: () => state.configured,
   getApiBaseUrl: () => "http://localhost:3000",
 }));
+vi.mock("@/lib/settings-provider", () => ({
+  useSettings: () => ({
+    settings: { displayCurrency: "USD" },
+    loading: false,
+    updateSetting: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
 vi.mock("@/lib/storage", () => ({
   getWatchlist: vi.fn(async () => state.watchlist),
   getSettings: vi.fn(async () => ({ displayCurrency: "USD" })),

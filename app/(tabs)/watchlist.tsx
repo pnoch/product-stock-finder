@@ -20,6 +20,7 @@ import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useSettings } from "@/lib/settings-provider";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { PaywallScreen } from "@/components/paywall/paywall-screen";
@@ -34,11 +35,9 @@ import { trpc } from "@/lib/trpc";
 import { parseBulkImportCsv } from "@/lib/csv";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
-  getSettings,
   updateSettings,
   getWatchlist,
   getAlerts,
-  getTagDefinitions,
   addToWatchlist,
   addAlert,
   addBackOrderReminder,
@@ -62,7 +61,6 @@ import {
   BackOrderReminder,
   PriceAlert,
   Product,
-  TagDefinition,
   WatchlistGroup,
   WatchlistSort,
 } from "@/lib/types";
@@ -100,6 +98,7 @@ export default function WatchlistScreen() {
   const router = useRouter();
   const colors = useColors();
   const { showToast } = useToast();
+  const { settings, loading: settingsLoading } = useSettings();
   const insets = useSafeAreaInsets();
   const {
     products: watchlist,
@@ -122,7 +121,7 @@ export default function WatchlistScreen() {
     current: number;
     total: number;
   } | null>(null);
-  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const displayCurrency = settings.displayCurrency;
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [showAcquired, setShowAcquired] = useState(false);
@@ -135,10 +134,27 @@ export default function WatchlistScreen() {
   const [priceRange, setPriceRange] = useState<[number, number] | undefined>(undefined);
   const [priceMinInput, setPriceMinInput] = useState("");
   const [priceMaxInput, setPriceMaxInput] = useState("");
-  const [tagDefinitions, setTagDefinitions] = useState<
-    Record<string, TagDefinition>
-  >({});
+  const tagDefinitions = useMemo(
+    () => settings.tagDefinitions ?? {},
+    [settings.tagDefinitions],
+  );
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+  if (!hydrated && !settingsLoading) {
+    setHydrated(true);
+    setSortMode(settings.watchlistSort ?? "recent");
+    setGroupMode(settings.watchlistGroup ?? "off");
+    setInStockOnly(settings.watchlistInStockOnly ?? false);
+    const storedRange = settings.watchlistPriceRange ?? null;
+    if (storedRange && Array.isArray(storedRange) && storedRange.length === 2) {
+      const [min, max] = storedRange;
+      const isMaxFinite =
+        Number.isFinite(max) && max !== Number.MAX_SAFE_INTEGER;
+      setPriceRange([min, max]);
+      setPriceMinInput(min === 0 ? "" : String(min));
+      setPriceMaxInput(isMaxFinite ? String(max) : "");
+    }
+  }
   const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
   const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
   const [manageVisible, setManageVisible] = useState(false);
@@ -191,7 +207,6 @@ export default function WatchlistScreen() {
     };
   }, [watchlist.length]);
 
-  const hasLoadedSettingsRef = useRef(false);
   const reloadAlerts = useCallback(async () => {
     try {
       setAlerts(await getAlerts());
@@ -201,45 +216,11 @@ export default function WatchlistScreen() {
   }, []);
   const loadData = useCallback(async () => {
     await reloadAlerts();
-    // A storage read failure must not reject unhandled or leave the settings
-    // gate closed (which disabled the price filter and prefs silently).
-    let settings: Awaited<ReturnType<typeof getSettings>> | null = null;
-    let defs: Record<string, TagDefinition> = {};
-    try {
-      settings = await getSettings();
-      defs = await getTagDefinitions();
-    } catch (e) {
-      log.error("[Watchlist] settings load failed", e);
-      // Keep the previous values and leave the loaded flag unset: marking it
-      // loaded would let the persist effect write these fallbacks over the
-      // user's saved filters.
-      return;
-    }
-    setDisplayCurrency(settings?.displayCurrency ?? "USD");
-    setSortMode(settings?.watchlistSort ?? "recent");
-    setGroupMode(settings?.watchlistGroup ?? "off");
-    const storedInStock = settings?.watchlistInStockOnly ?? false;
-    setInStockOnly(storedInStock);
-    const storedRange = settings?.watchlistPriceRange ?? null;
-    if (storedRange && Array.isArray(storedRange) && storedRange.length === 2) {
-      const [min, max] = storedRange;
-      const isMaxFinite = Number.isFinite(max) && max !== Number.MAX_SAFE_INTEGER;
-      setPriceRange([min, max]);
-      setPriceMinInput(min === 0 ? "" : String(min));
-      setPriceMaxInput(isMaxFinite ? String(max) : "");
-    } else {
-      setPriceRange(undefined);
-      setPriceMinInput("");
-      setPriceMaxInput("");
-    }
-    setTagDefinitions(defs);
-    setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
-    hasLoadedSettingsRef.current = true;
   }, [reloadAlerts]);
 
   // Real-time price range filter without Apply — updates as user types
   useEffect(() => {
-    if (!hasLoadedSettingsRef.current) return;
+    if (!hydrated) return;
     const minStr = priceMinInput.trim();
     const maxStr = priceMaxInput.trim();
     if (minStr === "" && maxStr === "") {
@@ -259,14 +240,14 @@ export default function WatchlistScreen() {
       if (prev && prev[0] === min && prev[1] === effectiveMax) return prev;
       return [min, effectiveMax];
     });
-  }, [priceMinInput, priceMaxInput]);
+  }, [hydrated, priceMinInput, priceMaxInput]);
 
   // Persist priceRange / inStockOnly to AppSettings (real-time). Uses the
   // serialized updateSettings: a whole-object saveSettings with a read taken
   // outside the write queue raced the sort/group persist below, so changing
   // both quickly dropped one field.
   useEffect(() => {
-    if (!hasLoadedSettingsRef.current) return;
+    if (!hydrated) return;
     let cancelled = false;
     const persist = async () => {
       try {
@@ -282,7 +263,7 @@ export default function WatchlistScreen() {
     };
     void persist();
     return () => { cancelled = true; };
-  }, [inStockOnly, priceRange]);
+  }, [hydrated, inStockOnly, priceRange]);
 
   useFocusEffect(
     useCallback(() => {
@@ -291,11 +272,16 @@ export default function WatchlistScreen() {
     }, [reload, loadData]),
   );
 
+  const validSelectedTagIds = useMemo(
+    () => selectedTagIds.filter((id) => tagDefinitions[id]),
+    [selectedTagIds, tagDefinitions],
+  );
+
   const filteredWatchlist = useMemo(
     () =>
       filterWatchlist(watchlist, {
         region: regionFilter,
-        tagIds: selectedTagIds,
+        tagIds: validSelectedTagIds,
         tagMatchMode,
         status: statusFilter,
         query,
@@ -303,7 +289,7 @@ export default function WatchlistScreen() {
         inStockOnly,
         displayCurrency,
       }).filter((p) => showAcquired || !isAcquired(p)),
-    [watchlist, regionFilter, selectedTagIds, tagMatchMode, statusFilter, query, priceRange, inStockOnly, displayCurrency, showAcquired],
+    [watchlist, regionFilter, validSelectedTagIds, tagMatchMode, statusFilter, query, priceRange, inStockOnly, displayCurrency, showAcquired],
   );
 
   const tagCounts = useMemo(
@@ -1263,7 +1249,7 @@ export default function WatchlistScreen() {
   </View>
   <TagFilterRow
     tagDefinitions={tagDefinitions}
-    selectedTagIds={selectedTagIds}
+    selectedTagIds={validSelectedTagIds}
     tagMatchMode={tagMatchMode}
     counts={tagCounts}
     onToggleTag={toggleTagFilter}
@@ -1297,7 +1283,7 @@ export default function WatchlistScreen() {
             query={query}
             statusFilter={statusFilter}
             regionFilter={regionFilter}
-            selectedTagIds={selectedTagIds}
+            selectedTagIds={validSelectedTagIds}
             inStockOnly={inStockOnly}
             priceRange={priceRange}
             allAcquired={watchlist.length > 0 && watchlist.every(isAcquired)}
