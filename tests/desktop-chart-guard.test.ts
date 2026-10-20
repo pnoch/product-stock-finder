@@ -541,7 +541,10 @@ describe("desktop chart guard", () => {
   // device" when the server isn't configured; desktop always said "Sign in to
   // sync across devices".
   it("shows the desktop local-only sync status when unconfigured", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/account-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("Local-only mode — prices are fetched on this device");
   });
 
@@ -549,7 +552,10 @@ describe("desktop chart guard", () => {
   // (lastSyncError); desktop's inline sync status always showed the
   // last-success time and hid errors.
   it("surfaces sync errors on desktop via formatSyncStatus", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/account-section.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/formatSyncStatus\(syncMeta, isAuthenticated, now\)/);
     expect(text).toContain("syncStatus.label");
     expect(text).not.toMatch(/const syncStatus = !isAuthenticated/);
@@ -2012,7 +2018,10 @@ describe("desktop chart guard", () => {
   it("guards desktop auth fetches against an empty base URL", async () => {
     for (const [file, needle] of [
       ["desktop/src/pages/ResetPassword.tsx", "const baseUrl = getApiBaseUrl();"],
-      ["desktop/src/pages/Settings.tsx", "const baseUrl = getApiBaseUrl();"],
+      [
+        "desktop/src/components/settings/account-section.tsx",
+        "const baseUrl = getApiBaseUrl();",
+      ],
     ] as const) {
       const text = await readFile(file, "utf8");
       const start = text.indexOf(needle);

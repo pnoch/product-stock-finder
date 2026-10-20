@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop password reset", () => {
   it("requests reset links from Settings", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/account-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("/api/auth/forgot");
     expect(text).toContain("Send reset link");
   });

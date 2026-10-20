@@ -6,7 +6,6 @@ import { clearDistributorBreaker } from "../../../../lib/scrapers/breaker-clear"
 import type { StorageAdapter } from "../../../../lib/storage/adapter";
 import type { Product } from "../../../../lib/types";
 import { storage } from "../../storage";
-import { useToast } from "../../hooks/use-toast";
 
 type DistributorStatus = {
   lastSuccess: string | null;
@@ -32,8 +31,13 @@ function getDistributorHealth(
   return { label: "Failed", dot: "bg-red-500" };
 }
 
-export function ScraperStatusSection({ now }: { now: number }) {
-  const { showToast } = useToast();
+export function ScraperStatusSection({
+  now,
+  showToast,
+}: {
+  now: number;
+  showToast: (message: string) => void;
+}) {
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [reenabling, setReenabling] = useState(false);

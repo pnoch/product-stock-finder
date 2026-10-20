@@ -4,15 +4,15 @@ import type { DeviceInfo } from "../../../../server/devices";
 import { formatLastSeen } from "../../../../lib/relative-time";
 import { getDesktopDeviceId } from "../../lib/device-id";
 import { createTRPCClient } from "../../lib/trpc";
-import { useToast } from "../../hooks/use-toast";
 import { DialogOverlay } from "../DialogOverlay";
 
 export function DeviceManagementSection({
   isAuthenticated,
+  showToast,
 }: {
   isAuthenticated: boolean;
+  showToast: (message: string) => void;
 }) {
-  const { showToast } = useToast();
   const [devices, setDevices] = useState<DeviceInfo[] | null>(null);
   const [devicesLoading, setDevicesLoading] = useState(false);
   const [devicesError, setDevicesError] = useState<string | null>(null);

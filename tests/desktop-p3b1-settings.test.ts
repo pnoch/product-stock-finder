@@ -10,7 +10,10 @@ describe("desktop P3b-1 settings", () => {
   });
 
   it("has a sync-now action", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/account-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("getSyncSetup");
     expect(text).toContain("Sync now");
   });

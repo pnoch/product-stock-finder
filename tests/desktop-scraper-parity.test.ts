@@ -499,7 +499,10 @@ describe("desktop/mobile scraper parity", () => {
     const shared = await readFile("lib/auth-refresh.ts", "utf8");
     const mobile = await readFile("app/verify-email.tsx", "utf8");
     const desktopAuth = await readFile("desktop/src/hooks/use-auth.ts", "utf8");
-    const settings = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const settings = await readFile(
+      "desktop/src/components/settings/account-section.tsx",
+      "utf8",
+    );
     expect(shared).toContain("export async function fetchCurrentUser");
     // The mobile refresh must send the Bearer token: on React Native the
     // session cookie is not reliably sent cross-origin, so /api/auth/me 401'd.
