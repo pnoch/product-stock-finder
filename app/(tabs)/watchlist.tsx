@@ -18,6 +18,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useSettings } from "@/lib/settings-provider";
 import { WatchlistFilterPanel } from "@/components/watchlist/watchlist-filter-panel";
+import { WatchlistListHeader } from "@/components/watchlist/watchlist-list-header";
 import { pickAndImportWatchlistCsv } from "@/lib/watchlist-import";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
@@ -25,7 +26,6 @@ import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { track } from "@/lib/telemetry";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
 import { useConnection } from "@/hooks/use-connection";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { buildWatchlistShareMessage } from "@/lib/watchlist-share";
 import { shareText } from "@/lib/share-text";
 import { trpc } from "@/lib/trpc";
@@ -73,11 +73,7 @@ import {
 import { ProductCard } from "@/components/watchlist/product-card";
 import { isAcquired } from "@/lib/acquired";
 import { SwipeableCard } from "@/components/watchlist/swipeable-card";
-import { SummaryCard } from "@/components/watchlist/summary-card";
-import { SearchBar } from "@/components/watchlist/search-bar";
-import { ProgressBar } from "@/components/watchlist/progress-bar";
 import { WatchlistHeader } from "@/components/watchlist/watchlist-header";
-import { SortGroupBar } from "@/components/watchlist/sort-group-bar";
 import { EmptyState } from "@/components/watchlist/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { LOG_ERROR, log } from "@shared/log";
@@ -912,247 +908,77 @@ export default function WatchlistScreen() {
           />
         }
         ListHeaderComponent={
-          <View>
-{connection.status === "offline" && queuedCount > 0 && (
-  <View
-    style={{
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      backgroundColor: colors.warning + "14",
-      borderWidth: 1,
-      borderColor: colors.warning + "44",
-      borderRadius: 16,
-      marginHorizontal: 20,
-      marginTop: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-    }}
-    accessibilityLabel={`Offline — ${queuedCount} edits queued`}
-    accessibilityRole="alert"
-  >
-    <IconSymbol name="wifi.slash" size={16} color={colors.warning} />
-    <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", flex: 1 }}>
-      Offline — {queuedCount} edit{queuedCount !== 1 ? "s" : ""} queued
-    </Text>
-    <Text style={{ color: colors.muted, fontSize: 12 }}>Will sync when back online</Text>
-  </View>
-)}
-{watchlist.length > 0 && (
-  <SummaryCard
-    summary={summary}
-    displayCurrency={displayCurrency}
-    statusFilter={statusFilter}
-    onStatusToggle={setStatusFilter}
-    onViewStats={() => router.push("/stats")}
-  />
-)}
-{watchlist.length >= 2 && (
-  <View
-    style={{
-      marginHorizontal: 16,
-      marginBottom: 12,
-      borderRadius: 16,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      overflow: "hidden",
-    }}
-  >
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={() => {
-        if (Platform.OS !== "web")
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push("/build-order");
-      }}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-      }}
-      accessibilityLabel="Plan order"
-      accessibilityRole="button"
-    >
-      <IconSymbol name="cart.fill" size={20} color={colors.primary} />
-      <View style={{ flex: 1 }}>
-        <Text
-          style={{ color: colors.foreground, fontSize: 15, fontWeight: "600" }}
-        >
-          Plan order
-        </Text>
-        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
-          Find the cheapest way to buy your watchlist at once
-        </Text>
-      </View>
-      <IconSymbol name="chevron.right" size={12} color={colors.muted} />
-    </TouchableOpacity>
-  </View>
-)}
-{watchlist.length > 0 && (
-  <View
-    style={{
-      marginHorizontal: 16,
-      marginBottom: 12,
-      borderRadius: 16,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      overflow: "hidden",
-    }}
-  >
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={() => {
-        if (Platform.OS !== "web")
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push("/sourcing");
-      }}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-      }}
-      accessibilityLabel="Sourcing sheet"
-      accessibilityRole="button"
-    >
-      <IconSymbol
-        name="dollarsign.circle.fill"
-        size={20}
-        color={colors.primary}
-      />
-      <View style={{ flex: 1 }}>
-        <Text
-          style={{ color: colors.foreground, fontSize: 15, fontWeight: "600" }}
-        >
-          Sourcing sheet
-        </Text>
-        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
-          Track buy prices, sell targets, and margin
-        </Text>
-      </View>
-      <IconSymbol name="chevron.right" size={12} color={colors.muted} />
-    </TouchableOpacity>
-  </View>
-)}
-{watchlist.length > 0 && (
-  <SearchBar query={query} onQueryChange={setQuery} />
-)}
-<ProgressBar
-  progress={
-    checkProgress ? checkProgress.current / checkProgress.total : 0
-  }
-  visible={!!(checking && checkProgress)}
-/>
-{watchlist.length > 0 && (
-  <SortGroupBar
-    sortMode={sortMode}
-    groupMode={groupMode}
-    sortMenuOpen={sortMenuOpen}
-    onSortModeChange={(mode) => {
-      setSortMode(mode);
-      setSortMenuOpen(false);
-      void persistViewPrefs(mode, groupModeRef.current);
-    }}
-    onGroupModeChange={(mode) => {
-      setGroupMode(mode);
-      void persistViewPrefs(sortModeRef.current, mode);
-    }}
-    onSortMenuToggle={() => setSortMenuOpen((v) => !v)}
-  />
-)}
-{watchlist.length > 0 && (
-  <TouchableOpacity
-    activeOpacity={0.7}
-    onPress={() => {
-      if (Platform.OS !== "web")
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setFiltersManual((v) => !(v ?? activeFilterCount > 0));
-    }}
-    style={{
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      marginHorizontal: 16,
-      marginBottom: filtersExpanded ? 8 : 10,
-      paddingHorizontal: 12,
-      minHeight: 56,
-      borderRadius: 16,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: filtersExpanded ? colors.primary : colors.border,
-    }}
-    accessibilityLabel={activeFilterCount > 0 ? `Filters, ${activeFilterCount} active` : "Filters"}
-    accessibilityRole="button"
-    accessibilityState={{ expanded: filtersExpanded }}
-  >
-    <IconSymbol
-      name="line.3.horizontal.decrease.circle"
-      size={18}
-      color={filtersExpanded || activeFilterCount > 0 ? colors.primary : colors.muted}
-    />
-    <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", flex: 1 }}>
-      Filters
-    </Text>
-    {activeFilterCount > 0 && (
-      <View
-        style={{
-          minWidth: 22,
-          height: 22,
-          borderRadius: 11,
-          backgroundColor: colors.primary,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 6,
-        }}
-        accessibilityLabel={`${activeFilterCount} filters active`}
-      >
-        <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>
-          {activeFilterCount}
-        </Text>
-      </View>
-    )}
-    <IconSymbol name={filtersExpanded ? "chevron.up" : "chevron.down"} size={16} color={colors.muted} />
-  </TouchableOpacity>
-)}
-<WatchlistFilterPanel
-  visible={filtersExpanded && watchlist.length > 0}
-  regions={regions}
-  regionFilter={regionFilter}
-  onRegionChange={setRegionFilter}
-  inStockOnly={inStockOnly}
-  onInStockOnlyChange={setInStockOnly}
-  showAcquired={showAcquired}
-  onShowAcquiredChange={setShowAcquired}
-  displayCurrency={displayCurrency}
-  priceMinInput={priceMinInput}
-  priceMaxInput={priceMaxInput}
-  onPriceMinChange={setPriceMinInput}
-  onPriceMaxChange={setPriceMaxInput}
-  onClearPrice={() => {
-    setPriceRange(undefined);
-    setPriceMinInput("");
-    setPriceMaxInput("");
-  }}
-  priceFilterActive={
-    !!priceRange || priceMinInput !== "" || priceMaxInput !== ""
-  }
-  tagDefinitions={tagDefinitions}
-  selectedTagIds={validSelectedTagIds}
-  tagMatchMode={tagMatchMode}
-  tagCounts={tagCounts}
-  onToggleTag={toggleTagFilter}
-  onChangeTagMode={setTagMatchMode}
-  onClearTags={() => setSelectedTagIds([])}
-  onManageTags={() => setManageVisible(true)}
-  activeFilterCount={activeFilterCount}
-  onClearAll={clearAllFilters}
-/>
-          </View>
+          <WatchlistListHeader
+            watchlistLength={watchlist.length}
+            summary={summary}
+            displayCurrency={displayCurrency}
+            statusFilter={statusFilter}
+            onStatusToggle={setStatusFilter}
+            onViewStats={() => router.push("/stats")}
+            onPlanOrder={() => router.push("/build-order")}
+            onSourcing={() => router.push("/sourcing")}
+            query={query}
+            onQueryChange={setQuery}
+            checking={checking}
+            checkProgress={checkProgress}
+            sortMode={sortMode}
+            groupMode={groupMode}
+            sortMenuOpen={sortMenuOpen}
+            onSortModeChange={(mode) => {
+              setSortMode(mode);
+              setSortMenuOpen(false);
+              void persistViewPrefs(mode, groupModeRef.current);
+            }}
+            onGroupModeChange={(mode) => {
+              setGroupMode(mode);
+              void persistViewPrefs(sortModeRef.current, mode);
+            }}
+            onSortMenuToggle={() => setSortMenuOpen((v) => !v)}
+            filtersExpanded={filtersExpanded}
+            onToggleFilters={() => {
+              if (Platform.OS !== "web")
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setFiltersManual((v) => !(v ?? activeFilterCount > 0));
+            }}
+            activeFilterCount={activeFilterCount}
+            offline={connection.status === "offline"}
+            queuedCount={queuedCount}
+            filterPanel={
+              <WatchlistFilterPanel
+                visible={filtersExpanded && watchlist.length > 0}
+                regions={regions}
+                regionFilter={regionFilter}
+                onRegionChange={setRegionFilter}
+                inStockOnly={inStockOnly}
+                onInStockOnlyChange={setInStockOnly}
+                showAcquired={showAcquired}
+                onShowAcquiredChange={setShowAcquired}
+                displayCurrency={displayCurrency}
+                priceMinInput={priceMinInput}
+                priceMaxInput={priceMaxInput}
+                onPriceMinChange={setPriceMinInput}
+                onPriceMaxChange={setPriceMaxInput}
+                onClearPrice={() => {
+                  setPriceRange(undefined);
+                  setPriceMinInput("");
+                  setPriceMaxInput("");
+                }}
+                priceFilterActive={
+                  !!priceRange || priceMinInput !== "" || priceMaxInput !== ""
+                }
+                tagDefinitions={tagDefinitions}
+                selectedTagIds={validSelectedTagIds}
+                tagMatchMode={tagMatchMode}
+                tagCounts={tagCounts}
+                onToggleTag={toggleTagFilter}
+                onChangeTagMode={setTagMatchMode}
+                onClearTags={() => setSelectedTagIds([])}
+                onManageTags={() => setManageVisible(true)}
+                activeFilterCount={activeFilterCount}
+                onClearAll={clearAllFilters}
+              />
+            }
+          />
         }
         ListEmptyComponent={
           <EmptyState
