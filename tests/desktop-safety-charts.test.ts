@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop safety and charts", () => {
   it("gates account deletion on typed confirmation", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/danger-zone-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("deleteConfirmEmail");
     expect(text).toContain("Yes, delete everything");
   });

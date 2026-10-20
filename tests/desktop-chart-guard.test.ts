@@ -126,7 +126,10 @@ describe("desktop chart guard", () => {
   // QA round 44: the desktop "Clear all data" handler awaited the wipe with no
   // try/catch, so a storage failure was an unhandled rejection with no feedback.
   it("wraps desktop clear-all-data in try/catch", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/danger-zone-section.tsx",
+      "utf8",
+    );
     const start = text.indexOf("const handleClearAllData");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("\n  };", start));
@@ -733,7 +736,10 @@ describe("desktop chart guard", () => {
   // QA round 197: mobile's account-deletion button reads "Delete Account &
   // Data"; desktop's was "Delete account & data".
   it("titles the desktop account-deletion button like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/danger-zone-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("Delete Account & Data");
     expect(text).not.toContain("Delete account & data");
   });
@@ -864,7 +870,10 @@ describe("desktop chart guard", () => {
   // undone by the next sync (it wipes the sync cursor, so a full pull restores
   // everything) — the Danger Zone now says so.
   it("warns that clearing data re-syncs when signed in", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/danger-zone-section.tsx",
+      "utf8",
+    );
     const at = text.indexOf("Danger Zone");
     expect(at).toBeGreaterThan(-1);
     const block = text.slice(at, at + 1000);
