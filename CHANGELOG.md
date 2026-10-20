@@ -14,7 +14,7 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 - Hidden tabs (`rates`, `settings`) now use `tabBarButton: null` because
   expo-router 58 redirects away from `href: null` tabs.
 - Desktop React aligned to 19.3.0; desktop production build fixed.
-- Re-enabled six of the seven React Compiler lint rules.
+- Enabled all seven React Compiler lint rules.
 
 ### Fixed
 
