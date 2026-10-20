@@ -249,7 +249,10 @@ describe("desktop chart guard", () => {
   // QA round 246: mobile's device row shows relative last-seen ("last seen 2h
   // ago"); desktop showed an absolute date, losing recency.
   it("uses relative last-seen on the desktop device list", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/device-management-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("formatLastSeen(d.lastSeenAt)");
     expect(text).not.toContain("Active {new Date(d.lastSeenAt)");
   });
@@ -319,7 +322,10 @@ describe("desktop chart guard", () => {
   // QA round 234: mobile's device row marks the current device with a "This
   // device" badge; desktop appended " (current)" to the label.
   it("marks the desktop current device like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/device-management-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("This device");
     expect(text).not.toContain("{isCurrent && \" (current)\"}");
   });
@@ -1674,7 +1680,10 @@ describe("desktop chart guard", () => {
   // modal sets maxLength={64}, but desktop's rename input had no cap — a longer
   // label made the server reject the rename.
   it("caps the desktop device label at 64 chars", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/device-management-section.tsx",
+      "utf8",
+    );
     const start = text.indexOf('placeholder="Device label"');
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start - 300, start);

@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 // used hand-rolled `fixed inset-0` overlays with no Escape handler, focus
 // management, or dialog role.
 const DIALOG_PAGES = [
-  "desktop/src/pages/Settings.tsx",
+  "desktop/src/components/settings/device-management-section.tsx",
   "desktop/src/pages/Stats.tsx",
   "desktop/src/pages/Watchlist.tsx",
   "desktop/src/pages/Alerts.tsx",
