@@ -23,19 +23,25 @@ export const STORAGE_KEYS = {
   LAST_SEEN_AT: "last_seen_at",
 };
 
+export type LocalCollection = Collection | "notifications";
+
 export interface StorageContext {
   readonly adapter: StorageAdapter;
   readonly KEYS: typeof STORAGE_KEYS;
   notify(collection: Collection, itemId: string): void;
+  /** Notify local observers only (UI), never the sync engine. */
+  notifyLocal(collection: LocalCollection, itemId: string): void;
   setOnChange(
     fn: ((collection: Collection, itemId: string) => void) | null,
   ): void;
   // Additional observers alongside the single sync-engine `onChange` handler
   // (e.g. the tab badge, which must react to in-place mutations rather than
   // route focus). Additive so `setOnChange` keeps its replace semantics.
-  addChangeListener(fn: (collection: Collection, itemId: string) => void): void;
+  addChangeListener(
+    fn: (collection: LocalCollection, itemId: string) => void,
+  ): void;
   removeChangeListener(
-    fn: (collection: Collection, itemId: string) => void,
+    fn: (collection: LocalCollection, itemId: string) => void,
   ): void;
   /** While true, writes enqueued are dropped (a wipe is in progress). */
   setClearing(value: boolean): void;
@@ -140,7 +146,7 @@ export function createContext(adapter: StorageAdapter): StorageContext {
   // already-synced and never uploaded.
   const suppressedChanges: [Collection, string][] = [];
   const changeListeners = new Set<
-    (collection: Collection, itemId: string) => void
+    (collection: LocalCollection, itemId: string) => void
   >();
 
   function deliver(collection: Collection, itemId: string) {
@@ -169,6 +175,16 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     deliver(collection, itemId);
   }
 
+  function notifyLocal(collection: LocalCollection, itemId: string) {
+    for (const listener of changeListeners) {
+      try {
+        listener(collection, itemId);
+      } catch (e) {
+        log.warn("[storage] change listener failed", e);
+      }
+    }
+  }
+
   function setOnChange(
     fn: ((collection: Collection, itemId: string) => void) | null,
   ) {
@@ -176,13 +192,13 @@ export function createContext(adapter: StorageAdapter): StorageContext {
   }
 
   function addChangeListener(
-    fn: (collection: Collection, itemId: string) => void,
+    fn: (collection: LocalCollection, itemId: string) => void,
   ) {
     changeListeners.add(fn);
   }
 
   function removeChangeListener(
-    fn: (collection: Collection, itemId: string) => void,
+    fn: (collection: LocalCollection, itemId: string) => void,
   ) {
     changeListeners.delete(fn);
   }
@@ -264,6 +280,7 @@ export function createContext(adapter: StorageAdapter): StorageContext {
     adapter,
     KEYS: STORAGE_KEYS,
     notify,
+    notifyLocal,
     setOnChange,
     addChangeListener,
     removeChangeListener,

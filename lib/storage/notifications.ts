@@ -16,7 +16,7 @@ export type PendingHealthEvent = {
 };
 
 export function createNotificationsStorage(ctx: StorageContext) {
-  const { adapter, KEYS, enqueue, readList } = ctx;
+  const { adapter, KEYS, enqueue, readList, notifyLocal } = ctx;
 
   // ─── Displayed Event Ids (notification dedup) ──────────────────────────────
 
@@ -50,6 +50,7 @@ export function createNotificationsStorage(ctx: StorageContext) {
       list.unshift({ ...event, read: false });
       if (list.length > 200) list.length = 200;
       await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
+      notifyLocal("notifications", event.id);
     });
   }
 
@@ -60,6 +61,7 @@ export function createNotificationsStorage(ctx: StorageContext) {
       if (entry && !entry.read) {
         entry.read = true;
         await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
+        notifyLocal("notifications", id);
       }
     });
   }
@@ -70,6 +72,7 @@ export function createNotificationsStorage(ctx: StorageContext) {
       if (list.some((e) => !e.read)) {
         for (const e of list) e.read = true;
         await adapter.setItem(KEYS.NOTIFICATION_HISTORY, JSON.stringify(list));
+        notifyLocal("notifications", "all");
       }
     });
   }

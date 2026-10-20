@@ -29,7 +29,7 @@ vi.mock("../server/db", () => ({
   upsertUser: vi.fn(async () => {}),
 }));
 
-import { registerOAuthRoutes, signOAuthState } from "../server/_core/oauth";
+import { oauthStateNonce, registerOAuthRoutes, signOAuthState } from "../server/_core/oauth";
 import { sdk } from "../server/_core/sdk";
 import { getUserByOpenId } from "../server/db";
 
@@ -281,7 +281,7 @@ describe("GET /api/oauth/callback (web ticket redirect)", () => {
     vi.restoreAllMocks();
   });
 
-  it("redirects the ticket to a same-origin web redirectUri", async () => {
+  it("sets a session cookie for a web redirect even with a device id", async () => {
     process.env.EXPO_PUBLIC_API_BASE_URL = "https://app.example.com";
     process.env.GOOGLE_CLIENT_ID = "test-google-id";
     process.env.GOOGLE_CLIENT_SECRET = "test-google-secret";
@@ -305,14 +305,80 @@ describe("GET /api/oauth/callback (web ticket redirect)", () => {
       );
       const res = makeRes();
       const req: any = {
-        ...makeReq({}),
+        ...makeReq({}, { cookie: `psf_oauth_state=${oauthStateNonce(state)}` }),
         query: { code: "auth-code", state },
         ip: "10.9.9.101",
       };
       await getHandler("GET", "/api/oauth/callback")(req, res);
+      expect(res.cookie).toHaveBeenCalledWith(
+        COOKIE_NAME,
+        "sess-123",
+        expect.anything(),
+      );
       const redirectLocation: string = res.redirect.mock.calls[0][1];
-      expect(redirectLocation).toContain("/#/oauth/callback?ticket=");
-      expect(redirectLocation).not.toContain("productstockfinder:");
+      expect(redirectLocation).toBe("https://app.example.com/#/oauth/callback");
+      expect(redirectLocation).not.toContain("ticket=");
+    } finally {
+      vi.unstubAllGlobals();
+      delete process.env.GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_SECRET;
+      delete process.env.EXPO_PUBLIC_API_BASE_URL;
+    }
+  });
+
+  it("rejects a web callback with a device id but no nonce cookie", async () => {
+    process.env.EXPO_PUBLIC_API_BASE_URL = "https://app.example.com";
+    const getHandler = setupRoutes();
+    const state = signOAuthState({
+      redirectUri: "https://app.example.com/#/oauth/callback",
+      deviceId: "dev-9",
+      provider: "google",
+    });
+    const res = makeRes();
+    const req: any = {
+      ...makeReq({}),
+      query: { code: "auth-code", state },
+      ip: "10.9.9.102",
+    };
+    await getHandler("GET", "/api/oauth/callback")(req, res);
+    expect(res.redirect).toHaveBeenCalledWith(
+      302,
+      expect.stringContaining("error=invalid_state"),
+    );
+    delete process.env.EXPO_PUBLIC_API_BASE_URL;
+  });
+
+  it("issues a ticket for the custom-scheme native redirect", async () => {
+    process.env.EXPO_PUBLIC_API_BASE_URL = "https://app.example.com";
+    process.env.GOOGLE_CLIENT_ID = "test-google-id";
+    process.env.GOOGLE_CLIENT_SECRET = "test-google-secret";
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes("oauth2.googleapis.com/token")) {
+        return { ok: true, json: async () => ({ access_token: "at-1" }) };
+      }
+      return {
+        ok: true,
+        json: async () => ({ sub: "google-1", email: "g@example.com", name: "G User" }),
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      mockedGetUser.mockResolvedValue({ id: 7 } as any);
+      const getHandler = setupRoutes();
+      const state = signOAuthState({
+        redirectUri: "productstockfinder:/oauth/callback",
+        deviceId: "dev-9",
+        provider: "google",
+      });
+      const res = makeRes();
+      const req: any = {
+        ...makeReq({}),
+        query: { code: "auth-code", state },
+        ip: "10.9.9.103",
+      };
+      await getHandler("GET", "/api/oauth/callback")(req, res);
+      const redirectLocation: string = res.redirect.mock.calls[0][1];
+      expect(redirectLocation).toContain("productstockfinder:/oauth/callback?ticket=");
     } finally {
       vi.unstubAllGlobals();
       delete process.env.GOOGLE_CLIENT_ID;

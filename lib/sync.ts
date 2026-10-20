@@ -132,17 +132,24 @@ async function doSync(
   storage.setChangeSuppressed(true);
   try {
     for (const item of pulled.items) {
+      // A wipe can land between items; never write the old account's rows
+      // into the freshly cleared store.
+      if (currentSyncGeneration() !== gate) return;
       const key = `${item.collection}:${item.id}`;
       const local = meta.items[item.collection]?.[item.id];
       if (item.deletedAt !== null) {
         if (!local || item.updatedAt > local.updatedAt) {
           await removeLocalItem(storage, item.collection, item.id);
           await storage.clearItemSyncMeta(item.collection, item.id);
+          storage.notifyLocal(item.collection, item.id);
           applied.add(key);
         }
       } else if (!local || item.updatedAt > local.updatedAt) {
         await applyLocalItem(storage, item.collection, item.data);
         await storage.setItemSyncMeta(item.collection, item.id, item.updatedAt);
+        // The apply primitives intentionally do not notify (they would mark the
+        // item dirty again); notify UI observers only so open screens refresh.
+        storage.notifyLocal(item.collection, item.id);
         applied.add(key);
       }
     }
@@ -160,6 +167,7 @@ async function doSync(
   // Settings is excluded: the client never emits settings tombstones, so
   // there is nothing to resurrect.
   if (pulled.fullResyncSince != null) {
+    if (currentSyncGeneration() !== gate) return;
     const cutoff = pulled.fullResyncSince;
     const pulledIds = new Set(pulled.items.map((i) => `${i.collection}:${i.id}`));
     const localLists: { collection: Collection; ids: string[] }[] = [
@@ -181,6 +189,7 @@ async function doSync(
     ];
     for (const { collection, ids } of localLists) {
       for (const id of ids) {
+        if (currentSyncGeneration() !== gate) return;
         if (pulledIds.has(`${collection}:${id}`)) continue;
         const entry = meta.items[collection]?.[id];
         // `entry.updatedAt <= oldCursor` means the item was already confirmed
@@ -190,6 +199,7 @@ async function doSync(
         if (entry && entry.updatedAt < cutoff && entry.updatedAt <= oldCursor) {
           await removeLocalItem(storage, collection, id);
           await storage.clearItemSyncMeta(collection, id);
+          storage.notifyLocal(collection, id);
         }
       }
     }
@@ -345,11 +355,13 @@ async function doSync(
   // Stale tombstone entries (older than the cursor, never pushed) used to be
   // garbage-collected here; after a rejected run that drops deletes without
   // the server ever seeing them, so they are retained instead.
+  if (currentSyncGeneration() !== gate) return;
   for (const { collection, id } of stampedTombstones) {
     await storage.clearItemSyncMeta(collection, id);
   }
 
   if (dirty.length === 0) {
+    if (currentSyncGeneration() !== gate) return;
     await storage.saveSyncMeta({
       ...(await storage.getSyncMeta()),
       lastSyncedAt: nextCursor,
@@ -959,6 +971,10 @@ export function setupSync(
   };
 
   opts.storage.setOnChange((collection, itemId) => {
+    // Signed-out writes are device-local preferences, not sync edits. Marking
+    // them dirty recreated sync_meta after a sign-out wipe and pushed the
+    // previous account's settings into the next account.
+    if (!opts.isSignedIn()) return;
     markDirty(opts.storage, collection, itemId)
       .catch((e) => log.warn("[Sync] markDirty failed", e))
       .then(() => schedule());

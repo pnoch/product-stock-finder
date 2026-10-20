@@ -1,0 +1,1 @@
+ALTER TABLE `price_history` ADD `source` varchar(16) DEFAULT 'server' NOT NULL;

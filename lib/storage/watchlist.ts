@@ -209,9 +209,22 @@ export function createWatchlistStorage(ctx: StorageContext) {
     await enqueue(KEYS.WATCHLIST, async () => {
       const list = await getWatchlist();
       const now = new Date().toISOString();
-      const updated = list.map((p) =>
-        p.id === productId ? { ...p, listings, lastRefreshed: now } : p,
-      );
+      const updated = list.map((p) => {
+        if (p.id !== productId) return p;
+        // Merge against current storage instead of replacing the array: a
+        // sync merge or another refresh can add a distributor while the scrape
+        // is in flight, and a wholesale write would drop it (then push the
+        // stale array with a fresh LWW stamp).
+        const incomingIds = new Set(listings.map((l) => l.distributorId));
+        const localOnly = (p.listings ?? []).filter(
+          (l) => !incomingIds.has(l.distributorId),
+        );
+        return {
+          ...p,
+          listings: [...listings, ...localOnly],
+          lastRefreshed: now,
+        };
+      });
       await persistWatchlist(updated);
       notify("watchlist", productId);
     });

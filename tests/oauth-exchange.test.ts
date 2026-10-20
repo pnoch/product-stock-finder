@@ -269,7 +269,7 @@ describe("GET /api/oauth/callback", () => {
       vi.mocked(db.getUserByEmail).mockResolvedValue(null as any);
       vi.mocked(db.getUserByOpenId).mockResolvedValue({ id: 7 } as any);
       const handler = makeApp();
-      const state = signOAuthState({ redirectUri: "", deviceId: "dev-9", provider: "google" });
+      const state = signOAuthState({ redirectUri: "productstockfinder:/oauth/callback", deviceId: "dev-9", provider: "google" });
       const res = makeRes();
       await handler("GET", "/api/oauth/callback")(
         makeReq({ code: "auth-code", state }),
@@ -307,7 +307,7 @@ describe("POST /api/auth/oauth/consume", () => {
         id: 7, openId: "google:google-1", email: "g@example.com", name: "G User",
       } as any);
       const handler = makeApp();
-      const state = signOAuthState({ redirectUri: "", deviceId, provider: "google" });
+      const state = signOAuthState({ redirectUri: "productstockfinder:/oauth/callback", deviceId, provider: "google" });
       const res = makeRes();
       await handler("GET", "/api/oauth/callback")(
         makeReq({ code: "auth-code", state }),

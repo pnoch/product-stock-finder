@@ -146,6 +146,7 @@ describe("prices router", () => {
       "server2u-my",
       "CRS804-4DDQ-hRM",
       points,
+      "client",
     );
   });
 });

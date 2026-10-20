@@ -30,6 +30,7 @@ export async function recordHistoryPoint(
 export async function getHistory(
   distributorId: string,
   modelNumber: string,
+  opts?: { trustedOnly?: boolean },
 ): Promise<PricePoint[]> {
   const db = await getDb();
   if (!db) {
@@ -44,6 +45,7 @@ export async function getHistory(
       and(
         eq(priceHistory.distributorId, distributorId),
         eq(priceHistory.modelNumber, modelNumber),
+        ...(opts?.trustedOnly ? [eq(priceHistory.source, "server")] : []),
       ),
     )
     .orderBy(priceHistory.date);
@@ -54,10 +56,11 @@ export async function getHistory(
 export async function getPooledHistory(
   distributorIds: string[],
   modelNumber: string,
+  opts?: { trustedOnly?: boolean },
 ): Promise<PricePoint[]> {
   const out: PricePoint[] = [];
   for (const id of distributorIds) {
-    out.push(...(await getHistory(id, modelNumber)));
+    out.push(...(await getHistory(id, modelNumber, opts)));
   }
   return out;
 }
@@ -66,6 +69,7 @@ export async function mergeHistory(
   distributorId: string,
   modelNumber: string,
   points: PricePoint[],
+  source: "server" | "client" = "server",
 ): Promise<void> {
   const db = await getDb();
   if (!db) {
@@ -95,6 +99,7 @@ export async function mergeHistory(
     currency: p.currency,
     stockStatus: p.stockStatus,
     fetchedAt: Date.parse(p.date),
+    source,
   }));
   if (values.length === 0) return;
   await db.insert(priceHistory).values(values).onDuplicateKeyUpdate({
@@ -103,6 +108,9 @@ export async function mergeHistory(
       currency: sql`IF(VALUES(fetchedAt) > fetchedAt, VALUES(currency), currency)`,
       stockStatus: sql`IF(VALUES(fetchedAt) > fetchedAt, VALUES(stockStatus), stockStatus)`,
       fetchedAt: sql`IF(VALUES(fetchedAt) > fetchedAt, VALUES(fetchedAt), fetchedAt)`,
+      // A client backfill that wins LWW must not become trusted; a server
+      // scrape that wins upgrades the row back to trusted.
+      source: sql`IF(VALUES(fetchedAt) > fetchedAt, VALUES(source), source)`,
     },
   });
 }

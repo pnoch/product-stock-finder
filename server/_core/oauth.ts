@@ -612,10 +612,9 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
       // Login-CSRF guard (see /start): the web flow must echo the nonce cookie.
-      // Native flows are bound by the device-scoped ticket instead.
-      const isNativeFlow =
-        Boolean(state.deviceId) ||
-        state.redirectUri.startsWith("productstockfinder:");
+      // Only the custom-scheme redirect is native; a deviceId alone must not
+      // exempt an http(s) redirect, or an attacker can skip the nonce check.
+      const isNativeFlow = state.redirectUri.startsWith("productstockfinder:");
       if (!isNativeFlow) {
         const cookies = parseCookieHeader(req.headers.cookie ?? "");
         if (
@@ -695,9 +694,7 @@ export function registerOAuthRoutes(app: Express) {
           (user as { credentialsChangedAt?: number }).credentialsChangedAt ?? 0,
         ),
       });
-      const isNative =
-        Boolean(state.deviceId) ||
-        state.redirectUri.startsWith("productstockfinder:");
+      const isNative = state.redirectUri.startsWith("productstockfinder:");
       if (isNative) {
         const ticket = issueOAuthTicket(openId, state.deviceId);
         const safeRedirect = resolveSafeRedirectUri(state.redirectUri, webBase);

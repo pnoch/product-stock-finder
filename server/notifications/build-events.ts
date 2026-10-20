@@ -110,7 +110,9 @@ export function createHistoryLookup(): HistoryLookup {
   return async (distributorIds, modelNumber) => {
     const key = `${distributorIds.join(",")}:${modelNumber}`;
     if (cache.has(key)) return cache.get(key)!;
-    const value = await getPooledHistory(distributorIds, modelNumber);
+    const value = await getPooledHistory(distributorIds, modelNumber, {
+        trustedOnly: true,
+      });
     cache.set(key, value);
     return value;
   };

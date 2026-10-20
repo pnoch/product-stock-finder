@@ -166,6 +166,10 @@ export const priceHistory = mysqlTable(
     currency: varchar("currency", { length: 8 }).notNull(),
     stockStatus: varchar("stockStatus", { length: 16 }).notNull(),
     fetchedAt: bigint("fetchedAt", { mode: "number" }).notNull(),
+    // "server" rows come from the server's own scrape and are trusted for
+    // leaderboards/insights/anomaly checks. "client" rows are backfills from
+    // a signed-in device and must never influence cross-tenant features.
+    source: varchar("source", { length: 16 }).notNull().default("server"),
   },
   (table) => [
     primaryKey({

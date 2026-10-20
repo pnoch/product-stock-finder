@@ -63,11 +63,14 @@ export function createSettingsStorage(
     }
   }
 
-  async function saveSettings(settings: AppSettings): Promise<void> {
+  async function saveSettings(
+    settings: AppSettings,
+    opts?: { silent?: boolean },
+  ): Promise<void> {
     await enqueue(KEYS.SETTINGS, async () => {
       await adapter.setItem(KEYS.SETTINGS, JSON.stringify(settings));
     });
-    notify("settings", "settings");
+    if (!opts?.silent) notify("settings", "settings");
   }
 
   // Serialized read-modify-write. Two quick setting changes that each read the

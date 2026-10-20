@@ -78,6 +78,7 @@ export const pricesRouter = router({
         input.distributorId,
         input.modelNumber,
         input.points,
+        "client",
       );
       return { accepted: input.points.length } as const;
     }),
@@ -89,7 +90,8 @@ export const pricesRouter = router({
         sortBy: z.enum(["pct", "abs"]).default("pct"),
       }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      checkRateLimit(ctx, "prices.topDrops", 60, 60_000);
       const { topDrops } = await import("../price-leaderboard.js");
       return topDrops(input.window, input.limit, input.sortBy);
     }),

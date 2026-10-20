@@ -1,7 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { AppSettings, Collection } from "../types";
 import { StorageAdapter, DISTRIBUTOR_BREAKER_KEY } from "./adapter";
-import { createContext, QUARANTINE_INDEX_KEY, STORAGE_KEYS } from "./context";
+import {
+  createContext,
+  QUARANTINE_INDEX_KEY,
+  STORAGE_KEYS,
+  type LocalCollection,
+} from "./context";
 import { createIDBAdapter, isIndexedDBAvailable } from "./idb-adapter";
 import { createWatchlistStorage } from "./watchlist";
 import { createAlertsStorage } from "./alerts";
@@ -109,7 +114,10 @@ export function createStorage(
     const settingsStorage = createSettingsStorage(ctx, watchlist);
     const preserved = await settingsStorage.getSettings();
     let cleaned: AppSettings | null = null;
-    if (preserved?.llmApiKey || preserved?.llmProvider !== "forge") {
+    const hasLlmCredential =
+      Boolean(preserved?.llmApiKey) ||
+      (preserved?.llmProvider != null && preserved.llmProvider !== "forge");
+    if (hasLlmCredential) {
       cleaned = stripDeviceLocalSettings(preserved);
       cleaned.llmProvider = "forge";
       delete cleaned.llmModel;
@@ -120,10 +128,17 @@ export function createStorage(
       delete cleaned.alertWebhookUrl;
       cleaned.webhookAlerts = false;
     }
-    if (cleaned) await settingsStorage.saveSettings(cleaned);
+    // Silent: this is a local credential scrub, not a user edit. Notifying
+    // would mark settings dirty while signed out and push the previous
+    // account's preferences into the next account on this device.
+    if (cleaned) await settingsStorage.saveSettings(cleaned, { silent: true });
   }
 
   async function clearAllData(): Promise<void> {
+    // Invalidate any sync already in flight before touching the store, so it
+    // cannot re-apply the previous account's rows or recreate sync_meta after
+    // the wipe (see lib/sync-gate.ts).
+    bumpSyncGeneration();
     // Drain queued writes first: otherwise an in-flight save started before
     // the clear would land afterwards and resurrect deleted data. The clearing
     // flag stops writes enqueued *during* the drain from doing the same.
@@ -251,12 +266,13 @@ export function createStorage(
     // Additive observer: unlike setOnChange (single handler owned by the sync
     // engine) this can be used by several consumers, e.g. the tab badge.
     subscribeToStorageChanges: (
-      fn: (collection: Collection, itemId: string) => void,
+      fn: (collection: LocalCollection, itemId: string) => void,
     ) => {
       ctx.addChangeListener(fn);
       return () => ctx.removeChangeListener(fn);
     },
     setChangeSuppressed: ctx.setChangeSuppressed,
+    notifyLocal: ctx.notifyLocal,
     clearAllData,
     clearAccountData,
   };

@@ -140,7 +140,7 @@ async function buildInsightContext(
     await Promise.all(
       getAllParserIds().map(async (distributorId) => {
         const [history, snapshot] = await Promise.all([
-          getHistory(distributorId, product.modelNumber),
+          getHistory(distributorId, product.modelNumber, { trustedOnly: true }),
           getCachedPrice(distributorId, product.modelNumber),
         ]);
         if (!history.length && !snapshot) return null;

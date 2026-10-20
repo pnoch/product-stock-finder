@@ -1,4 +1,4 @@
-import { gte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { priceHistory } from "../drizzle/schema";
 import { getDb } from "./db";
 import { PRODUCT_CATALOG } from "../shared/src/catalog.js";
@@ -40,6 +40,13 @@ export async function topDrops(
   cutoff.setUTCDate(cutoff.getUTCDate() - days);
   const cutoffDay = cutoff.toISOString().slice(0, 10);
 
+  const catalogModels = PRODUCT_CATALOG.map((p) => p.modelNumber);
+  const dropExpr = sql`MAX(${priceHistory.price}) - MIN(${priceHistory.price})`;
+  const orderExpr =
+    sortBy === "pct"
+      ? sql`(${dropExpr}) / MAX(${priceHistory.price}) DESC`
+      : sql`${dropExpr} DESC`;
+
   const rows = await db
     .select({
       distributorId: priceHistory.distributorId,
@@ -51,8 +58,18 @@ export async function topDrops(
       latestDate: sql<string>`MAX(${priceHistory.date})`.as("latest_date"),
     })
     .from(priceHistory)
-    .where(gte(priceHistory.date, cutoffDay))
-    .groupBy(priceHistory.distributorId, priceHistory.modelNumber, priceHistory.currency);
+    .where(
+      and(
+        gte(priceHistory.date, cutoffDay),
+        eq(priceHistory.source, "server"),
+        inArray(priceHistory.modelNumber, catalogModels),
+      ),
+    )
+    .groupBy(priceHistory.distributorId, priceHistory.modelNumber, priceHistory.currency)
+    .orderBy(orderExpr)
+    // Bound the aggregate: the old query materialized every group and applied
+    // `limit` in JS. Fetch a small multiple so invalid rows cannot starve it.
+    .limit(Math.max(limit * 4, 50));
 
   const drops: ServerPriceDrop[] = [];
 
