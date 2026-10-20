@@ -15,10 +15,14 @@ describe("TagPickerSheet keyboard handling", () => {
     "utf8",
   );
 
-  it("tracks the keyboard height via Keyboard listeners", () => {
-    expect(src).toContain('Keyboard.addListener("keyboardDidShow"');
-    expect(src).toContain('Keyboard.addListener("keyboardDidHide"');
-    expect(src).toContain("paddingBottom: keyboardHeight");
+  it("delegates keyboard avoidance to BottomSheet", () => {
+    const sheet = readFileSync(
+      join(__dirname, "..", "components/ui/bottom-sheet.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("<BottomSheet");
+    expect(sheet).toContain("Keyboard.addListener(showEvent");
+    expect(sheet).toContain("paddingBottom: keyboardHeight");
   });
 
   it("keeps Done wired to onApply so the selection is committed", () => {

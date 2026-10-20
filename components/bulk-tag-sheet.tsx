@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
-  Animated,
-  Easing,
   findNodeHandle,
-  Modal,
   ScrollView,
   Text,
   TextInput,
@@ -13,6 +10,7 @@ import {
 } from "react-native";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { useColors } from "@/hooks/use-colors";
 import { addTagsToProducts, createTag, getTagDefinitions } from "@/lib/storage";
 import { nextTagColor } from "@/lib/tags";
@@ -39,20 +37,6 @@ export function BulkTagSheet({
   const [newTagName, setNewTagName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const firstTagRef = useRef<View | null>(null);
-  const sheetAnim = useState(() => new Animated.Value(0))[0];
-  const backdropAnim = useState(() => new Animated.Value(0))[0];
-
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(backdropAnim, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.spring(sheetAnim, { toValue: 1, useNativeDriver: true, tension: 68, friction: 11 }),
-      ]).start();
-    } else {
-      sheetAnim.setValue(0);
-      backdropAnim.setValue(0);
-    }
-  }, [visible, sheetAnim, backdropAnim]);
 
   useEffect(() => {
     if (!visible) return;
@@ -100,12 +84,11 @@ export function BulkTagSheet({
   const tags = Object.values(defs);
 
   return (
-    <Modal
+    <BottomSheet
       visible={visible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={onClose}
+      onClose={onClose}
+      title="Add Tags"
+      subtitle={`Apply to ${productIds.length} product${productIds.length !== 1 ? "s" : ""}`}
       onShow={() => {
         setSelected([]);
         setNewTagName("");
@@ -115,46 +98,6 @@ export function BulkTagSheet({
           .catch(() => {});
       }}
     >
-      <Animated.View
-        style={{
-          flex: 1,
-          justifyContent: "flex-end",
-          backgroundColor: "rgba(0,0,0,0.5)",
-          opacity: backdropAnim,
-        }}
-        accessibilityViewIsModal
-      >
-        <Animated.View
-          style={{
-            backgroundColor: colors.background,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            padding: 24,
-            maxHeight: "70%",
-            opacity: sheetAnim,
-            transform: [
-              { translateY: sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [48, 0] }) },
-              { scale: sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1] }) },
-            ],
-          }}
-          accessibilityViewIsModal
-        >
-          <Text
-            style={{
-              color: colors.foreground,
-              fontSize: 20,
-              fontWeight: "700",
-              marginBottom: 4,
-            }}
-          >
-            Add Tags
-          </Text>
-          <Text
-            style={{ color: colors.muted, fontSize: 14, marginBottom: 16 }}
-          >
-            Apply to {productIds.length} product
-            {productIds.length !== 1 ? "s" : ""}
-          </Text>
           <ScrollView style={{ maxHeight: 260 }} keyboardShouldPersistTaps="handled">
             {tags.length === 0 && (
               <Text
@@ -285,8 +228,6 @@ export function BulkTagSheet({
           >
             <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancel</Text>
           </TouchableOpacity>
-        </Animated.View>
-      </Animated.View>
-    </Modal>
+    </BottomSheet>
   );
 }
