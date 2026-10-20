@@ -53,8 +53,11 @@ describe("desktop chart guard", () => {
   // QA round 36: the main Set Alert modal's currency was never seeded from the
   // display currency (mobile does), so a EUR/GBP user created alerts in USD.
   it("seeds the main alert currency from the display currency", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toMatch(/setAlertCurrency\(settings\.displayCurrency/);
+    const text = await readFile(
+      "desktop/src/hooks/use-product-alerts.ts",
+      "utf8",
+    );
+    expect(text).toContain("setAlertCurrency(defaultCurrency)");
   });
 
   // QA round 38: the desktop basket-alert save used saveSettings with a stale
@@ -103,7 +106,10 @@ describe("desktop chart guard", () => {
 
   // QA round 43: the desktop ProductDetail reminder/watch/alert writes.
   it("wraps desktop product-detail writes in try/catch", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-reminders.ts",
+      "utf8",
+    );
     for (const handler of [
       "const handleSetReminder",
       "const handleInlineReminder",
@@ -152,7 +158,10 @@ describe("desktop chart guard", () => {
   // QA round 47: desktop alerts created via createPriceAlert never reached the
   // screen's `alerts` state, so the Distributor Targets table stayed stale.
   it("syncs desktop product-detail alerts state after creating an alert", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-alerts.ts",
+      "utf8",
+    );
     const helpers = await readFile("desktop/src/lib/product-detail.ts", "utf8");
     // createPriceAlert returns the created alert.
     const alertStart = helpers.indexOf("export async function createPriceAlert");
@@ -1772,7 +1781,10 @@ describe("desktop chart guard", () => {
   // and handleToggleListingWatch saved the watch regardless, so it could never
   // fire a notification.
   it("checks notification permission before creating desktop restock watches", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-reminders.ts",
+      "utf8",
+    );
     for (const fn of ["const handleWatchRestock = async () => {", "const handleToggleListingWatch = async ("]) {
       const start = text.indexOf(fn);
       expect(start).toBeGreaterThan(-1);
@@ -2160,7 +2172,10 @@ describe("desktop chart guard", () => {
   // QA round 63: the desktop reminder / restock-watch handlers had no
   // double-submit guard (each mints a fresh random id).
   it("guards desktop reminder/watch creation against double-submit", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-reminders.ts",
+      "utf8",
+    );
     expect(text).toContain("const [savingReminder, setSavingReminder] = useState(false)");
     for (const handler of [
       "const handleSetReminder",
@@ -2180,7 +2195,10 @@ describe("desktop chart guard", () => {
   // QA round 61: the desktop product-detail alert flows had no double-submit
   // guard (mobile was fixed in Phase 312).
   it("guards desktop product-detail alert creation against double-submit", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-alerts.ts",
+      "utf8",
+    );
     expect(text).toContain("const [creatingAlert, setCreatingAlert] = useState(false)");
     for (const handler of [
       "const handleSaveAlert",

@@ -28,7 +28,10 @@ describe("desktop targets and reminders", () => {
   });
 
   it("opens reminders scoped to the row distributor", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-reminders.ts",
+      "utf8",
+    );
     expect(text).toContain("setReminderDistributorId(listing.distributorId)");
   });
 });

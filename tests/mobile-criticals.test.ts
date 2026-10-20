@@ -279,12 +279,15 @@ describe("reminder dates use the month-name format", () => {
       'Reminder set for ${d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}',
     );
     const desktop = readFileSync(
-      path.join(process.cwd(), "desktop/src/pages/ProductDetail.tsx"),
+      path.join(process.cwd(), "desktop/src/hooks/use-product-reminders.ts"),
       "utf8",
     );
     expect(desktop).toContain(
-      'Reminder set for ${picked.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}',
+      "Reminder set for ${picked.toLocaleDateString(undefined, {",
     );
+    expect(desktop).toContain('month: "short"');
+    expect(desktop).toContain('day: "numeric"');
+    expect(desktop).toContain('year: "numeric"');
   });
 });
 

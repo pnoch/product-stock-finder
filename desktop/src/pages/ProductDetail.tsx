@@ -9,7 +9,6 @@ import {
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { getApiBaseUrl } from "../lib/api-base";
-import { formatPrice } from "@shared/currency";
 import { getBestPrice, convertPrice } from "@/lib/currency";
 import { computePriceVsAverage } from "../../../lib/price-average";
 import { DISTRIBUTORS } from "@shared/distributors";
@@ -19,12 +18,10 @@ import {
   filterListingsByRegion,
 } from "../../../lib/region-filter";
 import type { Product, PriceAlert, DistributorListing } from "../../../lib/types";
-import { suggestAlertPrices } from "../../../lib/alert-suggestions";
 import { findBestDeal } from "../../../lib/best-deal";
 import { computeDealScore } from "../../../lib/deal-score";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { fetchListingsWithTimeout } from "../lib/server-prices";
-import { checkNotificationPermission } from "../lib/notification-permission";
 import { saveNodeAsPng } from "../lib/share";
 import { buildShareText } from "../../../lib/price-share";
 import { productHistoryToCsv, hasExportablePriceData } from "../../../lib/csv";
@@ -50,10 +47,10 @@ import { ProductActions } from "../components/product/ProductActions";
 import { PriceHistorySection } from "../components/product/PriceHistorySection";
 import {
   notesStore,
-  createPriceAlert,
-  createStockWatchId,
 } from "../lib/product-detail";
 import { ProductImage } from "../components/ProductImage";
+import { useProductAlerts } from "../hooks/use-product-alerts";
+import { useProductReminders } from "../hooks/use-product-reminders";
 // Lazy: the chart is only needed on this screen, so it is split into its own
 // chunk instead of loading on every route.
 
@@ -64,10 +61,6 @@ export function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [isTracked, setIsTracked] = useState(true);
   const [addingToWatchlist, setAddingToWatchlist] = useState(false);
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertPrice, setAlertPrice] = useState("");
-  const [alertCurrency, setAlertCurrency] = useState("USD");
-  const [alertSaved, setAlertSaved] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
   const [regionFilter, setRegionFilter] = useState<string>("all");
@@ -80,37 +73,8 @@ export function ProductDetail() {
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   // Guards against a double-click / Enter+button double-submit creating two
   // alerts across any of the four alert entry points.
-  const [creatingAlert, setCreatingAlert] = useState(false);
   // Same guard for reminder / restock-watch creation: each mints a fresh random
   // id, so a double-click created two reminders or two watches.
-  const [savingReminder, setSavingReminder] = useState(false);
-  const [perListingAlertId, setPerListingAlertId] = useState<string | null>(null);
-  const [perListingAlertPrice, setPerListingAlertPrice] = useState("");
-  const [perListingAlertCurrency, setPerListingAlertCurrency] = useState("USD");
-  const [perListingAlertDirection, setPerListingAlertDirection] = useState<"drop" | "rise">("drop");
-  const [alertDirection, setAlertDirection] = useState<"drop" | "rise">("drop");
-  const [alertDistributorId, setAlertDistributorId] = useState<string | null>(null);
-  // Suggested target prices (Near low / Below avg / Under current), matching
-  // mobile's PriceAlertModal chips.
-  const alertSuggestions = useMemo(
-    () => suggestAlertPrices(product?.listings ?? [], alertCurrency),
-    [product?.listings, alertCurrency],
-  );
-  const perListingAlertSuggestions = useMemo(
-    () => suggestAlertPrices(product?.listings ?? [], perListingAlertCurrency),
-    [product?.listings, perListingAlertCurrency],
-  );
-  const [reminderOpen, setReminderOpen] = useState(false);
-  const [reminderDateInput, setReminderDateInput] = useState(() => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
-  const [reminderDistributorId, setReminderDistributorId] = useState<string | null>(null);
-  const [reminderError, setReminderError] = useState<string | null>(null);
-  const [inlineAlertPrice, setInlineAlertPrice] = useState("");
-  const [inlineAlertCurrency, setInlineAlertCurrency] = useState("USD");
-  const [inlineAlertDirection, setInlineAlertDirection] = useState<"drop" | "rise">("drop");
-  const [inlineAlertDistributorId, setInlineAlertDistributorId] = useState<string | null>(null);
-  const [inlineReminderDate, setInlineReminderDate] = useState(() => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
-  const [inlineReminderDistributorId, setInlineReminderDistributorId] = useState<string | null>(null);
-  const [inlineReminderError, setInlineReminderError] = useState<string | null>(null);
   const loadIdRef = useRef(0);
   const summaryRef = useRef<HTMLDivElement>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
@@ -163,9 +127,6 @@ export function ProductDetail() {
         // mobile. `alertCurrency` (the main Set Alert modal) was left at its
         // "USD" default, so a EUR/GBP user's alert was created in the wrong
         // currency.
-        setAlertCurrency(settings.displayCurrency ?? "USD");
-        setPerListingAlertCurrency(settings.displayCurrency ?? "USD");
-        setInlineAlertCurrency(settings.displayCurrency ?? "USD");
       }
       if (loadIdRef.current === myId) {
         const map: Record<string, boolean> = {};
@@ -294,6 +255,8 @@ export function ProductDetail() {
     return DISTRIBUTORS.find((d) => d.id === bestListing.distributorId) ?? null;
   }, [bestListing]);
 
+
+
   const bestDeal = useMemo(
     () => findBestDeal(visibleListings, shippingRegion, displayCurrency),
     [visibleListings, shippingRegion, displayCurrency],
@@ -348,8 +311,81 @@ export function ProductDetail() {
     return current < priorMin;
   }, [bestListing, displayCurrency]);
 
-  const [alertError, setAlertError] = useState<string | null>(null);
   const { toast, showToast } = useToast();
+  const {
+    alertOpen,
+    alertPrice,
+    setAlertPrice,
+    alertCurrency,
+    setAlertCurrency,
+    alertSaved,
+    alertDirection,
+    setAlertDirection,
+    alertDistributorId,
+    setAlertDistributorId,
+    alertError,
+    alertSuggestions,
+    creatingAlert,
+    openSetAlert,
+    closeSetAlert,
+    handleSaveAlert,
+    perListingAlertId,
+    perListingAlertPrice,
+    setPerListingAlertPrice,
+    perListingAlertCurrency,
+    setPerListingAlertCurrency,
+    perListingAlertDirection,
+    setPerListingAlertDirection,
+    perListingAlertSuggestions,
+    openPerListingAlert,
+    closePerListingAlert,
+    handlePerListingAlert,
+    inlineAlertPrice,
+    setInlineAlertPrice,
+    inlineAlertCurrency,
+    setInlineAlertCurrency,
+    inlineAlertDirection,
+    setInlineAlertDirection,
+    inlineAlertDistributorId,
+    setInlineAlertDistributorId,
+    handleInlineAlert,
+    handleQuickAlert,
+  } = useProductAlerts({
+    product,
+    bestListing,
+    defaultCurrency: displayCurrency,
+    setAlerts,
+    showToast,
+  });
+
+  const {
+    reminderOpen,
+    reminderDateInput,
+    setReminderDateInput,
+    reminderDistributorId,
+    setReminderDistributorId,
+    reminderError,
+    savingReminder,
+    openReminderFor,
+    closeReminder,
+    handleRemindMe,
+    handleSetReminder,
+    inlineReminderDate,
+    setInlineReminderDate,
+    inlineReminderDistributorId,
+    setInlineReminderDistributorId,
+    inlineReminderError,
+    handleInlineReminder,
+    handleWatchRestock,
+    handleToggleListingWatch,
+  } = useProductReminders({
+    product,
+    bestListing,
+    bestDistributor,
+    stockWatches,
+    setStockWatches,
+    showToast,
+  });
   const [findingPrices, setFindingPrices] = useState(false);
   const productId = product?.id;
   const productModelNumber = product?.modelNumber;
@@ -461,177 +497,6 @@ export function ProductDetail() {
     }
   };
 
-  const handleSaveAlert = async () => {
-    if (!product || !alertPrice || creatingAlert) return;
-    const price = parseFloat(alertPrice);
-    if (isNaN(price) || price <= 0) return;
-
-    const distributorId = alertDistributorId ?? bestListing?.distributorId;
-    if (!distributorId) {
-      showToast("No distributor available");
-      return;
-    }
-    setCreatingAlert(true);
-    let result: Awaited<ReturnType<typeof createPriceAlert>>;
-    try {
-      result = await createPriceAlert({
-        productId: product.id,
-        distributorId,
-        targetPrice: price,
-        currency: alertCurrency,
-        direction: alertDirection,
-      });
-    } finally {
-      setCreatingAlert(false);
-    }
-    const { ok, alert } = result;
-    if (!ok || !alert) {
-      setAlertError("Please enable notifications in your system settings to receive price alerts.");
-      return;
-    }
-    setAlerts((prev) => [...prev, alert]);
-    setAlertError(null);
-
-    setAlertSaved(true);
-    setTimeout(() => {
-      setAlertOpen(false);
-      setAlertSaved(false);
-      setAlertPrice("");
-      setAlertError(null);
-    }, 1200);
-  };
-
-  const handleRemindMe = () => {
-    if (!product || !bestListing) {
-      showToast("No distributor available");
-      return;
-    }
-    setReminderDistributorId(bestListing.distributorId);
-    setReminderDateInput(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
-    setReminderError(null);
-    setReminderOpen(true);
-  };
-
-  const handleSetReminder = async () => {
-    if (!product || savingReminder) return;
-    const distributorId = reminderDistributorId ?? bestListing?.distributorId;
-    if (!distributorId) {
-      showToast("No distributor available");
-      return;
-    }
-    const picked = new Date(reminderDateInput + "T12:00:00");
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    if (isNaN(picked.getTime()) || picked.getTime() < startOfToday.getTime()) {
-      setReminderError("Please select today or a future date.");
-      return;
-    }
-    const granted = await checkNotificationPermission();
-    if (!granted) {
-      setReminderError("Enable notifications to set reminders.");
-      return;
-    }
-    const dist = DISTRIBUTORS.find((d) => d.id === distributorId);
-    setSavingReminder(true);
-    try {
-      await storage.addBackOrderReminder({
-        id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        productId: product.id,
-        productName: product.name,
-        distributorId,
-        distributorName: dist?.name ?? distributorId,
-        reminderDate: picked.toISOString(),
-        createdAt: new Date().toISOString(),
-        reminderType: "date",
-      });
-    } catch {
-      setReminderError("Couldn't save your reminder. Please try again.");
-      return;
-    } finally {
-      setSavingReminder(false);
-    }
-    setReminderOpen(false);
-    setReminderError(null);
-    showToast(`Reminder set for ${picked.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`);
-  };
-
-  const handleInlineAlert = async () => {
-    if (!product || creatingAlert) return;
-    const price = parseFloat(inlineAlertPrice);
-    if (isNaN(price) || price <= 0) {
-      showToast("Enter a valid target price");
-      return;
-    }
-    const distributorId = inlineAlertDistributorId ?? bestListing?.distributorId;
-    if (!distributorId) {
-      showToast("No distributor available");
-      return;
-    }
-    setCreatingAlert(true);
-    let result: Awaited<ReturnType<typeof createPriceAlert>>;
-    try {
-      result = await createPriceAlert({
-        productId: product.id,
-        distributorId,
-        targetPrice: price,
-        currency: inlineAlertCurrency,
-        direction: inlineAlertDirection,
-      });
-    } finally {
-      setCreatingAlert(false);
-    }
-    const { ok, alert } = result;
-    if (!ok || !alert) {
-      showToast("Please enable notifications in your system settings to receive price alerts.");
-      return;
-    }
-    setAlerts((prev) => [...prev, alert]);
-    setInlineAlertPrice("");
-    showToast("Alert created");
-  };
-
-  const handleInlineReminder = async () => {
-    if (!product || savingReminder) return;
-    const distributorId = inlineReminderDistributorId ?? bestListing?.distributorId;
-    if (!distributorId) {
-      showToast("No distributor available");
-      return;
-    }
-    const picked = new Date(inlineReminderDate + "T12:00:00");
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    if (isNaN(picked.getTime()) || picked.getTime() < startOfToday.getTime()) {
-      setInlineReminderError("Please select today or a future date.");
-      return;
-    }
-    const granted = await checkNotificationPermission();
-    if (!granted) {
-      setInlineReminderError("Enable notifications to set reminders.");
-      return;
-    }
-    const dist = DISTRIBUTORS.find((d) => d.id === distributorId);
-    setSavingReminder(true);
-    try {
-      await storage.addBackOrderReminder({
-        id: `reminder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        productId: product.id,
-        productName: product.name,
-        distributorId,
-        distributorName: dist?.name ?? distributorId,
-        reminderDate: picked.toISOString(),
-        createdAt: new Date().toISOString(),
-        reminderType: "date",
-      });
-    } catch {
-      setInlineReminderError("Couldn't save your reminder. Please try again.");
-      return;
-    } finally {
-      setSavingReminder(false);
-    }
-    setInlineReminderError(null);
-    showToast(`Reminder set for ${picked.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`);
-  };
-
   const handleShare = async () => {
     if (!product) return;
     const deepLink = `${window.location.origin}/#/product/${product.id}`;
@@ -694,42 +559,6 @@ export function ProductDetail() {
     }
   }, [product, showToast]);
 
-  const handleWatchRestock = async () => {
-    if (!product || !bestListing) {
-      showToast("No distributor available");
-      return;
-    }
-    if (savingReminder) return;
-    // Mobile checks notification permission before creating a restock watch;
-    // without it the watch is saved but no notification can ever fire.
-    const granted = await checkNotificationPermission();
-    if (!granted) {
-      showToast("Enable notifications to watch for restocks.");
-      return;
-    }
-    setSavingReminder(true);
-    try {
-      await storage.addStockWatch({
-        id: `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        productId: product.id,
-        productName: product.name,
-        distributorId: bestListing.distributorId,
-        distributorName: bestDistributor?.name ?? "Unknown",
-        reminderDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        reminderType: "back_in_stock",
-        lastKnownStatus: bestListing.stockStatus,
-      });
-    } catch {
-      showToast("Couldn't set that restock watch. Please try again.");
-      return;
-    } finally {
-      setSavingReminder(false);
-    }
-    setStockWatches((prev) => ({ ...prev, [bestListing.distributorId]: true }));
-    showToast("Watching for restock");
-  };
-
   const handleToggleAcquired = async () => {
     if (!product) return;
     try {
@@ -743,104 +572,6 @@ export function ProductDetail() {
     } catch {
       showToast("Couldn't update. Please try again.");
     }
-  };
-
-  const handleToggleListingWatch = async (listing: (typeof visibleListings)[number]) => {
-    if (!product || savingReminder) return;
-    const isWatching = !!stockWatches[listing.distributorId];
-    const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
-    setSavingReminder(true);
-    try {
-      if (isWatching) {
-        const watches = await storage.getStockWatches();
-        const target = watches.find((w) => w.productId === product.id && w.distributorId === listing.distributorId);
-        if (target) await storage.removeStockWatch(target.id);
-        setStockWatches((prev) => {
-          const n = { ...prev };
-          delete n[listing.distributorId];
-          return n;
-        });
-        showToast("Stopped watching");
-      } else {
-        // Mobile checks notification permission before creating a restock watch;
-        // without it the watch is saved but no notification can ever fire.
-        const granted = await checkNotificationPermission();
-        if (!granted) {
-          showToast("Enable notifications to watch for restocks.");
-          return;
-        }
-        await storage.addStockWatch({
-          id: createStockWatchId(),
-          productId: product.id,
-          productName: product.name,
-          distributorId: listing.distributorId,
-          distributorName: dist?.name ?? listing.distributorId,
-          reminderDate: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          reminderType: "back_in_stock",
-          lastKnownStatus: listing.stockStatus,
-        });
-        setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
-        showToast(`Watching ${dist?.name ?? listing.distributorId} for restock`);
-      }
-    } catch {
-      showToast("Couldn't update that restock watch. Please try again.");
-    } finally {
-      setSavingReminder(false);
-    }
-  };
-
-  const handlePerListingAlert = async () => {
-    if (!product || !perListingAlertId || creatingAlert) return;
-    const price = parseFloat(perListingAlertPrice);
-    if (isNaN(price) || price <= 0) return;
-    setCreatingAlert(true);
-    let result: Awaited<ReturnType<typeof createPriceAlert>>;
-    try {
-      result = await createPriceAlert({
-        productId: product.id,
-        distributorId: perListingAlertId,
-        targetPrice: price,
-        currency: perListingAlertCurrency,
-        direction: perListingAlertDirection,
-      });
-    } finally {
-      setCreatingAlert(false);
-    }
-    const { ok, alert } = result;
-    if (!ok || !alert) {
-      showToast("Please enable notifications in your system settings to receive price alerts.");
-      return;
-    }
-    setAlerts((prev) => [...prev, alert]);
-    setPerListingAlertId(null);
-    setPerListingAlertPrice("");
-    showToast("Alert set for distributor");
-  };
-
-  const handleQuickAlert = async () => {
-    if (!product || !bestListing || creatingAlert) return;
-    const suggested = Math.round(bestListing.price * 0.95 * 100) / 100;
-    setCreatingAlert(true);
-    let result: Awaited<ReturnType<typeof createPriceAlert>>;
-    try {
-      result = await createPriceAlert({
-        productId: product.id,
-        distributorId: bestListing.distributorId,
-        targetPrice: suggested,
-        currency: bestListing.currency,
-        direction: "drop",
-      });
-    } finally {
-      setCreatingAlert(false);
-    }
-    const { ok, alert } = result;
-    if (!ok || !alert) {
-      showToast("Please enable notifications in your system settings to receive price alerts.");
-      return;
-    }
-    setAlerts((prev) => [...prev, alert]);
-    showToast(`Alert set at ${formatPrice(suggested, bestListing.currency)}`);
   };
 
   if (loading)
@@ -1009,10 +740,7 @@ export function ProductDetail() {
         lastRefreshedAt={
           lastRefreshedAt ? new Date(lastRefreshedAt).toISOString() : null
         }
-        onSetAlert={() => {
-          setAlertDistributorId(bestListing?.distributorId ?? null);
-          setAlertOpen(true);
-        }}
+        onSetAlert={openSetAlert}
         onRemind={handleRemindMe}
         onWatchRestock={handleWatchRestock}
         onToggleAcquired={() => void handleToggleAcquired()}
@@ -1042,19 +770,8 @@ export function ProductDetail() {
         stockWatches={stockWatches}
         onToggleListingWatch={handleToggleListingWatch}
         onShowHistory={setHistoryFor}
-        onSetAlert={(listing) => {
-          setPerListingAlertId(listing.distributorId);
-          setPerListingAlertPrice(String(listing.price));
-          setPerListingAlertCurrency(listing.currency);
-        }}
-        onSetReminder={(listing) => {
-          setReminderDistributorId(listing.distributorId);
-          setReminderDateInput(
-            new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
-          );
-          setReminderError(null);
-          setReminderOpen(true);
-        }}
+        onSetAlert={openPerListingAlert}
+        onSetReminder={openReminderFor}
         onFindPrices={handleFindPrices}
         findingPrices={findingPrices}
       />
@@ -1063,7 +780,7 @@ export function ProductDetail() {
         productId={product.id}
         listings={product.listings ?? []}
         alerts={alerts}
-        onSetTarget={(listing) => setPerListingAlertId(listing.distributorId)}
+        onSetTarget={openPerListingAlert}
       />
 
       <EditProductModal
@@ -1093,12 +810,7 @@ export function ProductDetail() {
 
       <SetAlertModal
         open={alertOpen}
-        onClose={() => {
-          setAlertOpen(false);
-          setAlertSaved(false);
-          setAlertPrice("");
-          setAlertError(null);
-        }}
+        onClose={closeSetAlert}
         productName={product.name}
         alertSaved={alertSaved}
         alertError={alertError}
@@ -1118,10 +830,7 @@ export function ProductDetail() {
 
       <PerListingAlertModal
         open={!!perListingAlertId}
-        onClose={() => {
-          setPerListingAlertId(null);
-          setPerListingAlertPrice("");
-        }}
+        onClose={closePerListingAlert}
         productName={product.name}
         distributorId={perListingAlertId}
         direction={perListingAlertDirection}
@@ -1137,10 +846,7 @@ export function ProductDetail() {
 
       <ReminderDatePickerModal
         open={reminderOpen}
-        onClose={() => {
-          setReminderOpen(false);
-          setReminderError(null);
-        }}
+        onClose={closeReminder}
         productName={product.name}
         listings={visibleListings}
         distributorId={reminderDistributorId}
