@@ -4,6 +4,13 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.27.1] - 2026-10-20
+
+### Fixed
+
+- Desktop release workflow: `@tauri-apps/cli` is now a desktop devDependency,
+  so `pnpm tauri build` resolves instead of failing with `tauri: not found`.
+
 ## [5.27.0] - 2026-10-20
 
 ### Changed

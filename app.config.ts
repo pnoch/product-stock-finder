@@ -75,7 +75,7 @@ const config: ExpoConfig = {
   slug: env.appSlug,
   description:
     "Global stock & price radar for hard-to-find hardware. Find who has it worldwide, at the best landed price, and get told the second it restocks.",
-  version: "5.27.0",
+  version: "5.27.1",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
