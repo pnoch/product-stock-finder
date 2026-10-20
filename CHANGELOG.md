@@ -24,6 +24,7 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
   WorkManager at startup in release builds.
 - Gradle 9 compatibility: removed `jcenter()` from the cookies dependency via a
   pnpm patch; updated the Android project to Gradle 9.4.1 / AGP 9.
+- Added the missing `push_delivery_log` migration (schema drift).
 
 ## [5.26.1] - 2026-10-15
 

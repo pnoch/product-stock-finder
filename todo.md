@@ -8597,3 +8597,12 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Empty state reads "No catalog matches" / "Check the marketplace results above" instead of a contradictory "No results"; results label is "N catalog results".
 - [x] `.claude/skills/verify/` emulator self-testing skill (`drive.sh` + feature map) — doctor/launch/drive/evidence/cleanup; proven end-to-end on emulator-5554.
 - [x] Emulator run found: release builds ignore a loopback API URL (`constants/oauth.ts`), so server features need a non-loopback URL or a debug build; eBay search needs `PSF_BROWSER_HEADED=1`. TypeScript: 0 errors.
+
+## Phase 1153: Expo SDK 58 migration
+
+- [x] Expo 54 → 58 (RN 0.88, React 19.3, expo-router 58, expo-notifications 58.1.5); Node >= 22.13.0.
+- [x] Fixed Android notification delivery (previous build threw `NotSerializableException: android.net.Uri$HierarchicalUri`).
+- [x] Migrated swipe actions to `ReanimatedSwipeable`; fixed hidden tabs for expo-router 58.
+- [x] Added config plugins for the Room R8 keep rule and scoped storage permissions; Gradle 9.4.1 / AGP 9.
+- [x] Enabled all seven React Compiler lint rules; aligned desktop React 19.3; fixed the desktop build.
+- [x] Verified: `pnpm verify` exit 0, 4038 root tests, 349 desktop tests, 110 DB tests, Android release APK + notifications on emulator.
