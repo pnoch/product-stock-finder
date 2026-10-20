@@ -1,53 +1,24 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { storage } from "../storage";
 import { onListingUpdated } from "../background";
 import type { Product, PriceAlert, AppSettings } from "../../../lib/types";
 import { log } from "@shared/log";
+import { useStorageCollection } from "../../../lib/use-storage-collection";
 
 export function useWatchlist() {
-  const [products, setProducts] = useState<Product[]>([]);
-  // `loading` is the first-load spinner only. The Rust poller emits
-  // `listing-updated` once per scraped listing, so refreshing the data with
-  // `loading` resetting each time blanked the page (resetting scroll and bulk
-  // selection) N times per sweep. Later refreshes raise `refreshing` instead.
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const loadedRef = useRef(false);
+  const load = useCallback(() => storage.getWatchlist(), []);
+  const {
+    data: products,
+    loading,
+    refreshing,
+    refresh,
+  } = useStorageCollection(storage, "watchlist", load, [] as Product[]);
 
-  const refresh = useCallback(async () => {
-    if (loadedRef.current) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const data = await storage.getWatchlist();
-      setProducts(data);
-    } finally {
-      loadedRef.current = true;
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    storage
-      .getWatchlist()
-      .then((data) => {
-        if (active) setProducts(data);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!active) return;
-        loadedRef.current = true;
-        setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
+  // The Rust poller writes files directly and emits this event; the storage
+  // subscription covers UI mutations, this covers the poller.
   useEffect(() => {
     const unlistenPromise = onListingUpdated(() => {
-      refresh();
+      void refresh();
     }).catch(() => () => {});
     return () => {
       unlistenPromise.then((fn) => fn());
@@ -58,50 +29,30 @@ export function useWatchlist() {
 }
 
 export function useAlerts() {
-  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
-  // See useWatchlist: only the first load blanks the page; alert actions
-  // (toggle/delete/re-arm/snooze) raise `refreshing` instead.
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const loadedRef = useRef(false);
-
-  const refresh = useCallback(async () => {
-    if (loadedRef.current) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const data = await storage.getAlerts();
-      setAlerts(data);
-    } finally {
-      loadedRef.current = true;
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    storage
-      .getAlerts()
-      .then((data) => {
-        if (active) setAlerts(data);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!active) return;
-        loadedRef.current = true;
-        setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
+  const load = useCallback(() => storage.getAlerts(), []);
+  const {
+    data: alerts,
+    loading,
+    refreshing,
+    refresh,
+  } = useStorageCollection(storage, "alerts", load, [] as PriceAlert[]);
   return { alerts, loading, refreshing, refresh };
 }
 
 export function useSettings() {
-  const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [loading, setLoading] = useState(true);
+  const load = useCallback(() => storage.getSettings(), []);
+  const {
+    data: settings,
+    loading,
+    refresh,
+    setData: setSettings,
+  } = useStorageCollection(
+    storage,
+    "settings",
+    load,
+    null as AppSettings | null,
+  );
+
   // Mirrors `settings` so `update` (with stable deps) can capture the
   // pre-patch value for a revert without going stale.
   const settingsRef = useRef<AppSettings | null>(null);
@@ -109,48 +60,22 @@ export function useSettings() {
     settingsRef.current = settings;
   }, [settings]);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await storage.getSettings();
-      setSettings(data);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    storage
-      .getSettings()
-      .then((data) => {
-        if (active) setSettings(data);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!active) return;
-        setLoading(false);
+  const update = useCallback(
+    (partial: Partial<AppSettings>) => {
+      const previous = settingsRef.current;
+      setSettings((prev) => ({ ...(prev ?? {}), ...partial }) as AppSettings);
+      // Use the storage-serialized updateSettings so this shares the write
+      // queue with every other settings writer instead of racing a stale
+      // snapshot via a private chain.
+      const write = storage.updateSettings(partial).then(() => undefined);
+      write.catch((e) => {
+        if (previous) setSettings(previous);
+        log.error("[settings] save failed", e);
       });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const update = useCallback((partial: Partial<AppSettings>) => {
-    const previous = settingsRef.current;
-    setSettings((prev) => ({ ...(prev ?? {}), ...partial }) as AppSettings);
-    // Use the storage-serialized updateSettings so this shares the write queue
-    // with every other settings writer (Watchlist prefs, basket alert, theme)
-    // instead of racing a stale snapshot via a private chain.
-    const write = storage.updateSettings(partial).then(() => undefined);
-    write.catch((e) => {
-      // Revert the optimistic update so the UI doesn't show a setting that was
-      // never persisted.
-      if (previous) setSettings(previous);
-      log.error("[settings] save failed", e);
-    });
-    return write;
-  }, []);
+      return write;
+    },
+    [setSettings],
+  );
 
   return { settings, loading, refresh, update };
 }
