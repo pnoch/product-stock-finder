@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   Pressable,
-  Image,
   Animated,
   Platform,
 } from "react-native";
@@ -20,9 +19,8 @@ import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import { formatPrice } from "@shared/currency";
 import { useFocusEffect, useRouter } from "expo-router";
-import { fetchProductImage } from "@/lib/server-images";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SkeletonBox } from "@/components/ui/skeleton";
+import { ProductImage } from "@/components/search/product-image";
 import { useToast } from "@/components/ui/toast";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 
@@ -54,13 +52,11 @@ function TrendingSkeletonCard() {
 
 const TrendingProductRow = memo(function TrendingProductRow({
   product,
-  imageUrl,
   isInWatchlist,
   onAdd,
   onPress,
 }: {
   product: TrendingProduct;
-  imageUrl?: string;
   isInWatchlist: boolean;
   onAdd: (p: TrendingProduct) => void;
   onPress: (p: TrendingProduct) => void;
@@ -98,36 +94,7 @@ const TrendingProductRow = memo(function TrendingProductRow({
           alignItems: "flex-start",
         }}
       >
-        {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            accessibilityLabel={`${product.name} image`}
-            onError={() => {}}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 8,
-              marginRight: 12,
-              backgroundColor: colors.border,
-            }}
-          />
-        ) : (
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 8,
-              marginRight: 12,
-              backgroundColor: colors.border + "66",
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <IconSymbol name="photo" size={18} color={colors.muted} />
-          </View>
-        )}
+        <ProductImage productId={product.id} size={40} />
         <View style={{ flex: 1, marginRight: 8 }}>
           <Text
             style={{
@@ -216,9 +183,6 @@ export const TrendingSection = memo(function TrendingSection({
   const [watchlistIds, setWatchlistIds] = React.useState<Set<string>>(
     new Set(),
   );
-  const [imageUrls, setImageUrls] = React.useState<Map<string, string>>(
-    new Map(),
-  );
 
   useFocusEffect(
     useCallback(() => {
@@ -230,28 +194,6 @@ export const TrendingSection = memo(function TrendingSection({
     }, []),
   );
 
-  React.useEffect(() => {
-    if (!products) return;
-    let active = true;
-    const load = async () => {
-      const results = await Promise.allSettled(
-        products.slice(0, 3).map((p) => fetchProductImage(p.id)),
-      );
-      if (!active) return;
-      const entries: [string, string][] = [];
-      results.forEach((r, i) => {
-        const product = products[i];
-        if (r.status === "fulfilled" && r.value && product) {
-          entries.push([product.id, r.value.imageUrl]);
-        }
-      });
-      setImageUrls(new Map(entries));
-    };
-    load();
-    return () => {
-      active = false;
-    };
-  }, [products]);
 
   // Trending products come from the server, not the local watchlist, so the
   // product detail screen (which reads the watchlist) can't resolve them until
@@ -443,7 +385,6 @@ export const TrendingSection = memo(function TrendingSection({
         >
           <TrendingProductRow
             product={product}
-            imageUrl={imageUrls.get(product.id)}
             isInWatchlist={watchlistIds.has(product.id)}
             onAdd={handleAdd}
             onPress={handlePress}

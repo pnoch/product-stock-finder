@@ -20,7 +20,7 @@ import { computeAvailability } from "@/lib/availability";
 import { PriceSparkline } from "@/components/price-sparkline";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { IconActionButton } from "@/components/ui/icon-action-button";
-import { fetchProductImage } from "@/lib/server-images";
+import { ProductImage } from "@/components/search/product-image";
 import {
   formatLastRefreshed,
   getLastRefreshedColor,
@@ -134,10 +134,6 @@ export const ProductCard = memo(function ProductCard({
     () => getLastRefreshedColor(product.lastRefreshed),
     [product.lastRefreshed],
   );
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageError, setImageError] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const imageOpacity = useState(() => new Animated.Value(0))[0];
   const pressScale = useState(() => new Animated.Value(1))[0];
   const sparklineOpacity = useState(() => new Animated.Value(1))[0];
   const selectionAnim = useState(() => new Animated.Value(selectionMode ? 1 : 0))[0];
@@ -187,30 +183,6 @@ export const ProductCard = memo(function ProductCard({
     },
     [onDelete],
   );
-  const handleImageLoad = useCallback(() => {
-    setImageLoaded(true);
-    Animated.timing(imageOpacity, { toValue: 1, duration: 220, useNativeDriver: true }).start();
-  }, [imageOpacity]);
-  const handleImageError = useCallback(() => setImageError(true), []);
-  useEffect(() => {
-    let active = true;
-    setImageUrl(null);
-    setImageError(false);
-    setImageLoaded(false);
-    imageOpacity.setValue(0);
-    fetchProductImage(product.id)
-      .then((res) => {
-        if (active && res) setImageUrl(res.imageUrl);
-        else if (active) setImageUrl(null);
-      })
-      .catch(() => {
-        if (active) setImageUrl(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [product.id, imageOpacity]);
-
   useEffect(() => {
     sparklineOpacity.setValue(0.55);
     Animated.timing(sparklineOpacity, {
@@ -306,38 +278,7 @@ export const ProductCard = memo(function ProductCard({
             </Animated.View>
           </Animated.View>
         )}
-        {imageUrl && !imageError ? (
-          <View style={{ width: 48, height: 48, borderRadius: 8, marginRight: 10, overflow: "hidden", backgroundColor: colors.border + "66", borderWidth: 1, borderColor: colors.border }}>
-            {!imageLoaded && (
-              <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
-                <IconSymbol name="photo" size={18} color={colors.muted + "66"} />
-              </View>
-            )}
-            <Animated.Image
-              source={{ uri: imageUrl }}
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-              style={{ width: 48, height: 48, borderRadius: 8, opacity: imageOpacity }}
-              resizeMode="cover"
-            />
-          </View>
-        ) : (
-          <View
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 8,
-              marginRight: 10,
-              backgroundColor: colors.border + "66",
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <IconSymbol name="photo" size={18} color={colors.muted} />
-          </View>
-        )}
+        <ProductImage productId={product.id} size={48} marginRight={10} />
         <View style={{ flex: 1, marginRight: 10 }}>
           <Pressable
             onPress={onPress}

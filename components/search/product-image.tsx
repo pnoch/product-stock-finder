@@ -51,14 +51,20 @@ function dequeueImageFetchOnComplete() {
   drainImageQueue();
 }
 
-function ImagePlaceholder({ colors }: { colors: ReturnType<typeof useColors> }) {
+function ImagePlaceholder({
+  colors,
+  marginRight = 12,
+}: {
+  colors: ReturnType<typeof useColors>;
+  marginRight?: number;
+}) {
   return (
     <View
       style={{
         width: PLACEHOLDER_SIZE,
         height: PLACEHOLDER_SIZE,
         borderRadius: 8,
-        marginRight: 12,
+        marginRight,
         backgroundColor: colors.border + "66",
         alignItems: "center",
         justifyContent: "center",
@@ -72,7 +78,15 @@ function ImagePlaceholder({ colors }: { colors: ReturnType<typeof useColors> }) 
   );
 }
 
-export function ProductImage({ productId, size = 48 }: { productId: string; size?: number }) {
+export function ProductImage({
+  productId,
+  size = 48,
+  marginRight = 12,
+}: {
+  productId: string;
+  size?: number;
+  marginRight?: number;
+}) {
   const colors = useColors();
   const [image, setImage] = useState<{ productId: string; url: string | null } | null>(null);
   const imageUrl =
@@ -150,7 +164,7 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
             width: size,
             height: size,
             borderRadius: 8,
-            marginRight: 12,
+            marginRight,
             backgroundColor: colors.border + "66",
             alignItems: "center",
             justifyContent: "center",
@@ -166,7 +180,7 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
         </View>
       );
     }
-    return <ImagePlaceholder colors={colors} />;
+    return <ImagePlaceholder colors={colors} marginRight={marginRight} />;
   }
 
   return (
@@ -175,7 +189,7 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
         width: size,
         height: size,
         borderRadius: 8,
-        marginRight: 12,
+        marginRight,
         backgroundColor: colors.border + "66",
         overflow: "hidden",
         alignItems: "center",
