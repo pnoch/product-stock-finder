@@ -4,8 +4,12 @@ import { readFile } from "node:fs/promises";
 describe("desktop product intelligence", () => {
   it("shows price vs average verdict", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const cards = await readFile(
+      "desktop/src/components/product/ProductInsightCards.tsx",
+      "utf8",
+    );
     expect(text).toContain("computePriceVsAverage");
-    expect(text).toContain("Below average");
+    expect(cards).toContain("Below average");
   });
 
   it("links per-row history and shows refresh recency", async () => {

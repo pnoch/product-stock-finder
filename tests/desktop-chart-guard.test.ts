@@ -30,7 +30,7 @@ describe("desktop chart guard", () => {
   it("renders price history only through the shared component", async () => {
     for (const f of [
       "desktop/src/components/DistributorHistoryModal.tsx",
-      "desktop/src/pages/ProductDetail.tsx",
+      "desktop/src/components/product/PriceHistorySection.tsx",
     ]) {
       const text = await readFile(f, "utf8");
       expect(text).toContain("PriceHistoryChart");
@@ -1395,7 +1395,10 @@ describe("desktop chart guard", () => {
   // QA round 185: mobile's ProductInfoCard colors "Last refreshed" by freshness;
   // desktop's header showed "Updated …" in plain gray.
   it("colors the desktop last-refreshed text", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/ProductActions.tsx",
+      "utf8",
+    );
     expect(text).toContain("Last refreshed: {formatLastRefreshed(iso)}");
     expect(text).toMatch(/getLastRefreshedColor\(iso\)/);
   });

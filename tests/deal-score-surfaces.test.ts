@@ -93,6 +93,8 @@ describe("deal score surfaces", () => {
   });
 
   it("desktop ProductDetail has Deal Score", () => {
-    expect(read("desktop/src/pages/ProductDetail.tsx")).toContain("Deal Score");
+    expect(
+      read("desktop/src/components/product/ProductInsightCards.tsx"),
+    ).toContain("Deal Score");
   });
 });

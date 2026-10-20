@@ -1,19 +1,9 @@
 import { isTauri } from "../lib/tauri";
-import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { log } from "@shared/log";
-import { useParams, useNavigate, Link } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import {
   ArrowLeft,
-  Bell,
-  Clock,
-  Star,
-  BarChart3,
-  Loader2,
-  RefreshCw,
-  Share2,
-  Copy,
-  Download,
-  CheckCircle,
   Plus,
 } from "lucide-react";
 import { storage } from "../storage";
@@ -21,7 +11,6 @@ import { useToast } from "../hooks/use-toast";
 import { getApiBaseUrl } from "../lib/api-base";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice, convertPrice } from "@/lib/currency";
-import { formatLastRefreshed, getLastRefreshedColor } from "../../../lib/last-refreshed";
 import { computePriceVsAverage } from "../../../lib/price-average";
 import { DISTRIBUTORS } from "@shared/distributors";
 import { PRODUCT_CATALOG } from "@shared/catalog";
@@ -32,7 +21,7 @@ import {
 import type { Product, PriceAlert, DistributorListing } from "../../../lib/types";
 import { suggestAlertPrices } from "../../../lib/alert-suggestions";
 import { findBestDeal } from "../../../lib/best-deal";
-import { computeDealScore, dealBandLabel } from "../../../lib/deal-score";
+import { computeDealScore } from "../../../lib/deal-score";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { fetchListingsWithTimeout } from "../lib/server-prices";
 import { checkNotificationPermission } from "../lib/notification-permission";
@@ -56,6 +45,9 @@ import { EditProductModal } from "../components/product/EditProductModal";
 import { ProductHeader } from "../components/product/ProductHeader";
 import { ProductNoteCard } from "../components/product/ProductNoteCard";
 import { BestDistributorCard } from "../components/product/BestDistributorCard";
+import { ProductInsightCards } from "../components/product/ProductInsightCards";
+import { ProductActions } from "../components/product/ProductActions";
+import { PriceHistorySection } from "../components/product/PriceHistorySection";
 import {
   notesStore,
   createPriceAlert,
@@ -64,13 +56,6 @@ import {
 import { ProductImage } from "../components/ProductImage";
 // Lazy: the chart is only needed on this screen, so it is split into its own
 // chunk instead of loading on every route.
-
-const PriceHistoryChart = lazy(() =>
-  import("../components/PriceHistoryChart").then((m) => ({
-    default: m.PriceHistoryChart,
-  })),
-);
-
 
 export function ProductDetail() {
   const { id } = useParams();
@@ -1009,182 +994,39 @@ export function ProductDetail() {
       />
       </div>
 
-      {dealScore != null && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <p className="text-[15px] font-bold text-gray-900 dark:text-gray-100">
-            Deal Score {dealScore.score} — {dealBandLabel(dealScore.band)}
-          </p>
-          <div className="flex flex-wrap gap-3 mt-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Range {dealScore.factors.range}</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Trend {dealScore.factors.trend}</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Streak {dealScore.factors.streak}</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Volatility {dealScore.factors.volatility}</span>
-          </div>
-        </div>
-      )}
+      <ProductInsightCards
+        dealScore={dealScore}
+        priceVsAvg={priceVsAvg}
+        insight={insight}
+        insightLoading={insightLoading}
+        displayCurrency={displayCurrency}
+      />
 
-      {priceVsAvg && (
-        <div
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex items-center gap-4"
-          aria-label={`${priceVsAvg.verdict === "below" ? "▼" : priceVsAvg.verdict === "above" ? "▲" : "—"} ${priceVsAvg.percentVsAvg > 0 ? "+" : ""}${priceVsAvg.percentVsAvg.toFixed(1)}% versus 30-day average — ${priceVsAvg.verdict === "below" ? "Below average — good time to buy" : priceVsAvg.verdict === "above" ? "Above average" : "Around its average"}`}
-        >
-          <span
-            className={`text-2xl font-bold shrink-0 min-w-[84px] ${
-              priceVsAvg.verdict === "below"
-                ? "text-emerald-600 dark:text-emerald-400"
-                : priceVsAvg.verdict === "above"
-                  ? "text-red-600 dark:text-red-400"
-                  : "text-gray-500 dark:text-gray-400"
-            }`}
-          >
-            {priceVsAvg.verdict === "below" ? "▼" : priceVsAvg.verdict === "above" ? "▲" : "—"}{" "}
-            {priceVsAvg.percentVsAvg > 0 ? "+" : ""}
-            {priceVsAvg.percentVsAvg.toFixed(1)}%
-          </span>
-          <div className="flex-1">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              vs 30-day average · avg {formatPrice(priceVsAvg.average, displayCurrency)}
-            </p>
-            <p className="text-sm text-gray-900 dark:text-gray-100 mt-0.5">
-              {priceVsAvg.verdict === "below"
-                ? "Below average — good time to buy"
-                : priceVsAvg.verdict === "above"
-                  ? "Above average"
-                  : "Around its average"}
-            </p>
-          </div>
-        </div>
-      )}
+      <ProductActions
+        productId={product.id}
+        isAcquired={isAcquired(product)}
+        loading={loading}
+        lastRefreshedAt={
+          lastRefreshedAt ? new Date(lastRefreshedAt).toISOString() : null
+        }
+        onSetAlert={() => {
+          setAlertDistributorId(bestListing?.distributorId ?? null);
+          setAlertOpen(true);
+        }}
+        onRemind={handleRemindMe}
+        onWatchRestock={handleWatchRestock}
+        onToggleAcquired={() => void handleToggleAcquired()}
+        onShare={handleShare}
+        onExportCsv={handleExportCsv}
+        onCopyLink={handleCopyLink}
+        onSaveImage={handleSaveImage}
+        onRefresh={() => void loadProduct()}
+      />
 
-      {insightLoading ? (
-        <div
-          role="status"
-          aria-label="Loading insight"
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-pulse"
-        >
-          <div className="h-3 w-24 rounded bg-gray-200 dark:bg-gray-700" />
-          <div className="mt-2 h-4 w-full rounded bg-gray-200 dark:bg-gray-700" />
-        </div>
-      ) : insight ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            AI insight
-          </p>
-          <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-            {insight}
-          </p>
-        </div>
-      ) : null}
-
-      {/* Action Buttons */}
-      <div className="flex items-center gap-2 flex-wrap transition-opacity duration-200">
-        <button
-          onClick={() => {
-            setAlertDistributorId(bestListing?.distributorId ?? null);
-            setAlertOpen(true);
-          }}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-          aria-label="Set price alert"
-        >
-          <Bell className="w-4 h-4" /> Set Alert
-        </button>
-        <button
-          onClick={handleRemindMe}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-          aria-label="Set a reminder"
-        >
-          <Clock className="w-4 h-4" /> Remind Me
-        </button>
-        <button
-          onClick={handleWatchRestock}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-          aria-label="Watch for restock"
-        >
-          <Star className="w-4 h-4" /> Watch for Restock
-        </button>
-        <button
-          onClick={() => void handleToggleAcquired()}
-          className={`inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer ${product && isAcquired(product) ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/30" : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
-          aria-label={product && isAcquired(product) ? "Acquired — tap to undo" : "Mark as acquired"}
-          aria-pressed={product ? isAcquired(product) : false}
-        >
-          <CheckCircle className="w-4 h-4" /> {product && isAcquired(product) ? "Acquired — tap to undo" : "Mark as acquired"}
-        </button>
-        <button
-          onClick={handleShare}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-          aria-label="Share product"
-        >
-          <Share2 className="w-4 h-4" /> Share
-        </button>
-        <button
-          onClick={handleExportCsv}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-          aria-label="Export product price history as CSV"
-        >
-          <Download className="w-4 h-4" /> Export CSV
-        </button>
-        <button
-          onClick={handleCopyLink}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-          aria-label="Copy product link"
-        >
-          <Copy className="w-4 h-4" /> Copy Link
-        </button>
-        <button
-          onClick={handleSaveImage}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-          aria-label="Save product image"
-        >
-          <Share2 className="w-4 h-4" /> Save image
-        </button>
-        <Link
-          to={`/compare/${product.id}`}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-          aria-label="Compare prices across distributors"
-        >
-          <BarChart3 className="w-4 h-4" /> Compare
-        </Link>
-        <button
-          onClick={() => void loadProduct()}
-          disabled={loading}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer disabled:opacity-50"
-          aria-label="Refresh product"
-        >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Refresh
-        </button>
-        {lastRefreshedAt ? (
-          (() => {
-            // Mobile's ProductInfoCard colors the "Last refreshed" text by
-            // freshness (green <1h, amber <6h, red older).
-            const iso = new Date(lastRefreshedAt).toISOString();
-            const key = getLastRefreshedColor(iso);
-            const cls =
-              key === "green"
-                ? "text-emerald-600 dark:text-emerald-400"
-                : key === "yellow"
-                  ? "text-amber-600 dark:text-amber-400"
-                  : key === "red"
-                    ? "text-red-600 dark:text-red-400"
-                    : "text-gray-500 dark:text-gray-400";
-            return (
-              <span className={`text-xs ${cls}`}>Last refreshed: {formatLastRefreshed(iso)}</span>
-            );
-          })()
-        ) : null}
-      </div>
-
-      {/* Price History Section */}
-      {bestListing &&
-        bestListing.priceHistory &&
-        bestListing.priceHistory.length >= 2 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-fadeIn transition-opacity duration-200">
-            <h2 className="text-lg font-semibold mb-3">Price History</h2>
-            <Suspense fallback={null}>
-              <PriceHistoryChart history={bestListing.priceHistory} displayCurrency={displayCurrency} />
-            </Suspense>
-          </div>
-        )}
+      <PriceHistorySection
+        history={bestListing?.priceHistory ?? []}
+        displayCurrency={displayCurrency}
+      />
 
       <DistributorTable
         productId={product.id}
