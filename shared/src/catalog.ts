@@ -1,6 +1,6 @@
 import Fuse from "fuse.js";
 import type { IFuseOptions } from "fuse.js";
-import type { Product } from "@/lib/types";
+import type { Product } from "./types";
 
 export const PRODUCT_CATALOG: Omit<
   Product,

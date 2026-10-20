@@ -1,4 +1,4 @@
-import type { PricePoint, DistributorListing } from "@/lib/types";
+import type { PricePoint, DistributorListing } from "./types";
 import { convertPrice } from "./currency";
 import { getDistributorById } from "./distributors";
 // ─── Chart colors for up to 5 distributors ───────────────────────────────────

@@ -1,4 +1,4 @@
-import type { FxRatesResult } from "@/lib/types";
+import type { FxRatesResult } from "./types";
 
 const TIMEOUT_MS = 4000;
 

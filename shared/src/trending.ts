@@ -1,4 +1,4 @@
-import type { TrendingProduct } from "@/lib/types";
+import type { TrendingProduct } from "./types";
 
 function getApiBase(): string {
   // Static member access only: Expo inlines literal `process.env.EXPO_PUBLIC_*`

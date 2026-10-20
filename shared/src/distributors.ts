@@ -1,4 +1,4 @@
-import type { Distributor } from "@/lib/types";
+import type { Distributor } from "./types";
 
 export const DISTRIBUTORS: Distributor[] = [
   {

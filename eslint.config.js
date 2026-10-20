@@ -20,6 +20,25 @@ export default defineConfig([
     },
   },
   {
+    // `shared/` is the cross-platform contract layer; it must not depend on
+    // the mobile app (`lib/`), or server/desktop inherit the Expo tree.
+    files: ["shared/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/*", "../lib/*", "../../lib/*"],
+              message:
+                "shared/ must not import from lib/; move the type into shared/src/types.ts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Tests intentionally call vi.mock() before their imports (Vitest hoists
     // the mocks above the import statement), which `import/first` flags.
     files: [
