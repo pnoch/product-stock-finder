@@ -14,7 +14,10 @@ describe("product detail CSV export (mobile/web)", () => {
 
 describe("product detail CSV export (desktop)", () => {
   it("adds a guarded CSV export action to the desktop Product Detail", () => {
-    const desktop = readFileSync("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const desktop = readFileSync(
+      "desktop/src/hooks/use-product-sharing.ts",
+      "utf8",
+    );
     const actions = readFileSync(
       "desktop/src/components/product/ProductActions.tsx",
       "utf8",

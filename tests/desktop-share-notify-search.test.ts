@@ -9,7 +9,10 @@ describe("desktop share, notifications, search tags", () => {
   });
 
   it("exports product images and opens notifications", async () => {
-    const detail = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const detail = await readFile(
+      "desktop/src/hooks/use-product-sharing.ts",
+      "utf8",
+    );
     const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     const share = await readFile("desktop/src/lib/share.ts", "utf8");
     expect(detail).toContain("saveNodeAsPng");

@@ -1861,9 +1861,12 @@ describe("desktop chart guard", () => {
   // (canSave); desktop's Save only checked the name, so a blank model silently
   // kept the old one while the UI implied it changed.
   it("requires name and model in the desktop edit modal", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-edit.ts",
+      "utf8",
+    );
     const start = text.indexOf("const handleSaveEdit = async () =>");
-    const block = text.slice(start, text.indexOf("const handleSaveAlert", start));
+    const block = text.slice(start, text.indexOf("\n  };", start));
     expect(block).toMatch(/if \(!editName\.trim\(\) \|\| !editModel\.trim\(\)\) return;/);
     const modal = await readFile(
       "desktop/src/components/product/EditProductModal.tsx",

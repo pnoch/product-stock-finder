@@ -22,11 +22,6 @@ import { findBestDeal } from "../../../lib/best-deal";
 import { computeDealScore } from "../../../lib/deal-score";
 import { composeLiveListings } from "../../../lib/live-prices";
 import { fetchListingsWithTimeout } from "../lib/server-prices";
-import { saveNodeAsPng } from "../lib/share";
-import { buildShareText } from "../../../lib/price-share";
-import { productHistoryToCsv, hasExportablePriceData } from "../../../lib/csv";
-import { saveCsv } from "../lib/save-csv";
-import { getProductNote, saveProductNote } from "../../../lib/product-notes";
 import { withTimeout } from "../../../lib/with-timeout";
 import { rediscoverProduct } from "../../../lib/manual-add";
 import { discoverListings } from "../../../lib/listing-discovery";
@@ -45,12 +40,12 @@ import { BestDistributorCard } from "../components/product/BestDistributorCard";
 import { ProductInsightCards } from "../components/product/ProductInsightCards";
 import { ProductActions } from "../components/product/ProductActions";
 import { PriceHistorySection } from "../components/product/PriceHistorySection";
-import {
-  notesStore,
-} from "../lib/product-detail";
 import { ProductImage } from "../components/ProductImage";
 import { useProductAlerts } from "../hooks/use-product-alerts";
 import { useProductReminders } from "../hooks/use-product-reminders";
+import { useProductNote } from "../hooks/use-product-note";
+import { useProductEdit } from "../hooks/use-product-edit";
+import { useProductSharing } from "../hooks/use-product-sharing";
 // Lazy: the chart is only needed on this screen, so it is split into its own
 // chunk instead of loading on every route.
 
@@ -78,17 +73,6 @@ export function ProductDetail() {
   const loadIdRef = useRef(0);
   const summaryRef = useRef<HTMLDivElement>(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
-  const [note, setNote] = useState("");
-  const [editingNote, setEditingNote] = useState(false);
-  const [draftNote, setDraftNote] = useState("");
-  const [noteError, setNoteError] = useState<string | null>(null);
-  const [editOpen, setEditOpen] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editModel, setEditModel] = useState("");
-  const [editBrand, setEditBrand] = useState("");
-  const [editCategory, setEditCategory] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editError, setEditError] = useState<string | null>(null);
   const [historyFor, setHistoryFor] = useState<DistributorListing | null>(null);
 
   const loadProduct = useCallback(async () => {
@@ -386,6 +370,44 @@ export function ProductDetail() {
     setStockWatches,
     showToast,
   });
+
+  const {
+    note,
+    draftNote,
+    setDraftNote,
+    editingNote,
+    noteError,
+    startEditNote,
+    cancelEditNote,
+    handleSaveNote,
+  } = useProductNote(product, showToast);
+
+  const {
+    editOpen,
+    editName,
+    setEditName,
+    editModel,
+    setEditModel,
+    editBrand,
+    setEditBrand,
+    editCategory,
+    setEditCategory,
+    editDescription,
+    setEditDescription,
+    editError,
+    openEdit,
+    closeEdit,
+    handleSaveEdit,
+  } = useProductEdit(product, loadProduct, showToast);
+
+  const { handleShare, handleExportCsv, handleCopyLink, handleSaveImage } =
+    useProductSharing({
+      product,
+      visibleListings,
+      displayCurrency,
+      summaryRef,
+      showToast,
+    });
   const [findingPrices, setFindingPrices] = useState(false);
   const productId = product?.id;
   const productModelNumber = product?.modelNumber;
@@ -438,126 +460,6 @@ export function ProductDetail() {
       setAddingToWatchlist(false);
     }
   }, [product, addingToWatchlist, loadProduct, showToast]);
-
-  useEffect(() => {
-    if (!product?.id) return;
-    let cancelled = false;
-    getProductNote(product.id, notesStore)
-      .then((saved) => {
-        if (!cancelled) {
-          setNote(saved);
-          setDraftNote(saved);
-          setEditingNote(false);
-          setNoteError(null);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setNoteError("Couldn't load note");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [product?.id]);
-
-  const handleSaveNote = async () => {
-    if (!product) return;
-    try {
-      await saveProductNote(product.id, draftNote.trim(), notesStore);
-      setNote(draftNote.trim());
-      setEditingNote(false);
-      setNoteError(null);
-      showToast("Note saved");
-    } catch {
-      setNoteError("Couldn't save note");
-      showToast("Couldn't save note");
-    }
-  };
-
-  const handleSaveEdit = async () => {
-    if (!product) return;
-    // Require both name and model, like mobile's canSave: updateProductDetails
-    // only applies a trimmed non-empty model, so saving a blank model silently
-    // kept the old one while the UI implied it changed.
-    if (!editName.trim() || !editModel.trim()) return;
-    setEditError(null);
-    try {
-      await storage.updateProductDetails(product.id, {
-        name: editName.trim(),
-        modelNumber: editModel.trim(),
-        brand: editBrand.trim(),
-        category: editCategory.trim(),
-        description: editDescription.trim(),
-      });
-      setEditOpen(false);
-      await loadProduct();
-      showToast("Product updated");
-    } catch {
-      setEditError("Couldn't save changes");
-      showToast("Couldn't save changes");
-    }
-  };
-
-  const handleShare = async () => {
-    if (!product) return;
-    const deepLink = `${window.location.origin}/#/product/${product.id}`;
-    const shareText = buildShareText({
-      product,
-      listings: visibleListings,
-      displayCurrency,
-      limit: 5,
-    });
-    const message = `${shareText}\n\n${deepLink}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: product.name, text: message, url: deepLink });
-        showToast("Shared");
-        return;
-      }
-    } catch {}
-    try {
-      await navigator.clipboard.writeText(message);
-      showToast("Link copied to clipboard");
-    } catch {
-      showToast(deepLink);
-    }
-  };
-
-  const handleExportCsv = async () => {
-    if (!product) return;
-    if (!hasExportablePriceData(product)) {
-      showToast("Nothing to export");
-      return;
-    }
-    const fileName = `${product.modelNumber ?? product.id}-history.csv`;
-    const result = await saveCsv(fileName, productHistoryToCsv(product));
-    if (result.status === "cancelled") return;
-    if (result.status === "failed") {
-      showToast("Couldn't export the price history");
-      return;
-    }
-    showToast(result.path ? `Exported to ${result.path}` : "Price history exported");
-  };
-
-  const handleCopyLink = async () => {
-    if (!product) return;
-    const deepLink = `${window.location.origin}/#/product/${product.id}`;
-    try {
-      await navigator.clipboard.writeText(deepLink);
-      showToast("Link copied");
-    } catch {
-      showToast(deepLink);
-    }
-  };
-
-  const handleSaveImage = useCallback(async () => {
-    if (!summaryRef.current || !product) return;
-    try {
-      await saveNodeAsPng(summaryRef.current, `product-${product.id}.png`);
-      showToast("Product image saved");
-    } catch {
-      showToast("Couldn't save product image");
-    }
-  }, [product, showToast]);
 
   const handleToggleAcquired = async () => {
     if (!product) return;
@@ -683,15 +585,7 @@ export function ProductDetail() {
         visibleListings={visibleListings}
         best={best}
         onBack={() => navigate(-1)}
-        onEdit={() => {
-          setEditName(product.name);
-          setEditModel(product.modelNumber);
-          setEditBrand(product.brand);
-          setEditCategory(product.category);
-          setEditDescription(product.description ?? "");
-          setEditError(null);
-          setEditOpen(true);
-        }}
+        onEdit={openEdit}
       />
 
       <ProductNoteCard
@@ -699,16 +593,8 @@ export function ProductDetail() {
         draftNote={draftNote}
         onDraftChange={setDraftNote}
         editingNote={editingNote}
-        onStartEdit={() => {
-          setDraftNote(note);
-          setNoteError(null);
-          setEditingNote(true);
-        }}
-        onCancel={() => {
-          setDraftNote(note);
-          setNoteError(null);
-          setEditingNote(false);
-        }}
+        onStartEdit={startEditNote}
+        onCancel={cancelEditNote}
         onSave={handleSaveNote}
         error={noteError}
       />
@@ -785,10 +671,7 @@ export function ProductDetail() {
 
       <EditProductModal
         open={editOpen}
-        onClose={() => {
-          setEditOpen(false);
-          setEditError(null);
-        }}
+        onClose={closeEdit}
         name={editName}
         onNameChange={setEditName}
         model={editModel}

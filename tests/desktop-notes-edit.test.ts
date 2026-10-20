@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop notes and edit", () => {
   it("has a product notes card", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-note.ts",
+      "utf8",
+    );
     const card = await readFile(
       "desktop/src/components/product/ProductNoteCard.tsx",
       "utf8",
@@ -13,7 +16,10 @@ describe("desktop notes and edit", () => {
   });
 
   it("edits product details in place", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-edit.ts",
+      "utf8",
+    );
     const header = await readFile(
       "desktop/src/components/product/ProductHeader.tsx",
       "utf8",
@@ -23,12 +29,19 @@ describe("desktop notes and edit", () => {
   });
 
   it("surfaces save failures instead of false success toasts", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toContain("handleSaveNote");
-    expect(text).toContain("handleSaveEdit");
-    expect(text).toContain("catch");
-    expect(text).toContain("Couldn't save note");
-    expect(text).toContain("Couldn't save changes");
+    const note = await readFile(
+      "desktop/src/hooks/use-product-note.ts",
+      "utf8",
+    );
+    const edit = await readFile(
+      "desktop/src/hooks/use-product-edit.ts",
+      "utf8",
+    );
+    expect(note).toContain("handleSaveNote");
+    expect(edit).toContain("handleSaveEdit");
+    expect(note).toContain("catch");
+    expect(note).toContain("Couldn't save note");
+    expect(edit).toContain("Couldn't save changes");
   });
 
   it("passes listing currency to the scoped alert matcher", async () => {
