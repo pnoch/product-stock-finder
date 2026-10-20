@@ -117,7 +117,8 @@ describe("desktop chart guard", () => {
       expect(block).toContain("catch");
     }
     // createPriceAlert must not reject on a storage failure.
-    const alertStart = text.indexOf("async function createPriceAlert");
+    const helpers = await readFile("desktop/src/lib/product-detail.ts", "utf8");
+    const alertStart = helpers.indexOf("export async function createPriceAlert");
     const alertBlock = text.slice(alertStart, text.indexOf("return { ok: true, id };", alertStart));
     expect(alertBlock).toContain("try {");
     expect(alertBlock).toContain("catch");
@@ -152,15 +153,24 @@ describe("desktop chart guard", () => {
   // screen's `alerts` state, so the Distributor Targets table stayed stale.
   it("syncs desktop product-detail alerts state after creating an alert", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const helpers = await readFile("desktop/src/lib/product-detail.ts", "utf8");
     // createPriceAlert returns the created alert.
-    const alertStart = text.indexOf("async function createPriceAlert");
-    expect(text.slice(alertStart, text.indexOf("return { ok: true, id, alert };", alertStart))).toContain("alert");
+    const alertStart = helpers.indexOf("export async function createPriceAlert");
+    expect(
+      helpers.slice(
+        alertStart,
+        helpers.indexOf("return { ok: true, id, alert };", alertStart),
+      ),
+    ).toContain("alert");
     // Every caller appends the returned alert to state. (The callers destructure
     // after awaiting, so match the destructure and the state append separately.)
     const callers = text.match(/= await createPriceAlert\(/g) ?? [];
     expect(callers.length).toBe(4);
     expect((text.match(/const \{ ok, alert \} = result;/g) ?? []).length).toBe(4);
-    expect((text.match(/setAlerts\(\(prev\) => \[\.\.\.prev, alert\]\)/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    expect(
+      (text.match(/setAlerts\(\(prev\) => \[\.\.\.prev, alert\]\)/g) ?? [])
+        .length,
+    ).toBeGreaterThanOrEqual(4);
   });
 
   // QA round 50: the basket-alert save optimistically set the threshold but

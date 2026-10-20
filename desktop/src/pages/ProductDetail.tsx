@@ -53,6 +53,12 @@ import { isAcquired } from "../../../lib/acquired";
 import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
+import { PriceSparkline } from "../components/PriceSparkline";
+import {
+  notesStore,
+  createPriceAlert,
+  createStockWatchId,
+} from "../lib/product-detail";
 import { ProductImage } from "../components/ProductImage";
 // Lazy: the chart is only needed on this screen, so it is split into its own
 // chunk instead of loading on every route.
@@ -64,91 +70,6 @@ const PriceHistoryChart = lazy(() =>
   })),
 );
 
-
-function PriceSparkline({ history, currency }: { history: { price: number }[]; currency: string }) {
-  if (history.length < 2) {
-    return <div className="h-8 w-24 bg-gray-100 dark:bg-gray-800 rounded" />;
-  }
-
-  const prices = history.map((h) => h.price);
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  const range = max - min || 1;
-  const w = 96;
-  const h = 32;
-  const padding = 2;
-
-  const points = prices
-    .map((p, i) => {
-      const x = padding + (i / (prices.length - 1)) * (w - padding * 2);
-      const y = h - padding - ((p - min) / range) * (h - padding * 2);
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  const isDown = prices[prices.length - 1] < prices[0];
-  const strokeColor = isDown ? "#10b981" : "#ef4444";
-  const firstPrice = prices[0];
-  const lastPrice = prices[prices.length - 1];
-  const trend = lastPrice < firstPrice ? "down" : lastPrice > firstPrice ? "up" : "flat";
-  const sparklineLabel = `Price sparkline, trending ${trend}, ${formatPrice(firstPrice, currency)} to ${formatPrice(lastPrice, currency)}`;
-
-  return (
-    <svg width={w} height={h} className="shrink-0" role="img" aria-label={sparklineLabel}>
-      <polyline
-        points={points}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-const notesStore = {
-  getItem: (k: string) => Promise.resolve(localStorage.getItem(k)),
-  setItem: (k: string, v: string): Promise<void> => {
-    localStorage.setItem(k, v);
-    return Promise.resolve();
-  },
-};
-
-async function createPriceAlert(input: {
-  productId: string;
-  distributorId: string;
-  targetPrice: number;
-  currency: string;
-  direction: "drop" | "rise";
-}): Promise<{ ok: boolean; id: string; alert?: PriceAlert }> {
-  const granted = await checkNotificationPermission();
-  if (!granted) return { ok: false, id: "" };
-  const id = `alert-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const alert: PriceAlert = {
-    id,
-    productId: input.productId,
-    direction: input.direction,
-    distributorId: input.distributorId,
-    targetPrice: input.targetPrice,
-    currency: input.currency,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  };
-  try {
-    await storage.addAlert(alert);
-  } catch {
-    // A storage failure must not reject unhandled; callers show a toast on !ok.
-    return { ok: false, id: "" };
-  }
-  // Return the alert so callers can sync the screen's `alerts` state (the
-  // Distributor Targets table reads it and otherwise stays stale).
-  return { ok: true, id, alert };
-}
-
-function createStockWatchId() {
-  return `watch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 export function ProductDetail() {
   const { id } = useParams();

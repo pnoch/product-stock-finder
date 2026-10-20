@@ -19,7 +19,10 @@ describe("desktop safety and charts", () => {
 
   it("labels charts for screen readers", async () => {
     const compare = await readFile("desktop/src/pages/Compare.tsx", "utf8");
-    const detail = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const detail = await readFile(
+      "desktop/src/components/PriceSparkline.tsx",
+      "utf8",
+    );
     const rates = await readFile("desktop/src/pages/Rates.tsx", "utf8");
     expect(compare).toContain("Price history,");
     expect(detail).toContain('role="img"');

@@ -15,7 +15,10 @@ describe("desktop stats parity 2", () => {
   });
 
   it("formats sparkline values and offers share choice", async () => {
-    const detail = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const detail = await readFile(
+      "desktop/src/components/PriceSparkline.tsx",
+      "utf8",
+    );
     const rates = await readFile("desktop/src/pages/Rates.tsx", "utf8");
     const stats = await readFile("desktop/src/pages/Stats.tsx", "utf8");
     expect(detail).toContain("formatPrice(first");
