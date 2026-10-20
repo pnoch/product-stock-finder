@@ -1053,7 +1053,7 @@ describe("desktop chart guard", () => {
   it("wires members-only gating and the shared-with-me list", async () => {
     for (const file of [
       "app/(tabs)/settings.tsx",
-      "desktop/src/pages/Settings.tsx",
+      "desktop/src/components/settings/shared-links.tsx",
     ]) {
       const src = await readFile(file, "utf8");
       expect(src, file).toContain("sharedWatchlists.setMembersOnly.useMutation()");
@@ -1073,7 +1073,7 @@ describe("desktop chart guard", () => {
   it("wires invite-by-email and the member roster on both platforms", async () => {
     for (const file of [
       "app/(tabs)/settings.tsx",
-      "desktop/src/pages/Settings.tsx",
+      "desktop/src/components/settings/shared-links.tsx",
     ]) {
       const src = await readFile(file, "utf8");
       expect(src, file).toContain("sharedWatchlists.inviteByEmail.useMutation()");
@@ -1806,9 +1806,14 @@ describe("desktop chart guard", () => {
   // QA round 343: one inline Copy button swallowed a clipboard failure while the
   // other copy paths toast it, so a failed copy looked like a successful one.
   it("never swallows a clipboard failure silently", async () => {
-    const settings = await readFile("desktop/src/pages/Settings.tsx", "utf8");
-    const lines = settings
-      .split("\n")
+    const sources = await Promise.all(
+      [
+        "desktop/src/pages/Settings.tsx",
+        "desktop/src/components/settings/shared-links.tsx",
+      ].map((file) => readFile(file, "utf8")),
+    );
+    const lines = sources
+      .flatMap((src) => src.split("\n"))
       .filter((line) => line.includes("navigator.clipboard.writeText"));
     expect(lines.length).toBeGreaterThan(2);
     for (const line of lines) {
