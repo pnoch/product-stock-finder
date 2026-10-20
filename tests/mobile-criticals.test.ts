@@ -189,10 +189,17 @@ describe("best-distributor lowest-ever badge uses the display currency", () => {
 // now share `removeProductWithUndo`.
 describe("watchlist undo restores the deleted product's cascade", () => {
   const src = readFileSync(path.join(process.cwd(), "app/(tabs)/watchlist.tsx"), "utf8");
+  const removeSrc = readFileSync(
+    path.join(process.cwd(), "hooks/use-watchlist-remove.ts"),
+    "utf8",
+  );
 
   it("captures the cascade before deleting", () => {
-    const start = src.indexOf("const removeProductWithUndo");
-    const block = src.slice(start, src.indexOf("}, [reload, showUndoBar]);", start));
+    const start = removeSrc.indexOf("const removeProductWithUndo");
+    const block = removeSrc.slice(
+      start,
+      removeSrc.indexOf("}, [reload, reloadAlerts, showAlert, showUndoBar]);", start),
+    );
     expect(block).toContain("getAlerts()");
     expect(block).toContain("getBackOrderReminders()");
     expect(block).toContain("getStockWatches()");
@@ -212,8 +219,11 @@ describe("watchlist undo restores the deleted product's cascade", () => {
   });
 
   it("restores them on undo", () => {
-    const start = src.indexOf("const handleUndo");
-    const block = src.slice(start, src.indexOf("}, [undoProduct, reload]);", start));
+    const start = removeSrc.indexOf("const handleUndo");
+    const block = removeSrc.slice(
+      start,
+      removeSrc.indexOf("}, [undoProduct, reload, reloadAlerts, showAlert]);", start),
+    );
     expect(block).toContain("undoAlertsRef.current");
     expect(block).toContain("await addAlert(alert)");
     expect(block).toContain("scheduleBackOrderReminder(");
