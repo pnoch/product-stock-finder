@@ -497,7 +497,10 @@ describe("desktop chart guard", () => {
   // QA round 222: mobile's BestDistributorCard shows a "Cheapest in-stock
   // option" (etc.) subtitle; desktop's Best Price card omitted it.
   it("explains the desktop best-price card like mobile", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/BestDistributorCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("Cheapest in-stock option");
     expect(text).toContain("Cheapest orderable option");
     expect(text).toContain("Cheapest available option");
@@ -1400,7 +1403,10 @@ describe("desktop chart guard", () => {
   // QA round 184: mobile's NotesCard empty state says "Add a private note…";
   // desktop's said "No note yet.".
   it("uses mobile's empty note text on desktop", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/ProductNoteCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("Add a private note…");
     expect(text).not.toContain("No note yet.");
   });
@@ -1408,7 +1414,10 @@ describe("desktop chart guard", () => {
   // QA round 183: mobile's NotesCard placeholder is "Private note (only visible
   // on this device)…"; desktop's said "Add a note about this product…".
   it("uses mobile's note placeholder on desktop", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/ProductNoteCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("Private note (only visible on this device)…");
   });
 
@@ -1787,7 +1796,10 @@ describe("desktop chart guard", () => {
   // QA round 143: mobile's NotesCard caps the note at maxLength={500}; desktop's
   // note textarea had no cap.
   it("caps the desktop product note at 500 chars", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/ProductNoteCard.tsx",
+      "utf8",
+    );
     const start = text.indexOf('aria-label="Product note"');
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start - 500, start);
@@ -1963,7 +1975,8 @@ describe("desktop chart guard", () => {
     expect(rnStub).toContain("openExternal");
     expect(linkingStub).toContain("openExternal");
     for (const file of [
-      "desktop/src/pages/ProductDetail.tsx",
+      "desktop/src/components/product/BestDistributorCard.tsx",
+      "desktop/src/components/product/DistributorTable.tsx",
       "desktop/src/pages/Settings.tsx",
     ]) {
       expect(await readFile(file, "utf8")).toContain("externalLinkHandler");

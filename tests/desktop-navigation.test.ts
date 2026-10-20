@@ -16,7 +16,10 @@ describe("desktop navigation fixes", () => {
 
   it("refreshes rates by button and links out-of-stock best price", async () => {
     const rates = await readFile("desktop/src/pages/Rates.tsx", "utf8");
-    const detail = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const detail = await readFile(
+      "desktop/src/components/product/BestDistributorCard.tsx",
+      "utf8",
+    );
     expect(rates).not.toContain("Pull to refresh");
     expect(detail).toContain("Out of Stock <ExternalLink");
   });

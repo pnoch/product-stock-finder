@@ -4,8 +4,12 @@ import { readFile } from "node:fs/promises";
 describe("desktop notes and edit", () => {
   it("has a product notes card", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const card = await readFile(
+      "desktop/src/components/product/ProductNoteCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("getProductNote");
-    expect(text).toContain("My Note");
+    expect(card).toContain("My Note");
   });
 
   it("edits product details in place", async () => {

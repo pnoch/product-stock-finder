@@ -4,7 +4,6 @@ import { log } from "@shared/log";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   ArrowLeft,
-  ExternalLink,
   Bell,
   Clock,
   Star,
@@ -46,9 +45,7 @@ import { withTimeout } from "../../../lib/with-timeout";
 import { rediscoverProduct } from "../../../lib/manual-add";
 import { discoverListings } from "../../../lib/listing-discovery";
 import { isAcquired } from "../../../lib/acquired";
-import { StockBadge } from "../components/StockBadge";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
-import { PriceSparkline } from "../components/PriceSparkline";
 import { ReminderDatePickerModal } from "../components/product/ReminderDatePickerModal";
 import { SetAlertModal } from "../components/product/SetAlertModal";
 import { PerListingAlertModal } from "../components/product/PerListingAlertModal";
@@ -57,6 +54,8 @@ import { DistributorTable } from "../components/product/DistributorTable";
 import { DistributorTargets } from "../components/product/DistributorTargets";
 import { EditProductModal } from "../components/product/EditProductModal";
 import { ProductHeader } from "../components/product/ProductHeader";
+import { ProductNoteCard } from "../components/product/ProductNoteCard";
+import { BestDistributorCard } from "../components/product/BestDistributorCard";
 import {
   notesStore,
   createPriceAlert,
@@ -65,7 +64,6 @@ import {
 import { ProductImage } from "../components/ProductImage";
 // Lazy: the chart is only needed on this screen, so it is split into its own
 // chunk instead of loading on every route.
-import { externalLinkHandler } from "../lib/open-external";
 
 const PriceHistoryChart = lazy(() =>
   import("../components/PriceHistoryChart").then((m) => ({
@@ -980,162 +978,35 @@ export function ProductDetail() {
         }}
       />
 
-      {/* Product Note */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold">My Note</h2>
-          {!editingNote && (
-            <button
-              onClick={() => {
-                setDraftNote(note);
-                setNoteError(null);
-                setEditingNote(true);
-              }}
-              className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              aria-label="Edit note"
-            >
-              Edit
-            </button>
-          )}
-        </div>
-        {noteError && <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">{noteError}</p>}
-        {editingNote ? (
-          <div className="space-y-2">
-            <textarea
-              value={draftNote}
-              onChange={(e) => setDraftNote(e.target.value)}
-              placeholder="Private note (only visible on this device)…"
-              rows={3}
-              maxLength={500}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label="Product note"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setDraftNote(note);
-                  setNoteError(null);
-                  setEditingNote(false);
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                aria-label="Cancel editing note"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveNote}
-                className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
-                aria-label="Save note"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        ) : note ? (
-          <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{note}</p>
-        ) : (
-          <p className="text-sm text-gray-500 dark:text-gray-400">Add a private note…</p>
-        )}
-      </div>
+      <ProductNoteCard
+        note={note}
+        draftNote={draftNote}
+        onDraftChange={setDraftNote}
+        editingNote={editingNote}
+        onStartEdit={() => {
+          setDraftNote(note);
+          setNoteError(null);
+          setEditingNote(true);
+        }}
+        onCancel={() => {
+          setDraftNote(note);
+          setNoteError(null);
+          setEditingNote(false);
+        }}
+        onSave={handleSaveNote}
+        error={noteError}
+      />
 
-      {/* Best Distributor Card */}
-      {best && bestListing && bestDistributor && (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">
-                Best Price
-              </p>
-              <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-                {formatPrice(best.price, best.currency)}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                {bestDistributor.name} · {bestDistributor.country}{" "}
-                {bestDistributor.countryCode}
-              </p>
-              {/* Mobile's BestDistributorCard explains why this is best. */}
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {bestListing.stockStatus === "in_stock"
-                  ? "Cheapest in-stock option"
-                  : bestListing.stockStatus === "back_order"
-                    ? "Cheapest orderable option"
-                    : "Cheapest available option"}
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <StockBadge
-                status={bestListing.stockStatus}
-                expectedDate={bestListing.expectedDate}
-              />
-              <PriceSparkline history={bestListing.priceHistory ?? []} currency={bestListing.currency} />
-            </div>
-          </div>
-          {trendSignal && (
-            <p
-              className={`mt-1 text-sm font-medium ${trendSignal.down ? "text-emerald-700 dark:text-emerald-300" : "text-red-600 dark:text-red-400"}`}
-            >
-              {trendSignal.down ? "▼" : "▲"} {trendSignal.pct}%
-            </p>
-          )}
-          {isLowestEver ? (
-            <p className="mt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
-              Lowest Price Ever
-            </p>
-          ) : null}
-          {(() => {
-            const suggested = Math.round(bestListing.price * 0.95 * 100) / 100;
-            const label = `Set Alert at ${formatPrice(suggested, bestListing.currency)} (−5%)`;
-            return (
-              <button
-                type="button"
-                onClick={() => void handleQuickAlert()}
-                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-emerald-600 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
-                aria-label={label}
-              >
-                <Bell className="w-3.5 h-3.5" /> {label}
-              </button>
-            );
-          })()}
-          {livePriceLoading ? (
-            <button
-              type="button"
-              disabled
-              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-              aria-label="Loading price"
-            >
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
-              </>
-            </button>
-          ) : bestListing.stockStatus !== "in_stock" ? (
-            <a
-              href={bestListing.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={externalLinkHandler(bestListing.url)}
-              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-gray-600 text-white hover:bg-gray-500 cursor-pointer"
-              aria-label={`Buy ${product.name} at ${bestDistributor.name} (currently ${bestListing.stockStatus === "back_order" ? "on back order" : "out of stock"})`}
-            >
-              {bestListing.stockStatus === "back_order" ? (
-                <>Back Order <ExternalLink className="w-3.5 h-3.5" /></>
-              ) : (
-                <>Out of Stock <ExternalLink className="w-3.5 h-3.5" /></>
-              )}
-            </a>
-          ) : (
-            <a
-              href={bestListing.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={externalLinkHandler(bestListing.url)}
-              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
-              aria-label={`Buy ${product.name} at ${bestDistributor.name}`}
-            >
-              Buy Now <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          )}
-        </div>
-      )}
+      <BestDistributorCard
+        productName={product.name}
+        best={best}
+        bestListing={bestListing}
+        bestDistributor={bestDistributor}
+        trendSignal={trendSignal}
+        isLowestEver={isLowestEver}
+        livePriceLoading={livePriceLoading}
+        onQuickAlert={() => void handleQuickAlert()}
+      />
       </div>
 
       {dealScore != null && (
