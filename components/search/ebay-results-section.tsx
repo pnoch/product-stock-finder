@@ -27,10 +27,14 @@ export function EbayResultsSection({ query, onTrack }: { query: string; onTrack:
   const trimmed = query.trim();
   const eligible = trimmed.length >= 2 && trimmed.length <= EBAY_SEARCH_QUERY_MAX && !/^https?:\/\//i.test(trimmed);
   useEffect(() => {
+    if (!eligible) return;
     let active = true;
-    setResult(null);
-    if (!eligible) { setLoading(false); return; }
-    setLoading(true);
+    // Defer the reset so the effect does not synchronously cascade state updates.
+    queueMicrotask(() => {
+      if (!active) return;
+      setResult(null);
+      setLoading(true);
+    });
     const timer = setTimeout(() => {
       void fetchEbaySearch(trimmed).then((value) => {
         if (!active) return;

@@ -60,15 +60,15 @@ const TYPE_ICONS = {
 
 export function Alerts() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState<Tab>(() => {
-    const t = searchParams.get("tab");
-    return t === "reminders" ? "reminders" : t === "notifications" ? "notifications" : "alerts";
-  });
-  useEffect(() => {
-    const t = searchParams.get("tab");
-    setTab(t === "reminders" ? "reminders" : t === "notifications" ? "notifications" : "alerts");
-  }, [searchParams]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const tab: Tab =
+    tabParam === "reminders"
+      ? "reminders"
+      : tabParam === "notifications"
+        ? "notifications"
+        : "alerts";
+  const setTab = (next: Tab) => setSearchParams({ tab: next });
   const {
     alerts,
     loading: alertsLoading,
@@ -152,7 +152,9 @@ export function Alerts() {
   }, []);
 
   useEffect(() => {
-    void loadReminders();
+    queueMicrotask(() => {
+      void loadReminders();
+    });
   }, [loadReminders]);
 
   const loadNotifications = useCallback(async () => {
@@ -186,7 +188,9 @@ export function Alerts() {
         if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
       })
       .catch(() => {});
-    void loadNotifications();
+    queueMicrotask(() => {
+      void loadNotifications();
+    });
   }, [loadNotifications]);
 
   const loading = alertsLoading || remindersLoading;

@@ -186,7 +186,10 @@ export default function ProductDetailScreen() {
 
   useEffect(() => {
     const signal = { cancelled: false };
-    void loadData(signal);
+    // Defer the load so the effect does not synchronously cascade state updates.
+    queueMicrotask(() => {
+      void loadData(signal);
+    });
     return () => { signal.cancelled = true; };
   }, [loadData]);
 
@@ -254,12 +257,7 @@ export default function ProductDetailScreen() {
     [listings, effectiveCurrency],
   );
   useEffect(() => {
-    if (!product?.category || !isOutOfStock) {
-      // Bail out when already empty: a fresh `[]` would be a new reference and
-      // re-trigger this effect into an infinite loop.
-      setAlternatives((prev) => (prev.length === 0 ? prev : []));
-      return;
-    }
+    if (!product?.category || !isOutOfStock) return;
     let active = true;
     (async () => {
       try {

@@ -68,7 +68,10 @@ export function useLiveProduct(
   }, [productId, allowCatalog]);
 
   useEffect(() => {
-    void loadSeed();
+    // Defer the load so the effect does not synchronously cascade state updates.
+    queueMicrotask(() => {
+      void loadSeed();
+    });
     const generation = generationRef.current;
     return () => {
       if (generationRef.current === generation) generationRef.current += 1;

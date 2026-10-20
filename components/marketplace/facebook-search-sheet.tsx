@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Modal, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
 import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
@@ -26,14 +26,10 @@ export function FacebookSearchSheet({ visible, onClose, initialQuery = "" }: { v
     beginVerification,
     completeVerification,
   } = useMarketplaceConnections();
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState(initialQuery);
   const [area, setArea] = useState(preferences.requestedArea);
   const [radius, setRadius] = useState<number>(preferences.requestedRadiusKm);
   const [searchPlan, setSearchPlan] = useState<SearchPlan | null>(null);
-
-  useEffect(() => {
-    if (visible) setKeyword(initialQuery);
-  }, [visible, initialQuery]);
 
   const persistPreferences = async () => {
     await setPreferences({
@@ -97,7 +93,12 @@ export function FacebookSearchSheet({ visible, onClose, initialQuery = "" }: { v
 
   return (
     <>
-      <Modal visible={visible && !searchPlan} animationType="slide" onRequestClose={onClose}>
+      <Modal
+        visible={visible && !searchPlan}
+        animationType="slide"
+        onRequestClose={onClose}
+        onShow={() => setKeyword(initialQuery)}
+      >
         <View style={{ flex: 1, backgroundColor: colors.background, padding: 16, paddingTop: 48 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <Text style={{ color: colors.foreground, fontSize: 28, fontWeight: "700" }}>Facebook Marketplace</Text>

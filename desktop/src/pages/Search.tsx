@@ -66,7 +66,9 @@ export function Search() {
       if (list.length > 50) list = list.slice(-50);
       setDiscoveredProducts(list as typeof PRODUCT_CATALOG);
     }).catch(() => {});
-    setRecentSearches(loadRecent());
+    queueMicrotask(() => {
+      setRecentSearches(loadRecent());
+    });
     storage.getSettings().then((s) => setTagDefinitions((s.tagDefinitions ?? {}) as Record<string, TagDefinition>)).catch(() => {});
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);

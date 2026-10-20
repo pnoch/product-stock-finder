@@ -35,7 +35,9 @@ export function DistributorAnalysis() {
   }, []);
 
   useEffect(() => {
-    void loadData();
+    queueMicrotask(() => {
+      void loadData();
+    });
   }, [loadData]);
 
   // Mobile's distributor-analysis screen exports the detailed listings CSV;

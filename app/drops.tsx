@@ -191,19 +191,22 @@ export default function DropsScreen() {
   );
 
   useEffect(() => {
-    if (!isAuthenticated && tab === "global") setTab("your");
-  }, [isAuthenticated, tab]);
-
-  useEffect(() => {
     if (tab !== "global" || !isAuthenticated) return;
     const key = `${window}:${sortBy}`;
     const cached = globalCache.get(key);
-    if (cached && Date.now() - cached.at < GLOBAL_CACHE_TTL_MS) {
-      setGlobalDrops(cached.data);
-      return;
-    }
     let active = true;
-    setGlobalLoading(true);
+    if (cached && Date.now() - cached.at < GLOBAL_CACHE_TTL_MS) {
+      // Defer the cached paint so the effect does not synchronously cascade.
+      queueMicrotask(() => {
+        if (active) setGlobalDrops(cached.data);
+      });
+      return () => {
+        active = false;
+      };
+    }
+    queueMicrotask(() => {
+      if (active) setGlobalLoading(true);
+    });
     client.prices.topDrops
       .query({ window, limit: 20, sortBy })
       .then((rows) => {
@@ -275,11 +278,12 @@ export default function DropsScreen() {
   }, [visibleDrops, window, sortBy, showToast]);
 
   const selectTab = useCallback((next: DropsTab) => {
+    if (next === "global" && !isAuthenticated) return;
     if (Platform.OS !== "web") {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     setTab(next);
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <ScreenContainer>

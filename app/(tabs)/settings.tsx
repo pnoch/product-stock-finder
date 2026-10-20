@@ -724,6 +724,7 @@ export default function SettingsScreen() {
         <DataSection />
 
         <NotificationsSection
+          key={settings.alertWebhookUrl ?? ""}
           settings={settings}
           updateSetting={updateSetting}
           onTestNotification={handleTestNotification}
@@ -1004,7 +1005,11 @@ export default function SettingsScreen() {
           onReenableDistributor={handleReenableDistributor}
         />
 
-        <LlmSettingsSection settings={settings} onUpdate={updateSetting} />
+        <LlmSettingsSection
+          key={`${settings.llmApiKey ?? ""}|${settings.llmModel ?? ""}|${settings.llmOllamaUrl ?? ""}`}
+          settings={settings}
+          onUpdate={updateSetting}
+        />
 
         <SectionHeader title="Collaborative Watchlist" />
         <View

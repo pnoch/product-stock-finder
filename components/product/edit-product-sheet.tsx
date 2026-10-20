@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Modal,
   Platform,
@@ -48,10 +48,6 @@ export function EditProductSheet({
   const [draft, setDraft] = useState<Draft>(() => toDraft(product));
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (visible) setDraft(toDraft(product));
-  }, [visible, product]);
-
   const canSave =
     !saving && draft.name.trim().length > 0 && draft.modelNumber.trim().length > 0;
   const modelChanged =
@@ -89,6 +85,7 @@ export function EditProductSheet({
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      onShow={() => setDraft(toDraft(product))}
     >
       <View
         style={{

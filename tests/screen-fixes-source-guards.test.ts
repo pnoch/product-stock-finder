@@ -43,13 +43,12 @@ describe("screen-level fixes", () => {
 
   it("the compare screen latches the selection on manual/param changes", () => {
     const src = read("app/compare/[id].tsx");
-    expect(src).toContain("const latchSelection = useCallback");
-    // The param effect owns the selection for a distributor deep link.
-    const paramEffect = src.slice(
-      src.indexOf("const lastAppliedDistributor"),
-      src.indexOf("const toggleSelect"),
-    );
-    expect(paramEffect).toContain("latchSelection();");
+    // The default selection is derived from the distributor deep link or the
+    // top-3 by price; manual toggles take over via userSelected.
+    expect(src).toContain("const [userSelected, setUserSelected]");
+    expect(src).toContain("const selected = userSelected ?? latchedDefault");
+    expect(src).toContain("new Set([distributorParam])");
+    expect(src).toContain("setUserSelected((prev) =>");
   });
 
   it("a failed settings write re-reads the store instead of a stale snapshot", () => {

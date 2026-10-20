@@ -60,7 +60,10 @@ export default function HealthDetailScreen() {
   }, [id]);
 
   useEffect(() => {
-    load();
+    // Defer the load so the effect does not synchronously cascade state updates.
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   // These walk up to 720 samples; memoize (before the early returns so the hook

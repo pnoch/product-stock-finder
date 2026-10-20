@@ -11,27 +11,34 @@ export function ProductImage({
   productId: string;
   size?: number;
 }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(() =>
-    imageCache.has(productId) ? (imageCache.get(productId) ?? null) : null,
+  const [image, setImage] = useState<{ productId: string; url: string | null } | null>(null);
+  const imageUrl =
+    image?.productId === productId
+      ? image.url
+      : (imageCache.get(productId) ?? null);
+  const [loadingProductId, setLoadingProductId] = useState<string | null>(() =>
+    imageCache.has(productId) ? null : productId,
   );
-  const [loading, setLoading] = useState(() => !imageCache.has(productId));
-  const [imgError, setImgError] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
+  const loading = loadingProductId === productId && !!getApiBaseUrl();
+  const [errorFor, setErrorFor] = useState<string | null>(null);
+  const imgError = errorFor === productId;
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const imgLoaded = loadedFor === productId;
+
+  const [prevProductId, setPrevProductId] = useState(productId);
+  if (productId !== prevProductId) {
+    setPrevProductId(productId);
+    setImage(null);
+    setErrorFor(null);
+    setLoadedFor(null);
+    setLoadingProductId(imageCache.has(productId) ? null : productId);
+  }
+
   useEffect(() => {
-    setImgError(false);
-    setImgLoaded(false);
-    if (imageCache.has(productId)) {
-      setImageUrl(imageCache.get(productId)!);
-      setLoading(false);
-      return;
-    }
+    if (imageCache.has(productId)) return;
     let active = true;
     const base = getApiBaseUrl();
-    if (!base) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+    if (!base) return;
     invoke<{ imageUrl?: string }>("fetch_product_image", {
       apiBaseUrl: base,
       productId,
@@ -40,13 +47,13 @@ export function ProductImage({
         const url = res?.imageUrl ?? null;
         imageCache.set(productId, url);
         if (active) {
-          setImageUrl(url);
-          setLoading(false);
+          setImage({ productId, url });
+          setLoadingProductId(null);
         }
       })
       .catch(() => {
         imageCache.set(productId, null);
-        if (active) setLoading(false);
+        if (active) setLoadingProductId(null);
       });
     return () => {
       active = false;
@@ -95,8 +102,8 @@ export function ProductImage({
       <img
         src={imageUrl}
         alt={productId}
-        onLoad={() => setImgLoaded(true)}
-        onError={() => setImgError(true)}
+        onLoad={() => setLoadedFor(productId)}
+        onError={() => setErrorFor(productId)}
         style={{
           width: size,
           height: size,

@@ -2,7 +2,7 @@ import { log } from "@shared/log";
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
 import { getApiBaseUrl } from "@/constants/oauth";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { Platform } from "react-native";
 
 const debugLog = (...args: unknown[]) => {
@@ -38,11 +38,11 @@ async function deviceHeader(): Promise<Record<string, string>> {
 // out left the layout thinking it was still signed in.
 type AuthSnapshot = { user: Auth.User | null; loading: boolean; error: Error | null };
 let sharedSnapshot: AuthSnapshot = { user: null, loading: true, error: null };
-const authSubscribers = new Set<(s: AuthSnapshot) => void>();
+const authSubscribers = new Set<() => void>();
 
 function setShared(patch: Partial<AuthSnapshot>): void {
   sharedSnapshot = { ...sharedSnapshot, ...patch };
-  for (const fn of authSubscribers) fn(sharedSnapshot);
+  for (const fn of authSubscribers) fn();
 }
 
 // Publishes an auth change made outside `useAuth` (e.g. the native OAuth
@@ -53,18 +53,25 @@ export function publishAuthUser(user: Auth.User | null): void {
   setShared({ user, loading: false, error: null });
 }
 
+function subscribeAuth(onStoreChange: () => void): () => void {
+  authSubscribers.add(onStoreChange);
+  return () => {
+    authSubscribers.delete(onStoreChange);
+  };
+}
+
+function getAuthSnapshot(): AuthSnapshot {
+  return sharedSnapshot;
+}
+
 export function useAuth(options?: UseAuthOptions) {
   const { autoFetch = true } = options ?? {};
-  const [snapshot, setSnapshot] = useState<AuthSnapshot>(sharedSnapshot);
+  const snapshot = useSyncExternalStore(
+    subscribeAuth,
+    getAuthSnapshot,
+    getAuthSnapshot,
+  );
   const { user, loading, error } = snapshot;
-
-  useEffect(() => {
-    authSubscribers.add(setSnapshot);
-    setSnapshot(sharedSnapshot);
-    return () => {
-      authSubscribers.delete(setSnapshot);
-    };
-  }, []);
 
   const setUser = useCallback((next: Auth.User | null) => {
     setShared({ user: next });

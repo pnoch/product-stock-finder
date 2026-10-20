@@ -64,8 +64,10 @@ export function Rates() {
   }, []);
 
   useEffect(() => {
-    void loadData();
-    void maybeRefreshFxRates(storage).then(loadData, loadData);
+    queueMicrotask(() => {
+      void loadData();
+      void maybeRefreshFxRates(storage).then(loadData, loadData);
+    });
   }, [loadData]);
 
   const onRefresh = useCallback(async () => {

@@ -43,16 +43,13 @@ export function LoginModal({
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotSent, setForgotSent] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
-  const [oauthProviders, setOauthProviders] = useState<{ google: boolean; apple: boolean } | null>(null);
+  const [oauthProviders, setOauthProviders] = useState<{ google: boolean; apple: boolean }>({ google: false, apple: false });
 
   useEffect(() => {
     if (!visible) return;
     let active = true;
     const baseUrl = getApiBaseUrl();
-    if (!baseUrl) {
-      setOauthProviders({ google: false, apple: false });
-      return;
-    }
+    if (!baseUrl) return;
     fetch(`${baseUrl}/api/auth/oauth/providers`)
       .then((res) => (res.ok ? res.json() : { google: false, apple: false }))
       .then((data) => {

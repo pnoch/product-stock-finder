@@ -78,9 +78,11 @@ export function OnboardingModal({
   const last = index === SLIDES.length - 1;
   const slide = SLIDES[index];
   const done = onComplete ?? onClose ?? (() => {});
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) setIndex(0);
-  }, [open]);
+  }
   return (
     <Modal open={open} onClose={done} title="Welcome">
       <div

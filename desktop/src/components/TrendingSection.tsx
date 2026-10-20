@@ -26,7 +26,9 @@ export function TrendingSection() {
   }, []);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => {
+      load();
+    });
 
     storage.getWatchlist().then((w) => {
       setAddedIds(new Set(w.map((p) => p.id)));

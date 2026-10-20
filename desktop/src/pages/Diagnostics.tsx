@@ -110,7 +110,9 @@ export function Diagnostics() {
   }, []);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const onRefresh = useCallback(async () => {

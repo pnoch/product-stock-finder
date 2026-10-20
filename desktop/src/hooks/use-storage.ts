@@ -28,8 +28,22 @@ export function useWatchlist() {
   }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let active = true;
+    storage
+      .getWatchlist()
+      .then((data) => {
+        if (active) setProducts(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!active) return;
+        loadedRef.current = true;
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const unlistenPromise = onListingUpdated(() => {
@@ -65,8 +79,22 @@ export function useAlerts() {
   }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let active = true;
+    storage
+      .getAlerts()
+      .then((data) => {
+        if (active) setAlerts(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!active) return;
+        loadedRef.current = true;
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return { alerts, loading, refreshing, refresh };
 }
@@ -92,8 +120,21 @@ export function useSettings() {
   }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let active = true;
+    storage
+      .getSettings()
+      .then((data) => {
+        if (active) setSettings(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!active) return;
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const update = useCallback((partial: Partial<AppSettings>) => {
     const previous = settingsRef.current;

@@ -43,7 +43,10 @@ export function SiteSessionsSection() {
   }, []);
 
   useEffect(() => {
-    void load();
+    // Defer the load so the effect does not synchronously cascade state updates.
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const byId = new Map(health.map((h) => [h.distributorId, h]));

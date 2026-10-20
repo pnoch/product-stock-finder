@@ -175,8 +175,11 @@ export default function SourcingScreen() {
 
   useEffect(() => {
     let active = true;
-    void load().catch(() => {
-      if (active) setLoaded(true);
+    // Defer the load so the effect does not synchronously cascade state updates.
+    queueMicrotask(() => {
+      void load().catch(() => {
+        if (active) setLoaded(true);
+      });
     });
     return () => {
       active = false;

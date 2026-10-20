@@ -72,7 +72,9 @@ export function HealthDetail() {
   }, [id]);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   if (!distributor) {

@@ -15,15 +15,15 @@ export default function VerifyEmailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ token?: string }>();
   const token = typeof params.token === "string" ? params.token : Array.isArray(params.token) ? params.token[0] : undefined;
-  const [state, setState] = useState<State>("verifying");
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<State>(token ? "verifying" : "error");
+  const [error, setError] = useState<string | null>(
+    token
+      ? null
+      : "Missing verification token. Please use the link from your email.",
+  );
 
   useEffect(() => {
-    if (!token) {
-      setState("error");
-      setError("Missing verification token. Please use the link from your email.");
-      return;
-    }
+    if (!token) return;
     let cancelled = false;
     (async () => {
       try {

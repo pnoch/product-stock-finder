@@ -43,17 +43,6 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
   const backdropAnim = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
-    if (!visible) return;
-    setLoadFailed(false);
-    void getTagDefinitions()
-      .then(setDefs)
-      .catch(() => setLoadFailed(true));
-    setEditingId(null);
-    setEditName("");
-    setError(null);
-  }, [visible]);
-
-  useEffect(() => {
     if (visible) {
       Animated.parallel([
         Animated.timing(backdropAnim, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
@@ -140,6 +129,15 @@ export function TagManageSheet({ visible, onClose, onChanged }: Props) {
       animationType="fade"
       statusBarTranslucent
       onRequestClose={onClose}
+      onShow={() => {
+        setLoadFailed(false);
+        void getTagDefinitions()
+          .then(setDefs)
+          .catch(() => setLoadFailed(true));
+        setEditingId(null);
+        setEditName("");
+        setError(null);
+      }}
     >
       <Animated.View
         style={{

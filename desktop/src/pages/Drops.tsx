@@ -45,7 +45,6 @@ export function Drops() {
 
   useEffect(() => {
     let active = true;
-    setLoadError(null);
     Promise.all([storage.getWatchlist(), storage.getSettings()])
       .then(([watchlist, settings]) => {
         if (!active) return;
@@ -64,14 +63,12 @@ export function Drops() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated && tab === "global") setTab("your");
-  }, [isAuthenticated, tab]);
-
-  useEffect(() => {
     if (tab !== "global" || !isAuthenticated) return;
     const key = `${window}:${sortBy}`;
     let active = true;
-    setGlobalLoading(true);
+    queueMicrotask(() => {
+      if (active) setGlobalLoading(true);
+    });
     const client = createTRPCClient();
     client.prices.topDrops
       .query({ window, limit: 20, sortBy })
@@ -186,7 +183,10 @@ export function Drops() {
             <button
               key={t}
               type="button"
-              onClick={() => setTab(t)}
+              onClick={() => {
+                if (t === "global" && !isAuthenticated) return;
+                setTab(t);
+              }}
               aria-label={t === "your" ? "Show your drops" : "Show global drops"}
               className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors duration-150 cursor-pointer ${
                 tab === t

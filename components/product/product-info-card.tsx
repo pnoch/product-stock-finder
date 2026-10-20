@@ -39,10 +39,10 @@ export function ProductInfoCard({
   onEditDetails,
 }: ProductInfoCardProps) {
   const colors = useColors();
-  const [imageError, setImageError] = useState(false);
+  const [imageErrorFor, setImageErrorFor] = useState<string | null>(null);
+  const imageError = productImage != null && imageErrorFor === productImage;
   const imageOpacity = useState(() => new Animated.Value(0))[0];
   useEffect(() => {
-    setImageError(false);
     imageOpacity.setValue(0);
     if (productImage) {
       Animated.timing(imageOpacity, {
@@ -52,7 +52,10 @@ export function ProductInfoCard({
       }).start();
     }
   }, [product.id, productImage, imageOpacity]);
-  const handleImageError = useCallback(() => setImageError(true), []);
+  const handleImageError = useCallback(
+    () => setImageErrorFor(productImage ?? null),
+    [productImage],
+  );
 
   const primary22 = useMemo(() => colors.primary + "22", [colors.primary]);
 

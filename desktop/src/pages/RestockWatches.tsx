@@ -29,7 +29,9 @@ export function RestockWatches() {
   }, []);
 
   useEffect(() => {
-    loadWatches();
+    queueMicrotask(() => {
+      loadWatches();
+    });
   }, [loadWatches]);
 
   const handleRemove = useCallback(async (id: string, productName: string) => {

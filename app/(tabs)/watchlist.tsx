@@ -243,7 +243,10 @@ export default function WatchlistScreen() {
     const minStr = priceMinInput.trim();
     const maxStr = priceMaxInput.trim();
     if (minStr === "" && maxStr === "") {
-      setPriceRange((prev) => (prev === undefined ? prev : undefined));
+      // Latch the last valid range while the user types; deriving this would
+      // clear the filter on an intermediate invalid value.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPriceRange(undefined);
       return;
     }
     const min = minStr === "" ? 0 : Number(minStr);

@@ -299,7 +299,9 @@ export function Compare() {
   }, [id]);
 
   useEffect(() => {
-    void loadCompare();
+    queueMicrotask(() => {
+      void loadCompare();
+    });
   }, [loadCompare]);
 
   useEffect(() => {

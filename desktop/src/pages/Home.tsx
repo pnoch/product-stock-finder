@@ -120,7 +120,9 @@ export function Home() {
   }, []);
 
   useEffect(() => {
-    void loadDashboard();
+    queueMicrotask(() => {
+      void loadDashboard();
+    });
   }, [loadDashboard]);
 
   const refreshDashboard = useCallback(async () => {

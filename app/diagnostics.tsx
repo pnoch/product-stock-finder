@@ -169,23 +169,42 @@ export default function DiagnosticsScreen() {
   const [testingId, setTestingId] = useState<string | null>(null);
   const [myDeviceId, setMyDeviceId] = useState<string | null>(null);
 
+  const fetchDiagnostics = useCallback(async () => {
+    const [list, mine] = await Promise.all([
+      fetchPushStatusAll(),
+      getDeviceId().catch(() => null),
+    ]);
+    return { list, mine };
+  }, []);
+
   const load = useCallback(async () => {
     try {
       setLoadError(null);
-      const [list, mine] = await Promise.all([
-        fetchPushStatusAll(),
-        getDeviceId().catch(() => null),
-      ]);
+      const { list, mine } = await fetchDiagnostics();
       setDevices(list);
       setMyDeviceId(mine);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Couldn't load diagnostics");
     }
-  }, []);
+  }, [fetchDiagnostics]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let active = true;
+    fetchDiagnostics()
+      .then(({ list, mine }) => {
+        if (!active) return;
+        setDevices(list);
+        setMyDeviceId(mine);
+      })
+      .catch((e) => {
+        if (active) {
+          setLoadError(e instanceof Error ? e.message : "Couldn't load diagnostics");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [fetchDiagnostics]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

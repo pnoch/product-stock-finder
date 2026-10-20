@@ -67,8 +67,18 @@ export default function AlertsScreen() {
   }, []);
 
   useEffect(() => {
-    void loadCriterionWatches();
-  }, [loadCriterionWatches, refreshing, loading]);
+    let active = true;
+    getCriterionWatches()
+      .then((watches) => {
+        if (active) setCriterionWatches(watches);
+      })
+      .catch(() => {
+        if (active) setCriterionWatches([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [refreshing, loading]);
 
   // Reload on focus so a watch created on the board appears when the user
   // returns to this tab (the effect above only fires on mount/refresh).

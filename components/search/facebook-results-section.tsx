@@ -105,13 +105,22 @@ export function FacebookResultsSection({
   }, [service]);
 
   useEffect(() => {
-    if (trimmed.length < MIN_QUERY_LENGTH) {
-      setState(null);
-      setLoading(false);
-      return;
-    }
     let active = true;
-    setLoading(true);
+    // Defer the reset so the effect does not synchronously cascade state updates.
+    queueMicrotask(() => {
+      if (!active) return;
+      if (trimmed.length < MIN_QUERY_LENGTH) {
+        setState(null);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    });
+    if (trimmed.length < MIN_QUERY_LENGTH) {
+      return () => {
+        active = false;
+      };
+    }
     const timer = setTimeout(() => {
       void searchFbMarketplace({
         query: trimmed,

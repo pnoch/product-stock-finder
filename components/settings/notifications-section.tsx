@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Text,
   View,
@@ -39,10 +39,6 @@ export function NotificationsSection({
   const [testingWebhook, setTestingWebhook] = useState(false);
   const [webhookHint, setWebhookHint] = useState<string | null>(null);
   const [webhookHintOk, setWebhookHintOk] = useState(false);
-
-  useEffect(() => {
-    setWebhookUrl(settings.alertWebhookUrl ?? "");
-  }, [settings.alertWebhookUrl]);
 
   const commitWebhookUrl = () => {
     const next = webhookUrl.trim();

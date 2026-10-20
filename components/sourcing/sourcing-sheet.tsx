@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Modal,
   Platform,
@@ -54,16 +54,11 @@ export function SourcingSheet({
   onSaved?: () => void;
 }) {
   const colors = useColors();
-  const [qty, setQty] = useState("");
-  const [sell, setSell] = useState("");
+  const [qty, setQty] = useState(quantity != null ? String(quantity) : "");
+  const [sell, setSell] = useState(
+    targetSellPrice != null ? String(targetSellPrice) : "",
+  );
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!visible) return;
-    setQty(quantity != null ? String(quantity) : "");
-    setSell(targetSellPrice != null ? String(targetSellPrice) : "");
-    setSaving(false);
-  }, [visible, quantity, targetSellPrice]);
 
   const handleSave = async () => {
     if (saving) return;

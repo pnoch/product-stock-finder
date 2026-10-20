@@ -125,7 +125,9 @@ export function Stats() {
   }, []);
 
   useEffect(() => {
-    void loadStats();
+    queueMicrotask(() => {
+      void loadStats();
+    });
   }, [loadStats, pathname]);
 
   const handleRefresh = useCallback(async () => {

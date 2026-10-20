@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Modal, Platform, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
@@ -64,19 +64,21 @@ export function SessionAssistModal({
   const [origin, setOrigin] = useState(() => originLabel(url));
   const [blockedUrl, setBlockedUrl] = useState<string | null>(null);
 
-  // Reset per-open state so a stale origin or blocked link from a previous
-  // site can never leak into the next session.
-  useEffect(() => {
-    if (!visible) return;
-    setLoading(true);
-    setOrigin(originLabel(url));
-    setBlockedUrl(null);
-  }, [visible, url]);
-
   const supported = Platform.OS !== "web";
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      onRequestClose={onClose}
+      onShow={() => {
+        // Reset per-open state so a stale origin or blocked link from a
+        // previous site can never leak into the next session.
+        setLoading(true);
+        setOrigin(originLabel(url));
+        setBlockedUrl(null);
+      }}
+    >
       <View style={{ flex: 1, backgroundColor: colors.surface }}>
         <View
           style={{

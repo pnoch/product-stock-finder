@@ -590,9 +590,25 @@ export function Settings() {
   const [draftLlmModel, setDraftLlmModel] = useState(settings?.llmModel ?? "");
   const [draftLlmOllamaUrl, setDraftLlmOllamaUrl] = useState(settings?.llmOllamaUrl ?? "");
 
-  useEffect(() => { setDraftLlmApiKey(settings?.llmApiKey ?? ""); }, [settings?.llmApiKey]);
-  useEffect(() => { setDraftLlmModel(settings?.llmModel ?? ""); }, [settings?.llmModel]);
-  useEffect(() => { setDraftLlmOllamaUrl(settings?.llmOllamaUrl ?? ""); }, [settings?.llmOllamaUrl]);
+  const [prevLlm, setPrevLlm] = useState({
+    apiKey: settings?.llmApiKey,
+    model: settings?.llmModel,
+    ollamaUrl: settings?.llmOllamaUrl,
+  });
+  if (
+    settings?.llmApiKey !== prevLlm.apiKey ||
+    settings?.llmModel !== prevLlm.model ||
+    settings?.llmOllamaUrl !== prevLlm.ollamaUrl
+  ) {
+    setPrevLlm({
+      apiKey: settings?.llmApiKey,
+      model: settings?.llmModel,
+      ollamaUrl: settings?.llmOllamaUrl,
+    });
+    setDraftLlmApiKey(settings?.llmApiKey ?? "");
+    setDraftLlmModel(settings?.llmModel ?? "");
+    setDraftLlmOllamaUrl(settings?.llmOllamaUrl ?? "");
+  }
 
   useEffect(() => {
     if (draftLlmApiKey === (settings?.llmApiKey ?? "")) return;
@@ -683,9 +699,11 @@ export function Settings() {
   const [webhookHintOk, setWebhookHintOk] = useState(false);
   const [webhookTesting, setWebhookTesting] = useState(false);
 
-  useEffect(() => {
+  const [prevWebhookUrl, setPrevWebhookUrl] = useState(settings?.alertWebhookUrl);
+  if (settings?.alertWebhookUrl !== prevWebhookUrl) {
+    setPrevWebhookUrl(settings?.alertWebhookUrl);
     setWebhookUrl(settings?.alertWebhookUrl ?? "");
-  }, [settings?.alertWebhookUrl]);
+  }
 
   // Imperative client (not a mutation hook): desktop tests mock ../lib/trpc
   // without a `notifications` member, so a render-time hook would crash them.
@@ -711,11 +729,11 @@ export function Settings() {
     }
   }, [webhookUrl]);
 
+  const effectivePushState =
+    !isAuthenticated || !isPushSupported() ? "off" : pushState;
+
   useEffect(() => {
-    if (!isAuthenticated || !isPushSupported()) {
-      setPushState("off");
-      return;
-    }
+    if (!isAuthenticated || !isPushSupported()) return;
     let cancelled = false;
     void getPushStatus().then((s) => {
       if (!cancelled) setPushState(s);
@@ -934,7 +952,9 @@ export function Settings() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    void loadDevices();
+    queueMicrotask(() => {
+      void loadDevices();
+    });
   }, [isAuthenticated, loadDevices]);
 
   const handleRename = async () => {
@@ -1770,16 +1790,16 @@ export function Settings() {
             <span>
               <span className="block text-sm font-medium">Push notifications</span>
               <span className="block text-xs text-gray-500 dark:text-gray-400">
-                {pushState === "on" ? "On — alerts arrive even with the app closed." : (pushReason ?? "Off")}
+                {effectivePushState === "on" ? "On — alerts arrive even with the app closed." : (pushReason ?? "Off")}
               </span>
             </span>
             <button
-              onClick={pushState === "on" ? handleDisablePush : handleEnablePush}
-              disabled={pushBusy || (!isAuthenticated && pushState !== "on")}
+              onClick={effectivePushState === "on" ? handleDisablePush : handleEnablePush}
+              disabled={pushBusy || (!isAuthenticated && effectivePushState !== "on")}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label={pushState === "on" ? "Disable push notifications" : "Enable push notifications"}
+              aria-label={effectivePushState === "on" ? "Disable push notifications" : "Enable push notifications"}
             >
-              {pushBusy ? "Working" : pushState === "on" ? "Disable" : "Enable"}
+              {pushBusy ? "Working" : effectivePushState === "on" ? "Disable" : "Enable"}
             </button>
           </div>
           <label className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer">

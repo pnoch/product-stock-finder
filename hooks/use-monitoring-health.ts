@@ -49,7 +49,10 @@ export function useMonitoringHealth(): {
   }, []);
 
   useEffect(() => {
-    void assess();
+    // Defer the initial assessment so the effect does not synchronously cascade.
+    queueMicrotask(() => {
+      void assess();
+    });
     const sub = AppState.addEventListener("change", (s) => {
       if (s === "active") void assess();
     });

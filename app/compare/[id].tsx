@@ -58,6 +58,8 @@ import {
 import { LOG_ERROR, log } from "@shared/log";
 
 // ─── Compare Screen ───────────────────────────────────────────────────────────
+const EMPTY_SELECTION = new Set<string>();
+
 export default function CompareScreen() {
   const { id: rawId, distributor: rawDistributor } = useLocalSearchParams<{
     id: string;
@@ -69,7 +71,7 @@ export default function CompareScreen() {
     : rawDistributor;
   const router = useRouter();
   const { showToast } = useToast();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [userSelected, setUserSelected] = useState<Set<string> | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("3M");
   const [sortBy, setSortBy] = useState<SortBy>("trend");
   const [displayCurrency, setDisplayCurrency] = useState("USD");
@@ -83,12 +85,8 @@ export default function CompareScreen() {
     (id ?? "");
   const notFound = loaded && !product && listings.length === 0;
   const { width: windowWidth } = useWindowDimensions();
-  const [chartWidth, setChartWidth] = useState(windowWidth - 64);
-  useEffect(() => {
-    // Keep the chart in sync with window resizes; the container's onLayout
-    // refines this after the first paint.
-    setChartWidth(windowWidth - 64);
-  }, [windowWidth]);
+  const [measuredChartWidth, setMeasuredChartWidth] = useState<number | null>(null);
+  const chartWidth = measuredChartWidth ?? windowWidth - 64;
 
   useEffect(() => {
     getSettings()
@@ -100,23 +98,18 @@ export default function CompareScreen() {
       });
   }, []);
 
-  const selectionInitialized = useRef<string | null>(null);
-  // Latching on any manual/param-driven selection stops the one-time seed below
-  // from re-seeding the top-3 after the user clears every distributor.
-  const latchSelection = useCallback(() => {
-    selectionInitialized.current = `${id ?? ""}-${displayCurrency}`;
-  }, [id, displayCurrency]);
-  useEffect(() => {
-    const key = `${id ?? ""}-${displayCurrency}`;
-    if (!loaded || !id || selectionInitialized.current === key) return;
-    if (selected.size > 0) return;
+  const computedDefault = useMemo(() => {
+    if (!loaded || !id) return new Set<string>();
+    if (
+      distributorParam &&
+      listings.some((l) => l.distributorId === distributorParam)
+    ) {
+      return new Set([distributorParam]);
+    }
     const withHistory = listings.filter(
       (l) => l.priceHistory && l.priceHistory.length >= 2,
     );
-    // Wait for history before latching: marking initialised with no eligible
-    // series left the chart unselected even after the history arrived.
-    if (withHistory.length === 0) return;
-    selectionInitialized.current = key;
+    if (withHistory.length === 0) return new Set<string>();
     const sortedByPrice = [...withHistory].sort((a, b) => {
       const pa = convertPrice(a.price, a.currency, displayCurrency);
       const pb = convertPrice(b.price, b.currency, displayCurrency);
@@ -125,30 +118,29 @@ export default function CompareScreen() {
       if (pb === null) return -1;
       return pa - pb;
     });
-    setSelected(new Set(sortedByPrice.slice(0, 3).map((l) => l.distributorId)));
-    // Intentional one-time init per product/currency (guarded by
-    // selectionInitialized + the selected.size early-return above): re-running
-    // on selection changes would reseed after the user deselects all.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded, listings, id, displayCurrency]);
+    return new Set(sortedByPrice.slice(0, 3).map((l) => l.distributorId));
+  }, [loaded, id, distributorParam, listings, displayCurrency]);
 
-  const lastAppliedDistributor = useRef<string | null | undefined>(undefined);
-  useEffect(() => {
-    if (!loaded || !id) return;
-    if (distributorParam === lastAppliedDistributor.current) return;
-    if (!distributorParam) return;
-    if (listings.some((l) => l.distributorId === distributorParam)) {
-      lastAppliedDistributor.current = distributorParam;
-      latchSelection();
-      setSelected(new Set([distributorParam]));
-    }
-  }, [distributorParam, loaded, listings, id, latchSelection]);
+  // Latch the first non-empty default per product/currency so live price
+  // updates cannot reseed the chart after the user starts comparing.
+  const selectionKey = `${id ?? ""}-${displayCurrency}`;
+  const [latchedDefault, setLatchedDefault] = useState<Set<string> | null>(null);
+  const [prevSelectionKey, setPrevSelectionKey] = useState(selectionKey);
+  if (selectionKey !== prevSelectionKey) {
+    setPrevSelectionKey(selectionKey);
+    setLatchedDefault(null);
+  }
+  if (latchedDefault === null && computedDefault.size > 0) {
+    setLatchedDefault(computedDefault);
+  }
+
+  const selected = userSelected ?? latchedDefault ?? EMPTY_SELECTION;
 
   const toggleSelect = useCallback((distributorId: string) => {
     if (Platform.OS !== "web")
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelected((prev) => {
-      const next = new Set(prev);
+    setUserSelected((prev) => {
+      const next = new Set(prev ?? latchedDefault ?? new Set<string>());
       if (next.has(distributorId)) {
         next.delete(distributorId);
       } else if (next.size < 5) {
@@ -159,7 +151,7 @@ export default function CompareScreen() {
       }
       return next;
     });
-  }, [showToast]);
+  }, [latchedDefault, showToast]);
 
   const setRange = useCallback((r: TimeRange) => {
     if (Platform.OS !== "web")
@@ -471,7 +463,7 @@ export default function CompareScreen() {
                 const w = e.nativeEvent.layout.width;
                 // The ChartCard adds 16px horizontal margin + 16px padding, so
                 // usable width is w - 64 (matches the initial windowWidth - 64).
-                if (w > 0) setChartWidth(Math.max(0, w - 64));
+                if (w > 0) setMeasuredChartWidth(Math.max(0, w - 64));
               }}
             >
               <View pointerEvents="auto">

@@ -74,22 +74,23 @@ function ImagePlaceholder({ colors }: { colors: ReturnType<typeof useColors> }) 
 
 export function ProductImage({ productId, size = 48 }: { productId: string; size?: number }) {
   const colors = useColors();
-  const [imageUrl, setImageUrl] = useState<string | null>(() =>
-    imageCache.has(productId) ? (imageCache.get(productId) ?? null) : null,
-  );
-  const [imageError, setImageError] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [image, setImage] = useState<{ productId: string; url: string | null } | null>(null);
+  const imageUrl =
+    image?.productId === productId
+      ? image.url
+      : (imageCache.get(productId) ?? null);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const loaded = loadedFor === productId;
+  const [errorFor, setErrorFor] = useState<string | null>(null);
+  const imageError = errorFor === productId;
   const opacity = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
     let active = true;
     let queued = false;
     let taskRef: QueuedTask | null = null;
-    setImageError(false);
-    setLoaded(false);
     opacity.setValue(0);
     if (imageCache.has(productId)) {
-      setImageUrl(imageCache.get(productId) ?? null);
       return () => {
         active = false;
       };
@@ -104,7 +105,7 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
         .then((res) => {
           const url = res?.imageUrl ?? null;
           setImageCache(productId, url);
-          if (active) setImageUrl(url);
+          if (active) setImage({ productId, url });
         })
         .catch(() => {
           if (active) setImageCache(productId, null);
@@ -132,13 +133,13 @@ export function ProductImage({ productId, size = 48 }: { productId: string; size
   }, [productId, opacity]);
 
   const handleLoad = useCallback(() => {
-    setLoaded(true);
+    setLoadedFor(productId);
     Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: true }).start();
-  }, [opacity]);
+  }, [opacity, productId]);
 
   const handleError = useCallback(() => {
     setImageCache(productId, null);
-    setImageError(true);
+    setErrorFor(productId);
   }, [productId]);
 
   if (!imageUrl || imageError) {

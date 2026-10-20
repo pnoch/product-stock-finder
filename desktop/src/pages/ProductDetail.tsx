@@ -353,7 +353,9 @@ export function ProductDetail() {
   }, [id]);
 
   useEffect(() => {
-    void loadProduct();
+    queueMicrotask(() => {
+      void loadProduct();
+    });
   }, [loadProduct]);
 
   const visibleListings = useMemo(

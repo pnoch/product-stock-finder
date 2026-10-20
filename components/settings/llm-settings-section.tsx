@@ -26,10 +26,6 @@ export function LlmSettingsSection({ settings, onUpdate }: Props) {
   const [draftModel, setDraftModel] = useState(settings.llmModel ?? "");
   const [draftOllamaUrl, setDraftOllamaUrl] = useState(settings.llmOllamaUrl ?? "");
 
-  useEffect(() => { setDraftApiKey(settings.llmApiKey ?? ""); }, [settings.llmApiKey]);
-  useEffect(() => { setDraftModel(settings.llmModel ?? ""); }, [settings.llmModel]);
-  useEffect(() => { setDraftOllamaUrl(settings.llmOllamaUrl ?? ""); }, [settings.llmOllamaUrl]);
-
   useEffect(() => {
     if (draftApiKey === (settings.llmApiKey ?? "")) return;
     const t = setTimeout(() => onUpdate("llmApiKey", draftApiKey), 500);

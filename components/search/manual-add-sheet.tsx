@@ -120,33 +120,31 @@ export function ManualAddSheet({
     };
   }, []);
 
-  useEffect(() => {
-    if (visible) {
-      // Re-arm on every open. The mount-only effect left activeRef false after
-      // a Cancel, so later adds silently discarded their result and the Add
-      // button stayed in a permanent spinner.
-      activeRef.current = true;
-      setRaw(initialText ?? "");
-      setUrlInput("");
-      setDraft(null);
-      setMarketplace(null);
-      setVariant("");
-      setSeller("");
-      setManualPrice("");
-      setAdding(false);
-      setProgress(null);
-      setAiFailed(false);
-      if (initialEbayListing) {
-        const parsed = parseMarketplaceUrl(initialEbayListing.url);
-        if (parsed.kind === "product" && parsed.identity.platform === "ebay" && parsed.identity.itemId === initialEbayListing.itemId) {
-          setMarketplace(parsed.identity);
-          setDraft({ ...EMPTY_DRAFT, name: initialEbayListing.title, modelNumber: `ebay-us-${parsed.identity.itemId}` });
-          setSeller(initialEbayListing.seller ?? "");
-          setManualPrice(initialEbayListing.currency === "USD" && initialEbayListing.price !== null ? String(initialEbayListing.price) : "");
-        }
+  const resetForm = () => {
+    // Re-arm on every open. The mount-only effect left activeRef false after
+    // a Cancel, so later adds silently discarded their result and the Add
+    // button stayed in a permanent spinner.
+    activeRef.current = true;
+    setRaw(initialText ?? "");
+    setUrlInput("");
+    setDraft(null);
+    setMarketplace(null);
+    setVariant("");
+    setSeller("");
+    setManualPrice("");
+    setAdding(false);
+    setProgress(null);
+    setAiFailed(false);
+    if (initialEbayListing) {
+      const parsed = parseMarketplaceUrl(initialEbayListing.url);
+      if (parsed.kind === "product" && parsed.identity.platform === "ebay" && parsed.identity.itemId === initialEbayListing.itemId) {
+        setMarketplace(parsed.identity);
+        setDraft({ ...EMPTY_DRAFT, name: initialEbayListing.title, modelNumber: `ebay-us-${parsed.identity.itemId}` });
+        setSeller(initialEbayListing.seller ?? "");
+        setManualPrice(initialEbayListing.currency === "USD" && initialEbayListing.price !== null ? String(initialEbayListing.price) : "");
       }
     }
-  }, [visible, initialText, initialEbayListing]);
+  };
 
   const reset = () => {
     setRaw(initialText ?? "");
@@ -376,6 +374,7 @@ export function ManualAddSheet({
       transparent
       animationType="slide"
       onRequestClose={handleClose}
+      onShow={resetForm}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

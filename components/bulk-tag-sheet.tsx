@@ -43,16 +43,6 @@ export function BulkTagSheet({
   const backdropAnim = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
-    if (!visible) return;
-    void getTagDefinitions()
-      .then(setDefs)
-      .catch(() => {});
-    setSelected([]);
-    setNewTagName("");
-    setError(null);
-  }, [visible]);
-
-  useEffect(() => {
     if (visible) {
       Animated.parallel([
         Animated.timing(backdropAnim, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
@@ -116,6 +106,14 @@ export function BulkTagSheet({
       animationType="fade"
       statusBarTranslucent
       onRequestClose={onClose}
+      onShow={() => {
+        setSelected([]);
+        setNewTagName("");
+        setError(null);
+        void getTagDefinitions()
+          .then(setDefs)
+          .catch(() => {});
+      }}
     >
       <Animated.View
         style={{
