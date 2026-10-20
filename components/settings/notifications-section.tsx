@@ -21,14 +21,12 @@ export function NotificationsSection({
   settings,
   updateSetting,
   onTestNotification,
-  setSettings,
   webNotificationHint,
   setWebNotificationHint,
 }: {
   settings: AppSettings;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
   onTestNotification: () => void;
-  setSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
   webNotificationHint: string | null;
   setWebNotificationHint: (hint: string | null) => void;
 }) {
@@ -114,10 +112,6 @@ export function NotificationsSection({
                   onValueChange={(v) => {
                     void setWebNotificationsEnabled(v).catch(() => "denied").then((permission) => {
                       const enabled = v && permission === "granted";
-                      setSettings((prev) => ({
-                        ...prev,
-                        webNotificationsEnabled: enabled,
-                      }));
                       void updateSetting("webNotificationsEnabled", enabled);
                       if (v && permission !== "granted") {
                         setWebNotificationHint(

@@ -10,32 +10,32 @@ type WatchlistReader = Pick<
   "getWatchlist" | "updateWatchlist"
 >;
 
+export const DEFAULT_SETTINGS: AppSettings = {
+  theme: "auto",
+  displayCurrency: "USD",
+  checkInterval: "manual",
+  notificationsEnabled: true,
+  backgroundServiceEnabled: false,
+  stockAlerts: true,
+  priceAlerts: true,
+  healthAlerts: true,
+  emailAlerts: false,
+  webhookAlerts: false,
+  alertWebhookUrl: "",
+  shippingRegion: "Asia-Pacific",
+  webNotificationsEnabled: false,
+  watchlistSort: "recent",
+  watchlistGroup: "off",
+  taxExempt: false,
+  includeImportEstimate: false,
+};
+
 export function createSettingsStorage(
   ctx: StorageContext,
   watchlist: WatchlistReader,
 ) {
   const { adapter, KEYS, notify, enqueue } = ctx;
   const { updateWatchlist } = watchlist;
-
-  const DEFAULT_SETTINGS: AppSettings = {
-    theme: "auto",
-    displayCurrency: "USD",
-    checkInterval: "manual",
-    notificationsEnabled: true,
-    backgroundServiceEnabled: false,
-    stockAlerts: true,
-    priceAlerts: true,
-    healthAlerts: true,
-    emailAlerts: false,
-    webhookAlerts: false,
-    alertWebhookUrl: "",
-    shippingRegion: "Asia-Pacific",
-    webNotificationsEnabled: false,
-    watchlistSort: "recent",
-    watchlistGroup: "off",
-    taxExempt: false,
-    includeImportEstimate: false,
-  };
 
   // ─── Settings ───────────────────────────────────────────────────────────────
 

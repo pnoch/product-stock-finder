@@ -9,17 +9,13 @@ import { trpc } from "@/lib/trpc";
 import { ScreenContainer } from "@/components/screen-container";
 import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { useAuth } from "@/hooks/use-auth";
+import { useSettings } from "@/lib/settings-provider";
 import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { useServerConfig } from "@/hooks/use-server-config";
 import { track } from "@/lib/telemetry";
-import {
-  getSettings,
-  updateSettings,
-  getWatchlist,
-  getSyncMeta,
-} from "@/lib/storage";
+import { getWatchlist, getSyncMeta } from "@/lib/storage";
 import { formatSyncStatus, getSyncSetup } from "@/lib/sync";
 import { maybeRefreshFxRates } from "@/lib/fx";
 import { AppSettings, Product, SyncMeta } from "@/lib/types";
@@ -456,16 +452,12 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { configured } = useServerConfig();
-  const [settings, setSettings] = useState<AppSettings>({
-    theme: "auto",
-    displayCurrency: "USD",
-    checkInterval: "manual",
-    notificationsEnabled: true,
-    backgroundServiceEnabled: false,
-    stockAlerts: true,
-    priceAlerts: true,
-    healthAlerts: true,
-  });
+  const {
+    settings,
+    loading: settingsLoading,
+    updateSetting: saveSetting,
+    refresh: refreshSettings,
+  } = useSettings();
   const [webNotificationHint, setWebNotificationHint] = useState<string | null>(
     null,
   );
@@ -475,7 +467,8 @@ export default function SettingsScreen() {
   const [now, setNow] = useState(() => Date.now());
   const [syncing, setSyncing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [watchlistLoading, setWatchlistLoading] = useState(true);
+  const loading = settingsLoading || watchlistLoading;
   const [reenabling, setReenabling] = useState(false);
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const { isPro } = useEntitlements();
@@ -541,27 +534,23 @@ export default function SettingsScreen() {
 
   const reloadData = useCallback(async () => {
     try {
-      const [s, p] = await Promise.all([getSettings(), getWatchlist()]);
-      setSettings(s);
+      const [, p] = await Promise.all([refreshSettings(), getWatchlist()]);
       setProducts(p);
     } catch (e) {
       log.error("[Settings] reload failed", e);
     }
-  }, []);
+  }, [refreshSettings]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [s, p] = await Promise.all([getSettings(), getWatchlist()]);
-        if (!cancelled) {
-          setSettings(s);
-          setProducts(p);
-        }
+        const p = await getWatchlist();
+        if (!cancelled) setProducts(p);
       } catch (e) {
         log.error("[Settings] load failed", e);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setWatchlistLoading(false);
       }
       void maybeRefreshFxRates().catch(() => {});
     })();
@@ -572,25 +561,13 @@ export default function SettingsScreen() {
 
   const updateSetting = useCallback(
     async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-      // Serialized read-modify-write: two quick changes used to clobber each
-      // other (both read the same snapshot, the later write dropped the first).
-      const previous = settings;
-      setSettings((prev) => ({ ...prev, [key]: value }));
-      let updated: AppSettings;
       try {
-        updated = await updateSettings({ [key]: value } as Partial<AppSettings>);
-        setSettings(updated);
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await saveSetting(key, value);
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {
-        // Revert from the store, not the render-time snapshot: assigning
-        // `previous` undid a second change that had already committed while this
-        // write was in flight.
-        try {
-          setSettings(await getSettings());
-        } catch {
-          setSettings((prev) => ({ ...prev, [key]: previous[key] }));
-        }
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert("Failed to save", "Could not save setting. Please try again.");
         return;
       }
@@ -598,7 +575,7 @@ export default function SettingsScreen() {
         void syncBackgroundTasks();
       }
     },
-    [settings],
+    [saveSetting],
   );
 
   const handleTestNotification = useCallback(async () => {
@@ -728,7 +705,6 @@ export default function SettingsScreen() {
           settings={settings}
           updateSetting={updateSetting}
           onTestNotification={handleTestNotification}
-          setSettings={setSettings}
           webNotificationHint={webNotificationHint}
           setWebNotificationHint={setWebNotificationHint}
         />

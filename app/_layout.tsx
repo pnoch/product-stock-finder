@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { SettingsProvider } from "@/lib/settings-provider";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { WebViewFetchHost } from "@/components/webview-fetch-host";
 import { showAlert } from "@/lib/alert";
@@ -423,13 +424,16 @@ export default function RootLayout() {
   if (onboardingState === "intro" && !isPublic) {
     return (
       <ThemeProvider>
-        <ConciergeScreen onComplete={() => setOnboardingState("app")} />
+        <SettingsProvider>
+          <ConciergeScreen onComplete={() => setOnboardingState("app")} />
+        </SettingsProvider>
       </ThemeProvider>
     );
   }
 
   const content = (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <SettingsProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           {/* Default to hiding native headers so raw route segments don't appear (e.g. "(tabs)", "products/[id]"). */}
@@ -443,7 +447,8 @@ export default function RootLayout() {
           <StatusBar style="auto" />
         </QueryClientProvider>
       </trpc.Provider>
-    </GestureHandlerRootView>
+      </GestureHandlerRootView>
+    </SettingsProvider>
   );
 
   const shouldOverrideSafeArea = Platform.OS === "web";

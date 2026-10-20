@@ -17,10 +17,10 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useSettings } from "@/lib/settings-provider";
 import {
   getWatchlist,
   getAlerts,
-  getSettings,
   getLastSeenAt,
   setLastSeenAt,
   rearmAlert,
@@ -74,7 +74,8 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const { settings } = useSettings();
+  const displayCurrency = settings.displayCurrency;
   const [awaySummary, setAwaySummary] = useState<AwaySummary | null>(null);
 
   const loadGenRef = useRef(0);
@@ -88,10 +89,6 @@ export default function HomeScreen() {
       const alertList = await getAlerts();
       if (gen !== loadGenRef.current) return;
       setAlerts(alertList);
-      const settings = await getSettings();
-      if (gen !== loadGenRef.current) return;
-      setDisplayCurrency(settings?.displayCurrency ?? "USD");
-
       const seen = await getLastSeenAt();
       if (gen !== loadGenRef.current) return;
       if (seen != null && list.length > 0) {
@@ -100,7 +97,7 @@ export default function HomeScreen() {
             watchlist: activeProducts(list),
             since: seen,
             now: Date.now(),
-            displayCurrency: settings?.displayCurrency ?? "USD",
+            displayCurrency,
           }),
         );
       }
@@ -112,7 +109,7 @@ export default function HomeScreen() {
     } finally {
       if (gen === loadGenRef.current) setLoaded(true);
     }
-  }, []);
+  }, [displayCurrency]);
 
   // Invalidate cached watchlist preview when watchlist mutates so home never shows stale data
   useEffect(() => {

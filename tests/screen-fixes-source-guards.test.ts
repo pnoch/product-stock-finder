@@ -52,10 +52,10 @@ describe("screen-level fixes", () => {
   });
 
   it("a failed settings write re-reads the store instead of a stale snapshot", () => {
-    const src = read("app/(tabs)/settings.tsx");
-    const start = src.indexOf("const updateSetting");
-    const block = src.slice(start, src.indexOf("const handleTestNotification", start));
-    expect(block).toContain("setSettings(await getSettings());");
+    const provider = read("lib/settings-provider.tsx");
+    expect(provider).toContain("setSettings(await getSettings());");
+    const screen = read("app/(tabs)/settings.tsx");
+    expect(screen).toContain("saveSetting(key, value)");
   });
 
   it("the device list only spins on its first load", () => {
@@ -105,8 +105,8 @@ describe("screen-level fixes", () => {
     // Focus + pull-to-refresh can run loadData concurrently; the earlier
     // watchlist/alerts/settings/last-seen read could land last and overwrite newer state.
     expect(src).toContain("loadGenRef");
-    // Guarded after each of the four reads, plus the catch.
-    expect(src.split("if (gen !== loadGenRef.current) return;").length - 1).toBe(5);
+    // Guarded after each of the three reads, plus the catch.
+    expect(src.split("if (gen !== loadGenRef.current) return;").length - 1).toBe(4);
   });
 
   it("the launch price check runs only after the app UI (and webview host) mounts", () => {
