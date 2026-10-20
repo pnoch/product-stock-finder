@@ -24,8 +24,11 @@ describe("desktop notes and edit", () => {
   });
 
   it("passes listing currency to the scoped alert matcher", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toContain("scopedAlertFor(alerts, product.id, listing.distributorId, listing.currency)");
+    const text = await readFile(
+      "desktop/src/components/product/DistributorTargets.tsx",
+      "utf8",
+    );
+    expect(text).toContain("scopedAlertFor(alerts, productId, listing.distributorId, listing.currency)");
   });
 
   it("loads independent product data in parallel", async () => {

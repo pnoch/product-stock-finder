@@ -1421,7 +1421,10 @@ describe("desktop chart guard", () => {
   // QA round 181: mobile's EditProductSheet title is "Edit Product ✏️";
   // desktop's edit-product modal was "Edit product".
   it("titles the desktop edit-product modal like mobile", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/EditProductModal.tsx",
+      "utf8",
+    );
     expect(text).toContain('title="Edit Product"');
     expect(text).not.toContain('title="Edit product"');
   });
@@ -1789,7 +1792,10 @@ describe("desktop chart guard", () => {
   // ("Any distributor · target …") and an empty-state hint; desktop's
   // Distributor Targets section showed neither.
   it("shows the product-wide target footer on desktop", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/DistributorTargets.tsx",
+      "utf8",
+    );
     expect(text).toContain("Any distributor · target");
     expect(text).toContain("Set per-distributor targets with + to compare them here.");
   });
@@ -1826,16 +1832,26 @@ describe("desktop chart guard", () => {
     const start = text.indexOf("const handleSaveEdit = async () =>");
     const block = text.slice(start, text.indexOf("const handleSaveAlert", start));
     expect(block).toMatch(/if \(!editName\.trim\(\) \|\| !editModel\.trim\(\)\) return;/);
-    const btn = text.slice(text.indexOf("aria-label=\"Save product changes\"") - 700, text.indexOf("aria-label=\"Save product changes\""));
-    expect(btn).toMatch(/!editName\.trim\(\) \|\|\s*!editModel\.trim\(\)/);
+    const modal = await readFile(
+      "desktop/src/components/product/EditProductModal.tsx",
+      "utf8",
+    );
+    const btn = modal.slice(
+      modal.indexOf('aria-label="Save product changes"') - 700,
+      modal.indexOf('aria-label="Save product changes"'),
+    );
+    expect(btn).toMatch(/!name\.trim\(\) \|\|\s*!model\.trim\(\)/);
   });
 
   // QA round 137: mobile's Edit Product sheet warns that changing the model
   // re-matches listings on the next refresh; desktop's edit modal didn't.
   it("warns when the model changes in the desktop edit modal", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/EditProductModal.tsx",
+      "utf8",
+    );
     expect(text).toContain("Model changed — listings will re-match on next refresh.");
-    expect(text).toMatch(/editModel\.trim\(\) !== \(product\.modelNumber \?\? ""\)/);
+    expect(text).toMatch(/model\.trim\(\) !== originalModel/);
   });
 
   // QA round 136: desktop's server-notification upload omitted modelNumber, so

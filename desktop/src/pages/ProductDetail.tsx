@@ -31,7 +31,6 @@ import {
   filterListingsByRegion,
 } from "../../../lib/region-filter";
 import type { Product, PriceAlert, DistributorListing } from "../../../lib/types";
-import { scopedAlertFor, productWideAlert, alertDeltaPct } from "../../../lib/alert-scope";
 import { suggestAlertPrices } from "../../../lib/alert-suggestions";
 import { findBestDeal } from "../../../lib/best-deal";
 import { computeDealScore, dealBandLabel } from "../../../lib/deal-score";
@@ -48,7 +47,6 @@ import { rediscoverProduct } from "../../../lib/manual-add";
 import { discoverListings } from "../../../lib/listing-discovery";
 import { isAcquired } from "../../../lib/acquired";
 import { StockBadge } from "../components/StockBadge";
-import { Modal } from "../components/Modal";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
 import { PriceSparkline } from "../components/PriceSparkline";
 import { ReminderDatePickerModal } from "../components/product/ReminderDatePickerModal";
@@ -56,6 +54,8 @@ import { SetAlertModal } from "../components/product/SetAlertModal";
 import { PerListingAlertModal } from "../components/product/PerListingAlertModal";
 import { InlineAlertReminderSections } from "../components/product/InlineAlertReminderSections";
 import { DistributorTable } from "../components/product/DistributorTable";
+import { DistributorTargets } from "../components/product/DistributorTargets";
+import { EditProductModal } from "../components/product/EditProductModal";
 import {
   notesStore,
   createPriceAlert,
@@ -1423,183 +1423,37 @@ export function ProductDetail() {
         findingPrices={findingPrices}
       />
 
-      {/* Distributor Targets */}
-      {(product.listings ?? []).length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <h2 className="text-lg font-semibold mb-3">Distributor Targets</h2>
-          <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
-            {(product.listings ?? []).map((listing) => {
-              const dist = DISTRIBUTORS.find((d) => d.id === listing.distributorId);
-              const name = dist?.name ?? listing.distributorId;
-              // Scoped alert only (matching mobile's TargetTableCard): a
-              // product-wide alert must not occupy the row, or its "+" button
-              // disappears and no per-distributor target can be added. The wide
-              // alert is shown in the footer.
-              const alert = scopedAlertFor(alerts, product.id, listing.distributorId, listing.currency);
-              const deltaPct = alert ? alertDeltaPct(listing, alert) : null;
-              return (
-                <li key={`${listing.distributorId}-${listing.currency}`} className="flex items-center justify-between gap-3 py-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {dist?.countryCode ? `${dist.countryCode} ` : ""}
-                      {name}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {formatPrice(listing.price, listing.currency)}
-                      {alert && (
-                        <span className="text-gray-500 dark:text-gray-400">
-                          {" "}· target {formatPrice(alert.targetPrice, alert.currency)}
-                        </span>
-                      )}
-                      {deltaPct !== null && (
-                        <span
-                          className={`ml-1.5 font-semibold ${deltaPct <= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500 dark:text-gray-400"}`}
-                        >
-                          {deltaPct > 0 ? `+${deltaPct}%` : `${deltaPct}%`}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  {!alert && (
-                    <button
-                      onClick={() => setPerListingAlertId(listing.distributorId)}
-                      className="shrink-0 w-8 h-8 inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-lg font-medium leading-none"
-                      aria-label={`Set target for ${name}`}
-                      title={`Set target for ${name}`}
-                    >
-                      +
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          {(() => {
-            // Mobile's TargetTableCard shows the product-wide alert footer and an
-            // empty-state hint; desktop omitted both.
-            const wide = productWideAlert(alerts, product.id);
-            const anyScoped = (product.listings ?? []).some((l) =>
-              scopedAlertFor(alerts, product.id, l.distributorId, l.currency),
-            );
-            if (wide) {
-              return (
-                <p className="text-xs text-gray-500 dark:text-gray-400 pt-3">
-                  Any distributor · target {formatPrice(wide.targetPrice, wide.currency)}
-                </p>
-              );
-            }
-            if (!anyScoped) {
-              return (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-                  Set per-distributor targets with + to compare them here.
-                </p>
-              );
-            }
-            return null;
-          })()}
-        </div>
-      )}
+      <DistributorTargets
+        productId={product.id}
+        listings={product.listings ?? []}
+        alerts={alerts}
+        onSetTarget={(listing) => setPerListingAlertId(listing.distributorId)}
+      />
 
-      {/* Edit Product Modal */}
-      <Modal
+      <EditProductModal
         open={editOpen}
         onClose={() => {
           setEditOpen(false);
           setEditError(null);
         }}
-        title="Edit Product"
-      >
-        <div className="space-y-4">
-          {editError && (
-            <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
-              {editError}
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium mb-1">Name</label>
-            <input
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label="Product name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Model</label>
-            <input
-              type="text"
-              value={editModel}
-              onChange={(e) => setEditModel(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label="Product model"
-            />
-            {editModel.trim() !== (product.modelNumber ?? "") && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                Model changed — listings will re-match on next refresh.
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Brand</label>
-            <input
-              type="text"
-              value={editBrand}
-              onChange={(e) => setEditBrand(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label="Product brand"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Category</label>
-            <input
-              type="text"
-              value={editCategory}
-              onChange={(e) => setEditCategory(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label="Product category"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label="Product description"
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              onClick={() => {
-                setEditOpen(false);
-                setEditError(null);
-              }}
-              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              aria-label="Cancel editing product"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveEdit}
-              disabled={
-                !editName.trim() ||
-                !editModel.trim() ||
-                (editName.trim() === (product.name ?? "") &&
-                  editModel.trim() === (product.modelNumber ?? "") &&
-                  editBrand.trim() === (product.brand ?? "") &&
-                  editCategory.trim() === (product.category ?? "") &&
-                  editDescription.trim() === (product.description ?? ""))
-              }
-              className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
-              aria-label="Save product changes"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </Modal>
+        name={editName}
+        onNameChange={setEditName}
+        model={editModel}
+        onModelChange={setEditModel}
+        brand={editBrand}
+        onBrandChange={setEditBrand}
+        category={editCategory}
+        onCategoryChange={setEditCategory}
+        description={editDescription}
+        onDescriptionChange={setEditDescription}
+        error={editError}
+        originalName={product.name ?? ""}
+        originalModel={product.modelNumber ?? ""}
+        originalBrand={product.brand ?? ""}
+        originalCategory={product.category ?? ""}
+        originalDescription={product.description ?? ""}
+        onSave={handleSaveEdit}
+      />
 
       <SetAlertModal
         open={alertOpen}

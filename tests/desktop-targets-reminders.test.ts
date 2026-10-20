@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop targets and reminders", () => {
   it("shows target coverage per distributor", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/DistributorTargets.tsx",
+      "utf8",
+    );
     expect(text).toContain("scopedAlertFor");
     expect(text).toContain("Distributor Targets");
   });
@@ -12,11 +15,14 @@ describe("desktop targets and reminders", () => {
     // Falling back to the product-wide alert made `alert` truthy for every row,
     // hiding the "+" and making a per-distributor target impossible to add
     // (mobile scopes the row to per-distributor alerts only).
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/DistributorTargets.tsx",
+      "utf8",
+    );
     const start = text.indexOf("Distributor Targets");
     const block = text.slice(start, text.indexOf("</ul>", start));
     expect(block).toContain(
-      "scopedAlertFor(alerts, product.id, listing.distributorId, listing.currency)",
+      "scopedAlertFor(alerts, productId, listing.distributorId, listing.currency)",
     );
     expect(block).not.toContain("?? productWideAlert");
   });
