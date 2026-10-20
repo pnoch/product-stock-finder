@@ -1249,7 +1249,11 @@ describe("desktop chart guard", () => {
       "utf8",
     );
     expect(perListingModal).toContain("aria-pressed={direction === dir}");
-    expect(product).toContain("aria-pressed={inlineAlertDirection === dir}");
+    const inlineSections = await readFile(
+      "desktop/src/components/product/InlineAlertReminderSections.tsx",
+      "utf8",
+    );
+    expect(inlineSections).toContain("aria-pressed={alertDirection === dir}");
     const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     expect(alerts).toContain("aria-pressed={editCurrency === c}");
     expect(alerts).toContain("aria-pressed={editDirection === d}");

@@ -22,7 +22,7 @@ import {
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { getApiBaseUrl } from "../lib/api-base";
-import { formatPrice, EXCHANGE_RATES } from "@shared/currency";
+import { formatPrice } from "@shared/currency";
 import { getBestPrice, convertPrice } from "@/lib/currency";
 import { formatLastRefreshed, getLastRefreshedColor } from "../../../lib/last-refreshed";
 import { computePriceVsAverage } from "../../../lib/price-average";
@@ -56,6 +56,7 @@ import { PriceSparkline } from "../components/PriceSparkline";
 import { ReminderDatePickerModal } from "../components/product/ReminderDatePickerModal";
 import { SetAlertModal } from "../components/product/SetAlertModal";
 import { PerListingAlertModal } from "../components/product/PerListingAlertModal";
+import { InlineAlertReminderSections } from "../components/product/InlineAlertReminderSections";
 import {
   notesStore,
   createPriceAlert,
@@ -1925,110 +1926,24 @@ export function ProductDetail() {
         displayCurrency={displayCurrency}
       />
 
-      {/* Inline AlertSection / ReminderSection — desktop ports of mobile components */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <h3 className="text-sm font-semibold mb-1">Price Alert</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Create an alert for this product.</p>
-          <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden mb-3">
-            {(["drop", "rise"] as const).map((dir) => (
-              <button
-                key={dir}
-                onClick={() => setInlineAlertDirection(dir)}
-                className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${inlineAlertDirection === dir ? "bg-brand-600 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"}`}
-                aria-pressed={inlineAlertDirection === dir}
-              >
-                {dir === "drop" ? "▼ Drops below" : "▲ Rises above"}
-              </button>
-            ))}
-          </div>
-          <div className="space-y-2 mb-3">
-            <select
-              value={inlineAlertDistributorId ?? ""}
-              onChange={(e) => setInlineAlertDistributorId(e.target.value || null)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
-              aria-label="Inline alert distributor"
-            >
-              <option value="">Best available</option>
-              {visibleListings.map((l) => {
-                const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
-                return (
-                  <option key={l.distributorId} value={l.distributorId}>
-                    {d?.countryCode} {d?.name ?? l.distributorId}
-                  </option>
-                );
-              })}
-            </select>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={inlineAlertPrice}
-                onChange={(e) => setInlineAlertPrice(e.target.value)}
-                placeholder="Target price"
-                min="0"
-                step="0.01"
-                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
-                aria-label="Inline alert price"
-              />
-              <select
-                value={inlineAlertCurrency}
-                onChange={(e) => setInlineAlertCurrency(e.target.value)}
-                className="w-24 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
-                aria-label="Inline alert currency"
-              >
-                {Object.keys(EXCHANGE_RATES).map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <button
-            onClick={handleInlineAlert}
-            disabled={!inlineAlertPrice || parseFloat(inlineAlertPrice) <= 0}
-            className="w-full px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 disabled:opacity-50"
-          >
-            Add Alert
-          </button>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-          <h3 className="text-sm font-semibold mb-1">Back-order Reminder</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Get reminded to check for restock.</p>
-          <div className="space-y-2 mb-3">
-            <select
-              value={inlineReminderDistributorId ?? ""}
-              onChange={(e) => setInlineReminderDistributorId(e.target.value || null)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
-              aria-label="Inline reminder distributor"
-            >
-              <option value="">Select distributor</option>
-              {visibleListings.map((l) => {
-                const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
-                return (
-                  <option key={l.distributorId} value={l.distributorId}>
-                    {d?.countryCode} {d?.name ?? l.distributorId}
-                  </option>
-                );
-              })}
-            </select>
-            <input
-              type="date"
-              value={inlineReminderDate}
-              onChange={(e) => setInlineReminderDate(e.target.value)}
-              min={new Date().toISOString().slice(0, 10)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
-              aria-label="Inline reminder date"
-            />
-            {inlineReminderError && <p className="text-xs text-amber-600">{inlineReminderError}</p>}
-          </div>
-          <button
-            onClick={handleInlineReminder}
-            className="w-full px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700"
-          >
-            Remind Me
-          </button>
-        </div>
-      </div>
+      <InlineAlertReminderSections
+        listings={visibleListings}
+        alertDirection={inlineAlertDirection}
+        onAlertDirectionChange={setInlineAlertDirection}
+        alertDistributorId={inlineAlertDistributorId}
+        onAlertDistributorChange={setInlineAlertDistributorId}
+        alertPrice={inlineAlertPrice}
+        onAlertPriceChange={setInlineAlertPrice}
+        alertCurrency={inlineAlertCurrency}
+        onAlertCurrencyChange={setInlineAlertCurrency}
+        onAddAlert={handleInlineAlert}
+        reminderDistributorId={inlineReminderDistributorId}
+        onReminderDistributorChange={setInlineReminderDistributorId}
+        reminderDate={inlineReminderDate}
+        onReminderDateChange={setInlineReminderDate}
+        reminderError={inlineReminderError}
+        onAddReminder={handleInlineReminder}
+      />
     </div>
   );
 }
