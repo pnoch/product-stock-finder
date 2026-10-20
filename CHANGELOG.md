@@ -4,6 +4,13 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.27.2] - 2026-10-20
+
+### Fixed
+
+- Pinned `@tauri-apps/plugin-updater` to 2.12.0 to match the Rust
+  `tauri-plugin-updater` crate, unblocking `tauri build` in the release workflow.
+
 ## [5.27.1] - 2026-10-20
 
 ### Fixed
