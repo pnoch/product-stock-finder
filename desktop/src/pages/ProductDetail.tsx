@@ -54,6 +54,8 @@ import { Modal } from "../components/Modal";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
 import { PriceSparkline } from "../components/PriceSparkline";
 import { ReminderDatePickerModal } from "../components/product/ReminderDatePickerModal";
+import { SetAlertModal } from "../components/product/SetAlertModal";
+import { PerListingAlertModal } from "../components/product/PerListingAlertModal";
 import {
   notesStore,
   createPriceAlert,
@@ -1851,8 +1853,7 @@ export function ProductDetail() {
         </div>
       </Modal>
 
-      {/* Set Alert Modal */}
-      <Modal
+      <SetAlertModal
         open={alertOpen}
         onClose={() => {
           setAlertOpen(false);
@@ -1860,226 +1861,41 @@ export function ProductDetail() {
           setAlertPrice("");
           setAlertError(null);
         }}
-        title="Set Price Alert"
-      >
-        {alertSaved ? (
-          <div className="text-center py-4">
-            <div className="text-emerald-600 dark:text-emerald-400 font-semibold mb-1">
-              Alert saved!
-            </div>
-            <p className="text-sm text-gray-500">
-              You&apos;ll be notified when the price {alertDirection === "drop" ? "drops below" : "rises above"} your target.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Get notified when{" "}
-              <span className="font-medium">{product.name}</span> {alertDirection === "drop" ? "drops below" : "rises above"}
-              {" "}your target price.
-            </p>
-            {alertError && (
-              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
-                {alertError}
-              </div>
-            )}
-            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {(["drop", "rise"] as const).map((dir) => (
-                <button
-                  key={dir}
-                  onClick={() => setAlertDirection(dir)}
-                  className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${alertDirection === dir ? "bg-brand-600 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
-                  aria-label={dir === "drop" ? "Drops below" : "Rises above"}
-                  aria-pressed={alertDirection === dir}
-                >
-                  {dir === "drop" ? "▼ Drops below" : "▲ Rises above"}
-                </button>
-              ))}
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Distributor</label>
-              <select
-                value={alertDistributorId ?? ""}
-                onChange={(e) => setAlertDistributorId(e.target.value || null)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                aria-label="Alert distributor"
-              >
-                <option value="">Best available</option>
-                {visibleListings.map((l) => {
-                  const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
-                  return (
-                    <option key={l.distributorId} value={l.distributorId}>
-                      {d?.countryCode} {d?.name ?? l.distributorId} · {formatPrice(l.price, l.currency)}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Target Price
-              </label>
-              {alertSuggestions.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {alertSuggestions.map((s) => (
-                    <button
-                      key={s.key}
-                      type="button"
-                      onClick={() => setAlertPrice(String(s.price))}
-                      className="px-3 py-1.5 rounded-full border border-brand-500/40 bg-brand-500/10 text-brand-600 dark:text-brand-400 text-xs font-semibold hover:bg-brand-500/20 transition-colors"
-                      aria-label={`Set price to ${s.label}`}
-                    >
-                      {s.label} · {formatPrice(s.price, alertCurrency)}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <input
-                type="number"
-                value={alertPrice}
-                onChange={(e) => setAlertPrice(e.target.value)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                aria-label="Target price"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Currency</label>
-              <select
-                value={alertCurrency}
-                onChange={(e) => setAlertCurrency(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                aria-label="Alert currency"
-              >
-                {Object.keys(EXCHANGE_RATES).map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => {
-                  setAlertOpen(false);
-                  setAlertPrice("");
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                aria-label="Cancel"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveAlert}
-                disabled={!alertPrice || parseFloat(alertPrice) <= 0}
-                className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
-                aria-label="Save price alert"
-              >
-                Save Alert
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        productName={product.name}
+        alertSaved={alertSaved}
+        alertError={alertError}
+        direction={alertDirection}
+        onDirectionChange={setAlertDirection}
+        distributorId={alertDistributorId}
+        onDistributorChange={setAlertDistributorId}
+        listings={visibleListings}
+        suggestions={alertSuggestions}
+        price={alertPrice}
+        onPriceChange={setAlertPrice}
+        currency={alertCurrency}
+        onCurrencyChange={setAlertCurrency}
+        saving={creatingAlert}
+        onSave={handleSaveAlert}
+      />
 
-      {/* Per-listing Alert Modal — mirrors mobile DistributorListingCard Watch for Restock + alert flow */}
-      <Modal
+      <PerListingAlertModal
         open={!!perListingAlertId}
         onClose={() => {
           setPerListingAlertId(null);
           setPerListingAlertPrice("");
         }}
-        title="Set Distributor Alert"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Get notified when{" "}
-            <span className="font-medium">{product.name}</span> at{" "}
-            <span className="font-medium">
-              {DISTRIBUTORS.find((d) => d.id === perListingAlertId)?.name ?? perListingAlertId}
-            </span>{" "}
-            {perListingAlertDirection === "drop" ? "drops below" : "rises above"} your target.
-          </p>
-          <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {(["drop", "rise"] as const).map((dir) => (
-              <button
-                key={dir}
-                onClick={() => setPerListingAlertDirection(dir)}
-                className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${perListingAlertDirection === dir ? "bg-brand-600 text-white" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
-                aria-label={dir === "drop" ? "Drops below" : "Rises above"}
-                aria-pressed={perListingAlertDirection === dir}
-              >
-                {dir === "drop" ? "▼ Drops below" : "▲ Rises above"}
-              </button>
-            ))}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Target Price</label>
-            {perListingAlertSuggestions.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {perListingAlertSuggestions.map((s) => (
-                  <button
-                    key={s.key}
-                    type="button"
-                    onClick={() => setPerListingAlertPrice(String(s.price))}
-                    className="px-3 py-1.5 rounded-full border border-brand-500/40 bg-brand-500/10 text-brand-600 dark:text-brand-400 text-xs font-semibold hover:bg-brand-500/20 transition-colors"
-                    aria-label={`Set price to ${s.label}`}
-                  >
-                    {s.label} · {formatPrice(s.price, perListingAlertCurrency)}
-                  </button>
-                ))}
-              </div>
-            )}
-            <input
-              type="number"
-              value={perListingAlertPrice}
-              onChange={(e) => setPerListingAlertPrice(e.target.value)}
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label="Distributor target price"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Currency</label>
-            <select
-              value={perListingAlertCurrency}
-              onChange={(e) => setPerListingAlertCurrency(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label="Distributor alert currency"
-            >
-              {Object.keys(EXCHANGE_RATES).map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              onClick={() => {
-                setPerListingAlertId(null);
-                setPerListingAlertPrice("");
-              }}
-              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              aria-label="Cancel distributor alert"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handlePerListingAlert}
-              disabled={!perListingAlertPrice || parseFloat(perListingAlertPrice) <= 0}
-              className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
-              aria-label="Save distributor alert"
-            >
-              Save Alert
-            </button>
-          </div>
-        </div>
-      </Modal>
+        productName={product.name}
+        distributorId={perListingAlertId}
+        direction={perListingAlertDirection}
+        onDirectionChange={setPerListingAlertDirection}
+        suggestions={perListingAlertSuggestions}
+        price={perListingAlertPrice}
+        onPriceChange={setPerListingAlertPrice}
+        currency={perListingAlertCurrency}
+        onCurrencyChange={setPerListingAlertCurrency}
+        saving={creatingAlert}
+        onSave={handlePerListingAlert}
+      />
 
       <ReminderDatePickerModal
         open={reminderOpen}

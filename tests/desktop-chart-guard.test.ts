@@ -1239,8 +1239,16 @@ describe("desktop chart guard", () => {
     }
     const product = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
     expect(product).toContain("aria-pressed={regionFilter === region}");
-    expect(product).toContain("aria-pressed={alertDirection === dir}");
-    expect(product).toContain("aria-pressed={perListingAlertDirection === dir}");
+    const alertModal = await readFile(
+      "desktop/src/components/product/SetAlertModal.tsx",
+      "utf8",
+    );
+    expect(alertModal).toContain("aria-pressed={direction === dir}");
+    const perListingModal = await readFile(
+      "desktop/src/components/product/PerListingAlertModal.tsx",
+      "utf8",
+    );
+    expect(perListingModal).toContain("aria-pressed={direction === dir}");
     expect(product).toContain("aria-pressed={inlineAlertDirection === dir}");
     const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     expect(alerts).toContain("aria-pressed={editCurrency === c}");
@@ -1392,9 +1400,12 @@ describe("desktop chart guard", () => {
   // PriceAlertModal with suggestion chips; desktop's dedicated "Set Distributor
   // Alert" modal had none.
   it("shows suggestions in the desktop distributor alert modal", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toContain("perListingAlertSuggestions");
-    expect(text).toMatch(/perListingAlertSuggestions\.map\(\(s\) =>/);
+    const text = await readFile(
+      "desktop/src/components/product/PerListingAlertModal.tsx",
+      "utf8",
+    );
+    expect(text).toContain("suggestions");
+    expect(text).toMatch(/suggestions\.map\(\(s\) =>/);
   });
 
   // QA round 181: mobile's EditProductSheet title is "Edit Product ✏️";
@@ -1768,10 +1779,13 @@ describe("desktop chart guard", () => {
   // (Near low / Below avg / Under current) via suggestAlertPrices; desktop's
   // modal had none.
   it("shows alert price suggestions in the desktop alert modal", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toContain("suggestAlertPrices");
-    expect(text).toMatch(/alertSuggestions\.map\(\(s\) =>/);
-    expect(text).toMatch(/setAlertPrice\(String\(s\.price\)\)/);
+    const text = await readFile(
+      "desktop/src/components/product/SetAlertModal.tsx",
+      "utf8",
+    );
+    expect(text).toContain("suggestions");
+    expect(text).toMatch(/suggestions\.map\(\(s\) =>/);
+    expect(text).toMatch(/onPriceChange\(String\(s\.price\)\)/);
   });
 
   // QA round 139: desktop's server-notification pull never tracked displayed
