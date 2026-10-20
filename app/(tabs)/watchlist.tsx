@@ -14,17 +14,15 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system/legacy";
 import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useSettings } from "@/lib/settings-provider";
+import { pickAndImportWatchlistCsv } from "@/lib/watchlist-import";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { PaywallScreen } from "@/components/paywall/paywall-screen";
-import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { track } from "@/lib/telemetry";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
 import { useConnection } from "@/hooks/use-connection";
@@ -32,11 +30,8 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { buildWatchlistShareMessage } from "@/lib/watchlist-share";
 import { shareText } from "@/lib/share-text";
 import { trpc } from "@/lib/trpc";
-import { parseBulkImportCsv } from "@/lib/csv";
-import { PRODUCT_CATALOG } from "@shared/catalog";
 import {
   updateSettings,
-  getWatchlist,
   getAlerts,
   addToWatchlist,
   addAlert,
@@ -639,113 +634,46 @@ export default function WatchlistScreen() {
 
   const handleImportCsv = useCallback(async () => {
     try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: ["text/csv", "text/comma-separated-values", "application/vnd.ms-excel"],
-        copyToCacheDirectory: true,
-      });
-      if (res.canceled || !res.assets?.[0]) return;
-      const asset = res.assets[0];
-      let csv = "";
-      if (Platform.OS === "web" && asset.uri) {
-        const fetched = await fetch(asset.uri);
-        csv = await fetched.text();
-      } else if (asset.uri) {
-        csv = await FileSystem.readAsStringAsync(asset.uri, { encoding: "utf8" });
-      } else if ((asset as unknown as { file?: File }).file) {
-        csv = await (asset as unknown as { file: File }).file.text();
-      }
-      if (!csv.trim()) {
+      const result = await pickAndImportWatchlistCsv({ isPro });
+      if (result.status === "canceled") return;
+      if (result.status === "empty") {
         showAlert("Import failed", "CSV file is empty.");
         return;
       }
-      const { rows, truncated } = parseBulkImportCsv(csv);
-      if (rows.length === 0) {
-        showAlert("Import failed", "No valid rows found. Expected header: model,targetPrice,currency,tags");
+      if (result.status === "invalid") {
+        showAlert(
+          "Import failed",
+          "No valid rows found. Expected header: model,targetPrice,currency,tags",
+        );
         return;
       }
-      if (truncated) {
-        // Don't let the summary imply a complete import.
+      if (result.truncated) {
         showAlert(
           "Large file",
-          `Only the first ${rows.length} rows were imported. Split the file and import the rest separately.`,
+          `Only the first ${result.rows} rows were imported. Split the file and import the rest separately.`,
         );
-      }
-      const byModel = new Map(PRODUCT_CATALOG.map((p) => [p.modelNumber.toLowerCase(), p] as const));
-      let added = 0;
-      let skipped = 0;
-      let duplicates = 0;
-      let limited = false;
-      const enforce = shouldEnforceFreeLimits();
-      const currentCount = (await getWatchlist()).length;
-      // Track which products already have an active alert so re-importing the
-      // same CSV doesn't accumulate duplicate alerts (addAlert has no dedup).
-      const existingAlertProductIds = new Set(
-        (await getAlerts()).filter((a) => a.isActive && !a.triggeredAt).map((a) => a.productId),
-      );
-      // Process in chunks of 50 to keep UI responsive and respect sync 200 cap via queue.
-      for (let i = 0; i < rows.length; i += 50) {
-        const chunk = rows.slice(i, i + 50);
-        for (const row of chunk) {
-          if (enforce && !canAddToWatchlist(currentCount + added, isPro)) {
-            limited = true;
-            break;
-          }
-          const catalogHit = byModel.get(row.model.toLowerCase());
-          const product = catalogHit
-            ? { ...catalogHit, tags: row.tags.length > 0 ? row.tags : catalogHit.tags, isWatched: true, addedAt: new Date().toISOString() } as unknown as Product
-            : ({
-                id: row.model,
-                name: row.model,
-                modelNumber: row.model,
-                brand: "Unknown",
-                category: "Switch",
-                description: "",
-                isWatched: true,
-                addedAt: new Date().toISOString(),
-                listings: [],
-                tags: row.tags,
-              } as unknown as Product);
-          try {
-            // addToWatchlist returns false when the product is already tracked;
-            // count those separately so the summary doesn't claim to have added
-            // products that were already on the watchlist. A target price still
-            // creates its alert either way.
-            if (await addToWatchlist(product as Product)) added += 1;
-            else duplicates += 1;
-            if (row.targetPrice !== null && !existingAlertProductIds.has(product.id)) {
-              await addAlert({
-                id: `alert-${product.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                productId: product.id,
-                targetPrice: row.targetPrice,
-                currency: row.currency,
-                createdAt: new Date().toISOString(),
-                isActive: true,
-              });
-              existingAlertProductIds.add(product.id);
-            }
-          } catch {
-            skipped += 1;
-          }
-        }
-        // Yield to event loop between chunks.
-        await new Promise<void>((r) => setTimeout(r, 0));
       }
       await reload();
       await loadData();
-      if (limited) {
+      if (result.limited) {
         track("paywall_shown");
         setPaywallVisible(true);
         showAlert(
           "Import limited",
-          `Added ${added} product${added === 1 ? "" : "s"} — upgrade to Pro to import the rest.`,
+          `Added ${result.added} product${result.added === 1 ? "" : "s"} — upgrade to Pro to import the rest.`,
         );
         return;
       }
       const notes = [
-        duplicates > 0 ? `${duplicates} already tracked` : "",
-        skipped > 0 ? `${skipped} skipped` : "",
-      ].filter(Boolean).join(", ");
-      showAlert("Import complete", `Added ${added} product${added !== 1 ? "s" : ""}${notes ? `, ${notes}` : ""}.`);
+        result.duplicates > 0 ? `${result.duplicates} already tracked` : "",
+        result.skipped > 0 ? `${result.skipped} skipped` : "",
+      ]
+        .filter(Boolean)
+        .join(", ");
+      showAlert(
+        "Import complete",
+        `Added ${result.added} product${result.added !== 1 ? "s" : ""}${notes ? `, ${notes}` : ""}.`,
+      );
     } catch (e) {
       LOG_ERROR("[Watchlist] import failed", e);
       showAlert("Import failed", e instanceof Error ? e.message : String(e));

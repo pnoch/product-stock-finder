@@ -327,11 +327,14 @@ describe("watchlist share text pluralizes", () => {
 // duplicate alerts (addAlert has no dedup).
 describe("CSV import doesn't duplicate alerts", () => {
   it("skips alert creation when an active alert already exists", () => {
-    const src = readFileSync(path.join(process.cwd(), "app/(tabs)/watchlist.tsx"), "utf8");
-    const start = src.indexOf("const handleImportCsv");
-    const block = src.slice(start, src.indexOf("}, [reload, loadData]);", start));
-    expect(block).toContain("existingAlertProductIds");
-    expect(block).toMatch(/row\.targetPrice !== null && !existingAlertProductIds\.has\(product\.id\)/);
+    const src = readFileSync(
+      path.join(process.cwd(), "lib/watchlist-import.ts"),
+      "utf8",
+    );
+    expect(src).toContain("existingAlertProductIds");
+    expect(src).toMatch(
+      /row\.targetPrice !== null &&\s*!existingAlertProductIds\.has\(product\.id\)/,
+    );
   });
 });
 
