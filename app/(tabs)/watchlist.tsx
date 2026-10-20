@@ -3,13 +3,11 @@ import {
   Animated,
   SectionList,
   Text,
-  TextInput,
   View,
   RefreshControl,
   Alert,
   Platform,
   TouchableOpacity,
-  Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -19,6 +17,7 @@ import { showAlert } from "@/lib/alert";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useSettings } from "@/lib/settings-provider";
+import { WatchlistFilterPanel } from "@/components/watchlist/watchlist-filter-panel";
 import { pickAndImportWatchlistCsv } from "@/lib/watchlist-import";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
@@ -64,7 +63,6 @@ import { getAllRegions } from "@/lib/region-filter";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { TagManageSheet } from "@/components/tag-manage-sheet";
 import { BulkTagSheet } from "@/components/bulk-tag-sheet";
-import { TagFilterRow } from "@/components/tag-filter-row";
 import {
   filterWatchlist,
   groupWatchlist,
@@ -72,7 +70,6 @@ import {
   countTagMatches,
   type StatusFilter,
 } from "@/lib/watchlist-org";
-import { CURRENCY_SYMBOLS } from "@shared/currency";
 import { ProductCard } from "@/components/watchlist/product-card";
 import { isAcquired } from "@/lib/acquired";
 import { SwipeableCard } from "@/components/watchlist/swipeable-card";
@@ -81,7 +78,6 @@ import { SearchBar } from "@/components/watchlist/search-bar";
 import { ProgressBar } from "@/components/watchlist/progress-bar";
 import { WatchlistHeader } from "@/components/watchlist/watchlist-header";
 import { SortGroupBar } from "@/components/watchlist/sort-group-bar";
-import { RegionFilterRow } from "@/components/watchlist/region-filter-row";
 import { EmptyState } from "@/components/watchlist/empty-state";
 import { SkeletonList } from "@/components/ui/skeleton";
 import { LOG_ERROR, log } from "@shared/log";
@@ -1123,87 +1119,39 @@ export default function WatchlistScreen() {
     <IconSymbol name={filtersExpanded ? "chevron.up" : "chevron.down"} size={16} color={colors.muted} />
   </TouchableOpacity>
 )}
-{filtersExpanded && watchlist.length > 0 && (
-  <View>
-  <RegionFilterRow
-    regions={regions}
-    regionFilter={regionFilter}
-    onRegionChange={setRegionFilter}
-  />
-  <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingVertical: 8 }}>
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>In stock only</Text>
-      <Switch
-        value={inStockOnly}
-        onValueChange={setInStockOnly}
-        trackColor={{ true: colors.primary, false: colors.border }}
-      />
-    </View>
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>Show acquired</Text>
-      <Switch
-        value={showAcquired}
-        onValueChange={setShowAcquired}
-        trackColor={{ true: colors.primary, false: colors.border }}
-      />
-    </View>
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
-      <Text style={{ color: colors.muted, fontSize: 12 }}>{CURRENCY_SYMBOLS[displayCurrency] ?? displayCurrency}</Text>
-      <TextInput
-        placeholder="Min"
-        value={priceMinInput}
-        onChangeText={setPriceMinInput}
-        keyboardType="numeric"
-        style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 60, color: colors.foreground, fontSize: 12 }}
-        placeholderTextColor={colors.muted}
-        accessibilityLabel="Minimum price"
-      />
-      <Text style={{ color: colors.muted }}>—</Text>
-      <TextInput
-        placeholder="Max"
-        value={priceMaxInput}
-        onChangeText={setPriceMaxInput}
-        keyboardType="numeric"
-        style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, minWidth: 60, color: colors.foreground, fontSize: 12 }}
-        placeholderTextColor={colors.muted}
-        accessibilityLabel="Maximum price"
-      />
-      {(priceRange || priceMinInput !== "" || priceMaxInput !== "") && (
-        <TouchableOpacity onPress={() => { setPriceRange(undefined); setPriceMinInput(""); setPriceMaxInput(""); }} accessibilityLabel="Clear price filter" accessibilityRole="button">
-          <Text style={{ color: colors.muted, fontSize: 12 }}>Clear</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  </View>
-  <TagFilterRow
-    tagDefinitions={tagDefinitions}
-    selectedTagIds={validSelectedTagIds}
-    tagMatchMode={tagMatchMode}
-    counts={tagCounts}
-    onToggleTag={toggleTagFilter}
-    onChangeMode={setTagMatchMode}
-    onClearAll={() => setSelectedTagIds([])}
-    onManage={() => setManageVisible(true)}
-  />
-  {activeFilterCount > 0 && (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={() => {
-        if (Platform.OS !== "web")
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        clearAllFilters();
-      }}
-      style={{ alignSelf: "flex-end", marginRight: 20, marginBottom: 10, padding: 4 }}
-      accessibilityLabel="Clear all filters"
-      accessibilityRole="button"
-    >
-      <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
-        Clear all
-      </Text>
-    </TouchableOpacity>
-  )}
-  </View>
-)}
+<WatchlistFilterPanel
+  visible={filtersExpanded && watchlist.length > 0}
+  regions={regions}
+  regionFilter={regionFilter}
+  onRegionChange={setRegionFilter}
+  inStockOnly={inStockOnly}
+  onInStockOnlyChange={setInStockOnly}
+  showAcquired={showAcquired}
+  onShowAcquiredChange={setShowAcquired}
+  displayCurrency={displayCurrency}
+  priceMinInput={priceMinInput}
+  priceMaxInput={priceMaxInput}
+  onPriceMinChange={setPriceMinInput}
+  onPriceMaxChange={setPriceMaxInput}
+  onClearPrice={() => {
+    setPriceRange(undefined);
+    setPriceMinInput("");
+    setPriceMaxInput("");
+  }}
+  priceFilterActive={
+    !!priceRange || priceMinInput !== "" || priceMaxInput !== ""
+  }
+  tagDefinitions={tagDefinitions}
+  selectedTagIds={validSelectedTagIds}
+  tagMatchMode={tagMatchMode}
+  tagCounts={tagCounts}
+  onToggleTag={toggleTagFilter}
+  onChangeTagMode={setTagMatchMode}
+  onClearTags={() => setSelectedTagIds([])}
+  onManageTags={() => setManageVisible(true)}
+  activeFilterCount={activeFilterCount}
+  onClearAll={clearAllFilters}
+/>
           </View>
         }
         ListEmptyComponent={
