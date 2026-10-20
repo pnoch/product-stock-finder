@@ -14,7 +14,9 @@ describe("desktop diagnostics parity", () => {
   });
 
   it("Settings links to diagnostics", () => {
-    const src = read("src/pages/Settings.tsx");
+    const src = read(
+      "src/components/settings/notification-settings-section.tsx",
+    );
     expect(src).toContain("diagnostics");
   });
 });

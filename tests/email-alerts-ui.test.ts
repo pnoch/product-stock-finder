@@ -12,7 +12,10 @@ describe("email alerts settings UI", () => {
   });
 
   it("exposes an Email Alerts toggle bound to emailAlerts (desktop)", () => {
-    const desktop = readFileSync("desktop/src/pages/Settings.tsx", "utf8");
+    const desktop = readFileSync(
+      "desktop/src/components/settings/notification-settings-section.tsx",
+      "utf8",
+    );
     expect(desktop).toContain("Email Alerts");
     expect(desktop).toContain("emailAlerts");
   });

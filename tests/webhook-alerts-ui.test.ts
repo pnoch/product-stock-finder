@@ -12,7 +12,10 @@ describe("webhook alerts settings UI", () => {
   });
 
   it("exposes the same affordances on desktop", () => {
-    const desktop = readFileSync("desktop/src/pages/Settings.tsx", "utf8");
+    const desktop = readFileSync(
+      "desktop/src/components/settings/notification-settings-section.tsx",
+      "utf8",
+    );
     expect(desktop).toContain("Webhook Alerts");
     expect(desktop).toContain("alertWebhookUrl");
     expect(desktop).toContain("testWebhook");

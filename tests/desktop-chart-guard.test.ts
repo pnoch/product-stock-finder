@@ -315,7 +315,10 @@ describe("desktop chart guard", () => {
   // QA round 235: mobile's "Enable Notifications" row has the description
   // "Receive alerts on your device"; desktop's had none.
   it("describes the desktop enable-notifications row", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/notification-settings-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("Receive alerts on your device");
   });
 
@@ -701,7 +704,10 @@ describe("desktop chart guard", () => {
   // QA round 199: mobile's label is "Test Notification"; desktop's button said
   // "Test notification".
   it("titles the desktop test-notification button like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/notification-settings-section.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/>\s*Test Notification\s*<\/button>/);
     expect(text).not.toMatch(/>\s*Test notification\s*<\/button>/);
   });
@@ -709,7 +715,10 @@ describe("desktop chart guard", () => {
   // QA round 198: mobile's notification rows describe each alert type; desktop's
   // Stock/Price Alerts rows had no descriptions.
   it("describes the desktop notification toggles", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/notification-settings-section.tsx",
+      "utf8",
+    );
     expect(text).toContain("Notify when item comes in stock");
     expect(text).toContain("Notify when price drops below target");
     expect(text).toContain("Notify when a distributor is blocked or down");
@@ -1136,7 +1145,10 @@ describe("desktop chart guard", () => {
   // (stale, foreign) offset instead of device time. It is stamped fresh at
   // upload instead.
   it("does not persist a UTC offset in quiet hours", async () => {
-    const settings = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const settings = await readFile(
+      "desktop/src/components/settings/notification-settings-section.tsx",
+      "utf8",
+    );
     const start = settings.indexOf("QUIET_HOURS_OPTIONS.map");
     const block = settings.slice(start, settings.indexOf("</button>", start));
     expect(block).toContain("update({ quietHours: { start, end } })");
@@ -1650,7 +1662,10 @@ describe("desktop chart guard", () => {
   // displayWebNotification (a no-op in a Tauri webview), never the
   // sendDesktopNotification path real alerts use.
   it("tests the real notification path on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/settings/notification-settings-section.tsx",
+      "utf8",
+    );
     const start = text.indexOf("const handleTestNotification = useCallback");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("}, []);", start));

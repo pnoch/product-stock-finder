@@ -19,8 +19,11 @@ describe("desktop P3b-1 settings", () => {
   });
 
   it("has a web test-notification action", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
-    expect(text).toContain("displayWebNotification");
-    expect(text).toContain("Test notification");
+    const text = await readFile(
+      "desktop/src/components/settings/notification-settings-section.tsx",
+      "utf8",
+    );
+    expect(text).toContain("sendDesktopNotification");
+    expect(text).toContain("Test Notification");
   });
 });
