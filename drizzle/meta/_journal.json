@@ -232,6 +232,13 @@
       "when": 1790930772096,
       "tag": "0032_serious_rhodey",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1792456664721,
+      "tag": "0033_perfect_maddog",
+      "breakpoints": true
     }
   ]
 }
