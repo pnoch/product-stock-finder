@@ -1408,7 +1408,10 @@ describe("desktop chart guard", () => {
   // QA round 180: mobile's ReminderDatePickerModal title is "Set Reminder 📅";
   // desktop's was "Set Reminder".
   it("titles the desktop reminder modal like mobile", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/ReminderDatePickerModal.tsx",
+      "utf8",
+    );
     expect(text).toContain('title="Set Reminder"');
   });
 

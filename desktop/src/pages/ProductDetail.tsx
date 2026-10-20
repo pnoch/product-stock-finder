@@ -14,7 +14,6 @@ import {
   Eye,
   EyeOff,
   Share2,
-  Calendar,
   Copy,
   Download,
   CheckCircle,
@@ -54,6 +53,7 @@ import { StockBadge } from "../components/StockBadge";
 import { Modal } from "../components/Modal";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
 import { PriceSparkline } from "../components/PriceSparkline";
+import { ReminderDatePickerModal } from "../components/product/ReminderDatePickerModal";
 import {
   notesStore,
   createPriceAlert,
@@ -2081,91 +2081,22 @@ export function ProductDetail() {
         </div>
       </Modal>
 
-      {/* Reminder Date Picker Modal */}
-      <Modal
+      <ReminderDatePickerModal
         open={reminderOpen}
         onClose={() => {
           setReminderOpen(false);
           setReminderError(null);
         }}
-        title="Set Reminder"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Pick a date to be reminded to check{" "}
-            <span className="font-medium">
-              {DISTRIBUTORS.find((d) => d.id === reminderDistributorId)?.name ?? reminderDistributorId}
-            </span>{" "}
-            for {product.name}.
-          </p>
-          <div>
-            <label className="block text-sm font-medium mb-1">Distributor</label>
-            <select
-              value={reminderDistributorId ?? ""}
-              onChange={(e) => setReminderDistributorId(e.target.value || null)}
-              aria-label="Distributor"
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            >
-              {visibleListings.map((l) => {
-                const d = DISTRIBUTORS.find((x) => x.id === l.distributorId);
-                return (
-                  <option key={l.distributorId} value={l.distributorId}>
-                    {d?.countryCode} {d?.name ?? l.distributorId}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-          <button
-            onClick={() => {
-              const input = document.getElementById("reminder-date-picker") as HTMLInputElement | null;
-              input?.showPicker?.();
-              input?.focus();
-            }}
-            className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 text-left"
-          >
-            <span className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-brand-600" />
-              <span className="text-sm font-semibold">
-                {new Date(reminderDateInput + "T12:00:00").toLocaleDateString(undefined, {
-                  weekday: "short",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
-            </span>
-            <span className="text-gray-400">▾</span>
-          </button>
-          <input
-            id="reminder-date-picker"
-            type="date"
-            value={reminderDateInput}
-            onChange={(e) => setReminderDateInput(e.target.value)}
-            min={new Date().toISOString().slice(0, 10)}
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            aria-label="Reminder date"
-          />
-          {reminderError && <p className="text-xs text-amber-600 dark:text-amber-400">{reminderError}</p>}
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              onClick={() => {
-                setReminderOpen(false);
-                setReminderError(null);
-              }}
-              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSetReminder}
-              className="px-4 py-2 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
-            >
-              Set Reminder
-            </button>
-          </div>
-        </div>
-      </Modal>
+        productName={product.name}
+        listings={visibleListings}
+        distributorId={reminderDistributorId}
+        onDistributorChange={setReminderDistributorId}
+        dateInput={reminderDateInput}
+        onDateChange={setReminderDateInput}
+        error={reminderError}
+        saving={savingReminder}
+        onSave={handleSetReminder}
+      />
 
       {/* Per-distributor History Modal */}
       <DistributorHistoryModal
