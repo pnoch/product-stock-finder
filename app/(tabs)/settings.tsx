@@ -10,13 +10,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSettings } from "@/lib/settings-provider";
 import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { useServerConfig } from "@/hooks/use-server-config";
 import { track } from "@/lib/telemetry";
-import { getWatchlist, getSyncMeta } from "@/lib/storage";
-import { formatSyncStatus, getSyncSetup } from "@/lib/sync";
+import { getWatchlist } from "@/lib/storage";
 import { maybeRefreshFxRates } from "@/lib/fx";
-import { AppSettings, Product, SyncMeta } from "@/lib/types";
+import { AppSettings, Product } from "@/lib/types";
 import { showAlert } from "@/lib/alert";
 import { sendTestNotification } from "@/lib/notifications";
 import {
@@ -24,9 +22,7 @@ import {
   registerPriceCheckTask,
   syncBackgroundTasks,
 } from "@/lib/background-price-check";
-import { applyBackgroundServiceToggle } from "@/lib/background-service-toggle";
 import { useMonitoringHealth } from "@/hooks/use-monitoring-health";
-import { formatLastRefreshed } from "@/lib/last-refreshed";
 
 import { ConnectionSection } from "@/components/settings/connection-section";
 import { AccountSection } from "@/components/settings/account-section";
@@ -37,6 +33,8 @@ import { ScraperStatusSection } from "@/components/settings/scraper-status-secti
 import { LlmSettingsSection } from "@/components/settings/llm-settings-section";
 import { AboutSection } from "@/components/settings/about-section";
 import { SiteSessionsSection } from "@/components/settings/site-sessions-section";
+import { BackgroundRefreshSection } from "@/components/settings/background-refresh-section";
+import { useSettingsSync } from "@/hooks/use-settings-sync";
 import {
   SharedLinksList,
   JoinedSharedList,
@@ -67,9 +65,6 @@ export default function SettingsScreen() {
   );
   const [products, setProducts] = useState<Product[]>([]);
   const { user, isAuthenticated, logout, login, register } = useAuth();
-  const [syncMeta, setSyncMeta] = useState<SyncMeta | null>(null);
-  const [now, setNow] = useState(() => Date.now());
-  const [syncing, setSyncing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [watchlistLoading, setWatchlistLoading] = useState(true);
   const loading = settingsLoading || watchlistLoading;
@@ -78,57 +73,15 @@ export default function SettingsScreen() {
   const { isPro } = useEntitlements();
   const [paywallVisible, setPaywallVisible] = useState(false);
   const { health: monitoring, refresh: refreshMonitoring } = useMonitoringHealth();
+  const { syncMeta, syncing, syncStatus, handleSyncNow } = useSettingsSync(
+    isAuthenticated,
+    configured,
+  );
 
   const openPaywall = useCallback(() => {
     track("paywall_shown");
     setPaywallVisible(true);
   }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let cancelled = false;
-    const refresh = async () => {
-      const meta = await getSyncMeta().catch(() => null);
-      if (!cancelled && meta) {
-        setSyncMeta(meta);
-        setNow(Date.now());
-      }
-    };
-    refresh();
-    const interval = setInterval(refresh, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [isAuthenticated]);
-
-  const syncStatus = syncMeta
-    ? formatSyncStatus(syncMeta, isAuthenticated, now)
-    : isAuthenticated
-      ? { label: "Not synced yet", tone: "muted" as const }
-      : configured
-        ? { label: "Sign in to sync across devices", tone: "muted" as const }
-        : {
-            label: "Local-only mode — prices are fetched on this device",
-            tone: "muted" as const,
-          };
-
-  const handleSyncNow = useCallback(async () => {
-    if (syncing || !getSyncSetup()) return;
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setSyncing(true);
-    try {
-      await getSyncSetup()?.syncNow();
-      const meta = await getSyncMeta();
-      setSyncMeta(meta);
-      setNow(Date.now());
-    } catch (e) {
-      log.error("[Settings] syncNow failed", e);
-    } finally {
-      setSyncing(false);
-    }
-  }, [syncing]);
 
   const handleSignIn = useCallback(() => {
     if (Platform.OS !== "web")
@@ -314,111 +267,14 @@ export default function SettingsScreen() {
         />
 
         <SectionHeader title="Background Refresh" />
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: 16,
-            marginHorizontal: 16,
-            borderWidth: 1,
-            borderColor: colors.border,
-            overflow: "hidden",
-          }}
-        >
-          <Pressable
-            onPress={shouldEnforceFreeLimits() && !isPro ? openPaywall : undefined}
-            disabled={shouldEnforceFreeLimits() && !isPro}
-            accessibilityLabel={
-              shouldEnforceFreeLimits() && !isPro
-                ? "Background refresh requires Pro. Tap to upgrade."
-                : "Background refresh"
-            }
-            accessibilityRole={shouldEnforceFreeLimits() && !isPro ? "button" : undefined}
-          >
-            <SettingRow
-              icon="arrow.clockwise"
-              label="Background refresh"
-              description={
-                "Keeps checking prices while the app is closed (shows a persistent notification)." +
-                (shouldEnforceFreeLimits() && !isPro ? " (Pro)" : "")
-              }
-              right={
-                <Switch
-                  value={(!shouldEnforceFreeLimits() || isPro) && !!settings.backgroundServiceEnabled}
-                  disabled={shouldEnforceFreeLimits() && !isPro}
-                  onValueChange={(v) => {
-                    if (shouldEnforceFreeLimits() && !isPro) return;
-                    void updateSetting("backgroundServiceEnabled", v);
-                    void applyBackgroundServiceToggle(v);
-                  }}
-                  trackColor={{
-                    false: colors.border,
-                    true: colors.primary + "88",
-                  }}
-                  thumbColor={
-                    settings.backgroundServiceEnabled
-                      ? colors.primary
-                      : colors.muted
-                  }
-                  accessibilityLabel="Enable background refresh"
-                  accessibilityRole="switch"
-                />
-              }
-            />
-          </Pressable>
-          {monitoring.status === "ok" && (
-            <View
-              style={{
-                paddingVertical: 10,
-                paddingHorizontal: 16,
-                borderTopWidth: 1,
-                borderTopColor: colors.border,
-              }}
-            >
-              <Text style={{ color: colors.muted, fontSize: 12 }}>
-                {monitoring.lastRunAt != null
-                  ? `Last checked: ${formatLastRefreshed(new Date(monitoring.lastRunAt).toISOString())}`
-                  : "Not yet run"}
-              </Text>
-            </View>
-          )}
-          {(monitoring.status === "stopped" || monitoring.status === "stale") && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 10,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderTopWidth: 1,
-                borderTopColor: colors.border,
-              }}
-            >
-              <IconSymbol
-                name="exclamationmark.triangle.fill"
-                size={18}
-                color={colors.warning}
-              />
-              <Text style={{ flex: 1, color: colors.foreground, fontSize: 13 }}>
-                Background monitoring may have stopped
-              </Text>
-              <Pressable
-                onPress={handleReenableMonitoring}
-                accessibilityLabel="Re-enable background monitoring"
-                accessibilityRole="button"
-                style={{
-                  backgroundColor: colors.warning + "22",
-                  borderRadius: 10,
-                  paddingVertical: 6,
-                  paddingHorizontal: 12,
-                }}
-              >
-                <Text style={{ color: colors.warning, fontSize: 13, fontWeight: "600" }}>
-                  Re-enable
-                </Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
+        <BackgroundRefreshSection
+          settings={settings}
+          updateSetting={updateSetting}
+          isPro={isPro}
+          openPaywall={openPaywall}
+          monitoring={monitoring}
+          onReenableMonitoring={handleReenableMonitoring}
+        />
 
         <SectionHeader title="Display" />
         <View
