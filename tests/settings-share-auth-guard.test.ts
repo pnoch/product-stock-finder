@@ -31,10 +31,13 @@ describe("settings share-watchlist auth guard", () => {
 
   it("passes auth state and the sign-in handler into the button", async () => {
     const src = stripComments(
-      await readFile("app/(tabs)/settings.tsx", "utf8"),
+      await readFile(
+        "components/settings/collaborative-watchlist-section.tsx",
+        "utf8",
+      ),
     );
     expect(src).toMatch(
-      /<ShareWatchlistButton isAuthenticated=\{isAuthenticated\} onSignIn=\{handleSignIn\}/,
+      /<ShareWatchlistButton\s+isAuthenticated=\{isAuthenticated\}\s+onSignIn=\{onSignIn\}/,
     );
   });
 });
