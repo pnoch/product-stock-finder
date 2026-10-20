@@ -6,7 +6,10 @@ import type { Product } from "../lib/types";
 describe("desktop correctness follow-ups 2", () => {
   it("focuses compare on the row distributor", async () => {
     const compare = await readFile("desktop/src/pages/Compare.tsx", "utf8");
-    const detail = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const detail = await readFile(
+      "desktop/src/components/product/DistributorTable.tsx",
+      "utf8",
+    );
     expect(compare).toContain('get("distributor")');
     expect(detail).toContain("?distributor=");
   });

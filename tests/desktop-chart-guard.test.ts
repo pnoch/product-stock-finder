@@ -1237,8 +1237,11 @@ describe("desktop chart guard", () => {
     ]) {
       expect(await readFile(file, "utf8")).toContain("aria-pressed={active}");
     }
-    const product = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(product).toContain("aria-pressed={regionFilter === region}");
+    const table = await readFile(
+      "desktop/src/components/product/DistributorTable.tsx",
+      "utf8",
+    );
+    expect(table).toContain("aria-pressed={regionFilter === region}");
     const alertModal = await readFile(
       "desktop/src/components/product/SetAlertModal.tsx",
       "utf8",
@@ -1355,9 +1358,12 @@ describe("desktop chart guard", () => {
   // QA round 188: mobile's empty region state offers a "Show All" button;
   // desktop's "No distributors in {region}." had none.
   it("offers Show All in the desktop empty region state", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/DistributorTable.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/aria-label="Show all regions"/);
-    expect(text).toContain('setRegionFilter("all")');
+    expect(text).toContain('onRegionChange("all")');
   });
 
   // QA round 187: mobile's DetailHeader shows the product region; desktop's
@@ -1446,7 +1452,10 @@ describe("desktop chart guard", () => {
   // QA round 178: mobile's DistributorListingCard shows "{country} · {region}";
   // desktop's Distributor cell showed only the country + flag.
   it("shows the distributor region on desktop listings", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/DistributorTable.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/dist\?\.region \? ` · \$\{dist\.region\}`/);
   });
 
@@ -1473,7 +1482,10 @@ describe("desktop chart guard", () => {
   // QA round 175: mobile's DistributorListingCard shows each distributor's
   // payment methods; desktop's Distributor Targets table omitted them.
   it("shows payment methods per listing on desktop", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/DistributorTable.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/dist\?\.paymentMethods && dist\.paymentMethods\.length > 0/);
     expect(text).toMatch(/\{dist\.paymentMethods\.join\(" · "\)\}/);
   });
@@ -1481,7 +1493,10 @@ describe("desktop chart guard", () => {
   // QA round 174: mobile's DistributorListingCard colors the freshness text
   // (green <1h, amber <6h, red older); desktop's table cell was always gray.
   it("colors the desktop listing freshness text", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/DistributorTable.tsx",
+      "utf8",
+    );
     expect(text).toContain("getLastRefreshedColor(listing.lastChecked)");
     expect(text).toContain("Updated {formatLastRefreshed(listing.lastChecked)}");
   });

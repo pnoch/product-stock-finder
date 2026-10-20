@@ -44,7 +44,11 @@ describe("bulk discovery UI", () => {
 
   it("product detail offers a Find prices CTA (desktop)", () => {
     const src = readFileSync("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(src).toContain("Find prices");
+    const table = readFileSync(
+      "desktop/src/components/product/DistributorTable.tsx",
+      "utf8",
+    );
+    expect(table).toContain("Find prices");
     expect(src).toContain("rediscoverProduct");
   });
 
