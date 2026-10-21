@@ -29,8 +29,12 @@ describe("silent failures", () => {
 
   it("logs watchlist background failures", async () => {
     const text = await readFile("app/(tabs)/watchlist.tsx", "utf8");
+    const filters = await readFile(
+      "hooks/use-watchlist-filters.ts",
+      "utf8",
+    );
     expect(text).toContain("queued-count refresh failed");
-    expect(text).toContain("settings persist failed");
+    expect(filters).toContain("settings persist failed");
     expect(text).toContain("[Watchlist] share failed");
   });
 
