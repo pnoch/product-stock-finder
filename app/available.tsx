@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ScrollView,
   Text,
@@ -8,29 +8,23 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getAllBrands, getAllCategories } from "@shared/catalog";
 import { formatPrice } from "@shared/currency";
-import { getBestPrice } from "@/lib/currency";
 import { useSettings } from "@/lib/settings-provider";
+import { useAvailableRows } from "@/hooks/use-available-rows";
 import { Chip } from "@/components/ui/chip";
 import { SkeletonRow } from "@/components/available/skeleton-row";
 import { AvailableRow, type Row } from "@/components/available/available-row";
-import {
-  getWatchlist,
-  addCriterionWatch,
-} from "@/lib/storage";
+import { addCriterionWatch } from "@/lib/storage";
 import { isServerConfigured } from "@/constants/oauth";
-import { fetchAvailable } from "@/lib/server-catalog";
 import { ensureWatchlistProduct } from "@/lib/ensure-watchlist-product";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { useToast } from "@/components/ui/toast";
 import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { goBackOrHome } from "@/lib/navigation";
-import type { AvailableProduct, Product } from "@/lib/types";
 
 const PRICE_CAPS = [50, 250, 500, 1000];
 
@@ -46,73 +40,19 @@ export default function AvailableScreen() {
   const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
   const { settings, loading: settingsLoading } = useSettings();
   const currency = settings.displayCurrency;
-  const [fallbackRows, setFallbackRows] = useState<Row[]>([]);
   const [paywallVisible, setPaywallVisible] = useState(false);
 
   const categories = useMemo(() => getAllCategories(), []);
   const brands = useMemo(() => getAllBrands(), []);
 
-  const query = useQuery<AvailableProduct[]>({
-    queryKey: [
-      "available",
-      currency,
-      category ?? null,
-      brand ?? null,
-      maxPrice ?? null,
-    ],
-    queryFn: () => fetchAvailable({ currency, category, brand, maxPrice }),
-    staleTime: 60_000,
-    enabled: configured && !settingsLoading,
+  const { rows, loading, query } = useAvailableRows({
+    configured,
+    settingsLoading,
+    currency,
+    category,
+    brand,
+    maxPrice,
   });
-
-  useEffect(() => {
-    if (configured) return;
-    let active = true;
-    (async () => {
-      const watchlist = await getWatchlist();
-      const rows: Row[] = [];
-      for (const product of watchlist as Product[]) {
-        const listings = product.listings ?? [];
-        const inStock = listings.filter((l) => l.stockStatus === "in_stock");
-        if (inStock.length === 0) continue;
-        const best = getBestPrice(inStock, currency);
-        if (!best) continue;
-        rows.push({
-          id: product.id,
-          name: product.name,
-          brand: product.brand,
-          category: product.category,
-          modelNumber: product.modelNumber,
-          price: best.price,
-          currency: best.currency,
-          storeCount: inStock.length,
-        });
-      }
-      if (active) setFallbackRows(rows);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [configured, currency]);
-
-  const serverRows = useMemo<Row[]>(
-    () =>
-      (query.data ?? []).map((p) => ({
-        id: p.id,
-        name: p.name,
-        brand: p.brand,
-        category: p.category,
-        modelNumber: p.modelNumber,
-        price: p.bestPrice,
-        currency: p.bestCurrency,
-        storeCount: p.storeCount,
-        fetchedAt: p.fetchedAt,
-      })),
-    [query.data],
-  );
-
-  const rows = configured ? serverRows : fallbackRows;
-  const loading = configured && query.isLoading;
 
   // The product detail screen reads the watchlist, so a server row must be
   // added before navigating or it shows "Product not found".
