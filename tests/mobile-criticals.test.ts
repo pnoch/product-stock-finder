@@ -524,8 +524,6 @@ describe("restock-watch toggle guards against double-submit", () => {
 // scoped PriceAlertModal) had no double-submit guard, so a rapid double-tap or
 // Enter+button created two alerts.
 describe("product detail alert creation guards against double-submit", () => {
-  const src = readFileSync(path.join(process.cwd(), "app/product/[id].tsx"), "utf8");
-
   it("sets and checks a creatingAlert guard", () => {
     const alertsSrc = readFileSync(
       path.join(process.cwd(), "hooks/use-product-alerts.ts"),
