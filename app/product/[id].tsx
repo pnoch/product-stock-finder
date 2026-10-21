@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams, router } from "expo-router";
 import { goBackOrHome } from "@/lib/navigation";
 import { ScrollView, View, Platform, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useCallback, useEffect, useState, useMemo, useRef } from "react";
+import { useCallback, useState, useMemo, useRef } from "react";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { DetailHeader } from "@/components/product/detail-header";
@@ -13,15 +13,13 @@ import { AlertSection } from "@/components/product/alert-section";
 import { ReminderSection } from "@/components/product/reminder-section";
 import { useSettings } from "@/lib/settings-provider";
 import { useLiveProduct } from "@/hooks/use-live-prices";
+import { useProductDetailData } from "@/hooks/use-product-detail-data";
 import { buildShareText } from "@/lib/price-share";
 import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
 import * as Linking from "expo-linking";
 import { captureAndShareImage } from "@/lib/share-image";
-import { getStockWatches, getAlerts, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings, getWatchlist, updateProductAcquired, addToWatchlist } from "@/lib/storage";
+import { getStockWatches, addAlert, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings, updateProductAcquired, addToWatchlist } from "@/lib/storage";
 import { isAcquired } from "@/lib/acquired";
-import { pickAlternatives, localAlternatives, type Alternative } from "@/lib/alternatives";
-import { fetchAvailable } from "@/lib/server-catalog";
-import { isServerConfigured } from "@/constants/oauth";
 import { rediscoverProduct } from "@/lib/manual-add";
 import { discoverListings } from "@/lib/listing-discovery";
 import { formatPrice } from "@shared/currency";
@@ -37,8 +35,6 @@ import { rankByLandedCost } from "@/lib/landed-cost";
 import { resolveDestination, landedCostOptions } from "@/lib/destination";
 import { suggestAlertPrices } from "@/lib/alert-suggestions";
 import { toggleAnyWatchRecord } from "@/lib/any-watch";
-import { fetchPriceInsight } from "@/lib/server-insights";
-import { fetchProductImage } from "@/lib/server-images";
 import { schedulePriceAlert, scheduleStockWatchConfirmation, scheduleBackOrderReminder, cancelNotification, ensureNotificationPermission } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { ProductInfoCard, DistributorListingSection, ReminderDatePickerModal, NotesCard, TargetTableCard, PriceAlertModal } from "./_components";
@@ -101,9 +97,6 @@ export default function ProductDetailScreen() {
       setFindingPrices(false);
     }
   }, [productId, productModelNumber, findingPrices, refresh]);
-  const [insight, setInsight] = useState<string | null>(null);
-  const [insightLoading, setInsightLoading] = useState(true);
-  const [productImage, setProductImage] = useState<string | null>(null);
   const displayCurrency = settings.displayCurrency;
   const shippingRegion = settings.shippingRegion;
   const shipToCountry = settings.shipToCountry ?? null;
@@ -111,8 +104,6 @@ export default function ProductDetailScreen() {
   const includeImportEstimate = settings.includeImportEstimate === true;
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const regions = useMemo(() => getAllRegions(), []);
-  const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
-  const [alternatives, setAlternatives] = useState<Alternative[]>([]);
   const scrollY = useState(() => new Animated.Value(0))[0];
   const stickyOpacity = scrollY.interpolate({ inputRange: [80, 140], outputRange: [0, 1], extrapolate: "clamp" });
   const shareScale = useState(() => new Animated.Value(1))[0];
@@ -122,7 +113,6 @@ export default function ProductDetailScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   // Scoped-alert flow for the Distributor Targets table: the "+" per row opens
   // the shared PriceAlertModal pre-scoped to that distributor.
-  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [alertDistributorId, setAlertDistributorId] = useState<string | null>(null);
   const [alertDirection, setAlertDirection] = useState<"drop" | "rise">("drop");
@@ -137,41 +127,6 @@ export default function ProductDetailScreen() {
   // be cancelled.
   const [togglingWatch, setTogglingWatch] = useState(false);
   const [addingToWatchlist, setAddingToWatchlist] = useState(false);
-
-  const loadData = useCallback(async (signal?: { cancelled: boolean }) => {
-    if (!id) return;
-    setInsight(null);
-    setInsightLoading(true);
-    setProductImage(null);
-    // Storage reads can reject; without a catch the setters below never run and
-    // the screen hangs on the loading skeleton forever.
-    const [stockWatchesData, insightData, imageData, alertsData] =
-      await Promise.all([
-        getStockWatches().catch(() => []),
-        fetchPriceInsight(id).catch(() => null),
-        fetchProductImage(id).catch(() => null),
-        getAlerts().catch(() => []),
-      ]);
-    if (signal?.cancelled) return;
-    setAlerts(alertsData);
-    const watchMap: Record<string, boolean> = {};
-    for (const w of stockWatchesData) {
-      if (w.productId === id) watchMap[w.distributorId] = true;
-    }
-    setStockWatches(watchMap);
-    if (insightData) setInsight(insightData.insight);
-    setInsightLoading(false);
-    if (imageData) setProductImage(imageData.imageUrl);
-  }, [id, setAlerts, setInsight, setInsightLoading, setProductImage, setStockWatches]);
-
-  useEffect(() => {
-    const signal = { cancelled: false };
-    // Defer the load so the effect does not synchronously cascade state updates.
-    queueMicrotask(() => {
-      void loadData(signal);
-    });
-    return () => { signal.cancelled = true; };
-  }, [loadData]);
 
   const destination = useMemo(
     () =>
@@ -236,33 +191,22 @@ export default function ProductDetailScreen() {
       }) == null,
     [listings, effectiveCurrency],
   );
-  useEffect(() => {
-    if (!product?.category || !isOutOfStock) return;
-    let active = true;
-    (async () => {
-      try {
-        const next = isServerConfigured()
-          ? pickAlternatives({
-              product: { id, category: product.category },
-              available: await fetchAvailable({
-                category: product.category,
-                currency: effectiveCurrency,
-              }),
-            })
-          : localAlternatives(
-              { id, category: product.category },
-              await getWatchlist(),
-              effectiveCurrency,
-            );
-        if (active) setAlternatives(next);
-      } catch {
-        if (active) setAlternatives([]);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [product?.category, isOutOfStock, effectiveCurrency, id]);
+
+  const {
+    insight,
+    insightLoading,
+    productImage,
+    stockWatches,
+    setStockWatches,
+    alerts,
+    setAlerts,
+    alternatives,
+  } = useProductDetailData({
+    id: id ?? "",
+    product,
+    isOutOfStock,
+    effectiveCurrency,
+  });
   const priceVsAvg = useMemo(() => computePriceVsAverage(listings, effectiveCurrency), [listings, effectiveCurrency]);
   const availability = useMemo(() => computeAvailability(listings), [listings]);
   const dealScore = useMemo(() => computeDealScore(listings, effectiveCurrency), [listings, effectiveCurrency]);
@@ -432,7 +376,7 @@ export default function ProductDetailScreen() {
     setStockWatches((prev) => ({ ...prev, "*": true }));
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showToast("Watching all distributors — you'll be notified when it's back in stock", "success");
-  }, [id, product, listings, showToast]);
+  }, [id, product, listings, setStockWatches, showToast]);
 
   const toggleAnyWatch = useCallback(async () => {
     if (!id || togglingWatch) return;
@@ -470,7 +414,7 @@ export default function ProductDetailScreen() {
     } finally {
       setTogglingWatch(false);
     }
-  }, [id, product, listings, stockWatches, togglingWatch, showToast]);
+  }, [id, product, listings, setStockWatches, stockWatches, togglingWatch, showToast]);
 
   const handleToggleAcquired = useCallback(async () => {
     if (!product) return;
@@ -577,7 +521,7 @@ export default function ProductDetailScreen() {
         { text: "Any distributor", onPress: () => { setTogglingWatch(false); void (async () => { try { await createAnyWatchRecord(); } catch { if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); showAlert("Couldn't set watch", "We couldn't save that restock watch. Please try again."); } })(); } },
       ],
     );
-  }, [id, product, stockWatches, showToast, togglingWatch, createAnyWatchRecord]);
+  }, [id, product, setStockWatches, stockWatches, showToast, togglingWatch, createAnyWatchRecord]);
 
   const handleSetReminder = useCallback(async () => {
     const listing = reminderListing;
