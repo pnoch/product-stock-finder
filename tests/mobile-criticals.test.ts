@@ -527,11 +527,17 @@ describe("product detail alert creation guards against double-submit", () => {
   const src = readFileSync(path.join(process.cwd(), "app/product/[id].tsx"), "utf8");
 
   it("sets and checks a creatingAlert guard", () => {
-    expect(src).toContain("const [creatingAlert, setCreatingAlert] = useState(false)");
+    const alertsSrc = readFileSync(
+      path.join(process.cwd(), "hooks/use-product-alerts.ts"),
+      "utf8",
+    );
+    expect(alertsSrc).toContain(
+      "const [creatingAlert, setCreatingAlert] = useState(false)",
+    );
     for (const handler of ["const handleSetBestAlert", "const handleSetAlert"]) {
-      const start = src.indexOf(handler);
+      const start = alertsSrc.indexOf(handler);
       expect(start).toBeGreaterThan(-1);
-      const block = src.slice(start, src.indexOf("}, [", start));
+      const block = alertsSrc.slice(start, alertsSrc.indexOf("}, [", start));
       expect(block).toContain("creatingAlert");
       expect(block).toContain("setCreatingAlert(true)");
       expect(block).toContain("setCreatingAlert(false)");
@@ -617,8 +623,12 @@ describe("product detail keeps its alerts state in sync", () => {
   const src = readFileSync(path.join(process.cwd(), "app/product/[id].tsx"), "utf8");
 
   it("adds the best-distributor alert to state", () => {
-    const start = src.indexOf("const handleSetBestAlert");
-    const block = src.slice(start, src.indexOf("}, [id, product, showToast]);", start));
+    const alertsSrc = readFileSync(
+      path.join(process.cwd(), "hooks/use-product-alerts.ts"),
+      "utf8",
+    );
+    const start = alertsSrc.indexOf("const handleSetBestAlert");
+    const block = alertsSrc.slice(start, alertsSrc.indexOf("}, [", start));
     expect(block).toContain("setAlerts((prev) => [...prev, alert])");
   });
 
