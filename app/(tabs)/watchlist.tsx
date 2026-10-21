@@ -53,10 +53,11 @@ import { BulkTagSheet } from "@/components/bulk-tag-sheet";
 import {
 } from "@/lib/watchlist-org";
 import { WatchlistRow } from "@/components/watchlist/watchlist-row";
+import { WatchlistSectionHeader } from "@/components/watchlist/watchlist-section-header";
+import { WatchlistLoadingSkeleton } from "@/components/watchlist/watchlist-loading-skeleton";
 import { isAcquired } from "@/lib/acquired";
 import { WatchlistHeader } from "@/components/watchlist/watchlist-header";
 import { EmptyState } from "@/components/watchlist/empty-state";
-import { SkeletonList } from "@/components/ui/skeleton";
 import { LOG_ERROR, log } from "@shared/log";
 
 // The header content lives in the list's ListHeaderComponent so it scrolls
@@ -302,17 +303,20 @@ export default function WatchlistScreen() {
     },
     [enterSelection],
   );
-  const renderSectionHeader = useCallback(({ section }: { section: { key: string; title: string; products: Product[] } }) => {
-    if (groupMode === "off") return null;
-    const tag = groupMode === "tag" ? tagDefinitions[section.key.replace('tag-', '')] : undefined;
-    return (
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, backgroundColor: colors.background }}>
-        {tag && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tag.color }} />}
-        <Text style={{ color: colors.muted, fontWeight: "600", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.8 }} numberOfLines={1} ellipsizeMode="tail">{section.title}</Text>
-        <Text style={{ color: colors.muted, fontSize: 12 }}>· {section.products.length}</Text>
-      </View>
-    );
-  }, [groupMode, tagDefinitions, colors.background, colors.muted]);
+  const renderSectionHeader = useCallback(
+    ({
+      section,
+    }: {
+      section: { key: string; title: string; products: Product[] };
+    }) => (
+      <WatchlistSectionHeader
+        section={section}
+        groupMode={groupMode}
+        tagDefinitions={tagDefinitions}
+      />
+    ),
+    [groupMode, tagDefinitions],
+  );
 
   // Memoized so unrelated state changes (sheets, query, prefs) don't rebuild and
   // re-render every visible row; combined with the stabilized `liveProducts` in
@@ -364,42 +368,7 @@ export default function WatchlistScreen() {
     ],
   );
 
-  if (!loaded) {
-    return (
-      <ScreenContainer>
-        <View style={{ paddingTop: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              paddingHorizontal: 20,
-              marginBottom: 12,
-            }}
-          >
-            <View
-              style={{
-                width: 120,
-                height: 20,
-                borderRadius: 8,
-                backgroundColor: colors.border,
-                opacity: 0.5,
-              }}
-            />
-            <View
-              style={{
-                width: 80,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: colors.border,
-                opacity: 0.5,
-              }}
-            />
-          </View>
-          <SkeletonList count={4} />
-        </View>
-      </ScreenContainer>
-    );
-  }
+  if (!loaded) return <WatchlistLoadingSkeleton />;
 
   return (
     <ScreenContainer>
