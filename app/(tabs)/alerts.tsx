@@ -6,9 +6,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   Platform,
-  Animated,
 } from "react-native";
-import { useCallback, useState, useMemo } from "react";
+import { useMemo } from "react";
 import type { PriceAlert } from "@/lib/types";
 import { PriceAlertModal } from "@/components/product/price-alert-modal";
 import * as Haptics from "expo-haptics";
@@ -21,10 +20,12 @@ import { useColors } from "@/hooks/use-colors";
 import { countActiveAlerts } from "@/lib/alert-state";
 import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { IconActionButton } from "@/components/ui/icon-action-button";
 import { useAlertsData } from "@/hooks/use-alerts-data";
 import { useCriterionWatches } from "@/hooks/use-criterion-watches";
 import { useAlertEditDraft } from "@/hooks/use-alert-edit-draft";
+import { AlertsHeader } from "@/components/alerts/alerts-header";
+import { AlertsFab } from "@/components/alerts/alerts-fab";
+import { CriterionWatchesSection } from "@/components/alerts/criterion-watches-section";
 import { showAlert } from "@/lib/alert";
 import { savingAlerts } from "@/lib/alert-savings";
 
@@ -59,13 +60,6 @@ export default function AlertsScreen() {
   const { criterionWatches, handleRemoveCriterionWatch } =
     useCriterionWatches(refreshing, loading);
 
-  const fabScale = useState(() => new Animated.Value(1))[0];
-  const handleFabPressIn = useCallback(() => {
-    Animated.spring(fabScale, { toValue: 0.92, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
-  }, [fabScale]);
-  const handleFabPressOut = useCallback(() => {
-    Animated.spring(fabScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }).start();
-  }, [fabScale]);
   const {
     editingAlert,
     setEditingAlert,
@@ -112,56 +106,14 @@ export default function AlertsScreen() {
 
   return (
     <ScreenContainer>
-      {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              color: colors.foreground,
-              fontSize: 28,
-              fontWeight: "700",
-            }}
-          >
-            Alerts & Reminders
-          </Text>
-          <TouchableOpacity activeOpacity={0.85}
-            accessibilityLabel="Restock Watches"
-            accessibilityRole="button"
-            onPress={() => {
-              if (Platform.OS !== "web")
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/restock-watches");
-            }}
-            hitSlop={8}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 16,
-              backgroundColor: colors.primary,
-            }}
-          >
-            <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>
-              Restock Watches
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.primary + "14", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-            <IconSymbol name="bell.fill" size={12} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>{tabCount.alerts} alert{tabCount.alerts === 1 ? "" : "s"}</Text>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.warning + "14", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-            <IconSymbol name="calendar" size={12} color={colors.warning} />
-            <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "700" }}>{tabCount.reminders} reminder{tabCount.reminders === 1 ? "" : "s"}</Text>
-          </View>
-        </View>
-      </View>
+      <AlertsHeader
+        tabCount={tabCount}
+        onRestockWatches={() => {
+          if (Platform.OS !== "web")
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push("/restock-watches");
+        }}
+      />
 
       {/* Tab Switcher */}
       <TabSwitcher active={activeTab} counts={tabCount} onChange={setActiveTab} />
@@ -432,75 +384,10 @@ export default function AlertsScreen() {
                 </View>
               )}
               {/* Criterion Watches section */}
-              {criterionWatches.length > 0 && (
-                <View style={{ marginBottom: 16 }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 6,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <IconSymbol
-                      name="bookmark.fill"
-                      size={15}
-                      color={colors.success}
-                    />
-                    <Text
-                      style={{
-                        color: colors.foreground,
-                        fontWeight: "700",
-                        fontSize: 14,
-                      }}
-                    >
-                      Watched Searches ({criterionWatches.length})
-                    </Text>
-                  </View>
-                  {criterionWatches.map((watch) => (
-                    <View
-                      key={watch.id}
-                      style={{
-                        backgroundColor: colors.surface,
-                        borderRadius: 16,
-                        padding: 16,
-                        marginBottom: 12,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <View style={{ flex: 1, marginRight: 12 }}>
-                        <Text
-                          style={{
-                            color: colors.foreground,
-                            fontWeight: "600",
-                            fontSize: 14,
-                          }}
-                          numberOfLines={2}
-                          ellipsizeMode="tail"
-                        >
-                          Any{" "}
-                          {watch.category ?? watch.brand ?? "product"}
-                          {watch.maxPrice != null
-                            ? ` under ${formatPrice(watch.maxPrice, watch.currency)}`
-                            : ""}
-                        </Text>
-                      </View>
-                      <IconActionButton
-                        name="trash.fill"
-                        size={16}
-                        color={colors.error}
-                        onPress={() => void handleRemoveCriterionWatch(watch.id)}
-                        accessibilityLabel="Remove watched search"
-                        accessibilityHint="Double tap to remove"
-                      />
-                    </View>
-                  ))}
-                </View>
-              )}
+              <CriterionWatchesSection
+                watches={criterionWatches}
+                onRemove={(id) => void handleRemoveCriterionWatch(id)}
+              />
               {/* Empty state when all lists are empty */}
               {stockWatches.length === 0 &&
                 reminders.length === 0 &&
@@ -550,42 +437,11 @@ export default function AlertsScreen() {
         }}
       />
 
-      {activeTab !== "notifications" && (
-        <Animated.View
-          style={{
-            position: "absolute",
-            bottom: 24 + insets.bottom,
-            right: 20,
-            transform: [{ scale: fabScale }],
-          }}
-        >
-          <TouchableOpacity activeOpacity={0.85}
-            onPress={() => {
-              if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.push("/search");
-            }}
-            onPressIn={handleFabPressIn}
-            onPressOut={handleFabPressOut}
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              backgroundColor: colors.primary,
-              alignItems: "center",
-              justifyContent: "center",
-              shadowColor: colors.primary,
-              shadowOpacity: 0.35,
-              shadowRadius: 10,
-              shadowOffset: { width: 0, height: 4 },
-              elevation: 6,
-            }}
-            accessibilityLabel="Add product"
-            accessibilityRole="button"
-          >
-            <IconSymbol name="plus" size={26} color="#fff" />
-          </TouchableOpacity>
-        </Animated.View>
-      )}
+      <AlertsFab
+        visible={activeTab !== "notifications"}
+        bottomInset={insets.bottom}
+        onPress={() => router.push("/search")}
+      />
 
       <PriceAlertModal
         visible={!!editingAlert}
