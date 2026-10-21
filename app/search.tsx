@@ -2,9 +2,7 @@ import { log } from "@shared/log";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   FlatList,
-  Text,
   View,
-  TouchableOpacity,
   Platform,
   Keyboard,
 } from "react-native";
@@ -23,13 +21,11 @@ import { FacebookResultsSection } from "@/components/search/facebook-results-sec
 import { EbayResultsSection } from "@/components/search/ebay-results-section";
 import { TrendingSection } from "@/components/home/trending-section";
 import type { EbaySearchListing } from "@/shared/ebay-search";
-import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { track } from "@/lib/telemetry";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
-import { RecentSearches } from "@/components/search/recent-searches";
 import { toDiscoverErrorState } from "@/lib/llm-discovery";
 import {
   clearRecentSearches,
@@ -42,19 +38,10 @@ import { Product } from "@/lib/types";
 import { useSearchData } from "@/hooks/use-search-data";
 import { useCatalogSearch, type CatalogSort } from "@/hooks/use-catalog-search";
 import { addCatalogProduct, discoverAndAddProduct } from "@/lib/add-product";
-import { PillFilterRow } from "@/components/search/pill-filter-row";
 import { SearchHeader } from "@/components/search/search-header";
 import { SearchDiscoverFooter } from "@/components/search/search-discover-footer";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { TagFilterRow } from "@/components/tag-filter-row";
+import { SearchListHeader } from "@/components/search/search-list-header";
 import { isMarketplaceInput } from "@/shared/marketplace-url";
-
-const CATALOG_SORT_OPTIONS: { key: CatalogSort; label: string }[] = [
-  { key: "relevance", label: "Relevance" },
-  { key: "name", label: "Name" },
-  { key: "brand", label: "Brand" },
-  { key: "price", label: "Price" },
-];
 
 export default function SearchScreen({
   mode = "add",
@@ -64,7 +51,6 @@ export default function SearchScreen({
   renderBrowse?: (query: string) => ReactNode;
 } = {}) {
   const router = useRouter();
-  const colors = useColors();
   const { showToast } = useToast();
   const { isPro } = useEntitlements();
   const [paywallVisible, setPaywallVisible] = useState(false);
@@ -315,120 +301,38 @@ export default function SearchScreen({
         ListHeaderComponent={
           <View>
             {renderBrowse?.(query)}
-            {(mode === "add" || !!query.trim()) && <View>
-            {query.length === 0 && (
-              <RecentSearches
-                searches={recentSearches}
-                onSelect={(q) => setQuery(q)}
-                onClear={handleClearRecent}
-              />
-            )}
-
-            {Object.keys(tagDefinitions).length > 0 && (
-              <TagFilterRow
-                tagDefinitions={tagDefinitions}
-                selectedTagIds={selectedTagIds}
-                tagMatchMode={tagMatchMode}
-                counts={tagCounts}
-                onToggleTag={(tagId) =>
-                  setSelectedTagIds((prev) =>
-                    prev.includes(tagId)
-                      ? prev.filter((t) => t !== tagId)
-                      : [...prev, tagId],
-                  )
-                }
-                onChangeMode={setTagMatchMode}
-                onClearAll={() => setSelectedTagIds([])}
-              />
-            )}
-
-            {/* Category / Brand filters — collapsed behind a toggle while
-                searching so the ~40 chips don't push results below the fold. */}
-            {query.trim().length > 0 && !filtersExpanded ? (
-              <TouchableOpacity
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Show filters"
-                onPress={() => {
-                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setFiltersExpanded(true);
-                }}
-                style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingBottom: 10 }}
-              >
-                <IconSymbol name="slider.horizontal.3" size={16} color={colors.primary} />
-                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
-                  Filters{(selectedCategory || selectedBrand) ? " · active" : ""}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <>
-                <PillFilterRow label="Category" options={categories} selected={selectedCategory} onSelect={setSelectedCategory} colors={colors} />
-                <PillFilterRow label="Brand" options={brands} selected={selectedBrand} onSelect={setSelectedBrand} colors={colors} />
-                {query.trim().length > 0 && (
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    accessibilityRole="button"
-                    accessibilityLabel="Hide filters"
-                    onPress={() => setFiltersExpanded(false)}
-                    style={{ paddingHorizontal: 16, paddingBottom: 10 }}
-                  >
-                    <Text style={{ color: colors.muted, fontSize: 13, fontWeight: "600" }}>Hide filters</Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-
-            {/* Catalog sort bar — parity with watchlist SortGroupBar */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingBottom: 10, flexWrap: "wrap" }}>
-              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 }}>Sort</Text>
-              {CATALOG_SORT_OPTIONS.map((opt) => {
-                const active = catalogSort === opt.key;
-                return (
-                  <TouchableOpacity activeOpacity={0.85}
-                    key={opt.key}
-                    onPress={() => {
-                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setCatalogSort(opt.key);
-                    }}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 16,
-                      backgroundColor: active ? colors.primary : colors.surface,
-                      borderWidth: 1,
-                      borderColor: active ? colors.primary : colors.border,
-                    }}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: active }}
-                  >
-                    <Text style={{ color: active ? "#fff" : colors.muted, fontSize: 13, fontWeight: "600" }}>{opt.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-              {(selectedCategory || selectedBrand) && (
-                <TouchableOpacity activeOpacity={0.7} onPress={() => { setSelectedCategory(null); setSelectedBrand(null); }} style={{ padding: 4 }} accessibilityLabel="Clear category/brand filter" accessibilityRole="button">
-                  <Text style={{ color: colors.muted, fontSize: 12, fontWeight: "600" }}>Clear</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {selectedTagIds.length > 0 && (
-              <View
-                style={{
-                  marginHorizontal: 16,
-                  marginBottom: 12,
-                  padding: 10,
-                  borderRadius: 10,
-                  backgroundColor: colors.primary + "14",
-                  borderWidth: 1,
-                  borderColor: colors.primary + "33",
-                }}
-              >
-                <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  Tag filter: showing watchlist matches only — clear to see catalog
-                </Text>
-              </View>
-            )}
+            <SearchListHeader
+              mode={mode}
+              query={query}
+              recentSearches={recentSearches}
+              onSelectRecent={setQuery}
+              onClearRecent={handleClearRecent}
+              tagDefinitions={tagDefinitions}
+              selectedTagIds={selectedTagIds}
+              tagMatchMode={tagMatchMode}
+              tagCounts={tagCounts}
+              onToggleTag={(tagId) =>
+                setSelectedTagIds((prev) =>
+                  prev.includes(tagId)
+                    ? prev.filter((t) => t !== tagId)
+                    : [...prev, tagId],
+                )
+              }
+              onChangeTagMode={setTagMatchMode}
+              onClearTags={() => setSelectedTagIds([])}
+              categories={categories}
+              brands={brands}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              selectedBrand={selectedBrand}
+              onBrandChange={setSelectedBrand}
+              catalogSort={catalogSort}
+              onSortChange={setCatalogSort}
+              filtersExpanded={filtersExpanded}
+              onShowFilters={() => setFiltersExpanded(true)}
+              onHideFilters={() => setFiltersExpanded(false)}
+              resultCount={sortedResults.length}
+            />
 
             <FacebookResultsSection
               query={deferredQuery}
@@ -451,27 +355,6 @@ export default function SearchScreen({
               </View>
             )}
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10, paddingHorizontal: 16 }}>
-              <Text
-                style={{
-                  color: colors.muted,
-                  fontSize: 12,
-                  fontWeight: "600",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.8,
-                }}
-              >
-                {query.trim()
-                  ? `${sortedResults.length} catalog result${sortedResults.length !== 1 ? "s" : ""}`
-                  : "All Products"}
-              </Text>
-              {query.trim().length > 0 && sortedResults.length > 0 && (
-                <View style={{ backgroundColor: colors.primary + "14", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
-                  <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>{sortedResults.length}</Text>
-                </View>
-              )}
-            </View>
-            </View>}
           </View>
         }
         ListEmptyComponent={mode === "discover" && !query.trim() ? undefined : <SearchEmptyState query={query} selectedTagIds={selectedTagIds} hasMarketplaceResults={query.trim().length >= 2} />}

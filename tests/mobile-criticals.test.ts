@@ -666,9 +666,14 @@ describe("search results list owns the filter chrome", () => {
     expect(headerStart).toBeGreaterThan(listStart);
     expect(headerEnd).toBeGreaterThan(headerStart);
     const header = src.slice(headerStart, headerEnd);
-    expect(header).toContain("TagFilterRow");
-    expect(header).toContain("PillFilterRow");
-    expect(header).toContain("RecentSearches");
+    const chrome = readFileSync(
+      path.join(process.cwd(), "components/search/search-list-header.tsx"),
+      "utf8",
+    );
+    expect(header).toContain("SearchListHeader");
+    expect(chrome).toContain("TagFilterRow");
+    expect(chrome).toContain("PillFilterRow");
+    expect(chrome).toContain("RecentSearches");
   });
 
   it("does not render filter chrome as fixed siblings before the FlatList", () => {
