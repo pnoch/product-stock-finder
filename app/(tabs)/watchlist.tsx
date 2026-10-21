@@ -17,6 +17,8 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useSettings } from "@/lib/settings-provider";
 import { useWatchlistRemove } from "@/hooks/use-watchlist-remove";
+import { useWatchlistSelection } from "@/hooks/use-watchlist-selection";
+import { useWatchlistRefresh } from "@/hooks/use-watchlist-refresh";
 import { WatchlistFilterPanel } from "@/components/watchlist/watchlist-filter-panel";
 import { WatchlistListHeader } from "@/components/watchlist/watchlist-list-header";
 import { pickAndImportWatchlistCsv } from "@/lib/watchlist-import";
@@ -49,7 +51,6 @@ import {
   WatchlistGroup,
   WatchlistSort,
 } from "@/lib/types";
-import { checkPriceDropsNow } from "@/lib/background-price-check";
 import { getAllRegions } from "@/lib/region-filter";
 import { TagPickerSheet } from "@/components/tag-picker-sheet";
 import { TagManageSheet } from "@/components/tag-manage-sheet";
@@ -93,11 +94,6 @@ export default function WatchlistScreen() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [checkProgress, setCheckProgress] = useState<{
-    current: number;
-    total: number;
-  } | null>(null);
   const displayCurrency = settings.displayCurrency;
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -135,11 +131,7 @@ export default function WatchlistScreen() {
   const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
   const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
   const [manageVisible, setManageVisible] = useState(false);
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkTagVisible, setBulkTagVisible] = useState(false);
   const [findingIds, setFindingIds] = useState<Set<string>>(new Set());
-  const checkingRef = useRef(false);
   const regions = useMemo(() => getAllRegions(), []);
   const scrollY = useState(() => new Animated.Value(0))[0];
   const headerCollapse = scrollY.interpolate({ inputRange: [0, 80], outputRange: [1, 0], extrapolate: "clamp" });
@@ -340,15 +332,6 @@ export default function WatchlistScreen() {
     setShowAcquired(true);
   }, []);
 
-  const toggleSelection = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
   const handleToggleAcquired = useCallback(
     async (product: Product) => {
       try {
@@ -376,10 +359,24 @@ export default function WatchlistScreen() {
     [alerts],
   );
 
-  const exitSelection = useCallback(() => {
-    setSelectionMode(false);
-    setSelectedIds(new Set());
-  }, []);
+  const {
+    selectionMode,
+    selectedIds,
+    bulkTagVisible,
+    setBulkTagVisible,
+    toggleSelection,
+    enterSelection,
+    exitSelection,
+  } = useWatchlistSelection();
+
+  const { checking, checkProgress, handleRefreshAll, handleCheckNow } =
+    useWatchlistRefresh({
+      watchlistLength: watchlist.length,
+      refreshAll,
+      reload,
+      loadData,
+      showAlert,
+    });
 
   const {
     undoProduct,
@@ -395,42 +392,6 @@ export default function WatchlistScreen() {
     loadData,
     showAlert,
   });
-
-  const handleRefreshAll = useCallback(async () => {
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const ok = await refreshAll();
-    if (!ok) {
-      showAlert(
-        "Couldn't refresh prices",
-        "The server is unreachable. Showing saved prices.",
-      );
-    }
-  }, [refreshAll]);
-
-  const handleCheckNow = useCallback(async () => {
-    if (checkingRef.current || watchlist.length === 0) return;
-    checkingRef.current = true;
-    if (Platform.OS !== "web")
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setChecking(true);
-    setCheckProgress({ current: 0, total: watchlist.length });
-    try {
-      await checkPriceDropsNow((current, total) => {
-        setCheckProgress({ current, total });
-      });
-      await reload();
-      await refreshAll();
-      await loadData();
-    } catch (e) {
-      log.error("[Watchlist] check now failed", e);
-      showAlert("Check failed", "We couldn't check prices. Please try again.");
-    } finally {
-      checkingRef.current = false;
-      setChecking(false);
-      setCheckProgress(null);
-    }
-  }, [watchlist.length, reload, refreshAll, loadData]);
 
   const handleShareWatchlist = useCallback(async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -566,11 +527,14 @@ export default function WatchlistScreen() {
     if (selectionMode) toggleSelection(product.id);
     else router.push(`/product/${product.id}`);
   }, [selectionMode, toggleSelection, router]);
-  const handleProductLongPress = useCallback((product: Product) => {
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectionMode(true);
-    setSelectedIds(new Set([product.id]));
-  }, []);
+  const handleProductLongPress = useCallback(
+    (product: Product) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      enterSelection(product.id);
+    },
+    [enterSelection],
+  );
   const renderSectionHeader = useCallback(({ section }: { section: { key: string; title: string; products: Product[] } }) => {
     if (groupMode === "off") return null;
     const tag = groupMode === "tag" ? tagDefinitions[section.key.replace('tag-', '')] : undefined;
