@@ -3,7 +3,6 @@ import {
   ScrollView,
   Text,
   View,
-  Pressable,
   TouchableOpacity,
   Platform,
 } from "react-native";
@@ -11,14 +10,15 @@ import * as Haptics from "expo-haptics";
 import { Stack, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { ScreenContainer } from "@/components/screen-container";
-import { StockBadge } from "@/components/stock-badge";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getAllBrands, getAllCategories } from "@shared/catalog";
 import { formatPrice } from "@shared/currency";
-import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { getBestPrice } from "@/lib/currency";
 import { useSettings } from "@/lib/settings-provider";
+import { Chip } from "@/components/ui/chip";
+import { SkeletonRow } from "@/components/available/skeleton-row";
+import { AvailableRow, type Row } from "@/components/available/available-row";
 import {
   getWatchlist,
   addCriterionWatch,
@@ -33,141 +33,6 @@ import { goBackOrHome } from "@/lib/navigation";
 import type { AvailableProduct, Product } from "@/lib/types";
 
 const PRICE_CAPS = [50, 250, 500, 1000];
-
-type Row = {
-  id: string;
-  name: string;
-  brand: string;
-  category: string;
-  modelNumber?: string;
-  price: number;
-  currency: string;
-  storeCount: number;
-  /** Epoch ms the price was cached; undefined for the standalone fallback. */
-  fetchedAt?: number;
-};
-
-function Chip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const colors = useColors();
-  return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      accessibilityRole="button"
-      accessibilityLabel={`Filter ${label}`}
-      onPress={onPress}
-      style={{
-        backgroundColor: active ? colors.primary : colors.surface,
-        borderWidth: 1,
-        borderColor: active ? colors.primary : colors.border,
-        borderRadius: 16,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        marginRight: 8,
-      }}
-    >
-      <Text
-        style={{
-          color: active ? "#fff" : colors.foreground,
-          fontSize: 13,
-          fontWeight: "600",
-        }}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-function SkeletonRow() {
-  const colors = useColors();
-  return (
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 8,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      <View
-        style={{
-          height: 14,
-          width: "60%",
-          borderRadius: 6,
-          backgroundColor: colors.border,
-          marginBottom: 10,
-        }}
-      />
-      <View
-        style={{
-          height: 11,
-          width: "35%",
-          borderRadius: 6,
-          backgroundColor: colors.border,
-        }}
-      />
-    </View>
-  );
-}
-
-function AvailableRow({ row, onPress }: { row: Row; onPress: () => void }) {
-  const colors = useColors();
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`View ${row.name}`}
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 8,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <View style={{ flex: 1, marginRight: 12 }}>
-          <Text
-            numberOfLines={1}
-            style={{ color: colors.foreground, fontSize: 15, fontWeight: "600" }}
-          >
-            {row.name}
-          </Text>
-          <Text
-            style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}
-            numberOfLines={1}
-          >
-            {formatPrice(row.price, row.currency)} · in stock at {row.storeCount}{" "}
-            {row.storeCount === 1 ? "store" : "stores"}
-          </Text>
-          {row.fetchedAt != null && Number.isFinite(row.fetchedAt) && (
-            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-              as of {formatLastRefreshed(new Date(row.fetchedAt).toISOString())}
-            </Text>
-          )}
-        </View>
-        <StockBadge status="in_stock" />
-      </View>
-    </Pressable>
-  );
-}
 
 export default function AvailableScreen() {
   const colors = useColors();
