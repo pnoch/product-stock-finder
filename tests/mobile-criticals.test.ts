@@ -510,7 +510,10 @@ describe("reminder reschedule guards against double-submit", () => {
 // (replaced) id so it could never be cancelled.
 describe("restock-watch toggle guards against double-submit", () => {
   it("sets and checks a togglingWatch guard", () => {
-    const src = readFileSync(path.join(process.cwd(), "app/product/[id].tsx"), "utf8");
+    const src = readFileSync(
+      path.join(process.cwd(), "hooks/use-product-reminders.ts"),
+      "utf8",
+    );
     expect(src).toContain("const [togglingWatch, setTogglingWatch] = useState(false)");
     const start = src.indexOf("const handleToggleStockWatch");
     const block = src.slice(start, src.indexOf("}, [id, product, stockWatches", start));

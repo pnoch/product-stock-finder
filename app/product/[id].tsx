@@ -15,11 +15,9 @@ import { useSettings } from "@/lib/settings-provider";
 import { useLiveProduct } from "@/hooks/use-live-prices";
 import { useProductDetailData } from "@/hooks/use-product-detail-data";
 import { useProductAlerts } from "@/hooks/use-product-alerts";
-import { buildShareText } from "@/lib/price-share";
-import { shareText as shareTextCrossPlatform } from "@/lib/share-text";
-import * as Linking from "expo-linking";
-import { captureAndShareImage } from "@/lib/share-image";
-import { getStockWatches, addStockWatch, addBackOrderReminder, removeStockWatch, updateProductListings, updateProductAcquired, addToWatchlist } from "@/lib/storage";
+import { useProductReminders } from "@/hooks/use-product-reminders";
+import { useProductSharing } from "@/hooks/use-product-sharing";
+import { updateProductListings, updateProductAcquired, addToWatchlist } from "@/lib/storage";
 import { isAcquired } from "@/lib/acquired";
 import { rediscoverProduct } from "@/lib/manual-add";
 import { discoverListings } from "@/lib/listing-discovery";
@@ -33,19 +31,14 @@ import { findBestDeal } from "@/lib/best-deal";
 import { selectBestListing } from "@/lib/currency";
 import { rankByLandedCost } from "@/lib/landed-cost";
 import { resolveDestination, landedCostOptions } from "@/lib/destination";
-import { toggleAnyWatchRecord } from "@/lib/any-watch";
-import { scheduleStockWatchConfirmation, scheduleBackOrderReminder, cancelNotification, ensureNotificationPermission } from "@/lib/notifications";
 import { showAlert } from "@/lib/alert";
 import { ProductInfoCard, DistributorListingSection, ReminderDatePickerModal, NotesCard, TargetTableCard, PriceAlertModal } from "./_components";
 import { EditProductSheet } from "@/components/product/edit-product-sheet";
 import { AlternativesSection } from "@/components/product/alternatives-section";
-import { DistributorListing } from "@/lib/types";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { SkeletonCard, SkeletonChart, SkeletonDetailHeader } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
-import { productHistoryToCsv, hasExportablePriceData } from "@/lib/csv";
-import { exportCsvFile } from "@/lib/csv-export";
 import { LOG_ERROR } from "@shared/log";
 
 export default function ProductDetailScreen() {
@@ -106,17 +99,13 @@ export default function ProductDetailScreen() {
   const scrollY = useState(() => new Animated.Value(0))[0];
   const stickyOpacity = scrollY.interpolate({ inputRange: [80, 140], outputRange: [0, 1], extrapolate: "clamp" });
   const shareScale = useState(() => new Animated.Value(1))[0];
-  const [reminderListing, setReminderListing] = useState<DistributorListing | null>(null);
-  const [reminderDate, setReminderDate] = useState(() => new Date(Date.now() + 7 * 86400000));
   const [editingProduct, setEditingProduct] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   // Scoped-alert flow for the Distributor Targets table: the "+" per row opens
   // the shared PriceAlertModal pre-scoped to that distributor.
   // Guards against a double-tap / Enter+button double-submit creating two alerts.
   // Guards the restock-watch toggle: a double-tap scheduled two confirmation
   // notifications, and the first's id was orphaned (replaced) so it could never
   // be cancelled.
-  const [togglingWatch, setTogglingWatch] = useState(false);
   const [addingToWatchlist, setAddingToWatchlist] = useState(false);
 
   const destination = useMemo(
@@ -224,104 +213,38 @@ export default function ProductDetailScreen() {
     setAlerts,
     showToast,
   });
-  const priceVsAvg = useMemo(() => computePriceVsAverage(listings, effectiveCurrency), [listings, effectiveCurrency]);
-  const availability = useMemo(() => computeAvailability(listings), [listings]);
-  const dealScore = useMemo(() => computeDealScore(listings, effectiveCurrency), [listings, effectiveCurrency]);
-  const reminderTarget = useMemo(
-    () => bestInStockListing ?? sortedListings.find((l) => l.stockStatus !== "out_of_stock") ?? sortedListings[0] ?? null,
-    [bestInStockListing, sortedListings],
-  );
 
-  const handleSelectCountry = useCallback(
-    (code: string) => {
-      void updateSetting("shipToCountry", code);
-    },
-    [updateSetting],
-  );
+  const shareRef = useRef<React.ComponentRef<typeof View>>(null);
 
-  const handleToggleTaxExempt = useCallback(
-    (value: boolean) => {
-      if (Platform.OS !== "web")
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      void updateSetting("taxExempt", value);
-    },
-    [updateSetting],
-  );
+  const {
+    reminderListing,
+    setReminderListing,
+    reminderDate,
+    setReminderDate,
+    showDatePicker,
+    setShowDatePicker,
+    toggleAnyWatch,
+    handleToggleStockWatch,
+    handleSetReminder,
+  } = useProductReminders({
+    id: id ?? "",
+    product,
+    listings,
+    stockWatches,
+    setStockWatches,
+    showToast,
+  });
 
-  const handleToggleImportEstimate = useCallback(
-    (value: boolean) => {
-      if (Platform.OS !== "web")
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      void updateSetting("includeImportEstimate", value);
-    },
-    [updateSetting],
-  );
-
-  // Always creates the any-watch (idempotent id `${id}-any`); never removes.
-  // Shared by the toggle's create branch and the scope dialog's "Any
-  // distributor", which must not toggle off an existing watch.
-  const createAnyWatchRecord = useCallback(async () => {
-    const granted = await ensureNotificationPermission();
-    if (!granted) {
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert(
-        "Permission Denied",
-        Platform.OS === "web"
-          ? "Please allow notifications in your browser to watch for restocks."
-          : "Please enable notifications to watch for restocks.",
-      );
-      return;
-    }
-    await toggleAnyWatchRecord({
-      isWatching: false,
-      productId: id,
-      productName: product?.name ?? "",
-      listings,
-      addStockWatch,
-      removeAnyWatch: async () => {},
-    });
-    setStockWatches((prev) => ({ ...prev, "*": true }));
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast("Watching all distributors — you'll be notified when it's back in stock", "success");
-  }, [id, product, listings, setStockWatches, showToast]);
-
-  const toggleAnyWatch = useCallback(async () => {
-    if (!id || togglingWatch) return;
-    setTogglingWatch(true);
-    try {
-      const action = await toggleAnyWatchRecord({
-        isWatching: !!stockWatches["*"],
-        productId: id,
-        productName: product?.name ?? "",
-        listings,
-        addStockWatch,
-        removeAnyWatch: async () => {
-          const watches = await getStockWatches();
-          const watch = watches.find((w) => w.productId === id && w.distributorId === "*");
-          if (watch) {
-            if (watch.notificationId) await cancelNotification(watch.notificationId);
-            await removeStockWatch(watch.id);
-          }
-        },
-      });
-      setStockWatches((prev) => ({ ...prev, "*": action === "created" }));
-      if (Platform.OS !== "web") {
-        if (action === "created") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-      showToast(
-        action === "created"
-          ? "Watching all distributors — you'll be notified when it's back in stock"
-          : "Stopped watching all distributors",
-        action === "created" ? "success" : "info",
-      );
-    } catch {
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert("Couldn't update watch", "Please try again.");
-    } finally {
-      setTogglingWatch(false);
-    }
-  }, [id, product, listings, setStockWatches, stockWatches, togglingWatch, showToast]);
+  const { handleShare, handleExportCsv } = useProductSharing({
+    id: id ?? "",
+    product,
+    listings,
+    sortedListings,
+    displayCurrency: effectiveCurrency,
+    shareRef,
+    shareScale,
+    showToast,
+  });
 
   const handleToggleAcquired = useCallback(async () => {
     if (!product) return;
@@ -357,175 +280,38 @@ export default function ProductDetailScreen() {
     }
   }, [product, addingToWatchlist, refresh, showToast]);
 
-  const handleToggleStockWatch = useCallback(async (listing: DistributorListing) => {
-    if (!id || togglingWatch) return;
-    const isWatched = stockWatches[listing.distributorId];
-    setTogglingWatch(true);
-    if (isWatched) {
-      try {
-        const watches = await getStockWatches();
-        const watch = watches.find((w) => w.productId === id && w.distributorId === listing.distributorId);
-        if (watch) {
-          if (watch.notificationId) await cancelNotification(watch.notificationId);
-          await removeStockWatch(watch.id);
-        }
-        setStockWatches((prev) => ({ ...prev, [listing.distributorId]: false }));
-        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        showToast("Removed from restock watches", "info");
-      } catch {
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert("Couldn't remove watch", "We couldn't remove that restock watch. Please try again.");
-      }
-      setTogglingWatch(false);
-      return;
-    }
+  const priceVsAvg = useMemo(() => computePriceVsAverage(listings, effectiveCurrency), [listings, effectiveCurrency]);
+  const availability = useMemo(() => computeAvailability(listings), [listings]);
+  const dealScore = useMemo(() => computeDealScore(listings, effectiveCurrency), [listings, effectiveCurrency]);
+  const reminderTarget = useMemo(
+    () => bestInStockListing ?? sortedListings.find((l) => l.stockStatus !== "out_of_stock") ?? sortedListings[0] ?? null,
+    [bestInStockListing, sortedListings],
+  );
 
-    const granted = await ensureNotificationPermission();
-    if (!granted) {
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to watch for restocks." : "Please enable notifications to watch for restocks.");
-      setTogglingWatch(false);
-      return;
-    }
+  const handleSelectCountry = useCallback(
+    (code: string) => {
+      void updateSetting("shipToCountry", code);
+    },
+    [updateSetting],
+  );
 
-    const createDistributorWatch = async () => {
-      setTogglingWatch(true);
-      try {
-        const distributor = getDistributorById(listing.distributorId);
-        const notificationId = await scheduleStockWatchConfirmation(product?.name ?? "Product", distributor?.name ?? listing.distributorId);
-        await addStockWatch({
-          id: `${id}-${listing.distributorId}`,
-          productId: id,
-          productName: product?.name ?? "",
-          distributorId: listing.distributorId,
-          distributorName: distributor?.name ?? "",
-          reminderDate: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          reminderType: "back_in_stock",
-          scope: "distributor",
-          lastKnownStatus: listing.stockStatus,
-          notificationId: notificationId ?? undefined,
-        });
-        setStockWatches((prev) => ({ ...prev, [listing.distributorId]: true }));
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast(`Reminder set — you'll be notified when back in stock`, "success");
-      } catch {
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert("Couldn't set watch", "We couldn't save that restock watch. Please try again.");
-      } finally {
-        setTogglingWatch(false);
-      }
-    };
+  const handleToggleTaxExempt = useCallback(
+    (value: boolean) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void updateSetting("taxExempt", value);
+    },
+    [updateSetting],
+  );
 
-    // Hold the double-open guard while the non-blocking dialog is up; each
-    // create closure and the Cancel button release it.
-    showAlert(
-      "Watch for restock",
-      `Get notified when ${product?.name ?? "this product"} is back in stock.`,
-      [
-        { text: "Cancel", style: "cancel", onPress: () => setTogglingWatch(false) },
-        { text: "This distributor", onPress: () => void createDistributorWatch() },
-        { text: "Any distributor", onPress: () => { setTogglingWatch(false); void (async () => { try { await createAnyWatchRecord(); } catch { if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); showAlert("Couldn't set watch", "We couldn't save that restock watch. Please try again."); } })(); } },
-      ],
-    );
-  }, [id, product, setStockWatches, stockWatches, showToast, togglingWatch, createAnyWatchRecord]);
-
-  const handleSetReminder = useCallback(async () => {
-    const listing = reminderListing;
-    if (!id || !listing) return;
-    const granted = await ensureNotificationPermission();
-    if (!granted) {
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert("Permission Denied", Platform.OS === "web" ? "Please allow notifications in your browser to set reminders." : "Please enable notifications in your device settings to set reminders.");
-      return;
-    }
-    try {
-      const distributor = getDistributorById(listing.distributorId);
-      const notifId = await scheduleBackOrderReminder(product?.name ?? "Product", distributor?.name ?? listing.distributorId, reminderDate, id);
-      const { replacedNotificationId } = await addBackOrderReminder({
-        id: `reminder-${id}-${listing.distributorId}-${Date.now()}`,
-        productId: id,
-        productName: product?.name ?? "",
-        distributorId: listing.distributorId,
-        distributorName: distributor?.name ?? "",
-        reminderDate: reminderDate.toISOString(),
-        notificationId: notifId ?? undefined,
-        createdAt: new Date().toISOString(),
-        reminderType: "date",
-      });
-      // Cancel the notification of the reminder this one replaced, or it
-      // still fires on the old date and can no longer be cancelled.
-      if (replacedNotificationId) {
-        await cancelNotification(replacedNotificationId).catch(() => {});
-      }
-      setReminderListing(null);
-      setShowDatePicker(false);
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast(`Reminder set for ${reminderDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`, "success");
-    } catch {
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showAlert("Couldn't set reminder", "We couldn't save your reminder. Please try again.");
-    }
-  }, [id, product, reminderListing, reminderDate, setReminderListing, setShowDatePicker, showToast]);
-
-  const shareRef = useRef<React.ComponentRef<typeof View>>(null);
-
-  const handleShare = useCallback(async () => {
-    if (!product || !id) return;
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      Animated.sequence([
-        Animated.timing(shareScale, { toValue: 0.85, duration: 90, useNativeDriver: true }),
-        Animated.spring(shareScale, { toValue: 1, useNativeDriver: true, speed: 22, bounciness: 8 }),
-      ]).start();
-    }
-    const shareText = buildShareText({
-      product,
-      listings: sortedListings,
-      displayCurrency: effectiveCurrency,
-      limit: 5,
-    });
-    // `id` can be a user-supplied model number (CSV import), so encode it or a
-    // "/" or space produces a malformed deep link.
-    const deepLink = Linking.createURL(`/product/${encodeURIComponent(id)}`, { scheme: "productstockfinder" });
-    const message = `${shareText}\n\n${deepLink}`;
-    try {
-      const imageShared = await captureAndShareImage(shareRef, `product-${id}`);
-      if (imageShared) {
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        return;
-      }
-    } catch (e) {
-      LOG_ERROR("[Product] image share failed, falling back to text", e);
-    }
-    const result = await shareTextCrossPlatform(message, product.name);
-    if (result === "dismissed") return;
-    if (result === "copied") {
-      showToast("Copied to clipboard", "success");
-    } else if (result === "failed") {
-      showAlert("Share unavailable", "Sharing isn't supported in this browser.");
-      return;
-    }
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [product, id, sortedListings, effectiveCurrency, shareScale, showToast]);
-
-  const handleExportCsv = useCallback(async () => {
-    if (!product) return;
-    const exportable = { ...product, listings };
-    if (!hasExportablePriceData(exportable)) {
-      showAlert("Nothing to export", "No price history is available for this product yet.");
-      return;
-    }
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const fileName = `${product.modelNumber ?? product.id}-history.csv`;
-    const ok = await exportCsvFile(productHistoryToCsv(exportable), fileName);
-    if (!ok) {
-      showAlert("Export unavailable", "We couldn't export the price history on this device.");
-      return;
-    }
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast("Price history exported", "success");
-  }, [product, listings, showToast]);
+  const handleToggleImportEstimate = useCallback(
+    (value: boolean) => {
+      if (Platform.OS !== "web")
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void updateSetting("includeImportEstimate", value);
+    },
+    [updateSetting],
+  );
 
   if (!loaded || !isSettingsLoaded) {
     return (

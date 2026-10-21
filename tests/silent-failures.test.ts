@@ -36,7 +36,10 @@ describe("silent failures", () => {
 
   it("logs image-share fallback on compare and product screens", async () => {
     const compare = await readFile("app/compare/[id].tsx", "utf8");
-    const product = await readFile("app/product/[id].tsx", "utf8");
+    const product = await readFile(
+      "hooks/use-product-sharing.ts",
+      "utf8",
+    );
     expect(compare).toContain("falling back to text");
     expect(product).toContain("falling back to text");
   });

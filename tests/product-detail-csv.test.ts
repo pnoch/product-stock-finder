@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 
 describe("product detail CSV export (mobile/web)", () => {
   it("adds a guarded CSV export action to Product Detail", () => {
-    const mobile = readFileSync("app/product/[id].tsx", "utf8");
+    const mobile = readFileSync(
+      "hooks/use-product-sharing.ts",
+      "utf8",
+    );
     expect(mobile).toContain("hasExportablePriceData");
     expect(mobile).toContain("productHistoryToCsv");
     expect(mobile).toContain("exportCsvFile");

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 // useLiveProduct and the toast provider; the decision logic is behavior-tested
 // in tests/any-watch.test.ts. These guards pin the wiring: the dialog always
 // creates, the toggle delegates to the testable lib helper.
-const screen = readFileSync("app/product/[id].tsx", "utf8");
+const screen = readFileSync("hooks/use-product-reminders.ts", "utf8");
 const helper = readFileSync("lib/any-watch.ts", "utf8");
 
 const slice = (source: string, start: string, end: string) => {
