@@ -2,11 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Animated,
   SectionList,
-  Text,
-  View,
   RefreshControl,
   Platform,
-  TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -27,7 +24,6 @@ import { WatchlistFilterPanel } from "@/components/watchlist/watchlist-filter-pa
 import { WatchlistListHeader } from "@/components/watchlist/watchlist-list-header";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { track } from "@/lib/telemetry";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
 import { useConnection } from "@/hooks/use-connection";
@@ -47,14 +43,12 @@ import {
   Product,
 } from "@/lib/types";
 import { getAllRegions } from "@/lib/region-filter";
-import { TagPickerSheet } from "@/components/tag-picker-sheet";
-import { TagManageSheet } from "@/components/tag-manage-sheet";
-import { BulkTagSheet } from "@/components/bulk-tag-sheet";
 import {
 } from "@/lib/watchlist-org";
 import { WatchlistRow } from "@/components/watchlist/watchlist-row";
 import { WatchlistSectionHeader } from "@/components/watchlist/watchlist-section-header";
 import { WatchlistLoadingSkeleton } from "@/components/watchlist/watchlist-loading-skeleton";
+import { WatchlistSheets } from "@/components/watchlist/watchlist-sheets";
 import { isAcquired } from "@/lib/acquired";
 import { WatchlistHeader } from "@/components/watchlist/watchlist-header";
 import { EmptyState } from "@/components/watchlist/empty-state";
@@ -522,75 +516,25 @@ export default function WatchlistScreen() {
         renderSectionHeader={renderSectionHeader}
         renderItem={renderItem}
       />
-      <TagPickerSheet
-        visible={!!pickerProduct}
-        product={pickerProduct}
-        onClose={() => setPickerProduct(null)}
-        onChanged={() => {
-          void reload();
-          void loadData();
-        }}
-      />
-      <TagManageSheet
-        visible={manageVisible}
-        onClose={() => setManageVisible(false)}
-        onChanged={() => {
-          void reload();
-          void loadData();
-        }}
-      />
-      <BulkTagSheet
-        visible={bulkTagVisible}
-        productIds={Array.from(selectedIds)}
+      <WatchlistSheets
+        pickerProduct={pickerProduct}
+        onClosePicker={() => setPickerProduct(null)}
+        manageVisible={manageVisible}
+        onCloseManage={() => setManageVisible(false)}
+        bulkTagVisible={bulkTagVisible}
+        onCloseBulkTag={() => setBulkTagVisible(false)}
+        selectedIds={selectedIds}
         tagDefinitions={tagDefinitions}
-        onClose={() => setBulkTagVisible(false)}
-        onChanged={handleBulkTagChanged}
-      />
-      {undoProduct && (
-        <View
-          style={{
-            position: "absolute",
-            left: 16,
-            right: 16,
-            bottom: 16 + insets.bottom,
-            backgroundColor: colors.foreground,
-            borderRadius: 16,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 12,
-            borderWidth: 1,
-            borderColor: colors.border + "33",
-            shadowColor: "#000",
-            shadowOpacity: 0.25,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 6,
-          }}
-        >
-          <Text
-            style={{ color: colors.background, fontSize: 13, flex: 1 }}
-            numberOfLines={1}
-          >
-            Removed {undoProduct.name}
-          </Text>
-          <TouchableOpacity activeOpacity={0.7} onPress={handleUndo} accessibilityLabel="Undo remove" accessibilityRole="button">
-            <Text
-              style={{
-                color: colors.primary,
-                fontSize: 13,
-                fontWeight: "700",
-              }}
-            >
-              Undo
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      <PaywallScreen
-        visible={paywallVisible}
-        onClose={() => setPaywallVisible(false)}
+        onChanged={() => {
+          void reload();
+          void loadData();
+        }}
+        onBulkTagChanged={handleBulkTagChanged}
+        undoProduct={undoProduct}
+        onUndo={handleUndo}
+        bottomInset={insets.bottom}
+        paywallVisible={paywallVisible}
+        onClosePaywall={() => setPaywallVisible(false)}
       />
     </ScreenContainer>
   );
