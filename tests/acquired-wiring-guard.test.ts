@@ -20,13 +20,19 @@ describe("acquired consumers are wired", () => {
   });
 
   it("the alert and restock paths skip acquired products", () => {
-    expect(read("lib/background-tasks/price-check.ts")).toContain("isAcquired(product)");
+    expect(read("lib/background-tasks/price-alerts.ts")).toContain(
+      "isAcquired(product)",
+    );
     expect(read("lib/restock.ts")).toContain("isAcquired(product)");
   });
 
   it("the digest and basket paths compute over active products", () => {
-    const priceCheck = read("lib/background-tasks/price-check.ts");
-    expect(priceCheck).toContain("activeProducts(await getWatchlist())");
+    expect(read("lib/background-tasks/digest.ts")).toContain(
+      "activeProducts(await getWatchlist())",
+    );
+    expect(read("lib/background-tasks/basket-alert.ts")).toContain(
+      "activeProducts(await getWatchlist())",
+    );
   });
 
   it("the server upload excludes acquired products", () => {
