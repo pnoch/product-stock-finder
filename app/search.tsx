@@ -26,13 +26,13 @@ import { TrendingSection } from "@/components/home/trending-section";
 import type { EbaySearchListing } from "@/shared/ebay-search";
 import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
+import { shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { track } from "@/lib/telemetry";
 import { searchCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
 import { PREVIEW_LIMIT, sortPreviewByStock } from "@/lib/search-preview";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
-import { discoverProduct, toDiscoverErrorState } from "@/lib/llm-discovery";
+import { toDiscoverErrorState } from "@/lib/llm-discovery";
 import {
   clearRecentSearches,
   getRecentSearches,
@@ -40,18 +40,12 @@ import {
 } from "@/lib/recent-searches";
 import { SearchEmptyState } from "@/components/search/search-empty-state";
 import { CatalogProductCard } from "@/components/search/catalog-product-card";
-import {
-  addToWatchlist,
-  getWatchlist,
-  getDiscoveredProducts,
-  updateProductListings,
-} from "@/lib/storage";
-import { rediscoverProduct } from "@/lib/manual-add";
-import { discoverListings } from "@/lib/listing-discovery";
+import { getDiscoveredProducts } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { useSearchData } from "@/hooks/use-search-data";
+import { addCatalogProduct, discoverAndAddProduct } from "@/lib/add-product";
 import { PillFilterRow } from "@/components/search/pill-filter-row";
-import { dedupeByIdentity, productIdentityKey } from "@/lib/product-identity";
+import { dedupeByIdentity } from "@/lib/product-identity";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
 import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
@@ -123,80 +117,49 @@ export default function SearchScreen({
 
   async function handleDiscover() {
     if (!query.trim() || discovering) return;
-    if (isMarketplaceInput(query)) { setManualVisible(true); return; }
+    if (isMarketplaceInput(query)) {
+      setManualVisible(true);
+      return;
+    }
     Keyboard.dismiss();
     setDiscovering(true);
     try {
-      const result = await discoverProduct(query);
-      if (result) {
-        // Guard the discovered-vs-static duplicate: identity is brand + model,
-        // not the generated id. Navigate to the existing watchlist entry.
-        const identity = productIdentityKey(result.product);
-        const existing = watchlist.find((p) =>
-          identity ? productIdentityKey(p) === identity : p.id === result.product.id,
-        );
-        if (existing) {
-          showAlert("Already tracked", `"${existing.name}" is already in your watchlist.`);
-          router.push(`/product/${existing.id}`);
-          return;
-        }
-        // discoverProduct only saves to the discovered catalog; the product
-        // detail screen reads the watchlist, so without this the toast claimed
-        // "Added to watchlist" and then showed "Product not found" (desktop
-        // already adds explicitly).
-        const discoverCount = (await getWatchlist()).length;
-        if (shouldEnforceFreeLimits() && !canAddToWatchlist(discoverCount, isPro)) {
-          track("paywall_shown");
-          setPaywallVisible(true);
-          return;
-        }
-        const added = await addToWatchlist({
-          ...result.product,
-          addedAt: new Date().toISOString(),
-          isWatched: true,
-          listings: [],
-          tags: [],
-        });
-        loadData();
-        if (!added) {
-          // Already tracked: storage deduped, so don't claim it was added.
-          showAlert("Already tracked", `"${result.product.name}" is already in your watchlist.`);
-          router.push(`/product/${result.product.id}`);
-          return;
-        }
-        track("product_added", { productId: result.product.id });
-        // The AI product has no listings either, and without this it opened with
-        // zero distributor rows and no price (the catalog-add path discovers
-        // before navigating; the empty-listing backfill is best-effort and was
-        // itself starved).
-        let discovered = 0;
-        try {
-          ({ discovered } = await rediscoverProduct({
-            storage: { updateProductListings },
-            discover: discoverListings,
-            productId: result.product.id,
-            modelNumber: result.product.modelNumber,
-          }));
-        } catch (e) {
-          log.warn("[Search] AI listing discovery failed", e);
-        }
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast(
-          discovered > 0
-            ? `Added ${result.product.name} — prices at ${discovered} distributor${discovered === 1 ? "" : "s"}`
-            : `Added ${result.product.name} — no prices yet`,
-          "success",
+      const result = await discoverAndAddProduct(query, { isPro });
+      if (result.status === "duplicate") {
+        showAlert(
+          "Already tracked",
+          `"${result.product.name}" is already in your watchlist.`,
         );
         router.push(`/product/${result.product.id}`);
-      } else {
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+      if (result.status === "paywall") {
+        track("paywall_shown");
+        setPaywallVisible(true);
+        return;
+      }
+      if (result.status === "not_found") {
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert(
           "Discovery Failed",
           "We couldn't find that product. Try a more specific model number or brand name.",
         );
+        return;
       }
+      track("product_added", { productId: result.product.id });
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast(
+        result.discovered > 0
+          ? `Added ${result.product.name} — prices at ${result.discovered} distributor${result.discovered === 1 ? "" : "s"}`
+          : `Added ${result.product.name} — no prices yet`,
+        "success",
+      );
+      router.push(`/product/${result.product.id}`);
     } catch (e) {
-      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (Platform.OS !== "web")
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       // Single source of truth for discovery error copy (also used by desktop),
       // including a rejected BYO-LLM key ("Check your API key").
       const state = toDiscoverErrorState(e);
@@ -322,46 +285,30 @@ export default function SearchScreen({
         );
         return;
       }
-      const count = (await getWatchlist()).length;
-      if (shouldEnforceFreeLimits() && !canAddToWatchlist(count, isPro)) {
-        track("paywall_shown");
-        setPaywallVisible(true);
-        return;
-      }
       setAdding(item.id);
       Keyboard.dismiss();
       const pending = pendingTags[item.id] ?? [];
-      const product: Product = {
-        ...item,
-        addedAt: new Date().toISOString(),
-        isWatched: true,
-        listings: [],
-        tags: pending,
-      };
       try {
-        const added = await addToWatchlist(product);
-        if (!added) {
-          // Already tracked (e.g. synced from another device after this screen
-          // loaded, or a fast re-add): report it instead of a false success.
-          showAlert("Already tracked", `"${item.name}" is already in your watchlist.`);
+        const result = await addCatalogProduct(item, {
+          tags: pending,
+          isPro,
+        });
+        if (result.status === "duplicate") {
+          showAlert(
+            "Already tracked",
+            `"${item.name}" is already in your watchlist.`,
+          );
           return;
         }
-        track("product_added", { productId: item.id });
-        // The catalog carries no listings and nothing discovered them for this
-        // path, so the product never showed a price. Discover before the tag
-        // sheet can open so the two writes cannot race.
-        let discovered = 0;
-        try {
-          ({ discovered } = await rediscoverProduct({
-            storage: { updateProductListings },
-            discover: discoverListings,
-            productId: item.id,
-            modelNumber: item.modelNumber,
-          }));
-        } catch (e) {
-          log.warn("[Search] listing discovery failed", e);
+        if (result.status === "paywall") {
+          track("paywall_shown");
+          setPaywallVisible(true);
+          return;
         }
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (result.status === "not_found") return;
+        track("product_added", { productId: item.id });
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         loadData();
         setPendingTags((prev) => {
           const next = { ...prev };
@@ -369,20 +316,24 @@ export default function SearchScreen({
           return next;
         });
         showToast(
-          discovered > 0
-            ? `Added ${item.name} — prices at ${discovered} distributor${discovered === 1 ? "" : "s"}`
+          result.discovered > 0
+            ? `Added ${item.name} — prices at ${result.discovered} distributor${result.discovered === 1 ? "" : "s"}`
             : `Added ${item.name} — no prices yet`,
           "success",
         );
         if (pending.length > 0) {
-          setPostAddProduct(product);
+          setPostAddProduct(result.product);
         } else {
           goBackOrHome(router, "/(tabs)/watchlist");
         }
       } catch (e) {
         log.error("[Search] addToWatchlist failed", e);
-        if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert("Couldn't add product", "We couldn't add this product to your watchlist. Please check your connection and try again.");
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showAlert(
+          "Couldn't add product",
+          "We couldn't add this product to your watchlist. Please check your connection and try again.",
+        );
       } finally {
         setAdding(null);
       }

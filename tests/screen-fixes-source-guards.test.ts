@@ -85,11 +85,9 @@ describe("screen-level fixes", () => {
   });
 
   it("AI discovery also discovers listings, like the catalog-add path", () => {
-    const src = read("app/search.tsx");
-    const start = src.indexOf("function handleDiscover");
-    const block = src.slice(start, src.indexOf("const handleAdd", start));
+    const src = read("lib/add-product.ts");
     // Without this the product opened with no distributor rows and no price.
-    expect(block).toContain("rediscoverProduct({");
+    expect(src).toContain("rediscoverProduct({");
   });
 
   it("the rates screen guards against an out-of-order load", () => {
@@ -171,10 +169,9 @@ describe("screen-level fixes", () => {
   });
 
   it("AI discovery reports an already-tracked product instead of claiming success", () => {
+    const add = read("lib/add-product.ts");
     const src = read("app/search.tsx");
-    const start = src.indexOf("function handleDiscover");
-    const block = src.slice(start, src.indexOf("const handleAdd", start));
-    expect(block).toContain("const added = await addToWatchlist(");
-    expect(block).toContain('showAlert("Already tracked"');
+    expect(add).toContain("await addToWatchlist(");
+    expect(src).toContain('"Already tracked"');
   });
 });

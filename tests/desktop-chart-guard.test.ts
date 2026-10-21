@@ -963,7 +963,7 @@ describe("desktop chart guard", () => {
   // and never discovered any, so any catalog product outside the seed entries
   // showed no price on Watchlist/Detail/Compare, forever.
   it("discovers listings when adding from search", async () => {
-    const search = await readFile("app/search.tsx", "utf8");
+    const search = await readFile("lib/add-product.ts", "utf8");
     expect(search).toContain("discoverListings");
     expect(search).toContain("rediscoverProduct({");
     expect(search).toContain("updateProductListings");
