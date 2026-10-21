@@ -329,7 +329,11 @@ describe("desktop chart guard", () => {
   // desktop's watchlist row had no per-product tag assignment.
   it("has a per-product tag picker on the desktop watchlist", async () => {
     const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
-    expect(text).toMatch(/aria-label=\{`Edit tags for \$\{product\.name\}`\}/);
+    const row = await readFile(
+      "desktop/src/components/watchlist/WatchlistRow.tsx",
+      "utf8",
+    );
+    expect(row).toMatch(/aria-label=\{`Edit tags for \$\{product\.name\}`\}/);
     expect(text).toContain("handleToggleProductTag");
     expect(text).toContain("setProductTags");
   });
@@ -2008,9 +2012,13 @@ describe("desktop chart guard", () => {
   // `listings ?? []`.
   it("guards missing listings in the desktop watchlist sort and row render", async () => {
     const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const row = await readFile(
+      "desktop/src/components/watchlist/WatchlistRow.tsx",
+      "utf8",
+    );
     expect(text).toContain("getBestPrice(a.listings ?? [], displayCurrency)");
     expect(text).toContain("getBestPrice(b.listings ?? [], displayCurrency)");
-    expect(text).toContain("getBestPrice(product.listings ?? [], displayCurrency)");
+    expect(row).toContain("getBestPrice(product.listings ?? [], displayCurrency)");
     expect(text).not.toContain("getBestPrice(product.listings, displayCurrency)");
     expect(text).not.toContain("getBestPrice(a.listings, displayCurrency)");
   });

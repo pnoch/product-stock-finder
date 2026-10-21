@@ -14,9 +14,13 @@ describe("desktop list awareness", () => {
 
   it("badges buy signals and counts tabs", async () => {
     const watchlist = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const row = await readFile(
+      "desktop/src/components/watchlist/WatchlistRow.tsx",
+      "utf8",
+    );
     const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
     expect(watchlist).toContain("computeProductInsights");
-    expect(watchlist).toContain("All-time low");
+    expect(row).toContain("All-time low");
     expect(alerts).toMatch(/Alerts\{activeAlertCount > 0 \? ` \(\$\{activeAlertCount\}\)`/);
   });
 });
