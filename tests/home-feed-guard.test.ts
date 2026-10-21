@@ -7,8 +7,9 @@ const read = (p: string) => readFileSync(join(__dirname, "..", p), "utf8");
 describe("home feed wiring", () => {
   it("home uses feed helpers and cards", () => {
     const src = read("app/(tabs)/index.tsx");
+    const feed = read("components/home/home-feed.tsx");
     expect(src).toContain("buildFeedItems");
-    expect(src).toContain("feed-card");
+    expect(feed).toContain("feed-card");
   });
 
   it("stat cards and old sections are gone", () => {

@@ -30,7 +30,12 @@ describe("standalone / local-mode UX", () => {
   });
 
   it("makes the home connection badge tappable in local mode", async () => {
-    const src = await readFile("app/(tabs)/index.tsx", "utf8");
-    expect(src).toMatch(/connection\.status === "signed-out" \|\|\s*connection\.status === "local"/);
+    const src = await readFile(
+      "components/home/home-header.tsx",
+      "utf8",
+    );
+    expect(src).toMatch(
+      /connectionStatus === "signed-out" \|\|\s*connectionStatus === "local"/,
+    );
   });
 });

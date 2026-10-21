@@ -18,8 +18,9 @@ describe("repositioned copy", () => {
     // Plan C replaced the radar subtitle/empty state with the priority-feed
     // greeting; the radar copy lives on in About (asserted below).
     const src = read("app/(tabs)/index.tsx");
+    const header = read("components/home/home-header.tsx");
     expect(src).toContain("greetingFor");
-    expect(src).toContain("what needs your attention");
+    expect(header).toContain("what needs your attention");
   });
 
   it("About carries the tagline and origin line", () => {

@@ -8,7 +8,6 @@ import {
   RefreshControl,
   Platform,
   ActivityIndicator,
-  Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -18,41 +17,16 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useSettings } from "@/lib/settings-provider";
 import { rearmAlert } from "@/lib/storage";
-import { Product, StockStatus } from "@/lib/types";
-import { formatPrice } from "@shared/currency";
-import { getBestPrice } from "@/lib/currency";
-import { StockBadge } from "@/components/stock-badge";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { ConnectionBadge } from "@/components/connection-badge";
 import { useConnection } from "@/hooks/use-connection";
 import { useMonitoringHealth } from "@/hooks/use-monitoring-health";
 import { useHomeData } from "@/hooks/use-home-data";
+import { HomeHeader } from "@/components/home/home-header";
+import { HomeFeed } from "@/components/home/home-feed";
+import { HomeWatchlistPreview } from "@/components/home/home-watchlist-preview";
 import { showAlert } from "@/lib/alert";
 import { greetingFor, buildFeedItems } from "@/lib/home-feed";
 import { DISTRIBUTORS } from "@shared/distributors";
-import {
-  AlertFiredCard,
-  DropCard,
-  RestockCard,
-  QuietCard,
-} from "@/components/home/feed-card";
-
-const STOCK_ORDER: Record<StockStatus, number> = {
-  in_stock: 0,
-  back_order: 1,
-  out_of_stock: 2,
-  unknown: 3,
-};
-
-// Derive best stock status across all listings for a product
-function getBestStatus(product: Product): StockStatus {
-  const listings = product.listings ?? [];
-  if (!listings.length) return "unknown";
-  const sorted = [...listings].sort(
-    (a, b) => STOCK_ORDER[a.stockStatus] - STOCK_ORDER[b.stockStatus],
-  );
-  return sorted[0]!.stockStatus;
-}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -130,98 +104,16 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Header */}
-        <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
-          <View>
-            <Text className="text-2xl font-bold text-foreground">
-              {greeting}
-            </Text>
-            <Text className="text-muted text-sm">
-              Here&apos;s what needs your attention.
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <ConnectionBadge
-              status={connection.status}
-              onPress={
-                connection.status === "signed-out" ||
-                connection.status === "local"
-                  ? () => router.push("/(tabs)/settings")
-                  : undefined
-              }
-            />
-            <TouchableOpacity activeOpacity={0.85}
-              onPress={() => router.push("/you")}
-              accessibilityLabel="Open profile and settings"
-              accessibilityRole="button"
-              style={{ padding: 8 }}
-            >
-              <IconSymbol name="gearshape.fill" size={24} color={colors.muted} />
-            </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.85}
-              accessibilityLabel="Add product"
-              accessibilityRole="button"
-              style={{
-                backgroundColor: colors.primary,
-                borderRadius: 20,
-                width: 40,
-                height: 40,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onPress={() => {
-                if (Platform.OS !== "web")
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push("/search");
-              }}
-            >
-              <IconSymbol name="plus" size={22} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {!monitoringDismissed &&
-          (monitoring.status === "stopped" || monitoring.status === "stale") && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                marginHorizontal: 16,
-                marginBottom: 4,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: colors.warning + "55",
-                backgroundColor: colors.warning + "1A",
-              }}
-            >
-              <Pressable
-                onPress={() => router.push("/(tabs)/settings")}
-                accessibilityRole="button"
-                accessibilityLabel="Background monitoring may have stopped. Tap to fix."
-                style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}
-              >
-                <IconSymbol
-                  name="exclamationmark.triangle.fill"
-                  size={18}
-                  color={colors.warning}
-                />
-                <Text style={{ flex: 1, color: colors.foreground, fontSize: 13 }}>
-                  Background monitoring may have stopped — tap to fix.
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setMonitoringDismissed(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Dismiss monitoring warning"
-                hitSlop={8}
-              >
-                <IconSymbol name="xmark" size={16} color={colors.muted} />
-              </Pressable>
-            </View>
-          )}
+        <HomeHeader
+          greeting={greeting}
+          connectionStatus={connection.status}
+          onOpenSettings={() => router.push("/(tabs)/settings")}
+          onOpenProfile={() => router.push("/you")}
+          onAddProduct={() => router.push("/search")}
+          monitoring={monitoring}
+          monitoringDismissed={monitoringDismissed}
+          onDismissMonitoring={() => setMonitoringDismissed(true)}
+        />
 
         {!loaded ? (
           <View style={{ alignItems: "center", paddingVertical: 32 }}>
@@ -338,121 +230,19 @@ export default function HomeScreen() {
           </View>
         ) : (
           <>
-            {/* Priority feed */}
-            <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
-              {feedItems.map((item) => {
-                switch (item.kind) {
-                  case "alerts":
-                    return (
-                      <AlertFiredCard
-                        key="alerts"
-                        alerts={item.alerts}
-                        names={productNames}
-                        onView={handleViewProduct}
-                        onRearm={handleRearm}
-                      />
-                    );
-                  case "drops":
-                    return <DropCard key="drops" drops={item.drops} />;
-                  case "restocks":
-                    return (
-                      <RestockCard
-                        key="restocks"
-                        productIds={item.productIds}
-                        names={item.names}
-                        onView={handleViewProduct}
-                      />
-                    );
-                  case "quiet":
-                    return <QuietCard key="quiet" dropCount={item.dropCount} />;
-                }
-              })}
-            </View>
+            <HomeFeed
+              feedItems={feedItems}
+              productNames={productNames}
+              onViewProduct={handleViewProduct}
+              onRearm={handleRearm}
+            />
 
-            {/* Watchlist preview */}
-            <View className="px-5">
-              <Text className="text-base font-semibold text-foreground mb-3">
-                Your Watchlist
-              </Text>
-              {watchlist.slice(0, 3).map((product) => {
-                const bestPrice = getBestPrice(
-                  product.listings ?? [],
-                  displayCurrency,
-                );
-                const bestStatus = getBestStatus(product);
-                return (
-                  <TouchableOpacity activeOpacity={0.7}
-                    key={product.id}
-                    accessibilityLabel={`${product.name}, ${bestPrice ? formatPrice(bestPrice.price, bestPrice.currency) : "no price"}`}
-                    accessibilityRole="button"
-                    style={{
-                      backgroundColor: colors.surface,
-                      borderRadius: 16,
-                      padding: 14,
-                      marginBottom: 10,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      flexDirection: "row",
-                      alignItems: "center",
-                    }}
-                    onPress={() => router.push(`/product/${product.id}`)}
-                  >
-                    <View style={{ flex: 1, marginRight: 8 }}>
-                      <Text
-                        style={{
-                          color: colors.foreground,
-                          fontWeight: "600",
-                          fontSize: 14,
-                        }}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {product.name}
-                      </Text>
-                      <Text
-                        style={{
-                          color: colors.muted,
-                          fontSize: 12,
-                          marginTop: 2,
-                        }}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {product.brand} · {product.category}
-                      </Text>
-                    </View>
-                    <View style={{ alignItems: "flex-end" }}>
-                      {bestPrice && (
-                        <Text
-                          style={{
-                            color: colors.primary,
-                            fontWeight: "700",
-                            fontSize: 15,
-                          }}
-                        >
-                          {formatPrice(bestPrice.price, bestPrice.currency)}
-                        </Text>
-                      )}
-                      <View style={{ marginTop: 4 }}>
-                        <StockBadge status={bestStatus} />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-              {watchlist.length > 3 && (
-                <TouchableOpacity activeOpacity={0.7}
-                  onPress={() => router.push("/(tabs)/watchlist")}
-                  accessibilityLabel={`View all ${watchlist.length} product${watchlist.length === 1 ? "" : "s"}`}
-                  accessibilityRole="button"
-                  style={{ alignItems: "center", paddingVertical: 8 }}
-                >
-                  <Text style={{ color: colors.primary, fontWeight: "600" }}>
-                    View all {watchlist.length} product{watchlist.length === 1 ? "" : "s"} →
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            <HomeWatchlistPreview
+              watchlist={watchlist}
+              displayCurrency={displayCurrency}
+              onViewProduct={handleViewProduct}
+              onViewAll={() => router.push("/(tabs)/watchlist")}
+            />
           </>
         )}
       </ScrollView>

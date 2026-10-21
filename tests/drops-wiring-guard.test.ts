@@ -8,7 +8,7 @@ describe("drops feature wiring", () => {
   it("Home screen surfaces drops via the feed", () => {
     // Redesign Plan C dissolved the DropLeaderboard section into the priority
     // feed; drops still reach Home through DropCard + computeLocalDrops.
-    expect(read("app/(tabs)/index.tsx")).toContain("DropCard");
+    expect(read("components/home/home-feed.tsx")).toContain("DropCard");
   });
 
   it("full screen route exists and exports", () => {
