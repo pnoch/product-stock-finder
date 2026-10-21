@@ -71,7 +71,11 @@ describe("mobile product detail exposes product editing", () => {
   });
 
   it("has an edit affordance in the sticky header", () => {
-    expect(src).toContain('accessibilityLabel="Edit product"');
+    const header = readFileSync(
+      "components/product/detail-sticky-header.tsx",
+      "utf8",
+    );
+    expect(header).toContain('accessibilityLabel="Edit product"');
   });
 
   it("refreshes the screen after a save", () => {

@@ -7,8 +7,12 @@ describe("product detail CSV export (mobile/web)", () => {
     expect(mobile).toContain("hasExportablePriceData");
     expect(mobile).toContain("productHistoryToCsv");
     expect(mobile).toContain("exportCsvFile");
-    expect(mobile).toContain("Export CSV");
-    expect(mobile).toContain("onPress={handleExportCsv}");
+    const header = readFileSync(
+      "components/product/detail-sticky-header.tsx",
+      "utf8",
+    );
+    expect(header).toContain("Export CSV");
+    expect(header).toContain("onPress={onExportCsv}");
   });
 });
 

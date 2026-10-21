@@ -82,7 +82,9 @@ describe("deal score surfaces", () => {
   });
 
   it("mobile product detail shows Deal Score card", () => {
-    expect(read("app/product/[id].tsx")).toContain("Deal Score");
+    expect(read("components/product/deal-score-card.tsx")).toContain(
+      "Deal Score",
+    );
   });
 
   it("desktop Watchlist has deal sortKey + Hot deal", () => {

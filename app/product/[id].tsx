@@ -1,15 +1,16 @@
 import { Stack, useLocalSearchParams, router } from "expo-router";
 import { goBackOrHome } from "@/lib/navigation";
-import { ScrollView, Text, View, TouchableOpacity, Platform, Animated } from "react-native";
+import { ScrollView, View, Platform, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { DetailHeader } from "@/components/product/detail-header";
+import { DetailStickyHeader } from "@/components/product/detail-sticky-header";
+import { DealScoreCard } from "@/components/product/deal-score-card";
 import { MarketplaceCard } from "@/components/product/marketplace-card";
 import { AlertSection } from "@/components/product/alert-section";
 import { ReminderSection } from "@/components/product/reminder-section";
-import { useColors } from "@/hooks/use-colors";
 import { useSettings } from "@/lib/settings-provider";
 import { useLiveProduct } from "@/hooks/use-live-prices";
 import { buildShareText } from "@/lib/price-share";
@@ -29,7 +30,7 @@ import { PriceVsAvgCard } from "@/components/product/price-vs-avg-card";
 import { AvailabilityCard } from "@/components/product/availability-card";
 import { computeAvailability } from "@/lib/availability";
 import { computePriceVsAverage } from "@/lib/price-average";
-import { computeDealScore, dealBandLabel } from "@/lib/deal-score";
+import { computeDealScore } from "@/lib/deal-score";
 import { findBestDeal } from "@/lib/best-deal";
 import { selectBestListing } from "@/lib/currency";
 import { rankByLandedCost } from "@/lib/landed-cost";
@@ -47,7 +48,6 @@ import { PriceAlert, DistributorListing } from "@/lib/types";
 import { getAllRegions, filterListingsByRegion } from "@/lib/region-filter";
 import { SkeletonCard, SkeletonChart, SkeletonDetailHeader } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { productHistoryToCsv, hasExportablePriceData } from "@/lib/csv";
 import { exportCsvFile } from "@/lib/csv-export";
@@ -63,7 +63,6 @@ export default function ProductDetailScreen() {
   const highlightDistributorId = Array.isArray(distributor)
     ? distributor[0]
     : distributor;
-  const colors = useColors();
   const { showToast } = useToast();
   const {
     settings,
@@ -715,62 +714,14 @@ export default function ProductDetailScreen() {
           title overlapping the status bar. Keep the root Stack's
           headerShown:false. */}
       <Stack.Screen options={{ headerShown: false }} />
-      <Animated.View
-        pointerEvents="box-none"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 10,
-          backgroundColor: colors.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          paddingTop: insets.top + 10,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          opacity: stickyOpacity,
-        }}
-      >
-        <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14, flex: 1 }} numberOfLines={1}>
-          {product.name}
-        </Text>
-        <View pointerEvents="auto" style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setEditingProduct(true)}
-            style={{ padding: 4, marginLeft: 8 }}
-            accessibilityLabel="Edit product"
-            accessibilityRole="button"
-            hitSlop={10}
-          >
-            <IconSymbol name="pencil" size={18} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={handleShare}
-            style={{ padding: 4, marginLeft: 8 }}
-            accessibilityLabel="Share product"
-            accessibilityRole="button"
-            hitSlop={10}
-          >
-            <IconSymbol name="square.and.arrow.up" size={18} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={handleExportCsv}
-            style={{ padding: 4, marginLeft: 8 }}
-            accessibilityLabel="Export CSV"
-            accessibilityRole="button"
-            hitSlop={10}
-          >
-            <IconSymbol name="square.and.arrow.down" size={18} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+      <DetailStickyHeader
+        productName={product.name}
+        opacity={stickyOpacity}
+        topInset={insets.top}
+        onEdit={() => setEditingProduct(true)}
+        onShare={handleShare}
+        onExportCsv={handleExportCsv}
+      />
       <Animated.ScrollView
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
         scrollEventThrottle={16}
@@ -780,29 +731,7 @@ export default function ProductDetailScreen() {
         <View ref={shareRef} collapsable={false}>
           {product.marketplace ? <MarketplaceCard product={product} onUpdated={refresh} /> : <ProductInfoCard product={product} listings={listings} visibleListings={visibleListings} lastUpdatedAt={lastUpdatedAt ? new Date(lastUpdatedAt).toISOString() : undefined} displayCurrency={effectiveCurrency} productImage={productImage} />}
           {!product.marketplace && <>
-          {dealScore != null && (
-            <View
-              style={{
-                marginHorizontal: 16,
-                backgroundColor: colors.surface,
-                borderRadius: 16,
-                padding: 16,
-                borderWidth: 1,
-                borderColor: colors.border,
-                marginBottom: 16,
-              }}
-            >
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}>
-                Deal Score {dealScore.score} — {dealBandLabel(dealScore.band)}
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>Range {dealScore.factors.range}</Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>Trend {dealScore.factors.trend}</Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>Streak {dealScore.factors.streak}</Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>Volatility {dealScore.factors.volatility}</Text>
-              </View>
-            </View>
-          )}
+          {dealScore != null && <DealScoreCard dealScore={dealScore} />}
           {priceVsAvg && <PriceVsAvgCard data={priceVsAvg} displayCurrency={effectiveCurrency} />}
           {availability && <AvailabilityCard data={availability} />}
           <DistributorListingSection sortedListings={sortedListings} visibleListings={visibleListings} bestInStockListing={bestInStockListing} highlightDistributorId={highlightDistributorId} product={product} insight={insight} insightLoading={insightLoading} regionFilter={regionFilter} regions={regions} shippingRegion={effectiveShippingRegion} bestDeal={bestDeal} stockWatches={stockWatches} id={id} displayCurrency={effectiveCurrency} destination={destination} taxExempt={taxExempt} includeImportEstimate={includeImportEstimate} onSelectCountry={handleSelectCountry} onToggleTaxExempt={handleToggleTaxExempt} onToggleImportEstimate={handleToggleImportEstimate} onSetRegionFilter={setRegionFilter} onSetBestAlert={handleSetBestAlert} onToggleStockWatch={handleToggleStockWatch} onOpenChart={(listing) => router.push(`/compare/${id}?distributor=${listing.distributorId}`)} onRemind={setReminderListing} onFindPrices={handleFindPrices} findingPrices={findingPrices} onWatchAny={() => void toggleAnyWatch()} watchingAny={!!stockWatches["*"]} />
