@@ -8,11 +8,11 @@ import {
   Platform,
   Animated,
 } from "react-native";
-import { useCallback, useState, useMemo, useEffect } from "react";
-import type { PriceAlert, CriterionWatch } from "@/lib/types";
+import { useCallback, useState, useMemo } from "react";
+import type { PriceAlert } from "@/lib/types";
 import { PriceAlertModal } from "@/components/product/price-alert-modal";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -22,11 +22,11 @@ import { countActiveAlerts } from "@/lib/alert-state";
 import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { IconActionButton } from "@/components/ui/icon-action-button";
-import { getCriterionWatches, removeCriterionWatch } from "@/lib/storage";
 import { useAlertsData } from "@/hooks/use-alerts-data";
+import { useCriterionWatches } from "@/hooks/use-criterion-watches";
+import { useAlertEditDraft } from "@/hooks/use-alert-edit-draft";
 import { showAlert } from "@/lib/alert";
 import { savingAlerts } from "@/lib/alert-savings";
-import { getDistributorById } from "@shared/distributors";
 
 import { TabSwitcher } from "@/components/alerts/tab-switcher";
 import { AlertCard } from "@/components/alerts/alert-card";
@@ -56,51 +56,8 @@ export default function AlertsScreen() {
     showReschedulePicker, setShowReschedulePicker,
   } = useAlertsData();
 
-  const [criterionWatches, setCriterionWatches] = useState<CriterionWatch[]>([]);
-
-  const loadCriterionWatches = useCallback(async () => {
-    try {
-      setCriterionWatches(await getCriterionWatches());
-    } catch {
-      setCriterionWatches([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    getCriterionWatches()
-      .then((watches) => {
-        if (active) setCriterionWatches(watches);
-      })
-      .catch(() => {
-        if (active) setCriterionWatches([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, [refreshing, loading]);
-
-  // Reload on focus so a watch created on the board appears when the user
-  // returns to this tab (the effect above only fires on mount/refresh).
-  useFocusEffect(
-    useCallback(() => {
-      void loadCriterionWatches();
-    }, [loadCriterionWatches]),
-  );
-
-  const handleRemoveCriterionWatch = useCallback(
-    async (id: string) => {
-      if (Platform.OS !== "web")
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      try {
-        await removeCriterionWatch(id);
-        await loadCriterionWatches();
-      } catch {
-        showAlert("Remove failed", "We couldn't remove that watch. Please try again.");
-      }
-    },
-    [loadCriterionWatches],
-  );
+  const { criterionWatches, handleRemoveCriterionWatch } =
+    useCriterionWatches(refreshing, loading);
 
   const fabScale = useState(() => new Animated.Value(1))[0];
   const handleFabPressIn = useCallback(() => {
@@ -109,13 +66,20 @@ export default function AlertsScreen() {
   const handleFabPressOut = useCallback(() => {
     Animated.spring(fabScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 8 }).start();
   }, [fabScale]);
-  const [editingAlert, setEditingAlert] = useState<PriceAlert | null>(null);
-  const [editPrice, setEditPrice] = useState("");
-  const [editCurrency, setEditCurrency] = useState("USD");
-  const [editDirection, setEditDirection] = useState<"drop" | "rise">("drop");
-  const [editDistributorId, setEditDistributorId] = useState<string | null>(
-    null,
-  );
+  const {
+    editingAlert,
+    setEditingAlert,
+    editPrice,
+    setEditPrice,
+    editCurrency,
+    setEditCurrency,
+    editDirection,
+    setEditDirection,
+    editDistributorId,
+    setEditDistributorId,
+    handleEditAlert,
+    editDistributors,
+  } = useAlertEditDraft(alerts, products);
 
   const activeAlerts = useMemo(() => alerts.filter((a) => !a.triggeredAt), [alerts]);
 
@@ -137,34 +101,6 @@ export default function AlertsScreen() {
     }
     return items;
   }, [activeAlerts, triggeredAlerts, totalSaved]);
-
-  const handleEditAlert = useCallback(
-    (alertId: string) => {
-      const alert = alerts.find((a) => a.id === alertId);
-      if (!alert) return;
-      setEditingAlert(alert);
-      setEditPrice(String(alert.targetPrice));
-      setEditCurrency(alert.currency);
-      setEditDirection(alert.direction ?? "drop");
-      setEditDistributorId(alert.distributorId ?? null);
-    },
-    [alerts],
-  );
-
-  const editDistributors = useMemo(() => {
-    if (!editingAlert) return [];
-    const productId = editingAlert.productId;
-    return (
-      (products.find((p) => p.id === productId)?.listings ?? []).map((l) => {
-          const d = getDistributorById(l.distributorId);
-          return {
-            id: l.distributorId,
-            name: d?.name ?? l.distributorId,
-            countryCode: d?.countryCode ?? "",
-          };
-        }) ?? []
-    );
-  }, [editingAlert, products]);
 
   if (loading) {
     return (
