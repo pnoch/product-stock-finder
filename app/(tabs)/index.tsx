@@ -1,5 +1,5 @@
 import { log } from "@shared/log";
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   ScrollView,
   Text,
@@ -10,31 +10,23 @@ import {
   ActivityIndicator,
   Pressable,
 } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
-import { useQueryClient } from "@tanstack/react-query";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useSettings } from "@/lib/settings-provider";
-import {
-  getWatchlist,
-  getAlerts,
-  getLastSeenAt,
-  setLastSeenAt,
-  rearmAlert,
-} from "@/lib/storage";
-import { Product, PriceAlert, StockStatus } from "@/lib/types";
+import { rearmAlert } from "@/lib/storage";
+import { Product, StockStatus } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "@/lib/currency";
 import { StockBadge } from "@/components/stock-badge";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ConnectionBadge } from "@/components/connection-badge";
-import { computeAwaySummary, type AwaySummary } from "@/lib/away-summary";
-import { activeProducts } from "@/lib/acquired";
 import { useConnection } from "@/hooks/use-connection";
 import { useMonitoringHealth } from "@/hooks/use-monitoring-health";
+import { useHomeData } from "@/hooks/use-home-data";
 import { showAlert } from "@/lib/alert";
 import { greetingFor, buildFeedItems } from "@/lib/home-feed";
 import { DISTRIBUTORS } from "@shared/distributors";
@@ -66,76 +58,22 @@ export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
   const connection = useConnection();
-  const queryClient = useQueryClient();
   const { health: monitoring } = useMonitoringHealth();
   const [monitoringDismissed, setMonitoringDismissed] = useState(false);
-  const [watchlist, setWatchlist] = useState<Product[]>([]);
-  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const { settings } = useSettings();
   const displayCurrency = settings.displayCurrency;
-  const [awaySummary, setAwaySummary] = useState<AwaySummary | null>(null);
 
-  const loadGenRef = useRef(0);
-  const loadData = useCallback(async () => {
-    const gen = ++loadGenRef.current;
-    try {
-      setLoadError(null);
-      const list = await getWatchlist();
-      if (gen !== loadGenRef.current) return;
-      setWatchlist(list);
-      const alertList = await getAlerts();
-      if (gen !== loadGenRef.current) return;
-      setAlerts(alertList);
-      const seen = await getLastSeenAt();
-      if (gen !== loadGenRef.current) return;
-      if (seen != null && list.length > 0) {
-        setAwaySummary(
-          computeAwaySummary({
-            watchlist: activeProducts(list),
-            since: seen,
-            now: Date.now(),
-            displayCurrency,
-          }),
-        );
-      }
-      await setLastSeenAt(Date.now());
-    } catch (e) {
-      if (gen !== loadGenRef.current) return;
-      log.error(e);
-      setLoadError(e instanceof Error ? e.message : "Failed to load watchlist");
-    } finally {
-      if (gen === loadGenRef.current) setLoaded(true);
-    }
-  }, [displayCurrency]);
-
-  // Invalidate cached watchlist preview when watchlist mutates so home never shows stale data
-  useEffect(() => {
-    void queryClient.invalidateQueries({ queryKey: ["watchlist"] });
-    void queryClient.invalidateQueries({ queryKey: ["watchlist_preview"] });
-  }, [watchlist, queryClient]);
-
-  // Reload whenever the tab is focused so seed/backfill changes are reflected immediately
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData]),
-  );
-
-  const onRefresh = useCallback(async () => {
-    if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setRefreshing(true);
-    try {
-      await loadData();
-      if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [loadData]);
+  const {
+    watchlist,
+    alerts,
+    refreshing,
+    loaded,
+    loadError,
+    awaySummary,
+    onRefresh,
+    loadData,
+    retry,
+  } = useHomeData(displayCurrency);
 
   const feedItems = useMemo(
     () =>
@@ -324,10 +262,7 @@ export default function HomeScreen() {
                   paddingVertical: 10,
                   marginTop: 14,
                 }}
-                onPress={() => {
-                  setLoaded(false);
-                  void loadData();
-                }}
+                onPress={retry}
               >
                 <Text style={{ color: "#fff", fontWeight: "600" }}>Retry</Text>
               </TouchableOpacity>

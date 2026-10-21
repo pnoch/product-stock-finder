@@ -13,7 +13,7 @@ describe("acquired consumers are wired", () => {
       "app/build-order.tsx",
       "app/sourcing.tsx",
       "app/stats.tsx",
-      "app/(tabs)/index.tsx",
+      "hooks/use-home-data.ts",
     ]) {
       expect(read(file), `${file} must call activeProducts`).toContain("activeProducts");
     }

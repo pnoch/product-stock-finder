@@ -99,7 +99,7 @@ describe("screen-level fixes", () => {
   });
 
   it("the home screen guards against an out-of-order load", () => {
-    const src = read("app/(tabs)/index.tsx");
+    const src = read("hooks/use-home-data.ts");
     // Focus + pull-to-refresh can run loadData concurrently; the earlier
     // watchlist/alerts/settings/last-seen read could land last and overwrite newer state.
     expect(src).toContain("loadGenRef");
