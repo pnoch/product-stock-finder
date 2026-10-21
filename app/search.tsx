@@ -50,6 +50,8 @@ import { rediscoverProduct } from "@/lib/manual-add";
 import { discoverListings } from "@/lib/listing-discovery";
 import { Product } from "@/lib/types";
 import { useSearchData } from "@/hooks/use-search-data";
+import { PillFilterRow } from "@/components/search/pill-filter-row";
+import { dedupeByIdentity, productIdentityKey } from "@/lib/product-identity";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
 import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
@@ -64,98 +66,6 @@ const CATALOG_SORT_OPTIONS: { key: CatalogSort; label: string }[] = [
   { key: "brand", label: "Brand" },
   { key: "price", label: "Price" },
 ];
-
-function PillFilterRow({
-  label,
-  options,
-  selected,
-  onSelect,
-  colors,
-}: {
-  label: string;
-  options: string[];
-  selected: string | null;
-  onSelect: (v: string | null) => void;
-  colors: ReturnType<typeof useColors>;
-}) {
-  return (
-    <View
-      style={{ flexDirection: "row", paddingHorizontal: 16, marginBottom: 8, flexWrap: "wrap", gap: 8, alignItems: "center" }}
-      accessibilityRole="radiogroup"
-      accessibilityLabel={`${label} filter`}
-    >
-      <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginRight: 4 }}>{label}</Text>
-      <TouchableOpacity activeOpacity={0.85}
-        onPress={() => {
-          if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onSelect(null);
-        }}
-        style={{
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          borderRadius: 16,
-          backgroundColor: selected === null ? colors.primary : colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-        }}
-        accessibilityRole="radio"
-        accessibilityState={{ selected: selected === null }}
-      >
-        <Text style={{ color: selected === null ? "#fff" : colors.foreground, fontSize: 13, fontWeight: "600" }}>All</Text>
-      </TouchableOpacity>
-      {options.map((opt) => {
-        const active = selected === opt;
-        return (
-          <TouchableOpacity activeOpacity={0.85}
-            key={opt}
-            onPress={() => {
-              if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onSelect(active ? null : opt);
-            }}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 16,
-              backgroundColor: active ? colors.primary : colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: active }}
-          >
-            <Text style={{ color: active ? "#fff" : colors.foreground, fontSize: 13, fontWeight: "600" }}>{opt}</Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-}
-
-// Watchlist dedupe keys on `id` only, but an AI-discovered product gets a
-// generated id (`discovered-<ts>`) that never matches the static catalog id, so
-// the same item could be added twice (and shown as two search rows). Identity
-// is brand + model, normalized.
-function productIdentityKey(p: { brand?: string; modelNumber?: string }): string {
-  const brand = (p.brand ?? "").trim().toLowerCase();
-  const model = (p.modelNumber ?? "").trim().toLowerCase();
-  return brand || model ? `${brand}|${model}` : "";
-}
-
-function dedupeByIdentity<T extends { brand?: string; modelNumber?: string }>(
-  items: T[],
-): T[] {
-  const seen = new Set<string>();
-  const out: T[] = [];
-  for (const item of items) {
-    const key = productIdentityKey(item);
-    if (key) {
-      if (seen.has(key)) continue;
-      seen.add(key);
-    }
-    out.push(item);
-  }
-  return out;
-}
 
 export default function SearchScreen({
   mode = "add",
