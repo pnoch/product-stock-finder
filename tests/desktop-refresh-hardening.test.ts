@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop refresh hardening", () => {
   it("times out slow price queries", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/lib/watchlist-refresh.ts",
+      "utf8",
+    );
     const helper = await readFile("desktop/src/lib/server-prices.ts", "utf8");
     expect(text).toContain("fetchListingsWithTimeout");
     expect(helper).toContain("QUERY_TIMEOUT_MS");

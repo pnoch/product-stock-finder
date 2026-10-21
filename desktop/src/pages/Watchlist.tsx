@@ -42,19 +42,19 @@ import { countQueuedEdits } from "../../../lib/sync";
 import { computeProductInsights } from "../../../lib/product-insights";
 import { computeDealScore, dealBandLabel, type DealScore } from "../../../lib/deal-score";
 import { flattenWatchlistRows } from "../lib/watchlist-rows";
+import { getTrend, getDominantStatus } from "../lib/watchlist-view";
+import { fetchServerPricesForWatchlist } from "../lib/watchlist-refresh";
+import { OfflineBanner } from "../components/watchlist/OfflineBanner";
 import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
-import { fetchListingsWithTimeout } from "../lib/server-prices";
-import { composeLiveListings } from "../../../lib/live-prices";
 import { buildWatchlistShareMessage } from "../../../lib/watchlist-share";
 import { copyTextWithFallback } from "../lib/share";
-import { isFreshPriceSnapshot } from "../../../lib/price-freshness";
 import { parseBulkImportCsv } from "../../../lib/csv";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import { isAcquired } from "../../../lib/acquired";
 import { rediscoverProduct } from "../../../lib/manual-add";
 import { discoverListings } from "../../../lib/listing-discovery";
-import type { BackOrderReminder, DistributorListing, PriceAlert, Product, StockStatus, TagDefinition, WatchlistGroup } from "../../../lib/types";
+import type { BackOrderReminder, DistributorListing, PriceAlert, Product, TagDefinition, WatchlistGroup } from "../../../lib/types";
 
 type SortKey = "name" | "price" | "deal" | "trend" | "lastUpdated";
 type FilterKey = "all" | "in_stock" | "back_order" | "out_of_stock";
@@ -65,91 +65,6 @@ const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
   { key: "back_order", label: "Back Order" },
   { key: "out_of_stock", label: "Out of Stock" },
 ];
-
-
-
-export function getTrend(product: Product): "up" | "down" | "flat" {
-  const listings = (product.listings ?? []).filter((l) => (l.priceHistory ?? []).length >= 2);
-  if (!listings.length) return "flat";
-
-  let totalPct = 0;
-  let count = 0;
-  for (const listing of listings) {
-    // Sort by parsed time: the trend reads positionally (newest last), and a
-    // history restored from a backup or a server pull is not guaranteed
-    // ascending — an unsorted history reported "up" for a dropping price.
-    const history = [...(listing.priceHistory ?? [])].sort(
-      (a, b) => Date.parse(a.date) - Date.parse(b.date),
-    );
-    const recent = history[history.length - 1].price;
-    const older = history[Math.max(0, history.length - 3)].price;
-    if (!Number.isFinite(recent) || !Number.isFinite(older) || older <= 0) continue;
-    totalPct += ((recent - older) / older) * 100;
-    count += 1;
-  }
-  if (count === 0) return "flat";
-  const avgPct = totalPct / count;
-  if (avgPct > 1) return "up";
-  if (avgPct < -1) return "down";
-  return "flat";
-}
-
-function getDominantStatus(product: Product): StockStatus {
-  const statuses = (product.listings ?? []).map((l) => l.stockStatus);
-  if (statuses.includes("in_stock")) return "in_stock";
-  if (statuses.includes("back_order")) return "back_order";
-  if (statuses.includes("out_of_stock")) return "out_of_stock";
-  return "unknown";
-}
-
-
-
-const MAX_CONCURRENT_SERVER_FETCHES = 3;
-
-async function fetchServerPricesForWatchlist(
-  onProgress?: (done: number, total: number) => void,
-): Promise<{ refreshed: number; total: number } | null> {
-  if (!getApiBaseUrl()) return null;
-  const products = await storage.getWatchlist();
-  const jobs = products
-    .filter((p) => (p.listings ?? []).length > 0)
-    .map((p) => ({ productId: p.id, modelNumber: p.modelNumber, listings: p.listings ?? [] }));
-  const total = jobs.reduce((n, j) => n + j.listings.length, 0);
-  if (total === 0) return { refreshed: 0, total: 0 };
-  const client = createTRPCClient();
-  let refreshed = 0;
-  let done = 0;
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(MAX_CONCURRENT_SERVER_FETCHES, total) }, async () => {
-      while (next < jobs.length) {
-        const job = jobs[next];
-        next += 1;
-        const results = await fetchListingsWithTimeout(client, job.listings, job.modelNumber, () => {
-          done += 1;
-          onProgress?.(done, total);
-        });
-        if (results.some((r) => r !== null)) {
-          const merged = composeLiveListings(job.listings, results);
-          await storage.updateProductListings(job.productId, merged);
-        }
-        refreshed += results.filter((r) => isFreshPriceSnapshot(r?.snapshot)).length;
-      }
-    }),
-  );
-  return { refreshed, total };
-}
-
-
-
-function OfflineBanner({ queuedCount, isOffline }: { queuedCount: number; isOffline: boolean }) {
-  if (!isOffline || queuedCount <= 0) return null;
-  return (
-    <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm font-semibold" role="alert">
-      Offline — {queuedCount} edit{queuedCount === 1 ? "" : "s"} queued. Will sync when back online.
-    </div>
-  );
-}
 
 
 

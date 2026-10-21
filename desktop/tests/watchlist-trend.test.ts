@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getTrend } from "../src/pages/Watchlist";
+import { getTrend } from "../src/lib/watchlist-view";
 import type { Product } from "../../lib/types";
 
 function product(history: { date: string; price: number }[]): Product {
