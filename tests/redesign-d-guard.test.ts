@@ -23,7 +23,11 @@ describe("redesign D wiring", () => {
   });
 
   it("cards use 16px radius on key screens", () => {
-    for (const f of ["app/(tabs)/alerts.tsx", "app/drops.tsx", "components/home/feed-card.tsx"]) {
+    for (const f of [
+      "components/alerts/alerts-list-row.tsx",
+      "app/drops.tsx",
+      "components/home/feed-card.tsx",
+    ]) {
       expect(read(f)).toContain("borderRadius: 16");
     }
   });
