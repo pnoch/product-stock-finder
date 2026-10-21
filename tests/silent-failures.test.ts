@@ -33,9 +33,13 @@ describe("silent failures", () => {
       "hooks/use-watchlist-filters.ts",
       "utf8",
     );
+    const share = await readFile(
+      "hooks/use-watchlist-share.ts",
+      "utf8",
+    );
     expect(text).toContain("queued-count refresh failed");
     expect(filters).toContain("settings persist failed");
-    expect(text).toContain("[Watchlist] share failed");
+    expect(share).toContain("[Watchlist] share failed");
   });
 
   it("logs image-share fallback on compare and product screens", async () => {

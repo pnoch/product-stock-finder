@@ -20,26 +20,23 @@ import { useWatchlistRemove } from "@/hooks/use-watchlist-remove";
 import { useWatchlistSelection } from "@/hooks/use-watchlist-selection";
 import { useWatchlistRefresh } from "@/hooks/use-watchlist-refresh";
 import { useWatchlistFilters } from "@/hooks/use-watchlist-filters";
+import { useWatchlistShare } from "@/hooks/use-watchlist-share";
+import { useWatchlistImport } from "@/hooks/use-watchlist-import";
+import { useWatchlistFindPrices } from "@/hooks/use-watchlist-find-prices";
 import { WatchlistFilterPanel } from "@/components/watchlist/watchlist-filter-panel";
 import { WatchlistListHeader } from "@/components/watchlist/watchlist-list-header";
-import { pickAndImportWatchlistCsv } from "@/lib/watchlist-import";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { PaywallScreen } from "@/components/paywall/paywall-screen";
 import { track } from "@/lib/telemetry";
 import { useLiveWatchlist } from "@/hooks/use-live-prices";
 import { useConnection } from "@/hooks/use-connection";
-import { buildWatchlistShareMessage } from "@/lib/watchlist-share";
-import { shareText } from "@/lib/share-text";
 import { trpc } from "@/lib/trpc";
 import {
   getAlerts,
   getSyncMeta,
-  updateProductListings,
   updateProductAcquired,
 } from "@/lib/storage";
-import { rediscoverProduct } from "@/lib/manual-add";
-import { discoverListings } from "@/lib/listing-discovery";
 import { useToast } from "@/components/ui/toast";
 import { countQueuedEdits } from "@/lib/sync";
 import { computeWatchlistSummary } from "@/lib/watchlist-summary";
@@ -155,7 +152,6 @@ export default function WatchlistScreen() {
 
   const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
   const [manageVisible, setManageVisible] = useState(false);
-  const [findingIds, setFindingIds] = useState<Set<string>>(new Set());
   const regions = useMemo(() => getAllRegions(), []);
   const scrollY = useState(() => new Animated.Value(0))[0];
   const headerCollapse = scrollY.interpolate({ inputRange: [0, 80], outputRange: [1, 0], extrapolate: "clamp" });
@@ -271,112 +267,27 @@ export default function WatchlistScreen() {
     showAlert,
   });
 
-  const handleShareWatchlist = useCallback(async () => {
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      // Prefer a server /w/ link when signed in so recipients can open the
-      // full list; fall back to the local text summary when signed out or
-      // offline. Link creation must never break sharing.
-      let shareUrl: string | undefined;
-      if (isAuthenticated) {
-        try {
-          const res = await createShareLink.mutateAsync({});
-          shareUrl = res.shareUrl;
-        } catch {
-          shareUrl = undefined;
-        }
-      }
-      const message = buildWatchlistShareMessage({ shareUrl, watchlist, displayCurrency, days: 30, now: Date.now() });
-      const result = await shareText(message, "My Watchlist");
-      if (result === "copied") showAlert("Copied", "Watchlist copied to your clipboard.");
-      else if (result === "failed") showAlert("Share unavailable", "Sharing isn't supported in this browser.");
-    } catch (e) {
-      LOG_ERROR("[Watchlist] share failed", e);
-    }
-  }, [watchlist, displayCurrency, isAuthenticated, createShareLink]);
+  const { handleShareWatchlist } = useWatchlistShare({
+    watchlist,
+    displayCurrency,
+    isAuthenticated,
+    createShareLink,
+    showAlert,
+  });
 
-  const handleImportCsv = useCallback(async () => {
-    try {
-      const result = await pickAndImportWatchlistCsv({ isPro });
-      if (result.status === "canceled") return;
-      if (result.status === "empty") {
-        showAlert("Import failed", "CSV file is empty.");
-        return;
-      }
-      if (result.status === "invalid") {
-        showAlert(
-          "Import failed",
-          "No valid rows found. Expected header: model,targetPrice,currency,tags",
-        );
-        return;
-      }
-      if (result.truncated) {
-        showAlert(
-          "Large file",
-          `Only the first ${result.rows} rows were imported. Split the file and import the rest separately.`,
-        );
-      }
-      await reload();
-      await loadData();
-      if (result.limited) {
-        track("paywall_shown");
-        setPaywallVisible(true);
-        showAlert(
-          "Import limited",
-          `Added ${result.added} product${result.added === 1 ? "" : "s"} — upgrade to Pro to import the rest.`,
-        );
-        return;
-      }
-      const notes = [
-        result.duplicates > 0 ? `${result.duplicates} already tracked` : "",
-        result.skipped > 0 ? `${result.skipped} skipped` : "",
-      ]
-        .filter(Boolean)
-        .join(", ");
-      showAlert(
-        "Import complete",
-        `Added ${result.added} product${result.added !== 1 ? "s" : ""}${notes ? `, ${notes}` : ""}.`,
-      );
-    } catch (e) {
-      LOG_ERROR("[Watchlist] import failed", e);
-      showAlert("Import failed", e instanceof Error ? e.message : String(e));
-    }
-  }, [reload, loadData, isPro]);
+  const { handleImportCsv } = useWatchlistImport({
+    isPro,
+    reload,
+    loadData,
+    showAlert,
+    setPaywallVisible,
+    track,
+  });
 
-  const handleFindPrices = useCallback(
-    async (product: Product) => {
-      if (!product.modelNumber) return;
-      if (findingIds.has(product.id)) return;
-      setFindingIds((prev) => new Set(prev).add(product.id));
-      try {
-        const { discovered, timedOut } = await rediscoverProduct({
-          storage: { updateProductListings },
-          discover: discoverListings,
-          productId: product.id,
-          modelNumber: product.modelNumber,
-        });
-        await reload();
-        showToast(
-          discovered > 0
-            ? `Found prices at ${discovered} distributor${discovered === 1 ? "" : "s"}`
-            : timedOut
-              ? "Search timed out — try again"
-              : "No prices found",
-          discovered > 0 ? "success" : "error",
-        );
-      } catch (e) {
-        LOG_ERROR("[Watchlist] price discovery failed", e);
-        showToast("Couldn't find prices", "error");
-      } finally {
-        setFindingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(product.id);
-          return next;
-        });
-      }
-    },
-    [findingIds, reload, showToast],
-  );
+  const { findingIds, handleFindPrices } = useWatchlistFindPrices({
+    reload,
+    showToast,
+  });
 
   const sectionData = useMemo(() => sections.map((s) => ({ ...s, data: s.products.map((p) => ({ ...p, _sectionKey: s.key } as Product & { _sectionKey: string })) })), [sections]);
   const handleProductPress = useCallback((product: Product) => {
