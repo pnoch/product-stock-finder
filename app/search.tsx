@@ -1,5 +1,5 @@
 import { log } from "@shared/log";
-import { useCallback, useDeferredValue, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -28,8 +28,7 @@ import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { shouldEnforceFreeLimits } from "@/lib/pro-features";
 import { track } from "@/lib/telemetry";
-import { searchCatalog, PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
-import { PREVIEW_LIMIT, sortPreviewByStock } from "@/lib/search-preview";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 import { CatalogSearchBar } from "@/components/search/catalog-search-bar";
 import { RecentSearches } from "@/components/search/recent-searches";
 import { toDiscoverErrorState } from "@/lib/llm-discovery";
@@ -40,19 +39,14 @@ import {
 } from "@/lib/recent-searches";
 import { SearchEmptyState } from "@/components/search/search-empty-state";
 import { CatalogProductCard } from "@/components/search/catalog-product-card";
-import { getDiscoveredProducts } from "@/lib/storage";
 import { Product } from "@/lib/types";
 import { useSearchData } from "@/hooks/use-search-data";
+import { useCatalogSearch, type CatalogSort } from "@/hooks/use-catalog-search";
 import { addCatalogProduct, discoverAndAddProduct } from "@/lib/add-product";
 import { PillFilterRow } from "@/components/search/pill-filter-row";
-import { dedupeByIdentity } from "@/lib/product-identity";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
-import { countTagMatches, filterWatchlist } from "@/lib/watchlist-org";
-import Fuse from "fuse.js";
 import { isEbayInput, isFacebookInput, isLazadaInput, isMarketplaceInput, isShopeeInput } from "@/shared/marketplace-url";
-
-type CatalogSort = "relevance" | "name" | "price" | "brand";
 
 const CATALOG_SORT_OPTIONS: { key: CatalogSort; label: string }[] = [
   { key: "relevance", label: "Relevance" },
@@ -178,102 +172,28 @@ export default function SearchScreen({
     }
   }
 
-  const deferredQuery = useDeferredValue(query);
-  const [discoveredProducts, setDiscoveredProducts] = useState<
-    (typeof PRODUCT_CATALOG)[0][]
-  >([]);
-
-  // getAllCatalog() returns the static catalog only, so filtering it by its own
-  // ids always produced []: AI-discovered products were persisted by
-  // discoverProduct but never shown on mobile (desktop reads its store).
-  const collectDiscovered = useCallback(async () => {
-    const staticIds = new Set(PRODUCT_CATALOG.map((p) => p.id));
-    const all = [...PRODUCT_CATALOG, ...(await getDiscoveredProducts())];
-    const discovered = all.filter((p) => !staticIds.has(p.id));
-    return discovered.length > 50 ? discovered.slice(-50) : discovered;
-  }, []);
-
-  const refreshDiscovered = useCallback(async () => {
-    setDiscoveredProducts(await collectDiscovered());
-  }, [collectDiscovered]);
-
-  useEffect(() => {
-    let active = true;
-    void collectDiscovered().then((discovered) => {
-      if (!active) return;
-      setDiscoveredProducts(discovered);
-    });
-    return () => {
-      active = false;
-    };
-  }, [collectDiscovered]);
+  const {
+    deferredQuery,
+    refreshDiscovered,
+    tagCounts,
+    categories,
+    brands,
+    sortedResults,
+  } = useCatalogSearch({
+    query,
+    watchlist,
+    trackedIds,
+    selectedTagIds,
+    tagMatchMode,
+    selectedCategory,
+    selectedBrand,
+    catalogSort,
+  });
 
   const handleManualAdded = useCallback(() => {
     loadData();
     void refreshDiscovered();
   }, [loadData, refreshDiscovered]);
-
-  const results = useMemo(() => {
-    if (discoveredProducts.length === 0) {
-      if (deferredQuery.trim().length > 0) return searchCatalog(deferredQuery);
-      return sortPreviewByStock(PRODUCT_CATALOG).slice(0, PREVIEW_LIMIT);
-    }
-    const combined = dedupeByIdentity([...PRODUCT_CATALOG, ...discoveredProducts]);
-    if (deferredQuery.trim().length === 0) return sortPreviewByStock(combined).slice(0, PREVIEW_LIMIT);
-    const fuse = new Fuse(combined, SEARCH_OPTIONS);
-    return fuse.search(deferredQuery).map((r) => r.item);
-  }, [deferredQuery, discoveredProducts]);
-
-  const tagFilteredIds = useMemo(() => {
-    const matching = filterWatchlist(watchlist, {
-      region: "all",
-      status: "all",
-      query: "",
-      tagIds: selectedTagIds,
-      tagMatchMode,
-    });
-    return new Set(matching.map((p) => p.id));
-  }, [watchlist, selectedTagIds, tagMatchMode]);
-
-  const tagFilteredResults = useMemo(() => {
-    if (selectedTagIds.length === 0) return results;
-    return results.filter(
-      (product) => tagFilteredIds.has(product.id) || !trackedIds.has(product.id),
-    );
-  }, [results, selectedTagIds, tagFilteredIds, trackedIds]);
-
-  const tagCounts = useMemo(() => {
-    return countTagMatches(watchlist, {
-      region: "all",
-      status: "all",
-      query: deferredQuery,
-    });
-  }, [watchlist, deferredQuery]);
-
-  const categories = useMemo(() => getAllCategories(), []);
-  const brands = useMemo(() => getAllBrands(), []);
-
-  const categoryBrandFiltered = useMemo(() => {
-    let out = tagFilteredResults;
-    if (selectedCategory) out = out.filter((p) => p.category === selectedCategory);
-    if (selectedBrand) out = out.filter((p) => p.brand === selectedBrand);
-    return out;
-  }, [tagFilteredResults, selectedCategory, selectedBrand]);
-
-  const sortedResults = useMemo(() => {
-    if (catalogSort === "relevance") return categoryBrandFiltered;
-    const copy = [...categoryBrandFiltered];
-    switch (catalogSort) {
-      case "name":
-        return copy.sort((a, b) => a.name.localeCompare(b.name));
-      case "brand":
-        return copy.sort((a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
-      case "price":
-        return sortCatalogByPrice(copy);
-      default:
-        return copy;
-    }
-  }, [categoryBrandFiltered, catalogSort]);
 
   const handleAdd = useCallback(
     async (item: (typeof PRODUCT_CATALOG)[0]) => {

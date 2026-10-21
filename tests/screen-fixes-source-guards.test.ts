@@ -77,7 +77,7 @@ describe("screen-level fixes", () => {
   });
 
   it("mobile search reads discovered products from the store, not the static catalog", () => {
-    const src = read("app/search.tsx");
+    const src = read("hooks/use-catalog-search.ts");
     // getAllCatalog() is static-only, so filtering it by its own ids always
     // produced [] — discovered products were stored but never listed on mobile.
     expect(src).toContain("getDiscoveredProducts()");
