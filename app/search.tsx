@@ -1,7 +1,6 @@
 import { log } from "@shared/log";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Text,
   View,
@@ -44,9 +43,11 @@ import { useSearchData } from "@/hooks/use-search-data";
 import { useCatalogSearch, type CatalogSort } from "@/hooks/use-catalog-search";
 import { addCatalogProduct, discoverAndAddProduct } from "@/lib/add-product";
 import { PillFilterRow } from "@/components/search/pill-filter-row";
+import { SearchHeader } from "@/components/search/search-header";
+import { SearchDiscoverFooter } from "@/components/search/search-discover-footer";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { TagFilterRow } from "@/components/tag-filter-row";
-import { isEbayInput, isFacebookInput, isLazadaInput, isMarketplaceInput, isShopeeInput } from "@/shared/marketplace-url";
+import { isMarketplaceInput } from "@/shared/marketplace-url";
 
 const CATALOG_SORT_OPTIONS: { key: CatalogSort; label: string }[] = [
   { key: "relevance", label: "Relevance" },
@@ -273,68 +274,23 @@ export default function SearchScreen({
 
   return (
     <ScreenContainer>
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          paddingTop: 8,
-          paddingBottom: 12,
-          gap: 12,
+      <SearchHeader
+        mode={mode}
+        onBack={() => goBackOrHome(router)}
+        onManualAdd={() => {
+          setEbayPrefill(null);
+          setManualPrefill(null);
+          setManualVisible(true);
         }}
-      >
-        {mode === "add" && <TouchableOpacity activeOpacity={0.7} onPress={() => goBackOrHome(router)} accessibilityLabel="Go back" accessibilityRole="button" style={{ padding: 4 }} hitSlop={12}>
-          <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
-        </TouchableOpacity>}
-        <Text
-          style={{
-            color: colors.foreground,
-            fontSize: mode === "discover" ? 28 : 20,
-            fontWeight: "700",
-            flex: 1,
-          }}
-        >
-          {mode === "discover" ? "Discover" : "Add Product"}
-        </Text>
-        <TouchableOpacity activeOpacity={0.7}
-          accessibilityLabel="Add product manually or import marketplace link"
-          accessibilityRole="button"
-          onPress={() => {
-            if (Platform.OS !== "web")
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setEbayPrefill(null);
-            setManualPrefill(null);
-            setManualVisible(true);
-          }}
-          style={{ padding: 4 }}
-          hitSlop={12}
-        >
-          <IconSymbol name="wand.and.stars" size={22} color={colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity activeOpacity={0.7}
-          accessibilityLabel="Bulk import products"
-          accessibilityRole="button"
-          onPress={() => {
-            if (Platform.OS !== "web")
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            if (shouldEnforceFreeLimits() && !isPro) {
-              track("paywall_shown");
-              setPaywallVisible(true);
-              return;
-            }
-            setBulkVisible(true);
-          }}
-          style={{ padding: 4 }}
-          hitSlop={12}
-        >
-          <IconSymbol
-            name="square.and.arrow.down"
-            size={22}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
-      </View>
+        onBulkImport={() => {
+          if (shouldEnforceFreeLimits() && !isPro) {
+            track("paywall_shown");
+            setPaywallVisible(true);
+            return;
+          }
+          setBulkVisible(true);
+        }}
+      />
 
       {/* Search Bar */}
       <CatalogSearchBar
@@ -520,51 +476,11 @@ export default function SearchScreen({
         }
         ListEmptyComponent={mode === "discover" && !query.trim() ? undefined : <SearchEmptyState query={query} selectedTagIds={selectedTagIds} hasMarketplaceResults={query.trim().length >= 2} />}
         ListFooterComponent={
-          query.trim().length > 0 ? (
-            <View style={{ paddingHorizontal: 16 }}>
-              {discovering ? (
-                <View style={{ alignItems: "center", padding: 24 }}>
-                  <ActivityIndicator size="large" color={colors.primary} />
-                  <Text style={{ color: colors.muted, marginTop: 8 }}>
-                    Discovering product...
-                  </Text>
-                </View>
-              ) : (
-                <TouchableOpacity activeOpacity={0.85}
-                  accessibilityLabel={isFacebookInput(query) ? "Import Facebook link" : isLazadaInput(query) ? "Import Lazada link" : isShopeeInput(query) ? "Import Shopee link" : isEbayInput(query) ? "Import eBay link" : "Discover with AI"}
-                  accessibilityRole="button"
-                  onPress={handleDiscover}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    padding: 16,
-                    marginTop: 16,
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor: colors.primary + "44",
-                    backgroundColor: colors.primary + "11",
-                  }}
-                >
-                  <IconSymbol
-                    name="wand.and.stars"
-                    size={20}
-                    color={colors.primary}
-                  />
-                  <Text
-                    style={{
-                      color: colors.primary,
-                      fontWeight: "600",
-                      fontSize: 14,
-                    }}
-                  >
-                    {isFacebookInput(query) ? "Import Facebook Link" : isLazadaInput(query) ? "Import Lazada Link" : isShopeeInput(query) ? "Import Shopee Link" : isEbayInput(query) ? "Import eBay Link" : "Discover with AI"}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : undefined
+          <SearchDiscoverFooter
+            query={query}
+            discovering={discovering}
+            onDiscover={handleDiscover}
+          />
         }
         renderItem={({ item }) => (
           <View style={{ paddingHorizontal: 16 }}>
