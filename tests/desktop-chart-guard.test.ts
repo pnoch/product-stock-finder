@@ -1696,7 +1696,10 @@ describe("desktop chart guard", () => {
   // shared computeWatchlistSummary sums every listing (all statuses) — mobile
   // correctly labels it "All Listings Value".
   it("labels the desktop watchlist summary All Listings Value", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/watchlist/WatchlistFilters.tsx",
+      "utf8",
+    );
     expect(text).toContain("All Listings Value");
     expect(text).not.toContain("Total Value");
   });
