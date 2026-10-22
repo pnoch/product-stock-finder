@@ -94,7 +94,10 @@ describe("desktop chart guard", () => {
 
   // QA round 42: the same class in the desktop Watchlist remove/undo handlers.
   it("wraps desktop watchlist remove/undo in try/catch", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-remove.ts",
+      "utf8",
+    );
     for (const handler of ["const handleBulkDelete", "const handleUndo", "const handleRemove"]) {
       const start = text.indexOf(handler);
       expect(start).toBeGreaterThan(-1);
@@ -197,9 +200,12 @@ describe("desktop chart guard", () => {
   // QA round 91: desktop watchlist Undo restored only the product, losing the
   // alerts the removal cascade deleted (mobile fixed in Phase 342).
   it("restores the deleted product's alerts on desktop undo", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-remove.ts",
+      "utf8",
+    );
     const start = text.indexOf("const handleRemove");
-    const block = text.slice(start, text.indexOf("const handleToggleProductTag", start));
+    const block = text.slice(start, text.indexOf("const handleBulkDelete", start));
     expect(block).toContain("storage.getAlerts()");
     expect(block).toContain("showUndoBar(product, removedAlerts, removedReminders, removedWatches)");
     const undoStart = text.indexOf("const handleUndo");
@@ -1303,7 +1309,10 @@ describe("desktop chart guard", () => {
   // its alerts; the removal cascade also deletes back-order reminders and
   // restock watches, which were silently lost.
   it("restores reminders and restock watches on undo", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-remove.ts",
+      "utf8",
+    );
     expect(text).toContain("undoRemindersRef");
     expect(text).toContain("undoWatchesRef");
     expect(text).toContain("await storage.addBackOrderReminder(reminder)");
