@@ -25,7 +25,7 @@ describe("desktop table accessibility", () => {
       "utf8",
     );
     const filters = await readFile(
-      "desktop/src/components/watchlist/WatchlistFilters.tsx",
+      "desktop/src/components/watchlist/WatchlistFilterControls.tsx",
       "utf8",
     );
     expect(header).toContain("aria-sort");

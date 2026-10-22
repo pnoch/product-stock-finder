@@ -1937,7 +1937,7 @@ describe("desktop chart guard", () => {
   // correctly labels it "All Listings Value".
   it("labels the desktop watchlist summary All Listings Value", async () => {
     const text = await readFile(
-      "desktop/src/components/watchlist/WatchlistFilters.tsx",
+      "desktop/src/components/watchlist/WatchlistSummaryCard.tsx",
       "utf8",
     );
     expect(text).toContain("All Listings Value");
