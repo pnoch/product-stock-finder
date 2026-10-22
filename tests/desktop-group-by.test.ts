@@ -9,7 +9,10 @@ describe("desktop watchlist group-by", () => {
   });
 
   it("renders section header rows", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/watchlist/WatchlistTableBody.tsx",
+      "utf8",
+    );
     expect(text).toContain("colSpan");
   });
 });

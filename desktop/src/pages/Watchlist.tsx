@@ -31,6 +31,7 @@ import { WatchlistTableHeader } from "../components/watchlist/WatchlistTableHead
 import { WatchlistDialogs } from "../components/watchlist/WatchlistDialogs";
 import { WatchlistToolbar } from "../components/watchlist/WatchlistToolbar";
 import { WatchlistEmptyState } from "../components/watchlist/WatchlistEmptyState";
+import { WatchlistTableBody } from "../components/watchlist/WatchlistTableBody";
 import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
 import { buildWatchlistShareMessage } from "../../../lib/watchlist-share";
@@ -900,36 +901,13 @@ export function Watchlist() {
               sortAsc={sortAsc}
               onSort={handleSort}
             />
-          <tbody>
-            {virtualRows.length > 0 && virtualRows[0].start > 0 && (
-              <tr aria-hidden="true">
-                <td colSpan={selectionMode ? 9 : 8} style={{ height: virtualRows[0].start, padding: 0, border: 0 }} />
-              </tr>
-            )}
-            {virtualRows.map((vr) => {
-              const row = rows[vr.index];
-              if (!row) return null;
-              if (row.kind === "header") {
-                return (
-                  <tr key={row.key} ref={rowVirtualizer.measureElement} data-index={vr.index} aria-rowindex={vr.index + 1}>
-                    <th scope="rowgroup" colSpan={selectionMode ? 9 : 8} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/60 text-left">
-                      {row.title} · {row.count}
-                    </th>
-                  </tr>
-                );
-              }
-              return renderRow(row.product, { ref: rowVirtualizer.measureElement, index: vr.index });
-            })}
-            {(() => {
-              const last = virtualRows[virtualRows.length - 1];
-              const remainder = last ? rowVirtualizer.getTotalSize() - last.end : 0;
-              return remainder > 0 ? (
-                <tr aria-hidden="true">
-                  <td colSpan={selectionMode ? 9 : 8} style={{ height: remainder, padding: 0, border: 0 }} />
-                </tr>
-              ) : null;
-            })()}
-          </tbody>
+          <WatchlistTableBody
+            rows={rows}
+            virtualRows={virtualRows}
+            selectionMode={selectionMode}
+            rowVirtualizer={rowVirtualizer}
+            renderRow={renderRow}
+          />
           </table>
         </div>
 
