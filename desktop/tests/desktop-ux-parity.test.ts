@@ -12,7 +12,7 @@ describe("desktop UX parity", () => {
   });
 
   it("stats notes how many more products are at an all-time low", () => {
-    expect(read("src/pages/Stats.tsx")).toContain("more at all-time low");
+    expect(read("src/components/stats/ProductInsightsCard.tsx")).toContain("more at all-time low");
   });
 
   it("health detail shares the status color rule", () => {
