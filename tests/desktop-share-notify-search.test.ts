@@ -14,12 +14,16 @@ describe("desktop share, notifications, search tags", () => {
       "utf8",
     );
     const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const notifications = await readFile(
+      "desktop/src/components/alerts/NotificationsTab.tsx",
+      "utf8",
+    );
     const share = await readFile("desktop/src/lib/share.ts", "utf8");
     expect(detail).toContain("saveNodeAsPng");
     expect(detail).toContain("../lib/share");
     expect(share).toContain("toPng");
     expect(alerts).toContain("markNotificationRead");
-    expect(alerts).toContain("/product/${");
+    expect(notifications).toContain("/product/${");
   });
 
   it("filters search by tracked tags with counts", async () => {

@@ -260,7 +260,10 @@ describe("desktop chart guard", () => {
   // (mobile's notificationRouteFor sends type "digest" → /stats) and dropped
   // health events that lacked a distributorId, so those rows weren't clickable.
   it("routes digest and health notifications in the desktop list", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/NotificationsTab.tsx",
+      "utf8",
+    );
     const start = text.indexOf("const route =");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("const itemClassName", start));
@@ -621,7 +624,10 @@ describe("desktop chart guard", () => {
   // QA round 218: mobile's healthColor returns "warning" (amber) for
   // non-recovered health events; desktop colored them red.
   it("colors non-recovered desktop health notifications amber", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/NotificationsTab.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/n\.healthStatus === "recovered" \? "bg-emerald-50[^"]*" : "bg-amber-50/);
     expect(text).not.toMatch(/n\.healthStatus === "recovered" \? "bg-emerald-50[^"]*" : "bg-red-50/);
   });
@@ -756,8 +762,11 @@ describe("desktop chart guard", () => {
   // they could never be marked read individually; mobile's always-pressable
   // item marks read regardless of route.
   it("marks route-less desktop notifications read on click", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
-    expect(text).toMatch(/onClick=\{\(\) => void handleNotificationOpen\(n\)\}[\s\S]*?role="button"/);
+    const text = await readFile(
+      "desktop/src/components/alerts/NotificationsTab.tsx",
+      "utf8",
+    );
+    expect(text).toMatch(/onClick=\{\(\) => onOpen\(n\)\}[\s\S]*?role="button"/);
   });
 
   // QA round 204: mobile's check-interval options are "Manual only" / "Every
@@ -2234,7 +2243,10 @@ describe("desktop chart guard", () => {
   // ongoing outage. Mobile uses healthIcon/healthColor to show a green
   // checkmark for recoveries.
   it("renders recovered health notifications as success on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/NotificationsTab.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/n\.type === "health" && n\.healthStatus === "recovered"/);
     expect(text).toMatch(/n\.healthStatus === "recovered" \? "bg-emerald-50/);
   });
