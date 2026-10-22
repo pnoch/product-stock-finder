@@ -396,10 +396,11 @@ describe("desktop chart guard", () => {
   // QA round 233: mobile's Home still shows Trending with an empty watchlist so
   // a new user can discover products; desktop's empty state hid it.
   it("shows Trending in the desktop empty-watchlist Home", async () => {
-    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
-    const start = text.indexOf("if (products.length === 0) {");
-    const block = text.slice(start, text.indexOf("\n  }\n", start));
-    expect(block).toContain("<TrendingSection />");
+    const text = await readFile(
+      "desktop/src/components/home/HomeEmptyState.tsx",
+      "utf8",
+    );
+    expect(text).toContain("<TrendingSection />");
   });
 
   // QA round 232: mobile's trending section shows "Couldn't load" + "Retry" on
@@ -415,7 +416,10 @@ describe("desktop chart guard", () => {
   // (the Home hint also referenced a "+" control the desktop doesn't have).
   it("uses desktop click wording instead of mobile tap", async () => {
     const health = await readFile("desktop/src/pages/Health.tsx", "utf8");
-    const home = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    const home = await readFile(
+      "desktop/src/components/home/HomeEmptyState.tsx",
+      "utf8",
+    );
     const alerts = [
       await readFile("desktop/src/components/alerts/AlertsTab.tsx", "utf8"),
       await readFile("desktop/src/components/alerts/RemindersTab.tsx", "utf8"),
@@ -635,7 +639,10 @@ describe("desktop chart guard", () => {
   // QA round 217: mobile's Home stat labels are "Tracked" and "Alerts";
   // desktop's were "Total Tracked" and "Alerts Active".
   it("matches mobile's Home stat labels on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/home/HomeStats.tsx",
+      "utf8",
+    );
     expect(text).toContain('label="Tracked"');
     expect(text).toContain('label="Alerts"');
     expect(text).not.toContain("Total Tracked");
@@ -881,7 +888,10 @@ describe("desktop chart guard", () => {
   it("matches mobile's empty-state CTA labels on desktop", async () => {
     const stats = await readFile("desktop/src/pages/Stats.tsx", "utf8");
     expect(stats).toContain("Browse Products");
-    const home = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    const home = await readFile(
+      "desktop/src/components/home/HomeEmptyState.tsx",
+      "utf8",
+    );
     expect(home).toContain("Add Product");
     expect(home).not.toContain("Add Products");
   });
@@ -891,7 +901,10 @@ describe("desktop chart guard", () => {
   // "No products tracked" with no hint. (Round 255 repositioned it to
   // "Nothing on the radar yet".)
   it("matches mobile's Home empty state on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/home/HomeEmptyState.tsx",
+      "utf8",
+    );
     expect(text).toContain('title="Nothing on the radar yet"');
     expect(text).toContain("Try: RTX 4090, Pi 5, CRS326, or U7 Pro Max");
   });
@@ -1431,7 +1444,10 @@ describe("desktop chart guard", () => {
   // QA round 251: mobile's watchlist preview link reads "View all N products →";
   // desktop's omitted the noun ("View all N →").
   it("labels the desktop Home watchlist link like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/home/HomeWatchlistPreview.tsx",
+      "utf8",
+    );
     expect(text).toContain(
       'View all {products.length} product{products.length === 1 ? "" : "s"} →',
     );
@@ -2116,7 +2132,10 @@ describe("desktop chart guard", () => {
   // but the Alerts tab it navigates to counts reminders + stock watches, so the
   // card understated the destination.
   it("counts stock watches in the desktop Home reminders stat", async () => {
-    const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-home-data.ts",
+      "utf8",
+    );
     const start = text.indexOf("const loadDashboard = useCallback");
     const block = text.slice(start, text.indexOf("}, []);", start));
     expect(block).toContain("getStockWatches");

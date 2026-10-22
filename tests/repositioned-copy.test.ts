@@ -32,8 +32,9 @@ describe("repositioned copy", () => {
   it("desktop mirrors the onboarding + home copy", () => {
     expect(read("desktop/src/components/OnboardingModal.tsx")).toContain("Find It Anywhere");
     const home = read("desktop/src/pages/Home.tsx");
+    const empty = read("desktop/src/components/home/HomeEmptyState.tsx");
     expect(home).toContain("Find it anywhere. Landed to your door.");
-    expect(home).toContain("Nothing on the radar yet");
+    expect(empty).toContain("Nothing on the radar yet");
   });
 
   it("pins the onboarding bodies on both platforms", () => {

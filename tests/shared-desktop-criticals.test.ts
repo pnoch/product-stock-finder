@@ -8,7 +8,8 @@ describe("shared/desktop release blockers", () => {
     // Pages that convert prices must import live names from @/lib/currency
     // (live FX overlay); pure display-only pages use @shared/currency.
     const livePages = [
-      "desktop/src/pages/Home.tsx",
+      "desktop/src/components/home/RecentActivity.tsx",
+      "desktop/src/components/home/HomeWatchlistPreview.tsx",
       "desktop/src/pages/Compare.tsx",
     ];
     for (const file of livePages) {

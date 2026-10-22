@@ -7,7 +7,7 @@ const FILES = [
   "app/(tabs)/index.tsx",
   "components/watchlist/empty-state.tsx",
   "components/onboarding/onboarding-screen.tsx",
-  "desktop/src/pages/Home.tsx",
+  "desktop/src/components/home/HomeEmptyState.tsx",
   "desktop/src/pages/Watchlist.tsx",
   "desktop/src/components/OnboardingModal.tsx",
 ];
