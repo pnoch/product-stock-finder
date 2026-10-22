@@ -4,7 +4,11 @@ import { readFile } from "node:fs/promises";
 describe("desktop compare and shared upgrades", () => {
   it("navigates and refreshes comparisons", async () => {
     const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
-    expect(text).toContain('to="/watchlist"');
+    const header = await readFile(
+      "desktop/src/components/compare/CompareHeader.tsx",
+      "utf8",
+    );
+    expect(header).toContain('to="/watchlist"');
     expect(text).toContain("loadCompare()");
   });
 

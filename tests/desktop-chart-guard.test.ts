@@ -558,7 +558,10 @@ describe("desktop chart guard", () => {
   // QA round 220: mobile's distributor sort chips are "Trend ▼" / "Price" /
   // "A–Z"; desktop's were "Name" / "Price" / "Trend".
   it("matches mobile's distributor sort labels on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/compare/CompareDistributorList.tsx",
+      "utf8",
+    );
     expect(text).toContain("A–Z");
     expect(text).toContain("Trend ▼");
   });
@@ -640,7 +643,10 @@ describe("desktop chart guard", () => {
   // QA round 212: mobile's CompareHeader title is "Compare Prices"; desktop's
   // header showed the product name as the title.
   it("titles the desktop compare header Compare Prices", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/compare/CompareHeader.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/<h1 className="text-2xl font-bold">Compare Prices<\/h1>/);
   });
 
@@ -655,7 +661,10 @@ describe("desktop chart guard", () => {
   // QA round 210: mobile's CheapestRegionCard shows a per-row stock pill;
   // desktop's region rows showed only the price.
   it("shows a stock pill per region row on desktop compare", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/compare/CheapestByRegion.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/<StockBadge status=\{item\.listing\.stockStatus\} \/>/);
   });
 
@@ -1311,7 +1320,10 @@ describe("desktop chart guard", () => {
     expect(alerts).toContain("aria-pressed={currency === c}");
     expect(alerts).toContain("aria-pressed={direction === d}");
     expect(alerts).toContain("aria-pressed={distributorId == null}");
-    const compare = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const compare = await readFile(
+      "desktop/src/components/compare/CompareDistributorList.tsx",
+      "utf8",
+    );
     expect(compare).toContain('aria-pressed={sortBy === "name"}');
     const settings = await readFile("desktop/src/pages/Settings.tsx", "utf8");
     expect(settings).toContain("aria-pressed={settings.theme === t}");
@@ -1409,9 +1421,13 @@ describe("desktop chart guard", () => {
   // cap is hit; desktop silently ignored the click.
   it("warns when the desktop compare selection cap is reached", async () => {
     const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const selector = await readFile(
+      "desktop/src/components/compare/DistributorSelector.tsx",
+      "utf8",
+    );
     expect(text).toContain("You can compare up to 5 distributors");
     expect(text).toMatch(/const handleToggleSelect = useCallback/);
-    expect(text).toMatch(/onClick=\{\(\) => handleToggleSelect\(listing\.distributorId\)\}/);
+    expect(selector).toMatch(/onClick=\{\(\) => onToggle\(listing\.distributorId\)\}/);
   });
 
   // QA round 188: mobile's empty region state offers a "Show All" button;
@@ -1806,9 +1822,13 @@ describe("desktop chart guard", () => {
   // desktop's had only Share / Save image.
   it("exports price history CSV from the desktop compare screen", async () => {
     const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const header = await readFile(
+      "desktop/src/components/compare/CompareHeader.tsx",
+      "utf8",
+    );
     expect(text).toContain("priceHistoryToCsv");
     expect(text).toContain("handleExportCsv");
-    expect(text).toContain("Export price history as CSV");
+    expect(header).toContain("Export price history as CSV");
   });
 
   // QA round 149: mobile's distributor-analysis screen exports the detailed

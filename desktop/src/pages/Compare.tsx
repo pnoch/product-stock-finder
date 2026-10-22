@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useParams, useSearchParams, Link } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { formatPrice } from "@shared/currency";
@@ -14,18 +14,15 @@ import { checkNotificationPermission } from "../lib/notification-permission";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
-import { TimeRangeChips } from "../components/TimeRangeChips";
 import { SeriesChart } from "../components/compare/SeriesChart";
+import { CompareHeader } from "../components/compare/CompareHeader";
+import { CheapestByRegion } from "../components/compare/CheapestByRegion";
+import { DistributorSelector } from "../components/compare/DistributorSelector";
+import { CompareDistributorList } from "../components/compare/CompareDistributorList";
 import { filterByRange, cheapestByRegion, distributorColor, type TimeRange } from "@shared/compare-utils";
 import {
   GitCompareArrows,
-  Share2,
   TrendingDown,
-  TrendingUp,
-  Minus,
-  Check,
-  ArrowLeft,
-  RefreshCw,
 } from "lucide-react";
 
 function toTimeRange(k: string): TimeRange {
@@ -387,53 +384,16 @@ export function Compare() {
           {toast}
         </div>
       )}
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold">Compare Prices</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {product.name} · {product.brand} {product.modelNumber}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to="/watchlist"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-            aria-label="Back to watchlist"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back
-          </Link>
-          <button
-            onClick={() => void loadCompare()}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer disabled:opacity-50"
-            aria-label="Refresh comparison"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </button>
-          <button
-            onClick={() => void handleShareCompare()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-            aria-label="Share comparison"
-          >
-            <Share2 className="w-4 h-4" /> Share
-          </button>
-          <button
-            onClick={() => void handleSaveImage()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-            aria-label="Save comparison image"
-          >
-            Save image
-          </button>
-          <button
-            onClick={() => void handleExportCsv()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-            aria-label="Export price history as CSV"
-          >
-            Export CSV
-          </button>
-          <TimeRangeChips selected={timeRange} onSelect={setTimeRange} />
-        </div>
-      </div>
+      <CompareHeader
+        product={product}
+        loading={loading}
+        timeRange={timeRange}
+        onTimeRange={setTimeRange}
+        onRefresh={() => void loadCompare()}
+        onShare={() => void handleShareCompare()}
+        onSaveImage={() => void handleSaveImage()}
+        onExportCsv={() => void handleExportCsv()}
+      />
 
       {cheapest && (
         <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
@@ -456,51 +416,7 @@ export function Compare() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-          Cheapest by Region
-        </h3>
-        {regionBest.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-3">No in-stock regions</p>
-        ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {regionBest.map((item, i) => {
-              const dist = getDistributorById(item.listing.distributorId);
-              return (
-                <div
-                  key={item.region}
-                  className={`flex items-center justify-between px-3 py-2.5 ${
-                    i === 0 ? "bg-emerald-50 dark:bg-emerald-900/20 rounded-lg" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {i === 0 && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300">
-                        BEST
-                      </span>
-                    )}
-                    <span className="text-sm font-medium">{item.region}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{dist?.countryCode}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {dist?.name ?? item.listing.distributorId}
-                    </span>
-                  </div>
-                  <span className="flex flex-col items-end gap-1">
-                    <span className={`text-sm font-semibold ${i === 0 ? "text-emerald-700 dark:text-emerald-300" : ""}`}>
-                      {formatPrice(item.listing.price, item.listing.currency)}
-                      {item.listing.currency !== displayCurrency && (
-                        <> ≈ {formatPrice(item.converted, displayCurrency)}</>
-                      )}
-                    </span>
-                    {/* Mobile's CheapestRegionCard shows a per-row stock pill. */}
-                    <StockBadge status={item.listing.stockStatus} />
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <CheapestByRegion regionBest={regionBest} displayCurrency={displayCurrency} />
 
       {alertTarget !== null && crossBest !== null && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
@@ -561,68 +477,12 @@ export function Compare() {
         )}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Select Distributors ({selected.size}/5)
-          </h2>
-          <span className="text-xs text-gray-400">
-            {sortedListings.filter((l) => l.priceHistory && l.priceHistory.length >= 2).length} with history
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {sortedListings.map((listing) => {
-            const distributor = getDistributorById(listing.distributorId);
-            const isSelected = selected.has(listing.distributorId);
-            const hasHistory = listing.priceHistory && listing.priceHistory.length >= 2;
-            const chipColor = isSelected ? distributorColor(listing.distributorId) : "#d1d5db";
-            const trend = priceTrends.get(listing.distributorId);
-            const disabled = !hasHistory && !isSelected;
-            const atLimit = !isSelected && selected.size >= 5;
-            return (
-              <button
-                key={listing.distributorId}
-                onClick={() => handleToggleSelect(listing.distributorId)}
-                disabled={disabled || atLimit}
-                aria-pressed={isSelected}
-                aria-label={`${isSelected ? "Deselect" : "Select"} ${distributor?.name ?? listing.distributorId}`}
-                className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium border transition-colors ${
-                  isSelected
-                    ? "text-white border-transparent"
-                    : disabled || atLimit
-                      ? "bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60"
-                      : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                }`}
-                style={isSelected ? { backgroundColor: chipColor, borderColor: chipColor } : undefined}
-              >
-                <span
-                  className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 border"
-                  style={{
-                    backgroundColor: isSelected ? "#fff" : "transparent",
-                    borderColor: isSelected ? "#fff" : chipColor,
-                  }}
-                >
-                  {isSelected && <Check className="w-3 h-3" style={{ color: chipColor }} />}
-                </span>
-                <span>{distributor?.countryCode}</span>
-                <span>{distributor?.name ?? listing.distributorId}</span>
-                <span className={`ml-1 ${isSelected ? "text-white/90" : "text-gray-500 dark:text-gray-400"}`}>
-                  {formatPrice(listing.price, listing.currency)}
-                </span>
-                {trend && trend.dir !== "flat" && (
-                  <span className={`text-[10px] font-bold ${isSelected ? "text-white" : trend.dir === "down" ? "text-emerald-600" : "text-red-500"}`}>
-                    {trend.dir === "down" ? "▼" : "▲"} {trend.pct.toFixed(1)}%
-                  </span>
-                )}
-                {!hasHistory && <span className="text-[10px] opacity-70">(no history)</span>}
-              </button>
-            );
-          })}
-        </div>
-        {selected.size >= 5 && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">Maximum 5 distributors selected.</p>
-        )}
-      </div>
+      <DistributorSelector
+        listings={sortedListings}
+        selected={selected}
+        priceTrends={priceTrends}
+        onToggle={handleToggleSelect}
+      />
 
       {chartSeries.length > 0 ? (
         <div ref={chartRef} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -668,110 +528,12 @@ export function Compare() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Distributors
-          </h2>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSortBy("name")}
-              aria-pressed={sortBy === "name"}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                sortBy === "name"
-                  ? "bg-brand-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
-              }`}
-              aria-label="Sort by name"
-            >
-              A–Z
-            </button>
-            <button
-              onClick={() => setSortBy("price")}
-              aria-pressed={sortBy === "price"}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                sortBy === "price"
-                  ? "bg-brand-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
-              }`}
-              aria-label="Sort by price"
-            >
-              Price
-            </button>
-            <button
-              onClick={() => setSortBy("trend")}
-              aria-pressed={sortBy === "trend"}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                sortBy === "trend"
-                  ? "bg-brand-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
-              }`}
-              aria-label="Sort by trend"
-            >
-              Trend ▼
-            </button>
-          </div>
-        </div>
-        {sortedListings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="text-gray-300 dark:text-gray-600 mb-3">
-              <GitCompareArrows className="w-10 h-10" />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">No distributors to compare</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
-              Add distributors to this product to see side-by-side prices and trends.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {sortedListings.map((listing, idx) => {
-              const trend = getTrend(listing.priceHistory);
-              return (
-                <div
-                  key={listing.distributorId}
-                  className={`flex items-center justify-between px-4 py-3 transition-colors ${
-                    idx % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-50/60 dark:bg-gray-800/40"
-                  } hover:bg-gray-50 dark:hover:bg-gray-700/60`}
-                >
-                  <div className="flex items-center gap-3">
-                    {listing.dist && (
-                      <span className="text-lg">{listing.dist.countryCode}</span>
-                    )}
-                    <div>
-                      <p className="font-medium text-sm">{listing.distName}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {listing.dist?.country ?? listing.distributorId}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <StockBadge
-                      status={listing.stockStatus}
-                      expectedDate={listing.expectedDate}
-                    />
-                    <div className="text-right min-w-[100px]">
-                      <p className="font-semibold text-sm">
-                        {formatPrice(listing.price, listing.currency)}
-                      </p>
-                    </div>
-                    <div className="w-8 flex justify-center">
-                      {trend === "down" && (
-                        <TrendingDown className="w-4 h-4 text-emerald-500" />
-                      )}
-                      {trend === "up" && (
-                        <TrendingUp className="w-4 h-4 text-red-500" />
-                      )}
-                      {trend === "flat" && (
-                        <Minus className="w-4 h-4 text-gray-400" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <CompareDistributorList
+        listings={sortedListings}
+        sortBy={sortBy}
+        onSort={setSortBy}
+        getTrend={getTrend}
+      />
     </div>
   );
 }
