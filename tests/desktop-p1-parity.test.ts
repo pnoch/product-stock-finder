@@ -9,10 +9,17 @@ describe("desktop P1 parity", () => {
   });
 
   it("fetches the share and offers bulk add", async () => {
-    const page = await readFile("desktop/src/pages/SharedWatchlist.tsx", "utf8");
-    expect(page).toContain("sharedWatchlists");
-    expect(page).toContain("addToWatchlist");
-    expect(page).toContain("Share not found");
+    const hook = await readFile(
+      "desktop/src/hooks/use-shared-watchlist.ts",
+      "utf8",
+    );
+    const states = await readFile(
+      "desktop/src/components/shared-watchlist/SharedWatchlistStates.tsx",
+      "utf8",
+    );
+    expect(hook).toContain("sharedWatchlists");
+    expect(hook).toContain("addToWatchlist");
+    expect(states).toContain("Share not found");
   });
 
   it("gives Alerts reminders an error path with retry", async () => {

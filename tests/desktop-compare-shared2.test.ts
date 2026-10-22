@@ -29,9 +29,16 @@ describe("desktop compare and shared upgrades", () => {
   });
 
   it("shows more listings and history export per shared product", async () => {
-    const text = await readFile("desktop/src/pages/SharedWatchlist.tsx", "utf8");
-    expect(text).toContain("productHistoryToCsv");
-    expect(text).toContain(" more");
-    expect(text).toContain("History exported");
+    const hook = await readFile(
+      "desktop/src/hooks/use-shared-watchlist.ts",
+      "utf8",
+    );
+    const card = await readFile(
+      "desktop/src/components/shared-watchlist/SharedWatchlistProductCard.tsx",
+      "utf8",
+    );
+    expect(hook).toContain("productHistoryToCsv");
+    expect(card).toContain(" more");
+    expect(hook).toContain("History exported");
   });
 });

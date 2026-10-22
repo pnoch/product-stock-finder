@@ -9,13 +9,19 @@ describe("desktop shared upgrades", () => {
   });
 
   it("prices in display currency with per-item add", async () => {
-    const text = await readFile("desktop/src/pages/SharedWatchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/shared-watchlist/SharedWatchlistProductCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("displayCurrency");
     expect(text).toContain('aria-label="Add to watchlist"');
   });
 
   it("exports CSV", async () => {
-    const text = await readFile("desktop/src/pages/SharedWatchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-shared-watchlist.ts",
+      "utf8",
+    );
     expect(text).toContain("watchlistToDetailedCsv");
     expect(text).toContain("shared-");
   });

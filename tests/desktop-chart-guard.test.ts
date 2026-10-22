@@ -1317,16 +1317,23 @@ describe("desktop chart guard", () => {
   // Both shared-watchlist pages now offer Join/Leave, driven by `get`'s
   // isOwner/isMember.
   it("wires join/leave on both shared-watchlist pages", async () => {
-    for (const file of [
-      "app/w/[token].tsx",
-      "desktop/src/pages/SharedWatchlist.tsx",
-    ]) {
-      const src = await readFile(file, "utf8");
-      expect(src, file).toContain("sharedWatchlists.join.useMutation()");
-      expect(src, file).toContain("sharedWatchlists.leave.useMutation()");
-      expect(src, file).toContain("isOwner");
-      expect(src, file).toContain("isMember");
-    }
+    const mobile = await readFile("app/w/[token].tsx", "utf8");
+    const hook = await readFile(
+      "desktop/src/hooks/use-shared-watchlist.ts",
+      "utf8",
+    );
+    const header = await readFile(
+      "desktop/src/components/shared-watchlist/SharedWatchlistHeader.tsx",
+      "utf8",
+    );
+    expect(mobile).toContain("sharedWatchlists.join.useMutation()");
+    expect(mobile).toContain("sharedWatchlists.leave.useMutation()");
+    expect(mobile).toContain("isOwner");
+    expect(mobile).toContain("isMember");
+    expect(hook).toContain("sharedWatchlists.join.useMutation()");
+    expect(hook).toContain("sharedWatchlists.leave.useMutation()");
+    expect(header).toContain("isOwner");
+    expect(header).toContain("isMember");
     const routers = await readAllServerRouters();
     expect(routers).toContain("isOwner, isMember } as const;");
   });
@@ -1479,7 +1486,10 @@ describe("desktop chart guard", () => {
   // shows "No distributor prices yet" for products without listings; the
   // desktop said "+N more" and rendered nothing for an empty listing list.
   it("matches mobile's shared-watchlist listing copy on desktop", async () => {
-    const text = await readFile("desktop/src/pages/SharedWatchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/shared-watchlist/SharedWatchlistProductCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("more distributors</p>");
     expect(text).toContain("No distributor prices yet");
   });
