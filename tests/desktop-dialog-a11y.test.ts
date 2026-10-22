@@ -8,7 +8,9 @@ import { readFile } from "node:fs/promises";
 const DIALOG_PAGES = [
   "desktop/src/components/settings/device-management-section.tsx",
   "desktop/src/components/stats/BasketAlertDialog.tsx",
-  "desktop/src/components/watchlist/WatchlistDialogs.tsx",
+  "desktop/src/components/watchlist/ManageTagsDialog.tsx",
+  "desktop/src/components/watchlist/BulkTagDialog.tsx",
+  "desktop/src/components/watchlist/ProductTagPickerDialog.tsx",
   "desktop/src/components/alerts/EditAlertDialog.tsx",
   "desktop/src/components/alerts/RescheduleDialog.tsx",
   "desktop/src/components/search/TagPickerDialog.tsx",
