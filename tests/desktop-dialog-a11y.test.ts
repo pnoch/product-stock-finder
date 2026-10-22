@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 const DIALOG_PAGES = [
   "desktop/src/components/settings/device-management-section.tsx",
   "desktop/src/pages/Stats.tsx",
-  "desktop/src/pages/Watchlist.tsx",
+  "desktop/src/components/watchlist/WatchlistDialogs.tsx",
   "desktop/src/pages/Alerts.tsx",
   "desktop/src/pages/Search.tsx",
   "desktop/src/components/SearchModal.tsx",
