@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 const desktopPages = [
   "desktop/src/pages/Rates.tsx",
   "desktop/src/pages/Search.tsx",
-  "desktop/src/pages/Watchlist.tsx",
+  "desktop/src/components/watchlist/WatchlistEmptyPage.tsx",
   "desktop/src/components/SearchModal.tsx",
 ];
 

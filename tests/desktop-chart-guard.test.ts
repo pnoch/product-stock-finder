@@ -702,7 +702,10 @@ describe("desktop chart guard", () => {
   // with the "watch all 25 distributors" description, a tip, and a
   // Browse Products action; desktop's said "No products in watchlist".
   it("matches mobile's watchlist empty state on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/watchlist/WatchlistEmptyPage.tsx",
+      "utf8",
+    );
     expect(text).toContain('title="No products yet"');
     expect(text).toContain("alerting you the moment it's in stock or cheaper.");
     expect(text).toContain("Tip: Search for MikroTik CRS, Ubiquiti U7, RTX 4090, Pi 5, etc.");

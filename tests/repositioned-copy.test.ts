@@ -57,6 +57,6 @@ describe("repositioned copy", () => {
 
   it("pins the watchlist empty state on both platforms", () => {
     expect(read("components/watchlist/empty-state.tsx")).toContain("alerting you the moment it's in stock or cheaper");
-    expect(read("desktop/src/pages/Watchlist.tsx")).toContain("alerting you the moment it's in stock or cheaper");
+    expect(read("desktop/src/components/watchlist/WatchlistEmptyPage.tsx")).toContain("alerting you the moment it's in stock or cheaper");
   });
 });

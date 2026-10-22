@@ -1,25 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { DISTRIBUTORS } from "@shared/distributors";
 import { useNavigate, useSearchParams } from "react-router";
-import {
-  Package,
-  Lightbulb,
-} from "lucide-react";
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
 import { storage } from "../storage";
-import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useConnection } from "../hooks/use-connection";
 import { countQueuedEdits } from "../../../lib/sync";
 import { OfflineBanner } from "../components/watchlist/OfflineBanner";
 import { WatchlistRow } from "../components/watchlist/WatchlistRow";
 import { WatchlistFilters } from "../components/watchlist/WatchlistFilters";
-import { WatchlistTableHeader } from "../components/watchlist/WatchlistTableHeader";
 import { WatchlistDialogs } from "../components/watchlist/WatchlistDialogs";
+import { WatchlistEmptyPage } from "../components/watchlist/WatchlistEmptyPage";
+import { WatchlistTable } from "../components/watchlist/WatchlistTable";
+import { WatchlistUndoToast } from "../components/watchlist/WatchlistUndoToast";
 import { WatchlistToolbar } from "../components/watchlist/WatchlistToolbar";
-import { WatchlistEmptyState } from "../components/watchlist/WatchlistEmptyState";
-import { WatchlistTableBody } from "../components/watchlist/WatchlistTableBody";
 import { useWatchlistShare } from "../hooks/use-watchlist-share";
 import { useWatchlistRemove } from "../hooks/use-watchlist-remove";
 import { useWatchlistTags } from "../hooks/use-watchlist-tags";
@@ -218,33 +212,12 @@ export function Watchlist() {
 
   if (products.length === 0) {
     return (
-      <div className="p-6 space-y-4">
-      <OfflineBanner queuedCount={queuedCount} isOffline={connection.status === "offline"} />
-      {listError && (
-          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
-            <span className="flex-1">Couldn&apos;t load watchlist: {listError}</span>
-            <button
-              onClick={() => void handleRetryList()}
-              className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
-              aria-label="Retry loading watchlist"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-        <EmptyState
-          icon={<Package className="w-8 h-8" />}
-          title="No products yet"
-          description={`Add a part and we'll watch all ${DISTRIBUTORS.length} distributors — alerting you the moment it's in stock or cheaper.`}
-          action={{ label: "Browse Products", to: "/search" }}
-        />
-        <div className="flex justify-center">
-          <p className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400">
-            <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
-            Tip: Search for MikroTik CRS, Ubiquiti U7, RTX 4090, Pi 5, etc.
-          </p>
-        </div>
-      </div>
+      <WatchlistEmptyPage
+        queuedCount={queuedCount}
+        isOffline={connection.status === "offline"}
+        listError={listError}
+        onRetry={() => void handleRetryList()}
+      />
     );
   }
 
@@ -343,51 +316,37 @@ export function Watchlist() {
         onRetryList={() => void handleRetryList()}
       />
 
-      <div
-        ref={scrollRef}
-        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[60vh] overflow-y-auto"
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full" aria-rowcount={rows.length}>
-            <WatchlistTableHeader
-              selectionMode={selectionMode}
-              sortKey={sortKey}
-              sortAsc={sortAsc}
-              onSort={handleSort}
-            />
-          <WatchlistTableBody
-            rows={rows}
-            virtualRows={virtualRows}
-            selectionMode={selectionMode}
-            rowVirtualizer={rowVirtualizer}
-            renderRow={renderRow}
-          />
-          </table>
-        </div>
+      <WatchlistTable
+        scrollRef={scrollRef}
+        rows={rows}
+        virtualRows={virtualRows}
+        selectionMode={selectionMode}
+        sortKey={sortKey}
+        sortAsc={sortAsc}
+        onSort={handleSort}
+        rowVirtualizer={rowVirtualizer}
+        renderRow={renderRow}
+        sortedLength={sorted.length}
+        products={products}
+        showAcquired={showAcquired}
+        onClearFilters={() => {
+          setFilter("all");
+          setQuery("");
+          setRegionFilter("all");
+          setSelectedTagIds([]);
+          setInStockOnly(false);
+          setPriceMinInput("");
+          setPriceMaxInput("");
+          setShowAcquired(true);
+        }}
+      />
 
-        {sorted.length === 0 && (
-          <WatchlistEmptyState
-            products={products}
-            showAcquired={showAcquired}
-            onClearFilters={() => {
-              setFilter("all");
-              setQuery("");
-              setRegionFilter("all");
-              setSelectedTagIds([]);
-              setInStockOnly(false);
-              setPriceMinInput("");
-              setPriceMaxInput("");
-              setShowAcquired(true);
-            }}
-          />
-        )}
-      </div>
       {undoProduct && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gray-700 text-white text-sm px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50">
-          <span>Removed {undoProduct.name}</span>
-          <button onClick={handleUndo} className="px-3 py-1 rounded-lg bg-white text-gray-900 text-xs font-semibold hover:bg-gray-100">Undo</button>
-          <button onClick={() => setUndoProduct(null)} className="p-1 rounded hover:bg-white/10" aria-label="Dismiss undo">×</button>
-        </div>
+        <WatchlistUndoToast
+          product={undoProduct}
+          onUndo={handleUndo}
+          onDismiss={() => setUndoProduct(null)}
+        />
       )}
       <WatchlistDialogs
         manageOpen={manageOpen}

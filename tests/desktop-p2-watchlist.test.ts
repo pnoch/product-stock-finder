@@ -28,7 +28,10 @@ describe("desktop P2 watchlist", () => {
   });
 
   it("links the empty state to search", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/watchlist/WatchlistEmptyPage.tsx",
+      "utf8",
+    );
     expect(text).toContain('to: "/search"');
   });
 });

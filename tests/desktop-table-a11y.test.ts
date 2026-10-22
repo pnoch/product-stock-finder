@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop table accessibility", () => {
   it("exposes virtual row position", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/watchlist/WatchlistTable.tsx",
+      "utf8",
+    );
     const body = await readFile(
       "desktop/src/components/watchlist/WatchlistTableBody.tsx",
       "utf8",
