@@ -242,7 +242,10 @@ describe("desktop chart guard", () => {
   // $0.00" (a server-detected trigger can store 0). Mobile guards `> 0`
   // (Phase 356).
   it("guards the desktop triggered-price display against a zero", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/AlertRow.tsx",
+      "utf8",
+    );
     const start = text.indexOf("Target: {formatPrice(alert.targetPrice");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("Triggered on", start));
@@ -288,7 +291,10 @@ describe("desktop chart guard", () => {
   // QA round 245: mobile's alert-card uses month-name dates for "Snoozed
   // until" and "Triggered"; desktop used bare toLocaleDateString().
   it("formats alert-card dates like mobile on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/AlertRow.tsx",
+      "utf8",
+    );
     expect(text).toMatch(
       /Snoozed until \{new Date\(alert\.snoozedUntil!\)\.toLocaleDateString\(undefined, \{ month: "short", day: "numeric" \}\)/,
     );
@@ -303,7 +309,10 @@ describe("desktop chart guard", () => {
   // QA round 244: mobile's reminder card renders "Jan 5, 2026"; desktop's used
   // bare toLocaleDateString() → locale-numeric "1/5/2026" for the same date.
   it("formats reminder dates like mobile on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/RemindersTab.tsx",
+      "utf8",
+    );
     expect(text).toContain('month: "short"');
     expect(text).toContain('"Was due " : "Remind on "');
   });
@@ -392,7 +401,10 @@ describe("desktop chart guard", () => {
   it("uses desktop click wording instead of mobile tap", async () => {
     const health = await readFile("desktop/src/pages/Health.tsx", "utf8");
     const home = await readFile("desktop/src/pages/Home.tsx", "utf8");
-    const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const alerts = [
+      await readFile("desktop/src/components/alerts/AlertsTab.tsx", "utf8"),
+      await readFile("desktop/src/components/alerts/RemindersTab.tsx", "utf8"),
+    ].join("\n");
     expect(health).toContain('Click &quot;Test All Distributors&quot; to run a check.');
     expect(home).toContain("Click Add Product and paste a model number");
     expect(alerts).toContain('Open a product and click "Set Alert"');
@@ -825,7 +837,10 @@ describe("desktop chart guard", () => {
   // product and click "Set Alert"…'; desktop's was "No price alerts".
   // (Round 254 replaced mobile's "tap" with desktop's "click".)
   it("matches mobile's alerts empty-state copy on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/AlertsTab.tsx",
+      "utf8",
+    );
     expect(text).toContain('title="No alerts set"');
     expect(text).toContain('Open a product and click "Set Alert" to get notified when it restocks or the price drops.');
   });
@@ -1364,7 +1379,10 @@ describe("desktop chart guard", () => {
   // "Date Reminders (N)"; desktop's were "Stock Watches" / "Date Reminders"
   // without counts.
   it("labels the desktop reminder sections with counts", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/RemindersTab.tsx",
+      "utf8",
+    );
     expect(text).toContain("Watching for Restock ({watches.length})");
     expect(text).toContain("Date Reminders ({reminders.length})");
     expect(text).not.toContain("Stock Watches");
@@ -1373,7 +1391,10 @@ describe("desktop chart guard", () => {
   // QA round 190: mobile's triggered section header is "Alert History (N)";
   // desktop's was "Price Drop History (N)".
   it("labels the desktop triggered section Alert History", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/AlertsTab.tsx",
+      "utf8",
+    );
     expect(text).toContain("Alert History ({triggeredAlerts.length})");
     expect(text).not.toContain("Price Drop History");
   });
@@ -1554,7 +1575,10 @@ describe("desktop chart guard", () => {
   // QA round 173: mobile's StockWatchCard appends "· last checked" after the
   // status; desktop's stock-watch rows omitted it.
   it("shows the last-checked hint on desktop stock watches", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/RemindersTab.tsx",
+      "utf8",
+    );
     expect(text).toContain("· last checked");
   });
 
@@ -1568,14 +1592,20 @@ describe("desktop chart guard", () => {
   // QA round 171: mobile's ReminderCard says "Was due {date}" for past
   // reminders and "Remind on {date}" otherwise; desktop always said "Due".
   it("labels past vs future desktop reminders like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/RemindersTab.tsx",
+      "utf8",
+    );
     expect(text).toContain('isPast ? "Was due " : "Remind on "');
   });
 
   // QA round 170: mobile's TriggeredAlertCard button says "Watch Again";
   // desktop's said "Rearm".
   it("labels the desktop rearm button Watch Again", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/AlertRow.tsx",
+      "utf8",
+    );
     expect(text).toContain("Watch Again");
     expect(text).not.toMatch(/>\s*Rearm\s*</);
   });
@@ -1584,7 +1614,10 @@ describe("desktop chart guard", () => {
   // "Target: $X → $Y"; desktop's triggered row showed only "Triggered at $Y on
   // DATE", omitting the target and direction.
   it("shows the target and direction on desktop triggered alerts", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/AlertRow.tsx",
+      "utf8",
+    );
     const start = text.indexOf("Target: {formatPrice(alert.targetPrice");
     const block = text.slice(start, text.indexOf("Triggered on", start));
     expect(block).toContain("→ {formatPrice(alert.triggeredPrice");
@@ -1596,7 +1629,10 @@ describe("desktop chart guard", () => {
   // QA round 168: desktop's alert row appended the raw direction enum
   // ("drop"/"rise") as text; mobile renders a direction arrow icon.
   it("renders the alert direction as an icon on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/AlertRow.tsx",
+      "utf8",
+    );
     expect(text).not.toMatch(/` · \$\{alert\.direction\}`/);
     expect(text).toContain('aria-label="Price rise alert"');
     expect(text).toContain('aria-label="Price drop alert"');
@@ -1665,7 +1701,10 @@ describe("desktop chart guard", () => {
   // QA round 160: mobile's reminders empty state has a "Browse Products" CTA;
   // desktop's had none.
   it("has a Browse Products CTA in the desktop reminders empty state", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/RemindersTab.tsx",
+      "utf8",
+    );
     expect(text).toContain('title="No reminders set"');
     expect(text).toContain("Browse products to set reminders");
   });
@@ -1673,7 +1712,10 @@ describe("desktop chart guard", () => {
   // QA round 159: mobile's Alerts tab shows an info banner when active alerts
   // exist; desktop's AlertsTab had none.
   it("shows the active-alerts info banner on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/AlertsTab.tsx",
+      "utf8",
+    );
     expect(text).toContain("You&apos;ll be notified when a product restocks or drops below your target.");
   });
 
@@ -1772,7 +1814,10 @@ describe("desktop chart guard", () => {
   // QA round 148: mobile's StockWatchCard shows a "Watching" badge; desktop's
   // Stock Watches rows showed only the status badge.
   it("shows the Watching badge on desktop stock watches", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/RemindersTab.tsx",
+      "utf8",
+    );
     expect(text).toContain("Watching");
   });
 
