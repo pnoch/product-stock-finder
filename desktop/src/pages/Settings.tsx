@@ -1,5 +1,3 @@
-import { log } from "@shared/log";
-import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import {
   Palette,
@@ -11,13 +9,12 @@ import {
 } from "lucide-react";
 import { useSettings } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
-import { startPricePoller, stopPricePoller } from "../background";
 import { EXCHANGE_RATES, CURRENCY_SYMBOLS } from "@shared/currency";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { SharedLinksList, JoinedSharedList } from "../components/settings/shared-links";
 import { ScraperStatusSection } from "../components/settings/scraper-status-section";
 import { DeviceManagementSection } from "../components/settings/device-management-section";
-import { AboutSection, type BeforeInstallPromptEvent } from "../components/settings/about-section";
+import { AboutSection } from "../components/settings/about-section";
 import { AccountSection } from "../components/settings/account-section";
 import { NotificationSettingsSection } from "../components/settings/notification-settings-section";
 import { LlmSettingsSection } from "../components/settings/llm-settings-section";
@@ -26,7 +23,10 @@ import { DangerZoneSection } from "../components/settings/danger-zone-section";
 import { useConnection } from "../hooks/use-connection";
 import { ConnectionBadge } from "../components/ConnectionBadge";
 import { useAuth } from "../hooks/use-auth";
-import { getApiBaseUrl } from "../lib/api-base";
+import { usePricePoller } from "../hooks/use-price-poller";
+import { useNow } from "../hooks/use-now";
+import { useInstallPrompt } from "../hooks/use-install-prompt";
+import { useShareWatchlist } from "../hooks/use-share-watchlist";
 import { formatLastRefreshed } from "../../../lib/last-refreshed";
 import { externalLinkHandler } from "../lib/open-external";
 
@@ -37,94 +37,13 @@ export function Settings() {
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
   const checkInterval = settings?.checkInterval;
-  const prevIntervalRef = useRef<string | undefined>(checkInterval);
-  useEffect(() => {
-    const prev = prevIntervalRef.current;
-    prevIntervalRef.current = checkInterval;
-    let cancelled = false;
-    (async () => {
-      // Sequence stop BEFORE start. Firing both without awaiting let the start
-      // be processed first (seeing POLLER_RUNNING=true and no-op'ing) and the
-      // stop second, leaving no poller at all until the setting changed again.
-      if (!checkInterval || checkInterval === "manual") {
-        if (prev && prev !== "manual") await stopPricePoller();
-        return;
-      }
-      if (prev && prev !== "manual" && prev !== checkInterval) {
-        await stopPricePoller();
-      }
-      const intervalMinutes = checkInterval === "hourly" ? 60 : 1440;
-      try {
-        await startPricePoller(intervalMinutes, getApiBaseUrl());
-      } catch {
-        if (cancelled) return;
-        showToast("Couldn't start background checks — reverted to Manual");
-        log.error("[Settings] startPricePoller failed, reverting to manual");
-        await update({ checkInterval: "manual" });
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [checkInterval, showToast, update]);
+  usePricePoller({ checkInterval, update, showToast });
   const { user, isAuthenticated, logout } = useAuth();
   const connection = useConnection();
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(interval);
-  }, []);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-    const installedHandler = () => setDeferredPrompt(null);
-    window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", installedHandler);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
-      window.removeEventListener("appinstalled", installedHandler);
-    };
-  }, []);
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    try {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      if (choice.outcome === "accepted") setDeferredPrompt(null);
-    } catch (e) {
-      log.warn("[Settings] install prompt failed", e);
-    }
-  };
-
-  // Device management — desktop port of mobile DeviceManagementSection
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [sharing, setSharing] = useState(false);
-  const [shareError, setShareError] = useState<string | null>(null);
-
-  const handleShareWatchlist = async () => {
-    if (sharing) return;
-    setSharing(true);
-    setShareError(null);
-    try {
-      const client = (await import("../lib/trpc")).createTRPCClient();
-      const res = await client.sharedWatchlists.create.mutate({});
-      setShareUrl(res.shareUrl);
-      try {
-        await navigator.clipboard.writeText(res.shareUrl);
-        showToast("Share link copied");
-      } catch {
-        showToast("Share link created");
-      }
-    } catch (e) {
-      setShareError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSharing(false);
-    }
-  };
+  const now = useNow();
+  const { deferredPrompt, handleInstall } = useInstallPrompt();
+  const { shareUrl, sharing, shareError, handleShareWatchlist } =
+    useShareWatchlist({ showToast });
 
   // Loading guard lives just before the main return below so every render
   // calls the same hooks (Rules of Hooks).

@@ -2241,6 +2241,7 @@ describe("desktop chart guard", () => {
   it("never swallows a clipboard failure silently", async () => {
     const sources = await Promise.all(
       [
+        "desktop/src/hooks/use-share-watchlist.ts",
         "desktop/src/pages/Settings.tsx",
         "desktop/src/components/settings/shared-links.tsx",
       ].map((file) => readFile(file, "utf8")),

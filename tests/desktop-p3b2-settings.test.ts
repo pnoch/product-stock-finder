@@ -24,7 +24,10 @@ describe("desktop P3b-2 settings", () => {
   });
 
   it("has an about section without account deletion", async () => {
-    const text = await readFile("desktop/src/pages/Settings.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-install-prompt.ts",
+      "utf8",
+    );
     expect(text).toContain("beforeinstallprompt");
   });
 });
