@@ -19,6 +19,8 @@ import { CompareHeader } from "../components/compare/CompareHeader";
 import { CheapestByRegion } from "../components/compare/CheapestByRegion";
 import { DistributorSelector } from "../components/compare/DistributorSelector";
 import { CompareDistributorList } from "../components/compare/CompareDistributorList";
+import { CrossAlertCard } from "../components/compare/CrossAlertCard";
+import { CurrentPricesTable } from "../components/compare/CurrentPricesTable";
 import { filterByRange, cheapestByRegion, distributorColor, type TimeRange } from "@shared/compare-utils";
 import {
   GitCompareArrows,
@@ -419,63 +421,19 @@ export function Compare() {
       <CheapestByRegion regionBest={regionBest} displayCurrency={displayCurrency} />
 
       {alertTarget !== null && crossBest !== null && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
-          <div className="flex-1">
-            <div className="text-sm font-semibold">Alert me if any distributor drops below</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {formatPrice(alertTarget, displayCurrency)} (5% below current best of {formatPrice(crossBest, displayCurrency)})
-            </div>
-          </div>
-          <button
-            onClick={handleCrossAlert}
-            className="px-3 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 shrink-0"
-            aria-label="Set cross-distributor price alert"
-          >
-            Set alert
-          </button>
-        </div>
+        <CrossAlertCard
+          alertTarget={alertTarget}
+          crossBest={crossBest}
+          displayCurrency={displayCurrency}
+          onSetAlert={handleCrossAlert}
+        />
       )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-          Current Prices
-        </h2>
-        {selected.size === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-3">
-            No distributors selected
-          </p>
-        ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {sortedListings
-              .filter((l) => selected.has(l.distributorId))
-              .map((l) => {
-                const distributor = getDistributorById(l.distributorId);
-                const color = distributorColor(l.distributorId);
-                const converted = convertPrice(l.price, l.currency, displayCurrency);
-                return (
-                  <div key={l.distributorId} className="flex items-center gap-3 py-2.5">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} aria-hidden />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {distributor?.countryCode} {distributor?.name ?? l.distributorId}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{distributor?.country}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className="text-sm font-semibold">{formatPrice(l.price, l.currency)}</span>
-                      {l.currency !== displayCurrency && converted !== null && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          ≈ {formatPrice(converted, displayCurrency)}
-                        </span>
-                      )}
-                      <StockBadge status={l.stockStatus} />
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        )}
-      </div>
+      <CurrentPricesTable
+        listings={sortedListings}
+        selected={selected}
+        displayCurrency={displayCurrency}
+      />
 
       <DistributorSelector
         listings={sortedListings}

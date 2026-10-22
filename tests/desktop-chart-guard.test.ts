@@ -571,7 +571,10 @@ describe("desktop chart guard", () => {
   // "Alert me below {target}" / "5% below the best in-stock price, any
   // distributor".
   it("matches mobile's cross-alert copy on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/compare/CrossAlertCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("Alert me if any distributor drops below");
     expect(text).toContain("(5% below current best of {formatPrice(crossBest, displayCurrency)})");
   });
@@ -653,7 +656,10 @@ describe("desktop chart guard", () => {
   // QA round 211: mobile's compare has a "Current Prices" table (selected
   // listings with chart colors, converted prices, stock); desktop lacked it.
   it("shows the Current Prices table on desktop compare", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/compare/CurrentPricesTable.tsx",
+      "utf8",
+    );
     expect(text).toContain("Current Prices");
     expect(text).toContain("No distributors selected");
   });
