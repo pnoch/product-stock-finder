@@ -58,9 +58,13 @@ describe("bulk discovery UI", () => {
       "desktop/src/components/watchlist/WatchlistRow.tsx",
       "utf8",
     );
+    const refresh = readFileSync(
+      "desktop/src/hooks/use-watchlist-refresh.ts",
+      "utf8",
+    );
     expect(row).toContain("Find prices");
-    expect(src).toContain("rediscoverProduct");
-    expect(src).toContain("findingIds");
+    expect(refresh).toContain("rediscoverProduct");
+    expect(refresh).toContain("findingIds");
     expect(row).toContain("stopPropagation");
     expect(row).toContain("(product.listings ?? []).length === 0");
   });

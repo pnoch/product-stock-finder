@@ -7,7 +7,10 @@ describe("desktop watchlist refresh", () => {
       "desktop/src/lib/watchlist-refresh.ts",
       "utf8",
     );
-    const page = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const page = await readFile(
+      "desktop/src/hooks/use-watchlist-refresh.ts",
+      "utf8",
+    );
     const helper = await readFile("desktop/src/lib/server-prices.ts", "utf8");
     expect(text).toContain("fetchListingsWithTimeout");
     expect(helper).toContain("prices.get");

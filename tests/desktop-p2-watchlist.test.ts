@@ -11,8 +11,11 @@ describe("desktop P2 watchlist", () => {
   });
 
   it("has a check-now price scan", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
-    expect(text).toContain("checkPriceDropsNow");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-refresh.ts",
+      "utf8",
+    );
+    expect(text).toContain("run_full_price_check");
   });
 
   it("persists in-stock and price-range filters", async () => {

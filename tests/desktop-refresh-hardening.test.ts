@@ -14,8 +14,15 @@ describe("desktop refresh hardening", () => {
   });
 
   it("shows refresh progress on the button", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-refresh.ts",
+      "utf8",
+    );
+    const toolbar = await readFile(
+      "desktop/src/components/watchlist/WatchlistToolbar.tsx",
+      "utf8",
+    );
     expect(text).toContain("refreshProgress");
-    expect(text).toContain("Refreshing");
+    expect(toolbar).toContain("Refreshing");
   });
 });
