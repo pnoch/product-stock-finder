@@ -1,30 +1,13 @@
-import { isTauri } from "../lib/tauri";
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { log } from "@shared/log";
+import { useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   ArrowLeft,
   Plus,
 } from "lucide-react";
-import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
-import { getApiBaseUrl } from "../lib/api-base";
-import { getBestPrice, convertPrice } from "@/lib/currency";
-import { computePriceVsAverage } from "../../../lib/price-average";
 import { DISTRIBUTORS } from "@shared/distributors";
-import { PRODUCT_CATALOG } from "@shared/catalog";
-import {
-  getAllRegions,
-  filterListingsByRegion,
-} from "../../../lib/region-filter";
-import type { Product, PriceAlert, DistributorListing } from "../../../lib/types";
-import { findBestDeal } from "../../../lib/best-deal";
-import { computeDealScore } from "../../../lib/deal-score";
-import { composeLiveListings } from "../../../lib/live-prices";
-import { fetchListingsWithTimeout } from "../lib/server-prices";
-import { withTimeout } from "../../../lib/with-timeout";
-import { rediscoverProduct } from "../../../lib/manual-add";
-import { discoverListings } from "../../../lib/listing-discovery";
+import { getAllRegions } from "../../../lib/region-filter";
+import type { DistributorListing } from "../../../lib/types";
 import { isAcquired } from "../../../lib/acquired";
 import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
 import { ReminderDatePickerModal } from "../components/product/ReminderDatePickerModal";
@@ -46,256 +29,61 @@ import { useProductReminders } from "../hooks/use-product-reminders";
 import { useProductNote } from "../hooks/use-product-note";
 import { useProductEdit } from "../hooks/use-product-edit";
 import { useProductSharing } from "../hooks/use-product-sharing";
+import { useProductDetailData } from "../hooks/use-product-detail-data";
+import { useProductDerived } from "../hooks/use-product-derived";
 // Lazy: the chart is only needed on this screen, so it is split into its own
 // chunk instead of loading on every route.
 
 export function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isTracked, setIsTracked] = useState(true);
-  const [addingToWatchlist, setAddingToWatchlist] = useState(false);
-  const [displayCurrency, setDisplayCurrency] = useState("USD");
-  const [shippingRegion, setShippingRegion] = useState("Asia-Pacific");
-  const [regionFilter, setRegionFilter] = useState<string>("all");
+  const { toast, showToast } = useToast();
+  const {
+    product,
+    loading,
+    isTracked,
+    addingToWatchlist,
+    displayCurrency,
+    shippingRegion,
+    regionFilter,
+    setRegionFilter,
+    insight,
+    insightLoading,
+    loadError,
+    livePriceLoading,
+    stockWatches,
+    setStockWatches,
+    alerts,
+    setAlerts,
+    lastRefreshedAt,
+    findingPrices,
+    loadProduct,
+    handleFindPrices,
+    handleAddToWatchlist,
+    handleToggleAcquired,
+  } = useProductDetailData({ id, showToast });
   const regions = useMemo(() => getAllRegions(), []);
-  const [insight, setInsight] = useState<string | null>(null);
-  const [insightLoading, setInsightLoading] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [livePriceLoading, setLivePriceLoading] = useState(false);
-  const [stockWatches, setStockWatches] = useState<Record<string, boolean>>({});
-  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
-  // Guards against a double-click / Enter+button double-submit creating two
-  // alerts across any of the four alert entry points.
-  // Same guard for reminder / restock-watch creation: each mints a fresh random
-  // id, so a double-click created two reminders or two watches.
-  const loadIdRef = useRef(0);
   const summaryRef = useRef<HTMLDivElement>(null);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
   const [historyFor, setHistoryFor] = useState<DistributorListing | null>(null);
 
-  const loadProduct = useCallback(async () => {
-    if (!id) return;
-    const myId = ++loadIdRef.current;
-    setLoading(true);
-    setLivePriceLoading(true);
-    setLoadError(null);
-    setRegionFilter("all");
-    try {
-      const [products, settings, watches, allAlerts] = await Promise.all([
-        storage.getWatchlist(),
-        storage.getSettings(),
-        storage.getStockWatches(),
-        storage.getAlerts(),
-      ]);
-      if (loadIdRef.current !== myId) return;
-      const found = products.find((p) => p.id === id);
-      if (loadIdRef.current === myId) {
-        // Fall back to the catalog so a search result can be previewed before
-        // it is added (mobile's useLiveProduct does the same).
-        const catalogEntry = found ? null : PRODUCT_CATALOG.find((p) => p.id === id);
-        setProduct(
-          found ??
-            (catalogEntry
-              ? { ...catalogEntry, addedAt: "", isWatched: false, listings: [] }
-              : null),
-        );
-        setIsTracked(!!found);
-      }
-      if (loadIdRef.current !== myId) return;
-      if (loadIdRef.current === myId) {
-        setDisplayCurrency(settings.displayCurrency ?? "USD");
-        setShippingRegion(settings.shippingRegion ?? "Asia-Pacific");
-        // Seed every alert-currency field from the display currency, matching
-        // mobile. `alertCurrency` (the main Set Alert modal) was left at its
-        // "USD" default, so a EUR/GBP user's alert was created in the wrong
-        // currency.
-      }
-      if (loadIdRef.current === myId) {
-        const map: Record<string, boolean> = {};
-        for (const w of watches) if (w.productId === id) map[w.distributorId] = true;
-        setStockWatches(map);
-      }
-      if (loadIdRef.current === myId) {
-        setAlerts(allAlerts.filter((a) => a.productId === id));
-      }
-      if (loadIdRef.current === myId && found && (found.listings ?? []).length > 0 && getApiBaseUrl()) {
-        try {
-          const { createTRPCClient } = await import("../lib/trpc");
-          const client = createTRPCClient();
-          const seeds = found.listings ?? [];
-          const results = await fetchListingsWithTimeout(client, seeds, found.modelNumber);
-          if (loadIdRef.current === myId && results.some((r) => r !== null)) {
-            const merged = composeLiveListings(seeds, results);
-            await storage.updateProductListings(id, merged);
-            if (loadIdRef.current !== myId) return;
-            const refreshed = await storage.getWatchlist();
-            if (loadIdRef.current !== myId) return;
-            const updated = refreshed.find((p) => p.id === id);
-            if (loadIdRef.current === myId && updated) {
-              setProduct(updated);
-              setLastRefreshedAt(Date.now());
-            }
-          }
-        } catch {
-          // live refresh is best-effort; cached listings stay visible
-        }
-      }
-    } catch (e) {
-      if (loadIdRef.current === myId) {
-        setLoadError(e instanceof Error ? e.message : "Couldn't load product");
-      }
-    } finally {
-      if (loadIdRef.current === myId) {
-        setLoading(false);
-        setLivePriceLoading(false);
-      }
-    }
+  const {
+    visibleListings,
+    best,
+    bestListing,
+    bestDistributor,
+    bestDeal,
+    priceVsAvg,
+    dealScore,
+    headerConversion,
+    trendSignal,
+    isLowestEver,
+  } = useProductDerived({
+    product,
+    regionFilter,
+    displayCurrency,
+    shippingRegion,
+  });
 
-    if (!isTauri()) {
-      const base = getApiBaseUrl();
-      if (base) {
-        if (loadIdRef.current === myId) setInsightLoading(true);
-        try {
-          const { createTRPCClient } = await import("../lib/trpc");
-          const client = createTRPCClient();
-          const result = await withTimeout(
-            client.insights.get.query({ productId: id ?? "" }),
-            4000,
-          );
-          if (loadIdRef.current === myId) {
-            if (result) setInsight(result.insight);
-            setInsightLoading(false);
-          }
-        } catch (e) {
-          log.error("[ProductDetail] insight fetch failed", e);
-          if (loadIdRef.current === myId) setInsightLoading(false);
-          // insight stays empty
-        }
-      }
-      return;
-    }
-    const base = getApiBaseUrl();
-    if (base && loadIdRef.current === myId) {
-      setInsightLoading(true);
-      try {
-        const { invoke } = await import("@tauri-apps/api/core");
-        const { byoLlmHeaders } = await import("../lib/trpc");
-        const res = (await withTimeout(
-          invoke("fetch_price_insight", {
-            apiBaseUrl: base,
-            productId: id,
-            // Forward the user's BYO-LLM config so the server routes this
-            // insight through their provider (the browser path's tRPC client
-            // sends these itself).
-            llmHeaders: await byoLlmHeaders(),
-          }),
-          4000,
-        )) as { insight?: unknown } | null;
-        if (loadIdRef.current === myId) {
-          if (res && typeof res.insight === "string" && res.insight) setInsight(res.insight);
-          setInsightLoading(false);
-        }
-      } catch (e) {
-        log.error("[ProductDetail] insight fetch failed", e);
-        if (loadIdRef.current === myId) setInsightLoading(false);
-      }
-    }
-  }, [id]);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void loadProduct();
-    });
-  }, [loadProduct]);
-
-  const visibleListings = useMemo(
-    () =>
-      regionFilter === "all"
-        ? (product?.listings ?? [])
-        : filterListingsByRegion(product?.listings ?? [], regionFilter),
-    [regionFilter, product],
-  );
-
-  const best = useMemo(() => {
-    return getBestPrice(visibleListings, displayCurrency);
-  }, [visibleListings, displayCurrency]);
-
-  const bestListing = useMemo(() => {
-    if (!best) return null;
-    return visibleListings.find((l) => {
-      if (l.stockStatus === "out_of_stock" || l.price <= 0) return false;
-      // Skip unconvertible listings rather than falling back to the raw price,
-      // which mixed currencies and could falsely match the best price (mobile's
-      // bestInStockListing skips them).
-      const converted = convertPrice(l.price, l.currency, displayCurrency);
-      return converted !== null && Math.abs(converted - best.price) < 0.01;
-    });
-  }, [visibleListings, best, displayCurrency]);
-
-  const bestDistributor = useMemo(() => {
-    if (!bestListing) return null;
-    return DISTRIBUTORS.find((d) => d.id === bestListing.distributorId) ?? null;
-  }, [bestListing]);
-
-
-
-  const bestDeal = useMemo(
-    () => findBestDeal(visibleListings, shippingRegion, displayCurrency),
-    [visibleListings, shippingRegion, displayCurrency],
-  );
-
-  const priceVsAvg = useMemo(
-    () => (product ? computePriceVsAverage(product.listings ?? [], displayCurrency) : null),
-    [product, displayCurrency],
-  );
-
-  const dealScore = useMemo(
-    () => computeDealScore(product?.listings ?? [], displayCurrency),
-    [product, displayCurrency],
-  );
-
-  const headerConversion = useMemo(() => {
-    if (!bestListing || displayCurrency === bestListing.currency) return null;
-    const converted = convertPrice(bestListing.price, bestListing.currency, displayCurrency);
-    if (converted === null) return null;
-    const rate = convertPrice(1, bestListing.currency, displayCurrency);
-    return { converted, rate, price: bestListing.price, currency: bestListing.currency };
-  }, [bestListing, displayCurrency]);
-
-  const trendSignal = useMemo(() => {
-    const hist = bestListing?.priceHistory;
-    if (!hist || hist.length < 2) return null;
-    const sorted = [...hist].sort((a, b) => +new Date(a.date) - +new Date(b.date));
-    const oldest = convertPrice(sorted[0].price, sorted[0].currency, displayCurrency);
-    const current = convertPrice(sorted[sorted.length - 1].price, sorted[sorted.length - 1].currency, displayCurrency);
-    if (oldest === null || current === null || oldest <= 0) return null;
-    if (current === oldest) return null;
-    const pct = Math.round((Math.abs(oldest - current) / oldest) * 100);
-    const down = current < oldest;
-    return { down, pct };
-  }, [bestListing, displayCurrency]);
-
-  const isLowestEver = useMemo(() => {
-    const hist = bestListing?.priceHistory;
-    if (!bestListing || !hist || hist.length < 2) return false;
-    // Compare in the display currency, like the rest of the page: hardcoding
-    // USD mixed units, so a EUR/GBP user's "lowest ever" badge was wrong.
-    // Skip unconvertible points rather than mapping them to Infinity — that
-    // made an all-unconvertible history claim "lowest ever" (mobile filters).
-    const priorPoints = hist
-      .slice(0, -1)
-      .map((p) => convertPrice(p.price, p.currency, displayCurrency))
-      .filter((v): v is number => v !== null);
-    if (priorPoints.length === 0) return false;
-    const priorMin = Math.min(...priorPoints);
-    const current = convertPrice(bestListing.price, bestListing.currency, displayCurrency);
-    if (current === null) return false;
-    return current < priorMin;
-  }, [bestListing, displayCurrency]);
-
-  const { toast, showToast } = useToast();
   const {
     alertOpen,
     alertPrice,
@@ -408,74 +196,6 @@ export function ProductDetail() {
       summaryRef,
       showToast,
     });
-  const [findingPrices, setFindingPrices] = useState(false);
-  const productId = product?.id;
-  const productModelNumber = product?.modelNumber;
-
-  const handleFindPrices = useCallback(async () => {
-    if (!productModelNumber || findingPrices) return;
-    setFindingPrices(true);
-    try {
-      const { discovered, timedOut } = await rediscoverProduct({
-        storage: {
-          updateProductListings: (pid: string, listings: DistributorListing[]) =>
-            storage.updateProductListings(pid, listings),
-        },
-        discover: discoverListings,
-        productId: productId ?? "",
-        modelNumber: productModelNumber,
-      });
-      await loadProduct();
-      if (discovered > 0) {
-        showToast(`Found prices at ${discovered} distributor${discovered === 1 ? "" : "s"}`);
-      } else if (timedOut) {
-        showToast("Search timed out — try again");
-      } else {
-        showToast("No prices found");
-      }
-    } catch (e) {
-      log.error("[Product] price discovery failed", e);
-      showToast("Couldn't find prices");
-    } finally {
-      setFindingPrices(false);
-    }
-  }, [productId, productModelNumber, findingPrices, loadProduct, showToast]);
-
-  const handleAddToWatchlist = useCallback(async () => {
-    if (!product || addingToWatchlist) return;
-    setAddingToWatchlist(true);
-    try {
-      await storage.addToWatchlist({
-        ...product,
-        addedAt: new Date().toISOString(),
-        isWatched: true,
-        listings: product.listings ?? [],
-        tags: product.tags ?? [],
-      });
-      showToast("Added to watchlist");
-      await loadProduct();
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : "Failed");
-    } finally {
-      setAddingToWatchlist(false);
-    }
-  }, [product, addingToWatchlist, loadProduct, showToast]);
-
-  const handleToggleAcquired = async () => {
-    if (!product) return;
-    try {
-      await storage.updateProductAcquired(
-        product.id,
-        isAcquired(product) ? null : new Date().toISOString(),
-      );
-      const refreshed = await storage.getWatchlist();
-      const found = refreshed.find((p) => p.id === product.id);
-      if (found) setProduct(found);
-    } catch {
-      showToast("Couldn't update. Please try again.");
-    }
-  };
-
   if (loading)
     return (
       <div className="p-6 space-y-6 max-w-4xl animate-fadeIn">

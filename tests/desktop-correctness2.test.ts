@@ -15,7 +15,10 @@ describe("desktop correctness follow-ups 2", () => {
   });
 
   it("refreshes live prices on the product page", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-detail-data.ts",
+      "utf8",
+    );
     const helper = await readFile("desktop/src/lib/server-prices.ts", "utf8");
     expect(text).toContain("fetchListingsWithTimeout");
     expect(helper).toContain("prices.get");

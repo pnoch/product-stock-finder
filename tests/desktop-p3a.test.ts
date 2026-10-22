@@ -9,7 +9,10 @@ describe("desktop P3a price intelligence", () => {
   });
 
   it("loads price insight outside Tauri", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-detail-data.ts",
+      "utf8",
+    );
     expect(text).toContain("insights.get");
   });
 });

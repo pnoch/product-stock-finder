@@ -43,7 +43,10 @@ describe("bulk discovery UI", () => {
   });
 
   it("product detail offers a Find prices CTA (desktop)", () => {
-    const src = readFileSync("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const src = readFileSync(
+      "desktop/src/hooks/use-product-detail-data.ts",
+      "utf8",
+    );
     const table = readFileSync(
       "desktop/src/components/product/DistributorTable.tsx",
       "utf8",

@@ -42,7 +42,10 @@ describe("desktop chart guard", () => {
   // hardcoded USD while the rest of the page used the display currency, so a
   // EUR/GBP user's badge was computed across mixed units.
   it("computes the lowest-ever badge in the display currency", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-derived.ts",
+      "utf8",
+    );
     const start = text.indexOf("const isLowestEver");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("}, [bestListing", start));
@@ -912,7 +915,10 @@ describe("desktop chart guard", () => {
   // headers, so a configured BYO-LLM provider was ignored for price insights in
   // the desktop app (the browser path's tRPC client sends them).
   it("forwards BYO-LLM headers to the Rust insight command", async () => {
-    const page = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const page = await readFile(
+      "desktop/src/hooks/use-product-detail-data.ts",
+      "utf8",
+    );
     expect(page).toContain("llmHeaders: await byoLlmHeaders()");
     const rust = await readFile("desktop/src-tauri/src/lib.rs", "utf8");
     const at = rust.indexOf("fn fetch_price_insight");
@@ -1611,7 +1617,10 @@ describe("desktop chart guard", () => {
   // a listing's currency couldn't be converted, mixing currencies and possibly
   // falsely matching the best price (mobile skips unconvertible listings).
   it("skips unconvertible listings when matching the desktop best listing", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-derived.ts",
+      "utf8",
+    );
     const start = text.indexOf("const bestListing = useMemo");
     const block = text.slice(start, text.indexOf("}, [visibleListings, best, displayCurrency]);", start));
     expect(block).not.toMatch(/convertPrice\([^)]*\) \?\? l\.price/);
@@ -2091,7 +2100,10 @@ describe("desktop chart guard", () => {
   // ever"; the compare selection sort also fell back to the raw price. Mobile
   // filters nulls and sorts unconvertible listings last.
   it("does not treat unconvertible prices as lowest-ever on desktop", async () => {
-    const detail = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const detail = await readFile(
+      "desktop/src/hooks/use-product-derived.ts",
+      "utf8",
+    );
     const start = detail.indexOf("const isLowestEver = useMemo");
     const block = detail.slice(start, detail.indexOf("}, [bestListing, displayCurrency]);", start));
     expect(block).not.toContain("?? Infinity");
@@ -2216,7 +2228,7 @@ describe("desktop chart guard", () => {
     const files = [
       "desktop/src/hooks/use-watchlist-view.ts",
       "desktop/src/pages/Stats.tsx",
-      "desktop/src/pages/ProductDetail.tsx",
+      "desktop/src/hooks/use-product-derived.ts",
       "desktop/src/components/PriceHistoryChart.tsx",
     ];
     for (const file of files) {

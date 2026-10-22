@@ -53,7 +53,10 @@ describe("desktop notes and edit", () => {
   });
 
   it("loads independent product data in parallel", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-product-detail-data.ts",
+      "utf8",
+    );
     expect(text).toContain("Promise.all([");
     expect(text).toContain("storage.getWatchlist()");
     expect(text).toContain("storage.getSettings()");
