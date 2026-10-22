@@ -34,7 +34,7 @@ import { WatchlistEmptyState } from "../components/watchlist/WatchlistEmptyState
 import { WatchlistTableBody } from "../components/watchlist/WatchlistTableBody";
 import { useWatchlistShare } from "../hooks/use-watchlist-share";
 import { useWatchlistRemove } from "../hooks/use-watchlist-remove";
-import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
+import { useWatchlistTags } from "../hooks/use-watchlist-tags";
 import { isAcquired } from "../../../lib/acquired";
 import { rediscoverProduct } from "../../../lib/manual-add";
 import { discoverListings } from "../../../lib/listing-discovery";
@@ -98,8 +98,8 @@ export function Watchlist() {
   const checkingRef = useRef(false);
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
   const [tagMatchMode, setTagMatchMode] = useState<"any" | "all">("any");
   const [query, setQuery] = useState("");
   const [inStockOnly, setInStockOnly] = useState(() => searchParams.get("inStock") === "1");
@@ -144,20 +144,7 @@ export function Watchlist() {
   const scrollRef = useRef<HTMLDivElement>(null);
   // Collapsing header: desktop equivalent of mobile Animated headerCollapse
   const [collapsed, setCollapsed] = useState(false);
-  const [manageOpen, setManageOpen] = useState(false);
-  const [tagPickerProduct, setTagPickerProduct] = useState<Product | null>(null);
-  const [newTagName, setNewTagName] = useState("");
-  const [newTagColor, setNewTagColor] = useState(TAG_PALETTE[0]);
-  const [editingTagId, setEditingTagId] = useState<string | null>(null);
-  const [editingTagName, setEditingTagName] = useState("");
-  const [editingTagColor, setEditingTagColor] = useState(TAG_PALETTE[0]);
-  const [manageError, setManageError] = useState<string | null>(null);
   // BulkTagSheet — desktop Tailwind port of components/bulk-tag-sheet.tsx
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkSelectedTagIds, setBulkSelectedTagIds] = useState<string[]>([]);
-  const [bulkNewTagName, setBulkNewTagName] = useState("");
-  const [bulkNewTagColor, setBulkNewTagColor] = useState(TAG_PALETTE[0]);
-  const [bulkError, setBulkError] = useState<string | null>(null);
 
   const displayCurrency = settings?.displayCurrency ?? "USD";
 
@@ -453,21 +440,51 @@ export function Watchlist() {
     refresh,
     showToast,
   });
-  const handleToggleProductTag = async (tagId: string) => {
-    if (!tagPickerProduct) return;
-    const current = tagPickerProduct.tags ?? [];
-    const next = current.includes(tagId)
-      ? current.filter((id) => id !== tagId)
-      : [...current, tagId];
-    try {
-      await storage.setProductTags(tagPickerProduct.id, next);
-      setTagPickerProduct((p) => (p ? { ...p, tags: next } : p));
-      await refresh();
-    } catch {
-      showToast("Couldn't update tags");
-    }
-  };
 
+  const {
+    manageOpen,
+    setManageOpen,
+    editingTagId,
+    setEditingTagId,
+    editingTagName,
+    setEditingTagName,
+    editingTagColor,
+    setEditingTagColor,
+    manageError,
+    setManageError,
+    newTagName,
+    setNewTagName,
+    newTagColor,
+    setNewTagColor,
+    bulkOpen,
+    setBulkOpen,
+    bulkSelectedTagIds,
+    bulkNewTagName,
+    setBulkNewTagName,
+    bulkNewTagColor,
+    setBulkNewTagColor,
+    bulkError,
+    tagPickerProduct,
+    setTagPickerProduct,
+    handleCreateTag,
+    handleUpdateTag,
+    handleRecolorTag,
+    handleDeleteTag,
+    toggleBulkTag,
+    handleBulkCreateTag,
+    handleBulkApply,
+    openBulkTagSheet,
+    handleToggleProductTag,
+  } = useWatchlistTags({
+    settings,
+    tagDefinitions,
+    setTagDefinitions,
+    setSelectedTagIds,
+    selectedIds,
+    exitSelection,
+    refresh,
+    showToast,
+  });
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortAsc(!sortAsc);
@@ -526,116 +543,6 @@ export function Watchlist() {
       </div>
     );
   }
-
-  // TagManageSheet — desktop Tailwind port of components/tag-manage-sheet.tsx (create/edit color+name/delete with cascade)
-  const refreshTagDefs = async () => {
-    const defs = await storage.getTagDefinitions();
-    setTagDefinitions(defs as Record<string, TagDefinition>);
-    setSelectedTagIds((prev) => prev.filter((id) => Object.prototype.hasOwnProperty.call(defs, id)));
-  };
-  const handleCreateTag = async () => {
-    const name = newTagName.trim();
-    if (!name) return;
-    setManageError(null);
-    try {
-      await storage.createTag(name, newTagColor);
-      await refreshTagDefs();
-      setNewTagName("");
-      setNewTagColor(nextTagColor(await storage.getTagDefinitions()));
-      showToast(`Tag "${name}" created`);
-    } catch (e) {
-      setManageError(e instanceof Error ? e.message : "Could not create tag");
-    }
-  };
-  const handleUpdateTag = async () => {
-    if (!editingTagId) return;
-    const name = editingTagName.trim();
-    if (!name) return;
-    setManageError(null);
-    try {
-      await storage.renameTag(editingTagId, name);
-      if (editingTagColor !== tagDefinitions[editingTagId]?.color) {
-        await storage.setTagColor(editingTagId, editingTagColor);
-      }
-      await refreshTagDefs();
-      setEditingTagId(null);
-      showToast("Tag updated");
-    } catch (e) {
-      setManageError(e instanceof Error ? e.message : "Could not update tag");
-    }
-  };
-  const handleRecolorTag = async (id: string, color: string) => {
-    try {
-      await storage.setTagColor(id, color);
-      await refreshTagDefs();
-    } catch (e) {
-      setManageError(e instanceof Error ? e.message : "Could not recolor tag");
-    }
-  };
-  const handleDeleteTag = async (id: string) => {
-    const def = tagDefinitions[id];
-    if (!def) return;
-    if (!window.confirm(`Delete "${def.name}"? It will be removed from all products.`)) return;
-    setManageError(null);
-    try {
-      await storage.deleteTag(id);
-      await refreshTagDefs();
-      await refresh();
-      showToast("Tag deleted");
-    } catch (e) {
-      setManageError(e instanceof Error ? e.message : "Could not delete tag");
-    }
-  };
-
-  // BulkTagSheet — desktop Tailwind port of components/bulk-tag-sheet.tsx (assign tags to selection)
-  const toggleBulkTag = (tagId: string) => {
-    setBulkSelectedTagIds((prev) => (prev.includes(tagId) ? prev.filter((i) => i !== tagId) : [...prev, tagId]));
-  };
-  const handleBulkCreateTag = async () => {
-    const name = bulkNewTagName.trim();
-    if (!name) return;
-    setBulkError(null);
-    try {
-      const current = await storage.getTagDefinitions();
-      const tag = await storage.createTag(name, bulkNewTagColor);
-      setTagDefinitions((prev) => ({ ...prev, [tag.id]: tag }));
-      setBulkSelectedTagIds((prev) => [...prev, tag.id]);
-      setBulkNewTagName("");
-      setBulkNewTagColor(nextTagColor({ ...current, [tag.id]: tag }));
-    } catch (e) {
-      setBulkError(e instanceof Error ? e.message : "Could not create tag");
-    }
-  };
-  const handleBulkApply = async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0 || bulkSelectedTagIds.length === 0) return;
-    setBulkError(null);
-    try {
-      await storage.addTagsToProducts(ids, bulkSelectedTagIds);
-      await refresh();
-      await refreshTagDefs();
-      setBulkOpen(false);
-      setBulkSelectedTagIds([]);
-      exitSelection();
-      showToast(`Added ${bulkSelectedTagIds.length} tag${bulkSelectedTagIds.length !== 1 ? "s" : ""} to ${ids.length} product${ids.length !== 1 ? "s" : ""}`);
-    } catch (e) {
-      setBulkError(e instanceof Error ? e.message : "Could not apply tags");
-    }
-  };
-  const openBulkTagSheet = async () => {
-    try {
-      const defs = await storage.getTagDefinitions();
-      setTagDefinitions(defs as Record<string, TagDefinition>);
-    } catch {
-      log.error("[Watchlist] Failed to load tag definitions");
-      showToast("Couldn't load tags");
-    }
-    setBulkSelectedTagIds([]);
-    setBulkNewTagName("");
-    setBulkError(null);
-    setBulkNewTagColor(nextTagColor(tagDefinitions));
-    setBulkOpen(true);
-  };
 
   const renderRow = (
     product: Product,

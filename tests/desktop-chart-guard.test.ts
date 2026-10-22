@@ -339,9 +339,13 @@ describe("desktop chart guard", () => {
       "desktop/src/components/watchlist/WatchlistRow.tsx",
       "utf8",
     );
+    const tags = await readFile(
+      "desktop/src/hooks/use-watchlist-tags.ts",
+      "utf8",
+    );
     expect(row).toMatch(/aria-label=\{`Edit tags for \$\{product\.name\}`\}/);
     expect(text).toContain("handleToggleProductTag");
-    expect(text).toContain("setProductTags");
+    expect(tags).toContain("setProductTags");
   });
 
   // QA round 235: mobile's "Enable Notifications" row has the description
