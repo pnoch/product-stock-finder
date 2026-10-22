@@ -2034,7 +2034,10 @@ describe("desktop chart guard", () => {
   // and blanked the table, while the shared sort and the mobile card guard
   // `listings ?? []`.
   it("guards missing listings in the desktop watchlist sort and row render", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-view.ts",
+      "utf8",
+    );
     const row = await readFile(
       "desktop/src/components/watchlist/WatchlistRow.tsx",
       "utf8",
@@ -2047,7 +2050,10 @@ describe("desktop chart guard", () => {
   });
 
   it("keeps desktop watchlist sort NaN-safe and name-guarded", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-view.ts",
+      "utf8",
+    );
     const start = text.indexOf("const sorted = useMemo");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("}, [filtered, sortKey, sortAsc, displayCurrency, dealScores]);", start));
@@ -2072,7 +2078,7 @@ describe("desktop chart guard", () => {
   // mobile (and desktop's own Home/Compare) once live rates loaded.
   it("converts prices through the live-rate lib/currency overlay on desktop", async () => {
     const files = [
-      "desktop/src/pages/Watchlist.tsx",
+      "desktop/src/hooks/use-watchlist-view.ts",
       "desktop/src/pages/Stats.tsx",
       "desktop/src/pages/ProductDetail.tsx",
       "desktop/src/components/PriceHistoryChart.tsx",
@@ -2274,7 +2280,7 @@ describe("desktop chart guard", () => {
   it("guards desktop product.listings access with ?? []", async () => {
     const files = [
       "desktop/src/pages/Home.tsx",
-      "desktop/src/pages/Watchlist.tsx",
+      "desktop/src/hooks/use-watchlist-view.ts",
       "desktop/src/pages/Stats.tsx",
       "desktop/src/pages/Compare.tsx",
       "desktop/src/pages/ProductDetail.tsx",
@@ -2323,7 +2329,7 @@ describe("desktop chart guard", () => {
     const cases: [string, string][] = [
       ["desktop/src/pages/Alerts.tsx", "storage\n      .getWatchlist()"],
       ["desktop/src/pages/Alerts.tsx", "storage\n      .getSettings()"],
-      ["desktop/src/pages/Watchlist.tsx", "storage.getSettings().then((s) => {"],
+      ["desktop/src/hooks/use-watchlist-view.ts", ".getSettings()"],
       ["desktop/src/components/TrendingSection.tsx", "storage.getWatchlist().then((w) => {"],
       ["desktop/src/components/SearchModal.tsx", "storage.getWatchlist().then((products) =>"],
     ];

@@ -19,7 +19,10 @@ describe("desktop P2 watchlist", () => {
   });
 
   it("persists in-stock and price-range filters", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-view.ts",
+      "utf8",
+    );
     expect(text).toContain("watchlistInStockOnly");
     expect(text).toContain("watchlistPriceRange");
   });

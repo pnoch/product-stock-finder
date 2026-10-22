@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop watchlist virtualization", () => {
   it("windows table rows with dynamic measurement", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-view.ts",
+      "utf8",
+    );
     const body = await readFile(
       "desktop/src/components/watchlist/WatchlistTableBody.tsx",
       "utf8",

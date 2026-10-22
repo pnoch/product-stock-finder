@@ -13,7 +13,10 @@ describe("desktop list awareness", () => {
   });
 
   it("badges buy signals and counts tabs", async () => {
-    const watchlist = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const watchlist = await readFile(
+      "desktop/src/hooks/use-watchlist-view.ts",
+      "utf8",
+    );
     const row = await readFile(
       "desktop/src/components/watchlist/WatchlistRow.tsx",
       "utf8",

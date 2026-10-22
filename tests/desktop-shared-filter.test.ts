@@ -33,7 +33,10 @@ const baseFilters = {
 
 describe("desktop shared filter", () => {
   it("delegates desktop filtering to filterWatchlist", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-view.ts",
+      "utf8",
+    );
     expect(text).toContain("filterWatchlist(products");
   });
 
