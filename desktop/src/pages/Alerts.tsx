@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { log } from "@shared/log";
 import {
   Bell,
   BellRing,
@@ -9,9 +8,11 @@ import {
 import { useAlerts } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
 import { useAlertEdit } from "../hooks/use-alert-edit";
+import { useRemindersData } from "../hooks/use-reminders-data";
+import { useNotificationsData } from "../hooks/use-notifications-data";
+import { useAlertMutations } from "../hooks/use-alert-mutations";
 import { useReminderReschedule } from "../hooks/use-reminder-reschedule";
 import { storage } from "../storage";
-import { syncDesktopNotifications } from "../server-notifications";
 import { countOpenAlerts } from "../../../lib/alert-state";
 import { AlertsTab } from "../components/alerts/AlertsTab";
 import { RemindersTab } from "../components/alerts/RemindersTab";
@@ -19,11 +20,7 @@ import { EditAlertDialog } from "../components/alerts/EditAlertDialog";
 import { RescheduleDialog } from "../components/alerts/RescheduleDialog";
 import { NotificationsTab } from "../components/alerts/NotificationsTab";
 import { LoadingSpinner } from "../components/LoadingSpinner";
-import type {
-  BackOrderReminder,
-  NotificationHistoryEntry,
-  Product,
-} from "../../../lib/types";
+import type { Product } from "../../../lib/types";
 
 type Tab = "alerts" | "reminders" | "notifications";
 
@@ -43,16 +40,22 @@ export function Alerts() {
     loading: alertsLoading,
     refresh: refreshAlerts,
   } = useAlerts();
-  const [reminders, setReminders] = useState<BackOrderReminder[]>([]);
-  const [watches, setWatches] = useState<BackOrderReminder[]>([]);
-  const [remindersLoading, setRemindersLoading] = useState(true);
+  const { toast, showToast } = useToast();
+  const {
+    reminders,
+    setReminders,
+    watches,
+    remindersLoading,
+    remindersError,
+    loadReminders,
+    handleDeleteReminder,
+    handleDeleteWatch,
+  } = useRemindersData({ showToast });
+
   const [productNames, setProductNames] = useState<Map<string, string>>(
     () => new Map(),
   );
-  const { toast, showToast } = useToast();
   const [displayCurrency, setDisplayCurrency] = useState("USD");
-  const [notifications, setNotifications] = useState<NotificationHistoryEntry[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [watchlistProducts, setWatchlistProducts] = useState<Product[]>([]);
   const {
     editingAlert,
@@ -81,46 +84,17 @@ export function Alerts() {
     closeReschedule,
   } = useReminderReschedule({ setReminders, showToast });
 
-  const [remindersError, setRemindersError] = useState<string | null>(null);
-  const [notifError, setNotifError] = useState<string | null>(null);
 
-  const loadReminders = useCallback(async () => {
-    setRemindersLoading(true);
-    setRemindersError(null);
-    try {
-      const [r, w] = await Promise.all([
-        storage.getBackOrderReminders(),
-        storage.getStockWatches(),
-      ]);
-      setReminders(r);
-      setWatches(w);
-    } catch (e) {
-      setRemindersError(e instanceof Error ? e.message : "Couldn't load reminders");
-    } finally {
-      setRemindersLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void loadReminders();
-    });
-  }, [loadReminders]);
-
-  const loadNotifications = useCallback(async () => {
-    setNotifError(null);
-    try {
-      const [history, unread] = await Promise.all([
-        storage.getNotificationHistory(),
-        storage.getUnreadNotificationCount(),
-      ]);
-      setNotifications(history);
-      setUnreadCount(unread);
-    } catch {
-      log.error("[Alerts] Failed to load notifications");
-      setNotifError("Couldn't load notifications.");
-    }
-  }, []);
+  const {
+    notifications,
+    unreadCount,
+    notifError,
+    refreshing,
+    loadNotifications,
+    handleRefreshNotifications,
+    handleMarkAllRead,
+    handleNotificationOpen,
+  } = useNotificationsData({ showToast });
 
   useEffect(() => {
     // A storage read failure must not reject unhandled; the names/currency are
@@ -138,9 +112,6 @@ export function Alerts() {
         if (s?.displayCurrency) setDisplayCurrency(s.displayCurrency);
       })
       .catch(() => {});
-    queueMicrotask(() => {
-      void loadNotifications();
-    });
   }, [loadNotifications]);
 
   const loading = alertsLoading || remindersLoading;
@@ -150,102 +121,8 @@ export function Alerts() {
     [alerts],
   );
 
-  // Storage writes can reject (quota/IDB error). Without a catch the rejection
-  // was unhandled and the user saw nothing; mobile surfaces an alert for each.
-  const handleToggle = async (id: string) => {
-    try {
-      await storage.toggleAlert(id);
-      const updated = await storage.getAlerts();
-      const target = updated.find((a) => a.id === id);
-      showToast(target?.isActive ? "Alert activated" : "Alert deactivated");
-      refreshAlerts();
-    } catch {
-      showToast("Couldn't update that alert. Please try again.");
-    }
-  };
-
-  const handleDeleteAlert = async (id: string) => {
-    if (!window.confirm("Remove this price alert? This cannot be undone.")) return;
-    try {
-      await storage.removeAlert(id);
-      showToast("Alert deleted");
-      refreshAlerts();
-    } catch {
-      showToast("Couldn't delete that alert. Please try again.");
-    }
-  };
-
-  const handleRearm = async (id: string) => {
-    try {
-      await storage.rearmAlert(id);
-      showToast("Alert rearmed");
-      refreshAlerts();
-    } catch {
-      showToast("Couldn't re-arm that alert. Please try again.");
-    }
-  };
-
-  const handleSnoozeAlert = async (id: string, days: number) => {
-    try {
-      await storage.snoozeAlert(id, days);
-      showToast(days === 0 ? "Alert resumed" : `Snoozed for ${days} day${days !== 1 ? "s" : ""}`);
-      refreshAlerts();
-    } catch {
-      showToast("Couldn't snooze that alert. Please try again.");
-    }
-  };
-
-  const [refreshing, setRefreshing] = useState(false);
-  const handleRefreshNotifications = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await syncDesktopNotifications();
-    } finally {
-      await loadNotifications();
-      setRefreshing(false);
-    }
-  }, [loadNotifications]);
-  const handleMarkAllRead = async () => {
-    try {
-      await (storage.markAllNotificationsRead as unknown as () => Promise<void>)?.();
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch {
-      log.error("[Alerts] Failed to update notification read state");
-      showToast("Couldn't update notification. Try again.");
-    }
-  };
-  const handleNotificationOpen = async (n: NotificationHistoryEntry) => {
-    if (n.read) return;
-    try {
-      await storage.markNotificationRead(n.id);
-      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch {
-      log.error("[Alerts] Failed to update notification read state");
-      showToast("Couldn't update notification. Try again.");
-    }
-  };
-
-  const handleDeleteReminder = async (id: string) => {
-    if (!window.confirm("Cancel this reminder? This cannot be undone.")) return;
-    try {
-      await storage.removeBackOrderReminder(id);
-      setReminders((prev) => prev.filter((r) => r.id !== id));
-    } catch {
-      showToast("Couldn't cancel that reminder. Please try again.");
-    }
-  };
-
-  const handleDeleteWatch = async (id: string) => {
-    if (!window.confirm("Stop watching for this restock? This cannot be undone.")) return;
-    try {
-      await storage.removeStockWatch(id);
-      setWatches((prev) => prev.filter((w) => w.id !== id));
-    } catch {
-      showToast("Couldn't remove that watch. Please try again.");
-    }
-  };
+  const { handleToggle, handleDeleteAlert, handleRearm, handleSnoozeAlert } =
+    useAlertMutations({ refreshAlerts, showToast });
 
   if (loading) return <LoadingSpinner />;
 

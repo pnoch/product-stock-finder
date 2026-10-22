@@ -16,7 +16,10 @@ describe("desktop share, notifications, search tags", () => {
       "desktop/src/hooks/use-product-sharing.ts",
       "utf8",
     );
-    const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const alerts = await readFile(
+      "desktop/src/hooks/use-notifications-data.ts",
+      "utf8",
+    );
     const notifications = await readFile(
       "desktop/src/components/alerts/NotificationsTab.tsx",
       "utf8",

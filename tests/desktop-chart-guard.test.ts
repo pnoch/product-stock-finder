@@ -81,7 +81,10 @@ describe("desktop chart guard", () => {
   // QA round 41: the desktop Alerts mutation handlers had no try/catch, so a
   // storage failure became an unhandled rejection with no user feedback.
   it("wraps desktop alert mutations in try/catch", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = [
+      await readFile("desktop/src/hooks/use-alert-mutations.ts", "utf8"),
+      await readFile("desktop/src/hooks/use-reminders-data.ts", "utf8"),
+    ].join("\n");
     for (const handler of [
       "const handleToggle",
       "const handleDeleteAlert",
