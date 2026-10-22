@@ -1708,7 +1708,11 @@ describe("desktop chart guard", () => {
   // desktop's Watchlist header had none.
   it("has an Add Product button in the desktop watchlist header", async () => {
     const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
-    expect(text).toMatch(/aria-label="Add product"/);
+    const toolbar = await readFile(
+      "desktop/src/components/watchlist/WatchlistToolbar.tsx",
+      "utf8",
+    );
+    expect(toolbar).toMatch(/aria-label="Add product"/);
     expect(text).toMatch(/navigate\("\/search"\)/);
   });
 
