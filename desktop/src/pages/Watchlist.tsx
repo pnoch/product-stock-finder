@@ -1,13 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useWatchlist, useSettings } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
 import { storage } from "../storage";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useConnection } from "../hooks/use-connection";
-import { countQueuedEdits } from "../../../lib/sync";
 import { OfflineBanner } from "../components/watchlist/OfflineBanner";
-import { WatchlistRow } from "../components/watchlist/WatchlistRow";
 import { WatchlistFilters } from "../components/watchlist/WatchlistFilters";
 import { WatchlistDialogs } from "../components/watchlist/WatchlistDialogs";
 import { WatchlistEmptyPage } from "../components/watchlist/WatchlistEmptyPage";
@@ -19,6 +17,8 @@ import { useWatchlistRemove } from "../hooks/use-watchlist-remove";
 import { useWatchlistTags } from "../hooks/use-watchlist-tags";
 import { useWatchlistRefresh } from "../hooks/use-watchlist-refresh";
 import { useWatchlistView } from "../hooks/use-watchlist-view";
+import { useQueuedCount } from "../hooks/use-queued-count";
+import { createWatchlistRowRenderer } from "../hooks/use-watchlist-row-renderer";
 import { isAcquired } from "../../../lib/acquired";
 import type { Product, TagDefinition } from "../../../lib/types";
 
@@ -52,24 +52,7 @@ export function Watchlist() {
     refresh,
     showToast,
   });
-  const [queuedCount, setQueuedCount] = useState(0);
-
-  const refreshQueuedCount = useCallback(async () => {
-    try {
-      const meta = await storage.getSyncMeta();
-      setQueuedCount(countQueuedEdits(meta));
-    } catch {
-      // best-effort
-    }
-  }, []);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void refreshQueuedCount();
-    });
-    window.addEventListener("focus", refreshQueuedCount);
-    return () => window.removeEventListener("focus", refreshQueuedCount);
-  }, [refreshQueuedCount]);
+  const queuedCount = useQueuedCount();
   const scrollRef = useRef<HTMLDivElement>(null);
   const displayCurrency = settings?.displayCurrency ?? "USD";
 
@@ -221,33 +204,25 @@ export function Watchlist() {
     );
   }
 
-  const renderRow = (
-    product: Product,
-    virtual?: { ref: (el: HTMLTableRowElement | null) => void; index: number },
-  ) => (
-    <WatchlistRow
-      product={product}
-      virtual={virtual}
-      displayCurrency={displayCurrency}
-      selectionMode={selectionMode}
-      selectedId={selectedId}
-      selectedIds={selectedIds}
-      insightMap={insightMap}
-      dealScores={dealScores}
-      tagDefinitions={tagDefinitions}
-      findingIds={findingIds}
-      isAcquired={isAcquired}
-      onOpen={(id) => {
-        setSelectedId(id);
-        navigate(`/product/${id}`);
-      }}
-      onToggleSelection={toggleSelection}
-      onFindPrices={handleFindPrices}
-      onToggleAcquired={handleToggleAcquired}
-      onEditTags={setTagPickerProduct}
-      onRemove={handleRemove}
-    />
-  );
+  const renderRow = createWatchlistRowRenderer({
+    displayCurrency,
+    selectionMode,
+    selectedId,
+    selectedIds,
+    insightMap,
+    dealScores,
+    tagDefinitions,
+    findingIds,
+    onOpen: (id) => {
+      setSelectedId(id);
+      navigate(`/product/${id}`);
+    },
+    onToggleSelection: toggleSelection,
+    onFindPrices: handleFindPrices,
+    onToggleAcquired: handleToggleAcquired,
+    onEditTags: setTagPickerProduct,
+    onRemove: handleRemove,
+  });
 
   return (
     <div className="p-6 space-y-4">

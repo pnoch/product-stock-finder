@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop list awareness", () => {
   it("shows the offline queued-edits banner", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-queued-count.ts",
+      "utf8",
+    );
     const banner = await readFile(
       "desktop/src/components/watchlist/OfflineBanner.tsx",
       "utf8",
