@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { Flame, Plus, Check } from "lucide-react";
 import { fetchTrending } from "@shared/trending";
@@ -15,14 +15,28 @@ export function TrendingSection() {
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const { toast, showToast } = useToast();
   const navigate = useNavigate();
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const load = useCallback(() => {
     setLoading(true);
     setLoadError(false);
     fetchTrending()
-      .then((data) => setProducts(data))
-      .catch(() => setLoadError(true))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (mountedRef.current) setProducts(data);
+      })
+      .catch(() => {
+        if (mountedRef.current) setLoadError(true);
+      })
+      .finally(() => {
+        if (mountedRef.current) setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -31,7 +45,7 @@ export function TrendingSection() {
     });
 
     storage.getWatchlist().then((w) => {
-      setAddedIds(new Set(w.map((p) => p.id)));
+      if (mountedRef.current) setAddedIds(new Set(w.map((p) => p.id)));
     }).catch(() => {});
   }, [load]);
 
