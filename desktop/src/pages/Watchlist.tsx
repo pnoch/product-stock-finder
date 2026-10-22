@@ -7,7 +7,6 @@ import {
   RefreshCw,
   Share2,
   Zap,
-  ArrowUpDown,
   Package,
   Tag as TagIcon,
   Settings2,
@@ -36,6 +35,7 @@ import { fetchServerPricesForWatchlist } from "../lib/watchlist-refresh";
 import { OfflineBanner } from "../components/watchlist/OfflineBanner";
 import { WatchlistRow } from "../components/watchlist/WatchlistRow";
 import { WatchlistFilters } from "../components/watchlist/WatchlistFilters";
+import { WatchlistTableHeader } from "../components/watchlist/WatchlistTableHeader";
 import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import { createTRPCClient } from "../lib/trpc";
 import { buildWatchlistShareMessage } from "../../../lib/watchlist-share";
@@ -969,70 +969,12 @@ export function Watchlist() {
       >
         <div className="overflow-x-auto">
           <table className="w-full" aria-rowcount={rows.length}>
-            <thead className="sticky top-0 bg-white dark:bg-gray-800 z-10">
-            <tr className="border-b border-gray-200 dark:border-gray-700">
-              {selectionMode && <th className="px-2 py-3 w-8"><span className="sr-only">Select</span></th>}
-              <th className="text-left" aria-sort={sortKey === "name" ? (sortAsc ? "ascending" : "descending") : "none"}>
-                <button
-                  onClick={() => handleSort("name")}
-                  className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
-                  aria-label="Sort by Name"
-                >
-                  Name
-                  <ArrowUpDown className="w-3 h-3" />
-                </button>
-              </th>
-              <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left">
-                Listings
-              </th>
-              <th className="text-left" aria-sort={sortKey === "price" ? (sortAsc ? "ascending" : "descending") : "none"}>
-                <button
-                  onClick={() => handleSort("price")}
-                  className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
-                  aria-label="Sort by Price"
-                >
-                  Price
-                  <ArrowUpDown className="w-3 h-3" />
-                </button>
-              </th>
-              <th className="text-left" aria-sort={sortKey === "deal" ? (sortAsc ? "ascending" : "descending") : "none"}>
-                <button
-                  onClick={() => handleSort("deal")}
-                  className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
-                  aria-label="Sort by Deal"
-                >
-                  Deal
-                  <ArrowUpDown className="w-3 h-3" />
-                </button>
-              </th>
-              <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left">
-                Stock
-              </th>
-              <th className="text-left" aria-sort={sortKey === "trend" ? (sortAsc ? "ascending" : "descending") : "none"}>
-                <button
-                  onClick={() => handleSort("trend")}
-                  className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
-                  aria-label="Sort by Trend"
-                >
-                  Trend
-                  <ArrowUpDown className="w-3 h-3" />
-                </button>
-              </th>
-              <th className="text-left" aria-sort={sortKey === "lastUpdated" ? (sortAsc ? "ascending" : "descending") : "none"}>
-                <button
-                  onClick={() => handleSort("lastUpdated")}
-                  className="flex items-center gap-1 px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-200 w-full"
-                  aria-label="Sort by Last Updated"
-                >
-                  Last Updated
-                  <ArrowUpDown className="w-3 h-3" />
-                </button>
-              </th>
-              <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
-                Actions
-              </th>
-            </tr>
-          </thead>
+            <WatchlistTableHeader
+              selectionMode={selectionMode}
+              sortKey={sortKey}
+              sortAsc={sortAsc}
+              onSort={handleSort}
+            />
           <tbody>
             {virtualRows.length > 0 && virtualRows[0].start > 0 && (
               <tr aria-hidden="true">

@@ -9,7 +9,10 @@ describe("desktop table accessibility", () => {
   });
 
   it("exposes sort, trend, and toggle states", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const header = await readFile(
+      "desktop/src/components/watchlist/WatchlistTableHeader.tsx",
+      "utf8",
+    );
     const row = await readFile(
       "desktop/src/components/watchlist/WatchlistRow.tsx",
       "utf8",
@@ -18,7 +21,7 @@ describe("desktop table accessibility", () => {
       "desktop/src/components/watchlist/WatchlistFilters.tsx",
       "utf8",
     );
-    expect(text).toContain("aria-sort");
+    expect(header).toContain("aria-sort");
     expect(row).toContain("Trend ");
     expect(filters).toContain("aria-pressed");
   });
