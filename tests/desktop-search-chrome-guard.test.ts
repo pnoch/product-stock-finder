@@ -14,7 +14,12 @@ describe("shared search chrome", () => {
     // per-item error handling, so one storage rejection aborted the whole
     // import (mobile uses Promise.allSettled and reports skipped items).
     it(`${f} bulk import tolerates per-item failures`, async () => {
-      const text = await readFile(f, "utf8");
+      const text = await readFile(
+        f === "desktop/src/pages/Search.tsx"
+          ? "desktop/src/hooks/use-bulk-import.ts"
+          : f,
+        "utf8",
+      );
       const start = text.indexOf("const handleBulkImport");
       expect(start).toBeGreaterThan(-1);
       const block = text.slice(start, text.indexOf("};", start));

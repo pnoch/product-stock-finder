@@ -32,7 +32,10 @@ describe("bulk discovery UI", () => {
   });
 
   it("bulk import drains discovery via the shared loop (desktop)", () => {
-    const search = readFileSync("desktop/src/pages/Search.tsx", "utf8");
+    const search = readFileSync(
+      "desktop/src/hooks/use-bulk-import.ts",
+      "utf8",
+    );
     expect(search).toContain("runDiscoveryLoop");
     expect(search).toContain("window.confirm");
     expect(search).toContain("Fetch prices for the remaining");

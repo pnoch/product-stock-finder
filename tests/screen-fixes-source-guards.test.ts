@@ -159,7 +159,7 @@ describe("screen-level fixes", () => {
       'r.status === "fulfilled" && r.value === true',
     );
     for (const file of [
-      "desktop/src/pages/Search.tsx",
+      "desktop/src/hooks/use-bulk-import.ts",
       "desktop/src/components/SearchModal.tsx",
     ]) {
       const src = read(file);

@@ -1,17 +1,13 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { PRODUCT_CATALOG } from "@shared/catalog";
 import { storage } from "../storage";
 import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discovery";
-import { discoverListings, customProductSlug } from "../../../lib/listing-discovery";
-import { manualAddProduct, rediscoverProduct } from "../../../lib/manual-add";
-import { matchModels, parseModelInput } from "../../../lib/bulk-import";
-import { runDiscoveryLoop } from "../../../lib/bulk-discovery";
 import { nextTagColor } from "../../../lib/tags";
-import type { DistributorListing } from "../../../lib/types";
 import { useToast } from "../hooks/use-toast";
 import { useSearchData } from "../hooks/use-search-data";
-import { isUrlLike } from "../lib/url-like";
+import { useBulkImport } from "../hooks/use-bulk-import";
+import { useManualAdd } from "../hooks/use-manual-add";
 import { TagPickerDialog } from "../components/search/TagPickerDialog";
 import { BulkImportDialog } from "../components/search/BulkImportDialog";
 import { ManualAddDialog } from "../components/search/ManualAddDialog";
@@ -29,24 +25,6 @@ export function Search() {
   const [discovering, setDiscovering] = useState(false);
   const [discoverError, setDiscoverError] = useState<{ title: string; message: string; retry: boolean } | null>(null);
   const { toast, showToast } = useToast();
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkText, setBulkText] = useState("");
-  const [bulkImporting, setBulkImporting] = useState(false);
-  const [manualOpen, setManualOpen] = useState(false);
-  const [manualName, setManualName] = useState("");
-  const [manualModel, setManualModel] = useState("");
-  const [manualBrand, setManualBrand] = useState("");
-  const [manualCategory, setManualCategory] = useState("");
-  const [manualDescription, setManualDescription] = useState("");
-  const [pasteText, setPasteText] = useState("");
-  const [urlInput, setUrlInput] = useState("");
-  const [urlParsing, setUrlParsing] = useState(false);
-  const [manualParsing, setManualParsing] = useState(false);
-  const [manualDiscovering, setManualDiscovering] = useState(false);
-  const [manualProgress, setManualProgress] = useState<string | null>(null);
-  const [manualTimedOut, setManualTimedOut] = useState<{ id: string; name: string; modelNumber: string } | null>(null);
-  const [manualRetrying, setManualRetrying] = useState(false);
-  const [manualError, setManualError] = useState<{ title: string; message: string; retry: boolean } | null>(null);
   const [searchTagIds, setSearchTagIds] = useState<string[]>([]);
   const [searchTagMode, setSearchTagMode] = useState<"any" | "all">("any");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -127,170 +105,47 @@ export function Search() {
     }
   }, [newTagName, tagPickerFor, showToast, setTagDefinitions, setPendingTags]);
 
-  const bulkPreview = useMemo(() => matchModels(parseModelInput(bulkText)), [bulkText]);
-  const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIds]);
-  const handleBulkImport = async () => {
-    if (bulkImporting || bulkNew.length === 0) return;
-    setBulkImporting(true);
-    try {
-      // allSettled so one storage rejection doesn't abort the rest of the
-      // import (mobile does the same); only count the writes that landed.
-      const results = await Promise.allSettled(
-        bulkNew.map((it) => storage.addToWatchlist({ ...it, addedAt: new Date().toISOString(), isWatched: true, listings: [], tags: [] })),
-      );
-      // Only writes that landed: addToWatchlist resolves false for a
-      // duplicate, which the fulfilled-status check used to count as an import.
-      const added = bulkNew.filter(
-        (_, i) =>
-          results[i]!.status === "fulfilled" &&
-          (results[i] as PromiseFulfilledResult<boolean>).value === true,
-      );
-      setTrackedIds((prev) => new Set([...prev, ...added.map((p) => p.id)]));
-      setBulkText(""); setBulkOpen(false);
-      const failed = bulkNew.length - added.length;
-      // Settle the import UI before the (slow) discovery loop so the dialog is
-      // not frozen on "Importing…" with no feedback while batches run.
-      setBulkImporting(false);
-      let discovered = 0;
-      if (added.length > 0) {
-        const items = added.map((p) => ({ productId: p.id, modelNumber: p.modelNumber }));
-        const rediscoverStorage = {
-          updateProductListings: (pid: string, listings: DistributorListing[]) =>
-            storage.updateProductListings(pid, listings),
-        };
-        const loop = await runDiscoveryLoop({
-          items,
-          storage: rediscoverStorage,
-          discover: discoverListings,
-          confirmContinue: (remaining) =>
-            window.confirm(`Fetch prices for the remaining ${remaining} product${remaining === 1 ? "" : "s"}?`),
-        });
-        discovered = loop.discovered;
-      }
-      const discoveryNote = discovered > 0 ? ` · ${discovered} listing${discovered === 1 ? "" : "s"} found` : "";
-      showToast(
-        failed > 0
-          ? `Imported ${added.length} · ${failed} failed${discoveryNote}`
-          : `Imported ${added.length}${discoveryNote}`,
-      );
-    } finally { setBulkImporting(false); }
-  };
-  const handleManualParse = async () => {
-    if (!pasteText.trim() || manualParsing) return;
-    setManualParsing(true);
-    setManualError(null);
-    try {
-      const res = await discoverProduct(pasteText.trim(), storage);
-      if (res) {
-        setManualName(res.product.name ?? "");
-        setManualModel(res.product.modelNumber ?? "");
-        setManualBrand(res.product.brand ?? "");
-        setManualCategory(res.product.category ?? "");
-      } else {
-        setManualError({ title: "Discovery Failed", message: "We couldn't find that product. Try again.", retry: true });
-      }
-    } catch (e) {
-      setManualError(toDiscoverErrorState(e));
-    } finally {
-      setManualParsing(false);
-    }
-  };
-  const handleUrlFetch = async () => {
-    const text = urlInput.trim();
-    if (!text || urlParsing || !isUrlLike(text)) return;
-    setUrlParsing(true);
-    setManualError(null);
-    try {
-      const res = await discoverProduct(text, storage);
-      if (res) {
-        setManualName(res.product.name ?? "");
-        setManualModel(res.product.modelNumber ?? "");
-        setManualBrand(res.product.brand ?? "");
-        setManualCategory(res.product.category ?? "");
-      } else {
-        setManualError({ title: "Discovery Failed", message: "We couldn't find that product. Try again.", retry: true });
-      }
-    } catch (e) {
-      setManualError(toDiscoverErrorState(e));
-    } finally {
-      setUrlParsing(false);
-    }
-  };
-  const handleManualAdd = async () => {
-    if (!manualName.trim() || !manualModel.trim()) { showToast("Name and model required"); return; }
-    const slug = customProductSlug(manualModel.trim());
-    if (trackedIds.has(slug)) { showToast("Already Tracked — that model number is already in your watchlist."); return; }
-    if (manualDiscovering) return;
-    const id = slug;
-    const prod = { id, name: manualName.trim(), modelNumber: manualModel.trim(), brand: manualBrand.trim() || "Unknown", category: manualCategory.trim() || categories[0] || "Other", description: manualDescription.trim() };
-    const resetManualForm = () => {
-      setManualOpen(false); setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory(""); setManualDescription("");
-      setPasteText(""); setUrlInput(""); setManualError(null); setManualProgress(null); setManualTimedOut(null);
-    };
-    let created = false;
-    setManualDiscovering(true);
-    try {
-      const result = await manualAddProduct({
-        storage: {
-          addToWatchlist: async (p) => { const r = await storage.addToWatchlist(p); created = true; return r; },
-          updateProductListings: (pid, listings) => storage.updateProductListings(pid, listings),
-        },
-        trackedIds,
-        discover: discoverListings,
-        input: { ...prod, tags: [] },
-        onProgress: (done, total) => setManualProgress(`Discovering ${done}/${total}…`),
-      });
-      if (result.status === "duplicate") { showToast("Already Tracked — that model number is already in your watchlist."); return; }
-      setTrackedIds((prev) => new Set([...prev, id]));
-      if (result.timedOut) {
-        setManualTimedOut({ id, name: prod.name, modelNumber: prod.modelNumber });
-        showToast(`Added ${prod.name} with no listings — discovery found nothing`);
-        return;
-      }
-      resetManualForm();
-      showToast(result.discovered > 0 ? `Added ${prod.name}` : `Added ${prod.name} with no listings — discovery found nothing`);
-    } catch {
-      if (created) {
-        // Best-effort: keep the product with no listings (today's behavior).
-        setTrackedIds((prev) => new Set([...prev, id]));
-        resetManualForm();
-        showToast(`Added ${prod.name} with no listings — discovery found nothing`);
-      } else {
-        showToast("Failed to add");
-      }
-    } finally {
-      setManualDiscovering(false);
-      setManualProgress(null);
-    }
-  };
-  const handleManualRetry = async () => {
-    if (!manualTimedOut || manualRetrying) return;
-    const { id, name, modelNumber } = manualTimedOut;
-    setManualRetrying(true);
-    try {
-      const res = await rediscoverProduct({
-        storage: { updateProductListings: (pid, listings) => storage.updateProductListings(pid, listings) },
-        discover: discoverListings,
-        productId: id,
-        modelNumber,
-        onProgress: (done, total) => setManualProgress(`Discovering ${done}/${total}…`),
-      });
-      if (res.timedOut) {
-        showToast(`Added ${name} with no listings — discovery found nothing`);
-      } else {
-        setManualTimedOut(null);
-        setManualOpen(false); setManualName(""); setManualModel(""); setManualBrand(""); setManualCategory(""); setManualDescription("");
-        setPasteText(""); setUrlInput(""); setManualError(null);
-        showToast(res.discovered > 0 ? `Added ${name}` : `Added ${name} with no listings — discovery found nothing`);
-      }
-    } catch {
-      showToast("Discovery failed — try again");
-    } finally {
-      setManualRetrying(false);
-      setManualProgress(null);
-    }
-  };
-  const closeManualModal = () => { setManualTimedOut(null); setManualOpen(false); };
+  const {
+    bulkOpen,
+    setBulkOpen,
+    bulkText,
+    setBulkText,
+    bulkImporting,
+    bulkPreview,
+    bulkNew,
+    handleBulkImport,
+  } = useBulkImport({ trackedIds, setTrackedIds, showToast });
+
+  const {
+    manualOpen,
+    manualName,
+    setManualName,
+    manualModel,
+    setManualModel,
+    manualBrand,
+    setManualBrand,
+    manualCategory,
+    setManualCategory,
+    manualDescription,
+    setManualDescription,
+    pasteText,
+    setPasteText,
+    urlInput,
+    setUrlInput,
+    urlParsing,
+    manualParsing,
+    manualDiscovering,
+    manualProgress,
+    manualTimedOut,
+    manualRetrying,
+    manualError,
+    handleManualParse,
+    handleUrlFetch,
+    handleManualAdd,
+    handleManualRetry,
+    openManual,
+    closeManualModal,
+  } = useManualAdd({ categories, trackedIds, setTrackedIds, showToast });
 
   return (
     <div className="p-6 space-y-4 max-w-4xl mx-auto">
@@ -304,16 +159,7 @@ export function Search() {
           setRecentSearches([]);
         }}
         onBulkOpen={() => setBulkOpen(true)}
-        onManualOpen={() => {
-          setManualModel(query);
-          setPasteText("");
-          setUrlInput("");
-          setManualDescription("");
-          setManualError(null);
-          setManualProgress(null);
-          setManualTimedOut(null);
-          setManualOpen(true);
-        }}
+        onManualOpen={() => openManual(query)}
         inputRef={inputRef}
         onEnter={() => setRecentSearches(recordRecent(query))}
         discoveredCount={discoveredProducts.length}
