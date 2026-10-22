@@ -577,7 +577,10 @@ describe("desktop chart guard", () => {
   // QA round 223: mobile's DetailHeader subline is "{brand} · {category} ·
   // {modelNumber}"; desktop's was "{brand} | {modelNumber} | {category}".
   it("matches mobile's product header subline on desktop", async () => {
-    const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/product/ProductDetailStates.tsx",
+      "utf8",
+    );
     expect(text).toContain("{product.brand} · {product.category} · {product.modelNumber}");
   });
 

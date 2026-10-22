@@ -4,7 +4,11 @@ import { readFile } from "node:fs/promises";
 describe("desktop P3c polish", () => {
   it("retries product load from not-found", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
-    expect(text).toContain("Try Again");
+    const states = await readFile(
+      "desktop/src/components/product/ProductDetailStates.tsx",
+      "utf8",
+    );
+    expect(states).toContain("Try Again");
     expect(text).toContain("loadProduct");
   });
 
