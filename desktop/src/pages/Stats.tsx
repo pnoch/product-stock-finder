@@ -1,13 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { Share2, RefreshCw, Package, BarChart3 } from "lucide-react";
 import { copyTextWithFallback, saveNodeAsPng } from "../lib/share";
 import { storage } from "../storage";
 import { useToast } from "../hooks/use-toast";
 import { EmptyState } from "../components/EmptyState";
-import { DialogOverlay } from "../components/DialogOverlay";
 import { distributorColor } from "@shared/compare-utils";
-import { formatPrice, CURRENCY_SYMBOLS } from "@shared/currency";
 import { convertPrice, getBestPrice } from "@/lib/currency";
 import { DISTRIBUTORS } from "@shared/distributors";
 import type { Product } from "../../../lib/types";
@@ -20,16 +18,17 @@ import {
   type MoversWindow,
 } from "../../../lib/watchlist-stats";
 import { computeDigest, type DigestResult } from "../../../lib/price-digest";
-import { computeDropCalendar, dateKey, buildGridCells } from "../../../lib/drop-calendar";
+import { computeDropCalendar, buildGridCells } from "../../../lib/drop-calendar";
 import { computeProductInsights } from "../../../lib/product-insights";
-import { rankDeals, dealBandLabel } from "../../../lib/deal-score";
+import { rankDeals } from "../../../lib/deal-score";
 import { buildWatchlistShareText } from "../../../lib/watchlist-share";
-
-const MultiLineChart = lazy(() =>
-  import("../components/MultiLineChart").then((m) => ({
-    default: m.MultiLineChart,
-  })),
-);
+import { StatsSummaryCards } from "../components/stats/StatsSummaryCards";
+import { DigestCard } from "../components/stats/DigestCard";
+import { ProductInsightsCard } from "../components/stats/ProductInsightsCard";
+import { DropCalendarCard } from "../components/stats/DropCalendarCard";
+import { PriceHistoryCard } from "../components/stats/PriceHistoryCard";
+import { StatsHealthCards } from "../components/stats/StatsHealthCards";
+import { BasketAlertDialog } from "../components/stats/BasketAlertDialog";
 
 
 
@@ -376,508 +375,57 @@ export function Stats() {
         ))}
       </div>
 
-      <div ref={summaryRef} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Basket Value (best in-stock prices)</p>
-            <button
-              onClick={() => {
-                setBasketDraft(basketThreshold != null ? String(basketThreshold) : "");
-                setBasketSheetOpen(true);
-              }}
-              className="text-xs font-semibold text-brand-600 hover:text-brand-700"
-              aria-label={basketThreshold != null ? "Edit basket alert" : "Set alert"}
-            >
-              {basketThreshold != null ? "Edit alert" : "Set alert"}
-            </button>
-          </div>
-          <p className="text-2xl font-bold mt-1">
-            {basket ? formatPrice(basket.total, displayCurrency) : "—"}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            {basket?.productCount ?? 0} product{(basket?.productCount ?? 0) === 1 ? "" : "s"}
-            {basket && basket.excludedCount > 0
-              ? ` · ${basket.excludedCount} excluded (no stock)`
-              : ""}
-          </p>
-          {basketThreshold != null && (
-            <p className="text-xs text-gray-400 mt-1">
-              Alert below {formatPrice(basketThreshold, displayCurrency)}
-            </p>
-          )}
-          {basketThreshold != null && basket && basket.total <= basketThreshold && (
-            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">
-              Basket below alert threshold
-            </p>
-          )}
-        </div>
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">In Stock</p>
-          <p className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">
-            {stockHealth ? `${stockHealth.inStockPct}%` : "—"}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">{stockHealth?.totalListings ?? 0} listing{(stockHealth?.totalListings ?? 0) === 1 ? "" : "s"}</p>
-        </div>
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">▼ Top Drops</p>
-          {movers && movers.drops.length > 0 ? (
-            <div className="mt-2 space-y-2">
-              {movers.drops.map((m) => (
-                <div key={`${m.productId}-${m.distributorId}`} className="flex items-center gap-2">
-                  <span>{m.countryCode}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{m.productName}</p>
-                    <p className="text-xs text-gray-400 truncate">{m.distributorName} · {formatPrice(m.oldPrice, m.currency)} → {formatPrice(m.newPrice, m.currency)}</p>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 rounded-full px-2 py-0.5">
-                    {m.changePct.toFixed(1)}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-2">
-              <p className="text-sm text-gray-400">No movers yet</p>
-              <p className="text-xs text-gray-400">Not enough price history yet.</p>
-            </div>
-          )}
-        </div>
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm font-semibold text-red-600 dark:text-red-400">▲ Top Gainers</p>
-          {movers && movers.gainers.length > 0 ? (
-            <div className="mt-2 space-y-2">
-              {movers.gainers.map((m) => (
-                <div key={`${m.productId}-${m.distributorId}`} className="flex items-center gap-2">
-                  <span>{m.countryCode}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{m.productName}</p>
-                    <p className="text-xs text-gray-400 truncate">{m.distributorName} · {formatPrice(m.oldPrice, m.currency)} → {formatPrice(m.newPrice, m.currency)}</p>
-                  </div>
-                  <span className="text-xs font-bold text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 rounded-full px-2 py-0.5">
-                    {m.changePct > 0 ? "+" : ""}{m.changePct.toFixed(1)}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-2">
-              <p className="text-sm text-gray-400">No movers yet</p>
-              <p className="text-xs text-gray-400">Not enough price history yet.</p>
-            </div>
-          )}
-        </div>
+      <div ref={summaryRef}>
+        <StatsSummaryCards
+          basket={basket}
+          basketThreshold={basketThreshold}
+          displayCurrency={displayCurrency}
+          stockHealth={stockHealth}
+          movers={movers}
+          onEditBasketAlert={() => {
+            setBasketDraft(basketThreshold != null ? String(basketThreshold) : "");
+            setBasketSheetOpen(true);
+          }}
+        />
       </div>
 
-      {products.length === 0 ? null : digestFrequency === "off" ? (
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Digest off</p>
-          <p className="text-sm text-gray-400 mt-2">Enable daily or weekly price digests to see changes here.</p>
-          <Link
-            to="/settings"
-            className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
-            aria-label="Go to Settings"
-          >
-            Go to Settings
-          </Link>
-        </div>
-      ) : digestPending ? (
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Digest scheduled</p>
-          <p className="text-sm text-gray-400 mt-2">Your first digest will appear here once it&apos;s sent.</p>
-        </div>
-      ) : (
-        digest && (
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Digest — {digestFrequency === "weekly" ? "this week" : "today"}
-          </p>
-          {digest.valueDelta && (
-            <p className="text-sm mt-1">
-              <span className="text-gray-500 dark:text-gray-400">
-                {formatPrice(digest.valueDelta.from, displayCurrency)} →{" "}
-                {formatPrice(digest.valueDelta.to, displayCurrency)}
-              </span>{" "}
-              <span
-                className={
-                  digest.valueDelta.percent >= 0
-                    ? "font-bold text-red-600"
-                    : "font-bold text-emerald-600"
-                }
-              >
-                {digest.valueDelta.percent >= 0 ? "+" : ""}
-                {digest.valueDelta.percent.toFixed(1)}%
-              </span>
-            </p>
-          )}
-          {digest.priceChanges.length === 0 &&
-          digest.stockChanges.length === 0 &&
-          digest.alertTargetsHit.length === 0 &&
-          digest.newProducts.length === 0 &&
-          digest.removedProducts.length === 0 ? (
-            <p className="text-sm text-gray-400 mt-2">No changes in this period.</p>
-          ) : (
-            <div className="mt-2 space-y-2 text-sm">
-              {digest.priceChanges.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Price Changes</p>
-                  {digest.priceChanges.slice(0, 3).map((c) => (
-                    <p key={c.productId} className="text-gray-600 dark:text-gray-400">
-                      <span className="text-gray-900 dark:text-gray-100">{c.name}</span>{" "}
-                      {formatPrice(c.from, displayCurrency)} →{" "}
-                      {formatPrice(c.to, displayCurrency)}{" "}
-                      <span
-                        className={
-                          c.percent > 0
-                            ? "font-semibold text-red-600"
-                            : "font-semibold text-emerald-600"
-                        }
-                      >
-                        {c.percent > 0 ? "+" : ""}
-                        {c.percent.toFixed(0)}%
-                      </span>
-                    </p>
-                  ))}
-                  {digest.priceChanges.length > 3 && (
-                    <p className="text-xs text-gray-400">+{digest.priceChanges.length - 3} more</p>
-                  )}
-                </div>
-              )}
-              {topDeals.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Best time to buy
-                  </p>
-                  {topDeals.map((d) => (
-                    <Link
-                      key={d.productId}
-                      to={`/product/${d.productId}`}
-                      className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                      aria-label={`View ${d.name} details`}
-                    >
-                      <span className="text-gray-900 dark:text-gray-100 truncate flex-1">
-                        {d.name}
-                      </span>{" "}
-                      <span className="text-gray-500 dark:text-gray-400">{d.score}</span>{" "}
-                      <span
-                        className={
-                          d.band === "hot"
-                            ? "font-semibold text-emerald-600"
-                            : d.band === "fair"
-                              ? "font-semibold text-amber-600"
-                              : "font-semibold text-gray-400"
-                        }
-                      >
-                        {dealBandLabel(d.band)}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {digest.stockChanges.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Stock Changes</p>
-                  {digest.stockChanges.slice(0, 3).map((s) => (
-                    <p key={s.productId} className="text-gray-600 dark:text-gray-400">
-                      <span className="text-gray-900 dark:text-gray-100">{s.name}</span>: {s.from} → {s.to}
-                    </p>
-                  ))}
-                  {digest.stockChanges.length > 3 && (
-                    <p className="text-xs text-gray-400">+{digest.stockChanges.length - 3} more</p>
-                  )}
-                </div>
-              )}
-              {digest.alertTargetsHit.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Targets Hit</p>
-                  {digest.alertTargetsHit.slice(0, 3).map((t) => (
-                    <p key={t.alertId} className="text-gray-600 dark:text-gray-400">
-                      <span className="text-gray-900 dark:text-gray-100">{t.name}</span> at{" "}
-                      {formatPrice(t.price, t.currency)}
-                    </p>
-                  ))}
-                  {digest.alertTargetsHit.length > 3 && (
-                    <p className="text-xs text-gray-400">+{digest.alertTargetsHit.length - 3} more</p>
-                  )}
-                </div>
-              )}
-              {digest.newProducts.length > 0 && (
-                <div>
-                  {digest.newProducts.slice(0, 3).map((p) => (
-                    <p key={p.productId} className="text-gray-600 dark:text-gray-400">
-                      + <span className="text-gray-900 dark:text-gray-100">{p.name}</span>
-                    </p>
-                  ))}
-                  {digest.newProducts.length > 3 && (
-                    <p className="text-xs text-gray-400">+{digest.newProducts.length - 3} more</p>
-                  )}
-                </div>
-              )}
-              {digest.removedProducts.length > 0 && (
-                <div>
-                  {digest.removedProducts.slice(0, 3).map((p) => (
-                    <p key={p.productId} className="text-gray-600 dark:text-gray-400">
-                      − <span className="text-gray-900 dark:text-gray-100">{p.name}</span>
-                    </p>
-                  ))}
-                  {digest.removedProducts.length > 3 && (
-                    <p className="text-xs text-gray-400">+{digest.removedProducts.length - 3} more</p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        )
+      {products.length === 0 ? null : (
+        <DigestCard
+          digest={digest}
+          digestFrequency={digestFrequency}
+          digestPending={digestPending}
+          displayCurrency={displayCurrency}
+          topDeals={topDeals}
+        />
       )}
 
-      {insights && (
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Product Insights</p>
-          <div className="flex gap-2 mt-1">
-            <div className="flex-1">
-              <p className="text-lg font-bold text-emerald-600">{insights.allTimeLows}</p>
-              <p className="text-xs text-gray-400">At all-time low</p>
-            </div>
-            <div className="flex-1">
-              <p className="text-lg font-bold text-brand-600 dark:text-brand-400">{insights.droppingCount}</p>
-              <p className="text-xs text-gray-400">Dropping now</p>
-            </div>
-            <div className="flex-1">
-              <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {insights.volatility.low}·{insights.volatility.medium}·{insights.volatility.high}
-              </p>
-              <p className="text-xs text-gray-400">Volatility</p>
-              <p className="text-[11px] text-gray-400">Low · Medium · High</p>
-            </div>
-          </div>
-          {(() => {
-            const lows = insights.products.filter((p) => p.atAllTimeLow).slice(0, 3);
-            if (lows.length === 0) return null;
-            return (
-              <div className="mt-2 space-y-1">
-                {lows.map((p) => (
-                  <p key={p.productId} className="text-xs text-emerald-600 truncate">
-                    {p.name} is at its all-time low
-                  </p>
-                ))}
-                {insights.allTimeLows > lows.length && (
-                  <p className="text-xs text-gray-400">
-                    +{insights.allTimeLows - lows.length} more at all-time low
-                  </p>
-                )}
-              </div>
-            );
-          })()}
-        </div>
-      )}
+      {insights && <ProductInsightsCard insights={insights} />}
 
-      <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors duration-150">
-        <p className="text-sm text-gray-500 dark:text-gray-400">Drop Calendar</p>
-        <p className="text-lg font-bold mt-1">
-          {dropCalendar.totalDrops} price drop{dropCalendar.totalDrops === 1 ? "" : "s"} in the last 30 days
-        </p>
-        <div className="grid grid-cols-7 gap-1 mt-3" role="grid" aria-label="Price drop calendar, last 30 days">
-          {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-            <div key={`hdr-${i}`} className="w-8 h-4 flex items-center justify-center text-[10px] font-medium text-gray-400" aria-hidden>
-              {d}
-            </div>
-          ))}
-          {dropCalendarCells.map((ts, i) => {
-            if (ts === null) {
-              return <div key={`blank-${i}`} className="w-8 h-8" aria-hidden />;
-            }
-            const key = dateKey(ts);
-            const day = dropCalendar.byDay.get(key);
-            const dropCount = day?.dropCount ?? 0;
-            const hasDrops = dropCount > 0;
-            const label = hasDrops
-              ? `${key}: ${dropCount} ${dropCount === 1 ? "drop" : "drops"}, biggest ${day?.biggestPct}%`
-              : key;
-            if (hasDrops) {
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  role="gridcell"
-                  title={label}
-                  aria-label={label}
-                  aria-pressed={selectedKey === key}
-                  onClick={() => setSelectedKey((k) => (k === key ? null : key))}
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium ${
-                    selectedKey === key
-                      ? "bg-brand-600 text-white ring-2 ring-brand-400"
-                      : "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
-                  }`}
-                >
-                  {Number(key.slice(8, 10))}
-                </button>
-              );
-            }
-            return (
-              <div
-                key={key}
-                title={label}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-400"
-              >
-                {Number(key.slice(8, 10))}
-              </div>
-            );
-          })}
-        </div>
-        {selectedKey && dropCalendar.byDay.get(selectedKey) && (
-          <div className="mt-2">
-            <p>Drops on {selectedKey}</p>
-            {dropCalendar.byDay.get(selectedKey)!.drops.map((drop) => (
-              <Link key={`${drop.productId}-${drop.distributorId}-${drop.from}-${drop.to}`} to={`/product/${drop.productId}`} className="flex items-center gap-2 py-1 text-sm hover:underline">
-                <span className="truncate">{drop.name}</span>
-                <span>{formatPrice(drop.from, displayCurrency)} → {formatPrice(drop.to, displayCurrency)}</span>
-                <span>{drop.percent.toFixed(0)}%</span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+      <DropCalendarCard
+        dropCalendar={dropCalendar}
+        dropCalendarCells={dropCalendarCells}
+        selectedKey={selectedKey}
+        onSelectKey={setSelectedKey}
+        displayCurrency={displayCurrency}
+      />
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-        <h2 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Price History</h2>
-        {products.length > 3 && (
-          <p className="text-xs text-gray-400 mt-1 mb-2">Top 3 of {products.length} by value</p>
-        )}
-        {chartData.data.length > 0 ? (
-          <Suspense fallback={null}>
-            <MultiLineChart
-              data={chartData.data}
-              distributors={chartData.distributors}
-              colors={chartData.distributorColors}
-              currencySymbol={CURRENCY_SYMBOLS[displayCurrency] ?? "$"}
-            />
-          </Suspense>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/50">
-            <BarChart3 className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" />
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No price history yet</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 max-w-sm">
-              Price points will appear here once distributors are tracked over time.
-            </p>
-          </div>
-        )}
-      </div>
+      <PriceHistoryCard
+        productsCount={products.length}
+        chartData={chartData}
+        displayCurrency={displayCurrency}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Data Freshness</p>
-          {freshness ? (
-            <div className="space-y-1 text-sm">
-              <p className="text-gray-600 dark:text-gray-400">
-                Avg data points / listing:{" "}
-                <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.avgHistoryPoints}</span>
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                Stale (&gt;7 days): <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.staleCount}</span> · Never checked:{" "}
-                <span className="font-medium text-gray-900 dark:text-gray-100">{freshness.neverCheckedCount}</span>
-              </p>
-              <p className="text-xs text-gray-400">
-                Oldest check{" "}
-                {freshness.oldestCheck
-                  ? new Date(freshness.oldestCheck).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "—"}
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400">No data</p>
-          )}
-        </div>
-        <div className="p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Stock Health{stockHealth ? ` (${stockHealth.totalListings} listing${stockHealth.totalListings === 1 ? "" : "s"})` : ""}
-          </p>
-          {stockHealth ? (
-            <div className="space-y-1 text-sm">
-              {/* Mobile's StockHealthCard shows three labelled columns. */}
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stockHealth.inStockPct}%</p>
-                  <p className="text-[11px] text-gray-400">Listings in stock</p>
-                </div>
-                <div className="flex-1">
-                  <p className="text-lg font-bold text-red-600 dark:text-red-400">{stockHealth.fullyOutOfStock}</p>
-                  <p className="text-[11px] text-gray-400">Fully out of stock</p>
-                </div>
-                <div className="flex-1">
-                  <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{stockHealth.backOrderOnly}</p>
-                  <p className="text-[11px] text-gray-400">Back-order everywhere</p>
-                </div>
-              </div>
-              <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 mt-2">
-                <div
-                  className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${stockHealth.inStockPct}%` }}
-                />
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400">No data</p>
-          )}
-        </div>
-      </div>
+      <StatsHealthCards freshness={freshness} stockHealth={stockHealth} />
 
-      <DialogOverlay
+      <BasketAlertDialog
         open={basketSheetOpen}
+        displayCurrency={displayCurrency}
+        draft={basketDraft}
+        threshold={basketThreshold}
+        onDraftChange={setBasketDraft}
         onClose={() => setBasketSheetOpen(false)}
-        label="Basket Value Alert"
-      >
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h3 className="font-semibold text-lg mb-1">Basket Value Alert</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Notify me when the total watchlist value drops below this amount
-              ({displayCurrency}). Fires once, then turns off.
-            </p>
-            <label className="block text-xs font-semibold mb-1">
-              Threshold ({displayCurrency})
-            </label>
-            <input
-              type="number"
-              value={basketDraft}
-              onChange={(e) => setBasketDraft(e.target.value)}
-              placeholder="e.g. 500"
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label="Basket alert threshold"
-            />
-            <div className="flex gap-2">
-              {basketThreshold != null && (
-                <button
-                  onClick={() => {
-                    void handleSaveBasketAlert(null);
-                    setBasketSheetOpen(false);
-                  }}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700"
-                  aria-label="Disable basket alert"
-                >
-                  Disable
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  const numeric = parseFloat(basketDraft);
-                  if (isNaN(numeric) || numeric <= 0) return;
-                  void handleSaveBasketAlert(numeric);
-                  setBasketSheetOpen(false);
-                }}
-                disabled={!(parseFloat(basketDraft) > 0)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 disabled:opacity-50"
-                aria-label="Enable basket alert"
-              >
-                Enable
-              </button>
-            </div>
-          </div>
-      </DialogOverlay>
+        onSave={handleSaveBasketAlert}
+      />
     </div>
   );
 }

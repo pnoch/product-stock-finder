@@ -11,8 +11,12 @@ describe("desktop stats parity", () => {
 
   it("has a movers window switcher and slice disclosure", async () => {
     const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const card = await readFile(
+      "desktop/src/components/stats/PriceHistoryCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("setDays");
-    expect(text).toContain("Top 3 of");
+    expect(card).toContain("Top 3 of");
   });
 
   // QA round 129: the caption says "Top 3 of N by value" but the chart took the

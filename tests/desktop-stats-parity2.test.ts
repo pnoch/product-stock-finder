@@ -4,12 +4,19 @@ import { readFile } from "node:fs/promises";
 describe("desktop stats parity 2", () => {
   it("has basket alert threshold UI", async () => {
     const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const card = await readFile(
+      "desktop/src/components/stats/StatsSummaryCards.tsx",
+      "utf8",
+    );
     expect(text).toContain("basketAlertThreshold");
-    expect(text).toContain("Set alert");
+    expect(card).toContain("Set alert");
   });
 
   it("makes the drop calendar keyboard accessible", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/DropCalendarCard.tsx",
+      "utf8",
+    );
     expect(text).toContain('role="grid"');
     expect(text).toContain('role="gridcell"');
   });

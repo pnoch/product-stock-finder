@@ -320,7 +320,10 @@ describe("desktop chart guard", () => {
   // QA round 242: mobile highlights the selected drop-calendar day; desktop
   // only set aria-pressed, so a click gave no visual selection feedback.
   it("highlights the selected drop-calendar day on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/DropCalendarCard.tsx",
+      "utf8",
+    );
     expect(text).toMatch(
       /selectedKey === key\s*\?\s*"bg-brand-600 text-white ring-2 ring-brand-400"/,
     );
@@ -329,14 +332,20 @@ describe("desktop chart guard", () => {
   // QA round 238: mobile's drop-calendar count reads "N price drops in the last
   // 30 days"; desktop's said "N drops in 30 days".
   it("matches mobile's drop-calendar count text on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/DropCalendarCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("price drop{dropCalendar.totalDrops === 1 ? \"\" : \"s\"} in the last 30 days");
   });
 
   // QA round 237: mobile's movers empty state adds "Not enough price history
   // yet."; desktop's said only "No movers yet".
   it("adds the movers empty-state subtitle on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/StatsSummaryCards.tsx",
+      "utf8",
+    );
     expect(text).toContain("Not enough price history yet.");
   });
 
@@ -440,7 +449,10 @@ describe("desktop chart guard", () => {
   // QA round 231: mobile's DigestCard has "Price Changes", "Stock Changes", and
   // "🎯 Targets Hit" section headers; desktop's digest card lacked them.
   it("adds the desktop digest section headers", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/DigestCard.tsx",
+      "utf8",
+    );
     expect(text).toContain(">Price Changes</p>");
     expect(text).toContain(">Stock Changes</p>");
     expect(text).toContain(">Targets Hit</p>");
@@ -450,7 +462,10 @@ describe("desktop chart guard", () => {
   // out of stock" / "Back-order everywhere" columns; desktop used a compressed
   // single line.
   it("matches mobile's stock-health labels on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/StatsHealthCards.tsx",
+      "utf8",
+    );
     expect(text).toContain("Listings in stock");
     expect(text).toContain("Fully out of stock");
     expect(text).toContain("Back-order everywhere");
@@ -460,7 +475,10 @@ describe("desktop chart guard", () => {
   // (month-name) and health sample timestamps (month-name + 2-digit time);
   // desktop used bare toLocaleDateString()/toLocaleString().
   it("formats freshness and health sample dates like mobile on desktop", async () => {
-    const stats = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const stats = await readFile(
+      "desktop/src/components/stats/StatsHealthCards.tsx",
+      "utf8",
+    );
     expect(stats).toMatch(
       /new Date\(freshness\.oldestCheck\)\.toLocaleDateString\(undefined, \{\s*month: "short",\s*day: "numeric",\s*year: "numeric",\s*\}\)/,
     );
@@ -474,7 +492,10 @@ describe("desktop chart guard", () => {
   // QA round 229: mobile's freshness labels are "Stale (>7 days)" and "Oldest
   // check"; desktop's were "Stale" and "Oldest update".
   it("matches mobile's freshness labels on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/StatsHealthCards.tsx",
+      "utf8",
+    );
     expect(text).toContain("Stale (&gt;7 days):");
     expect(text).toContain("Oldest check");
     expect(text).not.toContain("Oldest update");
@@ -483,14 +504,20 @@ describe("desktop chart guard", () => {
   // QA round 228: mobile's basket alert sheet title matches desktop's
   // "Basket Value Alert" (the "🧺 " prefix was dropped in the emoji sweep).
   it("titles the desktop basket alert modal like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/BasketAlertDialog.tsx",
+      "utf8",
+    );
     expect(text).toContain("Basket Value Alert");
   });
 
   // QA round 227: mobile's "Dropping now" count uses colors.primary; desktop's
   // was gray.
   it("colors the desktop Dropping now count like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/ProductInsightsCard.tsx",
+      "utf8",
+    );
     const start = text.indexOf(">Dropping now</p>");
     const block = text.slice(start - 200, start);
     expect(block).toContain("text-brand-600 dark:text-brand-400");
@@ -499,7 +526,10 @@ describe("desktop chart guard", () => {
   // QA round 226: mobile's mover change is a colored pill; desktop's was plain
   // text.
   it("renders the desktop mover change as a pill", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/StatsSummaryCards.tsx",
+      "utf8",
+    );
     expect(text).toContain("text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 rounded-full px-2 py-0.5");
     expect(text).toContain("text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 rounded-full px-2 py-0.5");
   });
@@ -507,7 +537,10 @@ describe("desktop chart guard", () => {
   // QA round 225: mobile's mover headers are "▼ Top Drops" (green) and
   // "▲ Top Gainers" (red); desktop's were plain gray "Top Drops"/"Top Gainers".
   it("matches mobile's mover headers on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/StatsSummaryCards.tsx",
+      "utf8",
+    );
     expect(text).toContain("▼ Top Drops");
     expect(text).toContain("▲ Top Gainers");
   });
@@ -515,7 +548,10 @@ describe("desktop chart guard", () => {
   // QA round 224: mobile's drop-calendar cells show the day-of-month (count in
   // the label); desktop's drop cells showed the drop count.
   it("shows the day number in desktop drop-calendar cells", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/DropCalendarCard.tsx",
+      "utf8",
+    );
     const start = text.indexOf("dropCalendarCells.map((ts, i) => {");
     const block = text.slice(start, start + 1400);
     expect(block).not.toMatch(/>\s*\{dropCount\}\s*<\/button>/);
@@ -966,8 +1002,12 @@ describe("desktop chart guard", () => {
   // hash and drops the duplicated palette.
   it("colours the desktop stats chart by distributor id", async () => {
     const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const card = await readFile(
+      "desktop/src/components/stats/PriceHistoryCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("distributorColor(id)");
-    expect(text).toContain("colors={chartData.distributorColors}");
+    expect(card).toContain("colors={chartData.distributorColors}");
     expect(text).not.toContain("const CHART_COLORS = [");
   });
 
@@ -1755,20 +1795,26 @@ describe("desktop chart guard", () => {
   // products.
   it("hides the desktop digest card on an empty watchlist", async () => {
     const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
-    expect(text).toMatch(/products\.length === 0 \? null : digestFrequency === "off"/);
+    expect(text).toMatch(/products\.length === 0 \? null : \(/);
   });
 
   // QA round 157: mobile's DigestCard header reads "Digest — {periodLabel}"
   // ("this week"/"today"); desktop's read just "Digest".
   it("labels the desktop digest period", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/DigestCard.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/Digest — \{digestFrequency === "weekly" \? "this week" : "today"\}/);
   });
 
   // QA round 156: mobile's StockHealthCard header reads "Stock Health (N
   // listings)"; desktop's dedicated Stock Health card header omitted the count.
   it("shows the listing count in the desktop stock-health header", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/StatsHealthCards.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/Stock Health\{stockHealth \? ` \(\$\{stockHealth\.totalListings\} listing/);
   });
 
@@ -1776,7 +1822,10 @@ describe("desktop chart guard", () => {
   // in-stock prices)" and shows the excluded count; desktop's Stats card showed
   // neither.
   it("labels and details the desktop basket value card", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/StatsSummaryCards.tsx",
+      "utf8",
+    );
     expect(text).toContain("Basket Value (best in-stock prices)");
     expect(text).toContain("excluded (no stock)");
   });
@@ -1810,8 +1859,12 @@ describe("desktop chart guard", () => {
   // alignment (mobile's buildGridCells pads by the first day's weekday).
   it("aligns the desktop drop calendar to weekdays", async () => {
     const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const card = await readFile(
+      "desktop/src/components/stats/DropCalendarCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("buildGridCells");
-    expect(text).toMatch(/dropCalendarCells\.map/);
+    expect(card).toMatch(/dropCalendarCells\.map/);
     expect(text).not.toMatch(/last30DayKeys\.map/);
   });
 
@@ -1819,7 +1872,10 @@ describe("desktop chart guard", () => {
   // and StockHealthCard shows "Back-order everywhere"; desktop's Stats omitted
   // both rows.
   it("shows the full freshness and stock-health rows on desktop Stats", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/stats/StatsHealthCards.tsx",
+      "utf8",
+    );
     expect(text).toContain("Avg data points / listing");
     expect(text).toContain("Back-order everywhere");
   });

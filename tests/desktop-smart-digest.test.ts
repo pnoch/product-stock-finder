@@ -10,7 +10,11 @@ describe("desktop smart digest best-time-to-buy", () => {
 
   it("desktop Stats ranks deals", async () => {
     const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
-    expect(text).toContain("Best time to buy");
+    const digest = await readFile(
+      "desktop/src/components/stats/DigestCard.tsx",
+      "utf8",
+    );
+    expect(digest).toContain("Best time to buy");
     expect(text).toContain("rankDeals");
   });
 });

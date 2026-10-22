@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 // management, or dialog role.
 const DIALOG_PAGES = [
   "desktop/src/components/settings/device-management-section.tsx",
-  "desktop/src/pages/Stats.tsx",
+  "desktop/src/components/stats/BasketAlertDialog.tsx",
   "desktop/src/components/watchlist/WatchlistDialogs.tsx",
   "desktop/src/components/alerts/EditAlertDialog.tsx",
   "desktop/src/components/alerts/RescheduleDialog.tsx",
