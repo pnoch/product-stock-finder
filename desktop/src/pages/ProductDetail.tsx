@@ -1,18 +1,11 @@
 import { useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useToast } from "../hooks/use-toast";
-import { DISTRIBUTORS } from "@shared/distributors";
 import { getAllRegions } from "../../../lib/region-filter";
 import type { DistributorListing } from "../../../lib/types";
 import { isAcquired } from "../../../lib/acquired";
-import { DistributorHistoryModal } from "../components/DistributorHistoryModal";
-import { ReminderDatePickerModal } from "../components/product/ReminderDatePickerModal";
-import { SetAlertModal } from "../components/product/SetAlertModal";
-import { PerListingAlertModal } from "../components/product/PerListingAlertModal";
-import { InlineAlertReminderSections } from "../components/product/InlineAlertReminderSections";
 import { DistributorTable } from "../components/product/DistributorTable";
 import { DistributorTargets } from "../components/product/DistributorTargets";
-import { EditProductModal } from "../components/product/EditProductModal";
 import { ProductHeader } from "../components/product/ProductHeader";
 import { ProductNoteCard } from "../components/product/ProductNoteCard";
 import { BestDistributorCard } from "../components/product/BestDistributorCard";
@@ -27,6 +20,7 @@ import { useProductSharing } from "../hooks/use-product-sharing";
 import { useProductDetailData } from "../hooks/use-product-detail-data";
 import { useProductDerived } from "../hooks/use-product-derived";
 import { ProductDetailSkeleton, UntrackedProductCard, ProductNotFound } from "../components/product/ProductDetailStates";
+import { ProductDetailModals } from "../components/product/ProductDetailModals";
 // Lazy: the chart is only needed on this screen, so it is split into its own
 // chunk instead of loading on every route.
 
@@ -80,73 +74,17 @@ export function ProductDetail() {
     shippingRegion,
   });
 
-  const {
-    alertOpen,
-    alertPrice,
-    setAlertPrice,
-    alertCurrency,
-    setAlertCurrency,
-    alertSaved,
-    alertDirection,
-    setAlertDirection,
-    alertDistributorId,
-    setAlertDistributorId,
-    alertError,
-    alertSuggestions,
-    creatingAlert,
-    openSetAlert,
-    closeSetAlert,
-    handleSaveAlert,
-    perListingAlertId,
-    perListingAlertPrice,
-    setPerListingAlertPrice,
-    perListingAlertCurrency,
-    setPerListingAlertCurrency,
-    perListingAlertDirection,
-    setPerListingAlertDirection,
-    perListingAlertSuggestions,
-    openPerListingAlert,
-    closePerListingAlert,
-    handlePerListingAlert,
-    inlineAlertPrice,
-    setInlineAlertPrice,
-    inlineAlertCurrency,
-    setInlineAlertCurrency,
-    inlineAlertDirection,
-    setInlineAlertDirection,
-    inlineAlertDistributorId,
-    setInlineAlertDistributorId,
-    handleInlineAlert,
-    handleQuickAlert,
-  } = useProductAlerts({
+  const alertState = useProductAlerts({
     product,
     bestListing,
     defaultCurrency: displayCurrency,
     setAlerts,
     showToast,
   });
+  const { openSetAlert, handleQuickAlert, openPerListingAlert } = alertState;
 
-  const {
-    reminderOpen,
-    reminderDateInput,
-    setReminderDateInput,
-    reminderDistributorId,
-    setReminderDistributorId,
-    reminderError,
-    savingReminder,
-    openReminderFor,
-    closeReminder,
-    handleRemindMe,
-    handleSetReminder,
-    inlineReminderDate,
-    setInlineReminderDate,
-    inlineReminderDistributorId,
-    setInlineReminderDistributorId,
-    inlineReminderError,
-    handleInlineReminder,
-    handleWatchRestock,
-    handleToggleListingWatch,
-  } = useProductReminders({
+
+  const reminderState = useProductReminders({
     product,
     bestListing,
     bestDistributor,
@@ -154,6 +92,13 @@ export function ProductDetail() {
     setStockWatches,
     showToast,
   });
+  const {
+    handleRemindMe,
+    handleWatchRestock,
+    openReminderFor,
+    handleToggleListingWatch,
+  } = reminderState;
+
 
   const {
     note,
@@ -166,23 +111,9 @@ export function ProductDetail() {
     handleSaveNote,
   } = useProductNote(product, showToast);
 
-  const {
-    editOpen,
-    editName,
-    setEditName,
-    editModel,
-    setEditModel,
-    editBrand,
-    setEditBrand,
-    editCategory,
-    setEditCategory,
-    editDescription,
-    setEditDescription,
-    editError,
-    openEdit,
-    closeEdit,
-    handleSaveEdit,
-  } = useProductEdit(product, loadProduct, showToast);
+  const editState = useProductEdit(product, loadProduct, showToast);
+  const { openEdit } = editState;
+
 
   const { handleShare, handleExportCsv, handleCopyLink, handleSaveImage } =
     useProductSharing({
@@ -316,106 +247,15 @@ export function ProductDetail() {
         onSetTarget={openPerListingAlert}
       />
 
-      <EditProductModal
-        open={editOpen}
-        onClose={closeEdit}
-        name={editName}
-        onNameChange={setEditName}
-        model={editModel}
-        onModelChange={setEditModel}
-        brand={editBrand}
-        onBrandChange={setEditBrand}
-        category={editCategory}
-        onCategoryChange={setEditCategory}
-        description={editDescription}
-        onDescriptionChange={setEditDescription}
-        error={editError}
-        originalName={product.name ?? ""}
-        originalModel={product.modelNumber ?? ""}
-        originalBrand={product.brand ?? ""}
-        originalCategory={product.category ?? ""}
-        originalDescription={product.description ?? ""}
-        onSave={handleSaveEdit}
-      />
-
-      <SetAlertModal
-        open={alertOpen}
-        onClose={closeSetAlert}
-        productName={product.name}
-        alertSaved={alertSaved}
-        alertError={alertError}
-        direction={alertDirection}
-        onDirectionChange={setAlertDirection}
-        distributorId={alertDistributorId}
-        onDistributorChange={setAlertDistributorId}
-        listings={visibleListings}
-        suggestions={alertSuggestions}
-        price={alertPrice}
-        onPriceChange={setAlertPrice}
-        currency={alertCurrency}
-        onCurrencyChange={setAlertCurrency}
-        saving={creatingAlert}
-        onSave={handleSaveAlert}
-      />
-
-      <PerListingAlertModal
-        open={!!perListingAlertId}
-        onClose={closePerListingAlert}
-        productName={product.name}
-        distributorId={perListingAlertId}
-        direction={perListingAlertDirection}
-        onDirectionChange={setPerListingAlertDirection}
-        suggestions={perListingAlertSuggestions}
-        price={perListingAlertPrice}
-        onPriceChange={setPerListingAlertPrice}
-        currency={perListingAlertCurrency}
-        onCurrencyChange={setPerListingAlertCurrency}
-        saving={creatingAlert}
-        onSave={handlePerListingAlert}
-      />
-
-      <ReminderDatePickerModal
-        open={reminderOpen}
-        onClose={closeReminder}
-        productName={product.name}
-        listings={visibleListings}
-        distributorId={reminderDistributorId}
-        onDistributorChange={setReminderDistributorId}
-        dateInput={reminderDateInput}
-        onDateChange={setReminderDateInput}
-        error={reminderError}
-        saving={savingReminder}
-        onSave={handleSetReminder}
-      />
-
-      {/* Per-distributor History Modal */}
-      <DistributorHistoryModal
-        open={historyFor !== null}
-        onClose={() => setHistoryFor(null)}
-        productId={product.id}
-        productName={product.name}
-        listing={historyFor}
-        distributorName={DISTRIBUTORS.find((d) => d.id === historyFor?.distributorId)?.name ?? historyFor?.distributorId ?? ""}
+      <ProductDetailModals
+        product={product}
+        visibleListings={visibleListings}
+        historyFor={historyFor}
+        setHistoryFor={setHistoryFor}
         displayCurrency={displayCurrency}
-      />
-
-      <InlineAlertReminderSections
-        listings={visibleListings}
-        alertDirection={inlineAlertDirection}
-        onAlertDirectionChange={setInlineAlertDirection}
-        alertDistributorId={inlineAlertDistributorId}
-        onAlertDistributorChange={setInlineAlertDistributorId}
-        alertPrice={inlineAlertPrice}
-        onAlertPriceChange={setInlineAlertPrice}
-        alertCurrency={inlineAlertCurrency}
-        onAlertCurrencyChange={setInlineAlertCurrency}
-        onAddAlert={handleInlineAlert}
-        reminderDistributorId={inlineReminderDistributorId}
-        onReminderDistributorChange={setInlineReminderDistributorId}
-        reminderDate={inlineReminderDate}
-        onReminderDateChange={setInlineReminderDate}
-        reminderError={inlineReminderError}
-        onAddReminder={handleInlineReminder}
+        edit={editState}
+        alert={alertState}
+        reminder={reminderState}
       />
     </div>
   );
