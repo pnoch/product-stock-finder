@@ -2155,12 +2155,20 @@ describe("desktop chart guard", () => {
 
   // QA round 76: the desktop CSV import created duplicate alerts on re-import.
   it("skips duplicate alerts in the desktop CSV import", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-share.ts",
+      "utf8",
+    );
     const start = text.indexOf("const handleImportFile");
     expect(start).toBeGreaterThan(-1);
-    const block = text.slice(start, text.indexOf("}, [refresh, showToast]);", start));
+    const block = text.slice(
+      start,
+      text.indexOf("[refresh, showToast]", start),
+    );
     expect(block).toContain("existingAlertProductIds");
-    expect(block).toMatch(/row\.targetPrice !== null && !existingAlertProductIds\.has\(product\.id\)/);
+    expect(block).toMatch(
+      /row\.targetPrice !== null &&\s*!existingAlertProductIds\.has\(product\.id\)/,
+    );
   });
 
   // QA round 74: desktop ResetPassword / Settings forgot-password fetched
@@ -2281,10 +2289,16 @@ describe("desktop chart guard", () => {
   // addToWatchlist as added, overstating the summary on duplicates (mobile was
   // fixed in Phase 270).
   it("counts only real inserts in the desktop CSV import", async () => {
-    const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-watchlist-share.ts",
+      "utf8",
+    );
     const start = text.indexOf("const handleImportFile");
     expect(start).toBeGreaterThan(-1);
-    const block = text.slice(start, text.indexOf("}, [refresh, showToast]);", start));
+    const block = text.slice(
+      start,
+      text.indexOf("[refresh, showToast]", start),
+    );
     expect(block).toMatch(/if \(await storage\.addToWatchlist\(/);
     expect(block).toContain("duplicates");
     expect(block).toContain("already tracked");
