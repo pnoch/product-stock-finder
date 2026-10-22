@@ -1411,7 +1411,7 @@ describe("desktop chart guard", () => {
       expect(await readFile(file, "utf8")).toContain("aria-pressed={active}");
     }
     const table = await readFile(
-      "desktop/src/components/product/DistributorTable.tsx",
+      "desktop/src/components/product/DistributorRegionFilter.tsx",
       "utf8",
     );
     expect(table).toContain("aria-pressed={regionFilter === region}");
@@ -1557,7 +1557,7 @@ describe("desktop chart guard", () => {
   // desktop's "No distributors in {region}." had none.
   it("offers Show All in the desktop empty region state", async () => {
     const text = await readFile(
-      "desktop/src/components/product/DistributorTable.tsx",
+      "desktop/src/components/product/DistributorTableEmpty.tsx",
       "utf8",
     );
     expect(text).toMatch(/aria-label="Show all regions"/);
@@ -1669,7 +1669,7 @@ describe("desktop chart guard", () => {
   // desktop's Distributor cell showed only the country + flag.
   it("shows the distributor region on desktop listings", async () => {
     const text = await readFile(
-      "desktop/src/components/product/DistributorTable.tsx",
+      "desktop/src/components/product/DistributorTableRow.tsx",
       "utf8",
     );
     expect(text).toMatch(/dist\?\.region \? ` · \$\{dist\.region\}`/);
@@ -1705,7 +1705,7 @@ describe("desktop chart guard", () => {
   // payment methods; desktop's Distributor Targets table omitted them.
   it("shows payment methods per listing on desktop", async () => {
     const text = await readFile(
-      "desktop/src/components/product/DistributorTable.tsx",
+      "desktop/src/components/product/DistributorTableRow.tsx",
       "utf8",
     );
     expect(text).toMatch(/dist\?\.paymentMethods && dist\.paymentMethods\.length > 0/);
@@ -1716,7 +1716,7 @@ describe("desktop chart guard", () => {
   // (green <1h, amber <6h, red older); desktop's table cell was always gray.
   it("colors the desktop listing freshness text", async () => {
     const text = await readFile(
-      "desktop/src/components/product/DistributorTable.tsx",
+      "desktop/src/components/product/DistributorTableRow.tsx",
       "utf8",
     );
     expect(text).toContain("getLastRefreshedColor(listing.lastChecked)");
@@ -2285,7 +2285,7 @@ describe("desktop chart guard", () => {
     expect(linkingStub).toContain("openExternal");
     for (const file of [
       "desktop/src/components/product/BestDistributorCard.tsx",
-      "desktop/src/components/product/DistributorTable.tsx",
+      "desktop/src/components/product/DistributorTableRow.tsx",
       "desktop/src/pages/Settings.tsx",
     ]) {
       expect(await readFile(file, "utf8")).toContain("externalLinkHandler");

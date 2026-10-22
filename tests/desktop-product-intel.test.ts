@@ -18,7 +18,7 @@ describe("desktop product intelligence", () => {
   it("links per-row history and shows refresh recency", async () => {
     const text = await readFile("desktop/src/pages/ProductDetail.tsx", "utf8");
     const table = await readFile(
-      "desktop/src/components/product/DistributorTable.tsx",
+      "desktop/src/components/product/DistributorTableRow.tsx",
       "utf8",
     );
     expect(table).toContain("View price history");

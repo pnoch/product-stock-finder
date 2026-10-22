@@ -51,7 +51,7 @@ describe("bulk discovery UI", () => {
       "utf8",
     );
     const table = readFileSync(
-      "desktop/src/components/product/DistributorTable.tsx",
+      "desktop/src/components/product/DistributorTableEmpty.tsx",
       "utf8",
     );
     expect(table).toContain("Find prices");

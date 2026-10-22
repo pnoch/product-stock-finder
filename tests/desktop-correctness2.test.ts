@@ -10,7 +10,7 @@ describe("desktop correctness follow-ups 2", () => {
       "utf8",
     );
     const detail = await readFile(
-      "desktop/src/components/product/DistributorTable.tsx",
+      "desktop/src/components/product/DistributorTableRow.tsx",
       "utf8",
     );
     expect(compare).toContain('get("distributor")');
