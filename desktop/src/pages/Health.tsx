@@ -1,181 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { invoke } from "@tauri-apps/api/core";
-import { createTRPCClient } from "../lib/trpc";
-import { log } from "@shared/log";
-import { getDistributorById } from "@shared/distributors";
-import { computeHealthStats, createHealthService, sanitizeResponseTimeMs, type DistributorHealth, type HealthStats } from "../../../lib/scrapers/health";
-import { classifyFetchStatus } from "../../../lib/scrapers/resilient";
-import { formatLastRefreshed } from "../../../lib/last-refreshed";
-import type { StorageAdapter } from "../../../lib/storage/adapter";
-
-type HealthStatus = "working" | "blocked" | "error";
-
-type Filter = "all" | "working" | "blocked" | "error";
-
-function HealthSparkline({ data, color }: { data: number[]; color: string }) {
-  const [hover, setHover] = useState<{ idx: number; x: number } | null>(null);
-  if (data.length < 2) return null;
-  const w = 60;
-  const h = 24;
-  const pad = 2;
-  const usableW = w - pad * 2;
-  const usableH = h - pad * 2;
-  const points = data
-    .map((v, i) => {
-      const x = pad + (i / (data.length - 1)) * usableW;
-      const y = pad + (1 - v) * usableH;
-      return `${x},${y}`;
-    })
-    .join(" ");
-  const coords = data.map((v, i) => ({
-    x: pad + (i / (data.length - 1)) * usableW,
-    y: pad + (1 - v) * usableH,
-    v,
-  }));
-  return (
-    <div className="relative shrink-0" style={{ width: w, height: h }}>
-      <svg
-        width={w}
-        height={h}
-        className="block"
-        onMouseMove={(e) => {
-          const rect = (e.currentTarget as SVGElement).getBoundingClientRect();
-          const mx = e.clientX - rect.left;
-          let best = 0;
-          let bestD = Infinity;
-          coords.forEach((c, i) => {
-            const d = Math.abs(c.x - mx);
-            if (d < bestD) { bestD = d; best = i; }
-          });
-          setHover({ idx: best, x: coords[best].x });
-        }}
-        onMouseLeave={() => setHover(null)}
-      >
-        <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
-        {hover && <circle cx={coords[hover.idx].x} cy={coords[hover.idx].y} r={3} fill={color} stroke="#fff" strokeWidth={1.2} />}
-      </svg>
-      {hover && (
-        <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 text-white text-[10px] font-medium px-1.5 py-0.5 shadow-md pointer-events-none" style={{ left: coords[hover.idx].x }}>
-          {(data[hover.idx] * 100).toFixed(0)}%
-        </div>
-      )}
-    </div>
-  );
-}
-
-const localAdapter: StorageAdapter = {
-  getItem: async (k: string) => localStorage.getItem(k),
-  setItem: async (k: string, v: string) => localStorage.setItem(k, v),
-  removeItem: async (k: string) => localStorage.removeItem(k),
-  multiRemove: async (keys: string[]) => keys.forEach((k) => localStorage.removeItem(k)),
-};
+import { useHealthData } from "../hooks/use-health-data";
+import { HealthSummary } from "../components/health/HealthSummary";
+import { HealthDistributorList } from "../components/health/HealthDistributorList";
 
 export function Health() {
   const navigate = useNavigate();
-  const [health, setHealth] = useState<DistributorHealth[]>([]);
-  const [filter, setFilter] = useState<Filter>("all");
-  const [testing, setTesting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [healthError, setHealthError] = useState<string | null>(null);
-  const [stats, setStats] = useState<Record<string, HealthStats>>({});
-  // Synchronous in-flight guard: the two "Test All" buttons and Retry could all
-  // start a run before the `testing` state re-rendered.
-  const testingRef = useRef(false);
-
-  const runTest = useCallback(async () => {
-    // A second trigger (empty-state button, Retry) would run a concurrent probe
-    // and duplicate the recorded samples.
-    if (testingRef.current) return;
-    testingRef.current = true;
-    setTesting(true);
-    setProgress(0);
-    setHealthError(null);
-    let unlisten: (() => void) | null = null;
-    try {
-      try {
-        const { listen } = await import("@tauri-apps/api/event");
-        unlisten = await listen<{ progress: number }>("health-check-progress", (event) => {
-          const p = event.payload.progress;
-          if (typeof p === "number" && Number.isFinite(p)) setProgress(Math.min(100, Math.max(0, p)));
-        });
-      } catch {
-        // listen unavailable (e.g. web preview)
-      }
-      let results: DistributorHealth[];
-      try {
-        results = await invoke<DistributorHealth[]>(
-          "check_distributor_health",
-        );
-      } catch {
-        // Web/PWA: Tauri unavailable — run checks server-side instead.
-        log.error("[Health] Tauri check unavailable, falling back to server");
-        const client = createTRPCClient();
-        results = await client.health.check.query();
-      }
-      setHealth(results);
-      setProgress(100);
-      try {
-        const svc = createHealthService(localAdapter);
-        await svc.saveDistributorHealth(results);
-        for (const r of results) {
-          await svc.recordSample(r.distributorId, r.status, r.reason, r.responseTimeMs);
-        }
-        const history = await svc.getHealthHistory();
-        setStats(computeHealthStats(history));
-      } catch {
-        // stats are best-effort
-      }
-    } catch (error) {
-      log.error("Health check failed:", error);
-      setHealthError(error instanceof Error ? error.message : "Health check failed");
-    } finally {
-      if (unlisten) unlisten();
-      testingRef.current = false;
-      setTesting(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const svc = createHealthService(localAdapter);
-        const history = await svc.getHealthHistory();
-        setStats(computeHealthStats(history));
-        const existing = await svc.getDistributorHealth();
-        if (existing.length > 0) setHealth(existing);
-      } catch {
-        // ignore
-      }
-    })();
-  }, []);
-
-  const counts = {
-    working: health.filter((h) => h.status === "working").length,
-    blocked: health.filter((h) => h.status === "blocked").length,
-    error: health.filter((h) => h.status === "error").length,
-  };
-
-  const filtered = health.filter(
-    (h) => filter === "all" || h.status === filter,
-  );
-
-  const statusColors: Record<HealthStatus, string> = {
-    working: "#00C896",
-    blocked: "#F59E0B",
-    error: "#EF4444",
-  };
-
-  // A probe can report `working`/`error` with a reason that classifies as a
-  // block (e.g. a Cloudflare interstitial). Mobile's resolveStatusColor shows
-  // those amber so a block isn't misread as a hard failure.
-  const resolveStatusColor = (h: DistributorHealth): string => {
-    if (h.status === "blocked") return statusColors.blocked;
-    if (h.reason && classifyFetchStatus(h.reason) === "blocked") return statusColors.blocked;
-    return statusColors[h.status];
-  };
-
-  const overallWorkingPct = health.length > 0 ? Math.round((counts.working / health.length) * 100) : 0;
+  const {
+    health,
+    stats,
+    testing,
+    progress,
+    healthError,
+    filter,
+    setFilter,
+    counts,
+    filtered,
+    resolveStatusColor,
+    overallWorkingPct,
+    runTest,
+  } = useHealthData();
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -190,151 +33,27 @@ export function Health() {
         <h1 className="text-2xl font-bold">Distributor Health</h1>
       </div>
 
-      {healthError && (
-        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 mb-4 text-sm text-red-800 dark:text-red-200 flex items-center gap-2">
-          <span className="flex-1">{healthError}</span>
-          <button
-            onClick={() => void runTest()}
-            className="px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-800 text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-700 shrink-0"
-            aria-label="Retry health check"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      <HealthSummary
+        health={health}
+        counts={counts}
+        overallWorkingPct={overallWorkingPct}
+        filter={filter}
+        onFilterChange={setFilter}
+        testing={testing}
+        progress={progress}
+        healthError={healthError}
+        onRunTest={() => void runTest()}
+      />
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Overall Uptime</p>
-          <p className="text-2xl font-bold mt-1">{overallWorkingPct}% <span className="text-sm font-medium text-gray-500">{counts.working}/{health.length} working</span></p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{counts.blocked} blocked · {counts.error} error</p>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-400">Last check</p>
-          <p className="text-sm font-medium">{(() => { if (health.length === 0) return "Never"; const latest = health.reduce((max, h) => Math.max(max, new Date(h.lastChecked).getTime()), 0); return Number.isFinite(latest) && latest > 0 ? formatLastRefreshed(new Date(latest).toISOString()) : "Never"; })()}</p>
-        </div>
-      </div>
-
-      <div className="flex gap-2 mb-4">
-        {(["all", "working", "blocked", "error"] as Filter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1 rounded-full text-sm font-semibold border ${
-              filter === f
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600"
-            }`}
-            aria-label={`Filter by ${f === "all" ? "all statuses" : f}`}
-          >
-            {f === "all" ? `All (${health.length})` : `${f} (${counts[f]})`}
-          </button>
-        ))}
-      </div>
-
-      <button
-        onClick={runTest}
-        disabled={testing}
-        className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold mb-4 disabled:opacity-50"
-        aria-label="Test all distributors"
-      >
-        {testing ? "Testing..." : "Test All Distributors"}
-      </button>
-
-      {testing && (
-        <div className="mb-4">
-          <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-            {progress > 0 && progress < 100 ? (
-              <div className="h-1.5 bg-blue-600 transition-all duration-300" style={{ width: `${progress}%` }} />
-            ) : (
-              <div className="h-1.5 w-1/3 bg-blue-600 rounded-full animate-pulse" />
-            )}
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{progress ? `${progress}%` : "Running checks..."}</p>
-        </div>
-      )}
-
-      <div>
-        {filtered.map((h) => {
-          const distributor = getDistributorById(h.distributorId);
-          const s = stats[h.distributorId];
-          return (
-            <button
-              key={h.distributorId}
-              onClick={() => navigate(`/health/${h.distributorId}`)}
-              className="w-full flex items-center py-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-left transition-colors"
-              aria-label={`View ${distributor?.name ?? h.distributorId} details`}
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full mr-3 shrink-0"
-                style={{ backgroundColor: resolveStatusColor(h) }}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">
-                  {distributor
-                    ? `${distributor.countryCode} ${distributor.name}`
-                    : h.distributorId}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {h.reason || h.status}
-                  {sanitizeResponseTimeMs(h.responseTimeMs) != null
-                    ? ` · ${sanitizeResponseTimeMs(h.responseTimeMs)}ms`
-                    : ""}
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-1 ml-3 shrink-0">
-                <span className="text-xs text-gray-400">
-                  {h.lastChecked
-                    ? formatLastRefreshed(h.lastChecked)
-                    : "Never"}
-                </span>
-                {s ? (
-                  <>
-                    <span className="text-xs font-bold" style={{ color: resolveStatusColor(h) }}>
-                      {s.uptimePct}% {s.trend === "up" ? "▲" : s.trend === "down" ? "▼" : "–"}
-                    </span>
-                    <HealthSparkline data={s.sparkline} color={resolveStatusColor(h)} />
-                  </>
-                ) : (
-                  <span className="text-xs text-gray-400">–</span>
-                )}
-              </div>
-              <span className="ml-2 text-gray-300 dark:text-gray-600">›</span>
-            </button>
-          );
-        })}
-        {health.length === 0 ? (
-          <div className="text-center mt-10">
-            <p className="font-semibold text-gray-700 dark:text-gray-200">
-              No distributor health data
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Click &quot;Test All Distributors&quot; to run a check.
-            </p>
-            <button
-              onClick={() => void runTest()}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium"
-              aria-label="Test All Distributors"
-            >
-              Test All Distributors
-            </button>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center mt-10">
-            <p className="font-semibold text-gray-700 dark:text-gray-200">No matches</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              No distributors match the selected filter.
-            </p>
-            <button
-              onClick={() => setFilter("all")}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              aria-label="Show all distributors"
-            >
-              Show All
-            </button>
-          </div>
-        ) : null}
-      </div>
+      <HealthDistributorList
+        health={health}
+        filtered={filtered}
+        stats={stats}
+        resolveStatusColor={resolveStatusColor}
+        onOpen={(distributorId) => navigate(`/health/${distributorId}`)}
+        onRunTest={() => void runTest()}
+        onShowAll={() => setFilter("all")}
+      />
     </div>
   );
 }

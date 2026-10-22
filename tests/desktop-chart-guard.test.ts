@@ -246,7 +246,7 @@ describe("desktop chart guard", () => {
   // sanitizes it (Phase 262).
   it("sanitizes response times in desktop health views", async () => {
     for (const file of [
-      "desktop/src/pages/Health.tsx",
+      "desktop/src/components/health/HealthDistributorList.tsx",
       "desktop/src/pages/HealthDetail.tsx",
     ]) {
       const text = await readFile(file, "utf8");
@@ -291,7 +291,10 @@ describe("desktop chart guard", () => {
   // whose reason classifies as a block (Cloudflare interstitial) showed as a
   // hard error/working color. Mobile's resolveStatusColor shows those amber.
   it("resolves blocked-classified reasons to warning on desktop health", async () => {
-    const text = await readFile("desktop/src/pages/Health.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-health-data.ts",
+      "utf8",
+    );
     expect(text).toContain("classifyFetchStatus");
     expect(text).toMatch(/const resolveStatusColor = \(h: DistributorHealth\)/);
     expect(text).not.toMatch(/backgroundColor: statusColors\[h\.status\]/);
@@ -430,7 +433,10 @@ describe("desktop chart guard", () => {
   // QA round 254: desktop copy used mobile's "tap" wording in Health/Home/Alerts
   // (the Home hint also referenced a "+" control the desktop doesn't have).
   it("uses desktop click wording instead of mobile tap", async () => {
-    const health = await readFile("desktop/src/pages/Health.tsx", "utf8");
+    const health = await readFile(
+      "desktop/src/components/health/HealthDistributorList.tsx",
+      "utf8",
+    );
     const home = await readFile(
       "desktop/src/components/home/HomeEmptyState.tsx",
       "utf8",
@@ -766,7 +772,10 @@ describe("desktop chart guard", () => {
   // Test All Distributors CTA) from "No matches" (with a Show All CTA);
   // desktop showed the "no data" line whenever the filter matched nothing.
   it("splits the desktop health empty states like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Health.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/health/HealthDistributorList.tsx",
+      "utf8",
+    );
     expect(text).toContain("No distributor health data");
     expect(text).toContain("No matches");
     expect(text).toContain("No distributors match the selected filter.");
