@@ -11,7 +11,8 @@ describe("concierge onboarding wiring", () => {
 
   it("concierge uses catalog search + country picker + storage", () => {
     const src = read("components/onboarding/concierge-screen.tsx");
-    expect(src).toContain("CatalogSearchBar");
+    const products = read("components/onboarding/concierge-step-products.tsx");
+    expect(products).toContain("CatalogSearchBar");
     expect(src).toContain("CountryPicker");
     expect(src).toContain("addToWatchlist");
     expect(src).toContain("setOnboardingSeen");
