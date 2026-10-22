@@ -1,16 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Bell } from "lucide-react";
 import { Link } from "react-router";
 import type { AppSettings } from "../../../../lib/types";
-import { requestWebNotificationPermission } from "../../../../lib/web-notifications";
-import {
-  isPushSupported,
-  ensurePushSubscription,
-  disablePush,
-  getPushStatus,
-  hasVapidKey,
-} from "../../lib/web-push";
-import { createTRPCClient } from "../../lib/trpc";
+import { SettingsToggleRow } from "./SettingsToggleRow";
+import { usePushNotifications } from "../../hooks/use-push-notifications";
+import { useAlertWebhook } from "../../hooks/use-alert-webhook";
 
 const QUIET_HOURS_OPTIONS = [
   "Off",
@@ -31,25 +25,8 @@ export function NotificationSettingsSection({
   showToast: (message: string) => void;
 }) {
   const [testNotifMessage, setTestNotifMessage] = useState<string | null>(null);
-  const [pushState, setPushState] = useState<"unknown" | "on" | "off">("unknown");
-  const [pushBusy, setPushBusy] = useState(false);
-  const [webNotifHint, setWebNotifHint] = useState<string | null>(null);
-  const [webhookUrl, setWebhookUrl] = useState(settings.alertWebhookUrl ?? "");
-  const [webhookHint, setWebhookHint] = useState<string | null>(null);
-  const [webhookHintOk, setWebhookHintOk] = useState(false);
-  const [webhookTesting, setWebhookTesting] = useState(false);
-
-  const [prevWebhookUrl, setPrevWebhookUrl] = useState(settings.alertWebhookUrl);
-  if (settings.alertWebhookUrl !== prevWebhookUrl) {
-    setPrevWebhookUrl(settings.alertWebhookUrl);
-    setWebhookUrl(settings.alertWebhookUrl ?? "");
-  }
 
   const handleTestNotification = useCallback(async () => {
-    // Exercise the same path real alerts use (Tauri native, falling back to the
-    // web Notification API). The old handler only called displayWebNotification,
-    // which is a no-op in a Tauri webview (isWeb() is false), so "Test
-    // notification sent" could appear without anything being shown.
     const { sendDesktopNotification } = await import("../../notifications");
     const shown = await sendDesktopNotification(
       "Notifications working",
@@ -60,107 +37,25 @@ export function NotificationSettingsSection({
     );
   }, []);
 
-  // Imperative client (not a mutation hook): desktop tests mock ../lib/trpc
-  // without a `notifications` member, so a render-time hook would crash them.
-  const handleTestWebhook = useCallback(async () => {
-    const url = webhookUrl.trim();
-    if (!url) {
-      setWebhookHintOk(false);
-      setWebhookHint("Enter a webhook URL first.");
-      return;
-    }
-    setWebhookHint(null);
-    setWebhookTesting(true);
-    try {
-      const client = createTRPCClient();
-      const result = await client.notifications.testWebhook.mutate({ url });
-      setWebhookHintOk(result.ok);
-      setWebhookHint(
-        result.ok ? "Test message sent." : (result.error ?? "Test failed."),
-      );
-    } catch {
-      setWebhookHintOk(false);
-      setWebhookHint("Test failed.");
-    } finally {
-      setWebhookTesting(false);
-    }
-  }, [webhookUrl]);
+  const {
+    effectivePushState,
+    pushBusy,
+    pushReason,
+    webNotifHint,
+    handleEnablePush,
+    handleDisablePush,
+    handleWebToggle,
+  } = usePushNotifications({ isAuthenticated, update, showToast });
 
-  const effectivePushState =
-    !isAuthenticated || !isPushSupported() ? "off" : pushState;
-
-  useEffect(() => {
-    if (!isAuthenticated || !isPushSupported()) return;
-    let cancelled = false;
-    void getPushStatus().then((s) => {
-      if (!cancelled) setPushState(s);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
-
-  const pushReason = !isAuthenticated
-    ? "Sign in to enable push"
-    : !isPushSupported()
-      ? "Push isn't available in this browser"
-      : !hasVapidKey()
-        ? "Push isn't configured on this server"
-        : null;
-
-  const handleEnablePush = useCallback(async () => {
-    if (pushBusy) return;
-    setPushBusy(true);
-    try {
-      const permission = await requestWebNotificationPermission();
-      if (permission !== "granted") {
-        showToast("Notification permission not granted");
-        return;
-      }
-      const ok = await ensurePushSubscription();
-      if (ok) {
-        setPushState("on");
-        showToast("Push notifications enabled");
-      } else {
-        showToast("Couldn't enable push notifications");
-      }
-    } finally {
-      setPushBusy(false);
-    }
-  }, [pushBusy, showToast]);
-
-  const handleDisablePush = useCallback(async () => {
-    if (pushBusy) return;
-    setPushBusy(true);
-    try {
-      await disablePush();
-      setPushState("off");
-      showToast("Push notifications disabled");
-    } finally {
-      setPushBusy(false);
-    }
-  }, [pushBusy, showToast]);
-
-  const handleWebToggle = useCallback(
-    async (v: boolean) => {
-      if (v) {
-        const permission = await requestWebNotificationPermission();
-        const enabled = permission === "granted";
-        await update({ webNotificationsEnabled: enabled });
-        setWebNotifHint(
-          enabled
-            ? null
-            : permission === "denied"
-              ? "Notifications are blocked in your browser settings."
-              : "Allow notifications in your browser to receive alerts.",
-        );
-      } else {
-        await update({ webNotificationsEnabled: false });
-        setWebNotifHint(null);
-      }
-    },
-    [update],
-  );
+  const {
+    webhookUrl,
+    setWebhookUrl,
+    webhookHint,
+    webhookHintOk,
+    webhookTesting,
+    handleTestWebhook,
+    saveWebhookUrl,
+  } = useAlertWebhook({ settings, update });
 
   return (
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
@@ -169,58 +64,29 @@ export function NotificationSettingsSection({
           <h2 className="text-lg font-semibold">Notifications</h2>
         </div>
         <div className="space-y-1">
-          <label className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer">
-            <span>
-              <span className="block text-sm font-medium">Enable Notifications</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">Receive alerts on your device</span>
-            </span>
-            <span className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.notificationsEnabled}
-                onChange={(e) =>
-                  update({ notificationsEnabled: e.target.checked })
-                }
-                className="sr-only peer"
-                aria-label="Enable notifications"
-              />
-              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
-            </span>
-          </label>
-          <label className={`flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors ${settings.notificationsEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
-            <span>
-              <span className="block text-sm font-medium">Stock Alerts</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">Notify when item comes in stock</span>
-            </span>
-            <span className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.stockAlerts}
-                onChange={(e) => update({ stockAlerts: e.target.checked })}
-                disabled={!settings.notificationsEnabled}
-                className="sr-only peer"
-                aria-label="Enable stock alerts"
-              />
-              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
-            </span>
-          </label>
-          <label className={`flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors ${settings.notificationsEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
-            <span>
-              <span className="block text-sm font-medium">Price Alerts</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">Notify when price drops below target</span>
-            </span>
-            <span className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.priceAlerts}
-                onChange={(e) => update({ priceAlerts: e.target.checked })}
-                disabled={!settings.notificationsEnabled}
-                className="sr-only peer"
-                aria-label="Enable price alerts"
-              />
-              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
-            </span>
-          </label>
+          <SettingsToggleRow
+            label="Enable Notifications"
+            description="Receive alerts on your device"
+            checked={settings.notificationsEnabled}
+            onChange={(checked) => update({ notificationsEnabled: checked })}
+            ariaLabel="Enable notifications"
+          />
+          <SettingsToggleRow
+            label="Stock Alerts"
+            description="Notify when item comes in stock"
+            checked={settings.stockAlerts}
+            onChange={(checked) => update({ stockAlerts: checked })}
+            disabled={!settings.notificationsEnabled}
+            ariaLabel="Enable stock alerts"
+          />
+          <SettingsToggleRow
+            label="Price Alerts"
+            description="Notify when price drops below target"
+            checked={settings.priceAlerts}
+            onChange={(checked) => update({ priceAlerts: checked })}
+            disabled={!settings.notificationsEnabled}
+            ariaLabel="Enable price alerts"
+          />
           <div className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors">
             <span>
               <span className="block text-sm font-medium">Push notifications</span>
@@ -237,69 +103,39 @@ export function NotificationSettingsSection({
               {pushBusy ? "Working" : effectivePushState === "on" ? "Disable" : "Enable"}
             </button>
           </div>
-          <label className="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors cursor-pointer">
-            <span>
-              <span className="block text-sm font-medium">Web Notifications</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">Show price and stock alerts in your browser</span>
-            </span>
-            <span className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={!!settings.webNotificationsEnabled}
-                onChange={(e) => void handleWebToggle(e.target.checked)}
-                className="sr-only peer"
-                aria-label="Enable web notifications"
-              />
-              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
-            </span>
-          </label>
+          <SettingsToggleRow
+            label="Web Notifications"
+            description="Show price and stock alerts in your browser"
+            checked={!!settings.webNotificationsEnabled}
+            onChange={(checked) => void handleWebToggle(checked)}
+            ariaLabel="Enable web notifications"
+          />
           {webNotifHint && (
             <p className="px-3 text-xs text-amber-600 dark:text-amber-400">{webNotifHint}</p>
           )}
-          <label className={`flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors ${settings.notificationsEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
-            <span>
-              <span className="block text-sm font-medium">Health Alerts</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">Notify when a distributor is blocked or down</span>
-            </span>
-            <span className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.healthAlerts}
-                onChange={(e) => update({ healthAlerts: e.target.checked })}
-                disabled={!settings.notificationsEnabled}
-                className="sr-only peer"
-                aria-label="Enable health alerts"
-              />
-              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
-            </span>
-          </label>
-          <label className={`flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 -mx-2 px-3 py-2.5 rounded-lg transition-colors ${settings.notificationsEnabled ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
-            <span>
-              <span className="block text-sm font-medium">Email Alerts</span>
-              <span className="block text-xs text-gray-500 dark:text-gray-400">Email me when an alert fires</span>
-            </span>
-            <span className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={!!settings.emailAlerts}
-                onChange={(e) => update({ emailAlerts: e.target.checked })}
-                disabled={!settings.notificationsEnabled}
-                className="sr-only peer"
-                aria-label="Enable email alerts"
-              />
-              <span className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer peer-checked:bg-brand-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:after:translate-x-full peer-checked:after:border-white transition-colors duration-300" />
-            </span>
-          </label>
+          <SettingsToggleRow
+            label="Health Alerts"
+            description="Notify when a distributor is blocked or down"
+            checked={settings.healthAlerts}
+            onChange={(checked) => update({ healthAlerts: checked })}
+            disabled={!settings.notificationsEnabled}
+            ariaLabel="Enable health alerts"
+          />
+          <SettingsToggleRow
+            label="Email Alerts"
+            description="Email me when an alert fires"
+            checked={!!settings.emailAlerts}
+            onChange={(checked) => update({ emailAlerts: checked })}
+            disabled={!settings.notificationsEnabled}
+            ariaLabel="Enable email alerts"
+          />
           <div className="px-3 py-2.5">
             <div className="text-sm font-medium mb-2">Webhook Alerts</div>
             <input
               type="url"
               value={webhookUrl}
               onChange={(e) => setWebhookUrl(e.target.value)}
-              onBlur={() => {
-                const next = webhookUrl.trim();
-                if (next !== (settings.alertWebhookUrl ?? "")) void update({ alertWebhookUrl: next });
-              }}
+              onBlur={saveWebhookUrl}
               placeholder="https://discord.com/api/webhooks/…"
               aria-label="Webhook URL"
               className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"

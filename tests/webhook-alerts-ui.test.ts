@@ -16,9 +16,13 @@ describe("webhook alerts settings UI", () => {
       "desktop/src/components/settings/notification-settings-section.tsx",
       "utf8",
     );
+    const hook = readFileSync(
+      "desktop/src/hooks/use-alert-webhook.ts",
+      "utf8",
+    );
     expect(desktop).toContain("Webhook Alerts");
-    expect(desktop).toContain("alertWebhookUrl");
-    expect(desktop).toContain("testWebhook");
+    expect(hook).toContain("alertWebhookUrl");
+    expect(hook).toContain("testWebhook");
     expect(desktop).toContain("Send test");
   });
 });
