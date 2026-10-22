@@ -13,25 +13,33 @@ describe("desktop email auth", () => {
   it("changes passwords and wires Account UI", async () => {
     const hooks = await readFile("desktop/src/hooks/use-auth.ts", "utf8");
     const settings = await readFile(
-      "desktop/src/components/settings/account-section.tsx",
+      "desktop/src/components/settings/SignedOutAccountCard.tsx",
+      "utf8",
+    );
+    const password = await readFile(
+      "desktop/src/hooks/use-password-change.ts",
       "utf8",
     );
     expect(hooks).toContain("changePassword");
     expect(hooks).toContain("/api/auth/change-password");
     expect(hooks).toContain("New passwords do not match");
     expect(settings).toContain("Create account");
-    expect(settings).toContain("validatePasswordChange(");
+    expect(password).toContain("validatePasswordChange(");
   });
 
   it("surfaces email verification state and resend in Account UI", async () => {
     const hooks = await readFile("desktop/src/hooks/use-auth.ts", "utf8");
     const settings = await readFile(
-      "desktop/src/components/settings/account-section.tsx",
+      "desktop/src/components/settings/SignedInAccountCard.tsx",
+      "utf8",
+    );
+    const password = await readFile(
+      "desktop/src/hooks/use-password-change.ts",
       "utf8",
     );
     expect(hooks).toContain("emailVerified");
     expect(settings).toContain("emailVerified");
-    expect(settings).toContain("resendVerification");
+    expect(password).toContain("resendVerification");
     expect(settings).toContain("Resend");
   });
 

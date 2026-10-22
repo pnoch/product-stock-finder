@@ -4,11 +4,15 @@ import { readFile } from "node:fs/promises";
 describe("desktop password reset", () => {
   it("requests reset links from Settings", async () => {
     const text = await readFile(
-      "desktop/src/components/settings/account-section.tsx",
+      "desktop/src/hooks/use-email-auth.ts",
+      "utf8",
+    );
+    const card = await readFile(
+      "desktop/src/components/settings/SignedOutAccountCard.tsx",
       "utf8",
     );
     expect(text).toContain("/api/auth/forgot");
-    expect(text).toContain("Send reset link");
+    expect(card).toContain("Send reset link");
   });
 
   it("completes reset from the email-link route", async () => {

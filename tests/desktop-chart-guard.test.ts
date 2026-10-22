@@ -654,7 +654,7 @@ describe("desktop chart guard", () => {
   // sync across devices".
   it("shows the desktop local-only sync status when unconfigured", async () => {
     const text = await readFile(
-      "desktop/src/components/settings/account-section.tsx",
+      "desktop/src/hooks/use-account-sync.ts",
       "utf8",
     );
     expect(text).toContain("Local-only mode — prices are fetched on this device");
@@ -665,11 +665,15 @@ describe("desktop chart guard", () => {
   // last-success time and hid errors.
   it("surfaces sync errors on desktop via formatSyncStatus", async () => {
     const text = await readFile(
-      "desktop/src/components/settings/account-section.tsx",
+      "desktop/src/hooks/use-account-sync.ts",
+      "utf8",
+    );
+    const card = await readFile(
+      "desktop/src/components/settings/SignedInAccountCard.tsx",
       "utf8",
     );
     expect(text).toMatch(/formatSyncStatus\(syncMeta, isAuthenticated, now\)/);
-    expect(text).toContain("syncStatus.label");
+    expect(card).toContain("syncStatus.label");
     expect(text).not.toMatch(/const syncStatus = !isAuthenticated/);
   });
 
@@ -2397,7 +2401,7 @@ describe("desktop chart guard", () => {
     for (const [file, needle] of [
       ["desktop/src/pages/ResetPassword.tsx", "const baseUrl = getApiBaseUrl();"],
       [
-        "desktop/src/components/settings/account-section.tsx",
+        "desktop/src/hooks/use-email-auth.ts",
         "const baseUrl = getApiBaseUrl();",
       ],
     ] as const) {

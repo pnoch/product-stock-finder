@@ -11,11 +11,15 @@ describe("desktop P3b-1 settings", () => {
 
   it("has a sync-now action", async () => {
     const text = await readFile(
-      "desktop/src/components/settings/account-section.tsx",
+      "desktop/src/hooks/use-account-sync.ts",
+      "utf8",
+    );
+    const card = await readFile(
+      "desktop/src/components/settings/SignedInAccountCard.tsx",
       "utf8",
     );
     expect(text).toContain("getSyncSetup");
-    expect(text).toContain("Sync now");
+    expect(card).toContain("Sync now");
   });
 
   it("has a web test-notification action", async () => {
