@@ -9,7 +9,10 @@ describe("desktop smart digest best-time-to-buy", () => {
   });
 
   it("desktop Stats ranks deals", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-stats-derived.ts",
+      "utf8",
+    );
     const digest = await readFile(
       "desktop/src/components/stats/DigestCard.tsx",
       "utf8",

@@ -67,7 +67,10 @@ describe("desktop chart guard", () => {
   // snapshot, clobbering a concurrent settings change. Mobile uses the
   // serialized updateSettings.
   it("saves the basket alert through the serialized updateSettings", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-stats-data.ts",
+      "utf8",
+    );
     const start = text.indexOf("const handleSaveBasketAlert");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("}, []);", start));
@@ -194,7 +197,10 @@ describe("desktop chart guard", () => {
   // QA round 50: the basket-alert save optimistically set the threshold but
   // never reverted it on failure (and desktop had no try/catch at all).
   it("reverts the desktop basket threshold when the save fails", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-stats-data.ts",
+      "utf8",
+    );
     const start = text.indexOf("const handleSaveBasketAlert");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("}, [basketThreshold, showToast]);", start));
@@ -224,7 +230,10 @@ describe("desktop chart guard", () => {
   // steps, so a near-midnight anchor skipped the 23h spring-forward day and its
   // drops vanished. It must use the shared calendar-date helper.
   it("uses the shared calendar-date helper for desktop drop-calendar keys", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-stats-derived.ts",
+      "utf8",
+    );
     expect(text).toContain("buildGridCells");
     expect(text).not.toMatch(/now - i \* 24 \* 60 \* 60 \* 1000/);
   });
@@ -902,7 +911,10 @@ describe("desktop chart guard", () => {
   // QA round 194: mobile's stats empty-state CTA is "Browse Products" and Home's
   // is "Add Product"; desktop used "Add Products" for both.
   it("matches mobile's empty-state CTA labels on desktop", async () => {
-    const stats = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const stats = await readFile(
+      "desktop/src/components/stats/StatsStates.tsx",
+      "utf8",
+    );
     expect(stats).toContain("Browse Products");
     const home = await readFile(
       "desktop/src/components/home/HomeEmptyState.tsx",
@@ -1045,7 +1057,10 @@ describe("desktop chart guard", () => {
   // Compare (which uses the shared distributorColor). It now uses the shared
   // hash and drops the duplicated palette.
   it("colours the desktop stats chart by distributor id", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-stats-derived.ts",
+      "utf8",
+    );
     const card = await readFile(
       "desktop/src/components/stats/PriceHistoryCard.tsx",
       "utf8",
@@ -1652,7 +1667,10 @@ describe("desktop chart guard", () => {
   // price for an unconvertible point, plotting mixed currencies on a chart
   // labelled in the display currency.
   it("skips unconvertible points in the desktop Stats chart", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-stats-derived.ts",
+      "utf8",
+    );
     expect(text).not.toMatch(/convertPrice\([^)]*\) \?\? pt\.price/);
     expect(text).toMatch(/const converted = convertPrice\(pt\.price, pt\.currency, displayCurrency\)/);
   });
@@ -1930,7 +1948,10 @@ describe("desktop chart guard", () => {
   // 7-column grid with no leading blanks, so the columns drifted off weekday
   // alignment (mobile's buildGridCells pads by the first day's weekday).
   it("aligns the desktop drop calendar to weekdays", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-stats-derived.ts",
+      "utf8",
+    );
     const card = await readFile(
       "desktop/src/components/stats/DropCalendarCard.tsx",
       "utf8",
@@ -2147,10 +2168,17 @@ describe("desktop chart guard", () => {
   // enabled but no snapshot existed yet. Mobile returns null and shows a
   // "Digest scheduled" placeholder.
   it("shows a digest-scheduled placeholder on desktop Stats", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-stats-data.ts",
+      "utf8",
+    );
+    const card = await readFile(
+      "desktop/src/components/stats/DigestCard.tsx",
+      "utf8",
+    );
     expect(text).toContain("digestPending");
     expect(text).toMatch(/setDigest\(snapshot \? computeDigest\(snapshot, list, settings, alerts\) : null\)/);
-    expect(text).toContain("Digest scheduled");
+    expect(card).toContain("Digest scheduled");
   });
 
   // QA round 134: desktop Home's "Reminders" stat counted only date reminders,
@@ -2305,7 +2333,7 @@ describe("desktop chart guard", () => {
   it("converts prices through the live-rate lib/currency overlay on desktop", async () => {
     const files = [
       "desktop/src/hooks/use-watchlist-view.ts",
-      "desktop/src/pages/Stats.tsx",
+      "desktop/src/hooks/use-stats-derived.ts",
       "desktop/src/hooks/use-product-derived.ts",
       "desktop/src/components/PriceHistoryChart.tsx",
     ];

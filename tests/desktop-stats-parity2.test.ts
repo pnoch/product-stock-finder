@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop stats parity 2", () => {
   it("has basket alert threshold UI", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-stats-data.ts",
+      "utf8",
+    );
     const card = await readFile(
       "desktop/src/components/stats/StatsSummaryCards.tsx",
       "utf8",

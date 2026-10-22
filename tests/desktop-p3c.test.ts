@@ -13,7 +13,10 @@ describe("desktop P3c polish", () => {
   });
 
   it("exports stats as PNG with text fallback", async () => {
-    const text = await readFile("desktop/src/pages/Stats.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-stats-actions.ts",
+      "utf8",
+    );
     const share = await readFile("desktop/src/lib/share.ts", "utf8");
     expect(text).toContain("saveNodeAsPng");
     expect(text).toContain("../lib/share");

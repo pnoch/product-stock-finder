@@ -12,6 +12,7 @@ describe("shared/desktop release blockers", () => {
       "desktop/src/components/home/HomeWatchlistPreview.tsx",
       "desktop/src/hooks/use-compare-derived.ts",
       "desktop/src/components/compare/CurrentPricesTable.tsx",
+      "desktop/src/hooks/use-stats-derived.ts",
     ];
     for (const file of livePages) {
       const text = await readFile(file, "utf8");

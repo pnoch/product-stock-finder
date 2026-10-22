@@ -18,7 +18,7 @@ describe("desktop acquired parity", () => {
   });
 
   it("Stats page imports activeProducts and uses it for basket", () => {
-    const src = read("src/pages/Stats.tsx");
+    const src = read("src/hooks/use-stats-derived.ts");
     expect(src).toContain('import { activeProducts }');
     expect(src).toContain("computeBasketValue(activeProducts(products)");
   });
