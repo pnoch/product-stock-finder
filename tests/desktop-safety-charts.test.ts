@@ -18,7 +18,10 @@ describe("desktop safety and charts", () => {
   });
 
   it("labels charts for screen readers", async () => {
-    const compare = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const compare = await readFile(
+      "desktop/src/components/compare/SeriesChart.tsx",
+      "utf8",
+    );
     const detail = await readFile(
       "desktop/src/components/PriceSparkline.tsx",
       "utf8",

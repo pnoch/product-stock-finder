@@ -961,7 +961,10 @@ describe("desktop chart guard", () => {
   // low-contrast in dark mode. (Round 294's label said "Compare" but fixed the
   // Stats chart.)
   it("makes the desktop compare series chart theme-aware", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/compare/SeriesChart.tsx",
+      "utf8",
+    );
     const at = text.indexOf("function SeriesChart(");
     expect(at).toBeGreaterThan(-1);
     const block = text.slice(at, at + 6000);
@@ -2148,7 +2151,10 @@ describe("desktop chart guard", () => {
   // into allDates without filtering NaN, so one invalid date made minDate/
   // dateRange NaN and blanked the chart. Mobile's MultiLineChart filters it.
   it("filters invalid dates in the desktop compare chart", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/compare/SeriesChart.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/if \(!Number\.isNaN\(t\)\) allDates\.push\(t\)/);
     expect(text).not.toMatch(/for \(const p of s\.data\) allDates\.push\(new Date\(p\.date\)\.getTime\(\)\)/);
   });

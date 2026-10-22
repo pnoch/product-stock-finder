@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
-import { clampChartWidth, Compare } from "../src/pages/Compare";
+import { clampChartWidth } from "../src/components/compare/SeriesChart";
+import { Compare } from "../src/pages/Compare";
 
 const mockStorage = vi.hoisted(() => ({
   getWatchlist: vi.fn(),
