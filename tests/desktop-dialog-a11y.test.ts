@@ -11,7 +11,9 @@ const DIALOG_PAGES = [
   "desktop/src/components/watchlist/WatchlistDialogs.tsx",
   "desktop/src/components/alerts/EditAlertDialog.tsx",
   "desktop/src/components/alerts/RescheduleDialog.tsx",
-  "desktop/src/pages/Search.tsx",
+  "desktop/src/components/search/TagPickerDialog.tsx",
+  "desktop/src/components/search/BulkImportDialog.tsx",
+  "desktop/src/components/search/ManualAddDialog.tsx",
   "desktop/src/components/SearchModal.tsx",
 ];
 

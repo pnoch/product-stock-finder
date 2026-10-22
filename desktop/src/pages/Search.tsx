@@ -1,10 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue } from "react";
 import { useNavigate } from "react-router";
-import { Search as SearchIcon, Check, Plus, Wand2, Loader2, Upload, PenLine, X, Lightbulb } from "lucide-react";
 import { PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
 import Fuse from "fuse.js";
 import { storage } from "../storage";
-import { ProductImage } from "../components/ProductImage";
 import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discovery";
 import { discoverListings, customProductSlug } from "../../../lib/listing-discovery";
 import { manualAddProduct, rediscoverProduct } from "../../../lib/manual-add";
@@ -13,9 +11,14 @@ import { runDiscoveryLoop } from "../../../lib/bulk-discovery";
 import { nextTagColor } from "../../../lib/tags";
 import type { TagDefinition, DistributorListing } from "../../../lib/types";
 import { TagFilterRow } from "../components/TagFilterRow";
-import { DialogOverlay } from "../components/DialogOverlay";
 import { countTagMatches, filterWatchlist } from "../../../lib/watchlist-org";
 import { useToast } from "../hooks/use-toast";
+import { isUrlLike } from "../lib/url-like";
+import { TagPickerDialog } from "../components/search/TagPickerDialog";
+import { BulkImportDialog } from "../components/search/BulkImportDialog";
+import { ManualAddDialog } from "../components/search/ManualAddDialog";
+import { SearchResults } from "../components/search/SearchResults";
+import { SearchHeader } from "../components/search/SearchHeader";
 
 import { PREVIEW_LIMIT, sortPreviewByStock } from "../../../lib/search-preview";
 import { RECENT_KEY, loadRecent, recordRecent, type CatalogSort, CATALOG_SORT_OPTIONS, PillFilterRow } from "../components/search-chrome";
@@ -258,7 +261,6 @@ export function Search() {
       setManualParsing(false);
     }
   };
-  const isUrlLike = (s: string) => /^https?:\/\/\S+/i.test(s.trim());
   const handleUrlFetch = async () => {
     const text = urlInput.trim();
     if (!text || urlParsing || !isUrlLike(text)) return;
@@ -358,28 +360,30 @@ export function Search() {
 
   return (
     <div className="p-6 space-y-4 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Search Products</h1>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setBulkOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><Upload className="w-4 h-4" /> Bulk Import</button>
-          <button onClick={() => { setManualModel(query); setPasteText(""); setUrlInput(""); setManualDescription(""); setManualError(null); setManualProgress(null); setManualTimedOut(null); setManualOpen(true); }} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700"><PenLine className="w-4 h-4" /> Manual Add</button>
-        </div>
-      </div>
-
-      <div className="relative">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && query.trim()) setRecentSearches(recordRecent(query)); }} placeholder="Search by name, model, or brand..." className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600" aria-label="Search products" />
-      </div>
-
-      {query.length === 0 && recentSearches.length > 0 && (
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-xs text-gray-500">Recent:</span>
-          {recentSearches.map((q) => <button key={q} onClick={() => setQuery(q)} className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-xs hover:bg-gray-200 dark:hover:bg-gray-600">{q}</button>)}
-          <button onClick={() => { localStorage.removeItem(RECENT_KEY); setRecentSearches([]); }} className="text-xs text-gray-400 ml-1">Clear</button>
-        </div>
-      )}
-
-      {discoveredProducts.length > 0 && <p className="text-xs text-gray-500">{discoveredProducts.length} discovered products included</p>}
+      <SearchHeader
+        query={query}
+        onQuery={setQuery}
+        recentSearches={recentSearches}
+        onRecent={setQuery}
+        onClearRecent={() => {
+          localStorage.removeItem(RECENT_KEY);
+          setRecentSearches([]);
+        }}
+        onBulkOpen={() => setBulkOpen(true)}
+        onManualOpen={() => {
+          setManualModel(query);
+          setPasteText("");
+          setUrlInput("");
+          setManualDescription("");
+          setManualError(null);
+          setManualProgress(null);
+          setManualTimedOut(null);
+          setManualOpen(true);
+        }}
+        inputRef={inputRef}
+        onEnter={() => setRecentSearches(recordRecent(query))}
+        discoveredCount={discoveredProducts.length}
+      />
 
       {Object.keys(tagDefinitions).length > 0 && (
         <TagFilterRow
@@ -426,177 +430,95 @@ export function Search() {
         <p className="text-xs text-gray-500 px-1">Tag filter: showing watchlist matches only — clear to see catalog</p>
       )}
 
-      <div className="space-y-2">
-        {sortedResults.map((product) => {
-          const isTracked = trackedIds.has(product.id);
-          const pending = pendingTags[product.id] ?? [];
-          return (
-            <div
-              key={product.id}
-              onClick={() => navigate(`/product/${product.id}`)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  navigate(`/product/${product.id}`);
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label={`Open ${product.name}`}
-              className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-sm transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <ProductImage productId={product.id} />
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-sm truncate">{product.name}</div>
-                  <div className="text-xs text-gray-500 truncate">{product.brand} · {product.category} · {product.modelNumber}</div>
-                  {Object.keys(tagDefinitions).length > 0 && !isTracked && (
-                    <button onClick={(e) => { e.stopPropagation(); setTagPickerFor(product.id); }} className="mt-1 text-xs text-brand-600 hover:underline">{pending.length ? `${pending.length} tag${pending.length !== 1 ? "s" : ""}` : "Assign tags"}</button>
-                  )}
-                  {pending.length > 0 && <div className="flex gap-1 mt-1 flex-wrap">{pending.map((tid) => { const d = tagDefinitions[tid]; if (!d) return null; return <span key={tid} className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white" style={{ backgroundColor: d.color }}>{d.name}</span>; })}</div>}
-                </div>
-              </div>
-              {isTracked ? <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium ml-2"><Check className="w-4 h-4" /> Tracked</span> : <button onClick={(e) => { e.stopPropagation(); void handleAdd(product); }} className="ml-2 px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700 flex items-center gap-1"><Plus className="w-3 h-3" /> Add</button>}
-            </div>
-          );
-        })}
-        {sortedResults.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-sm text-gray-500 mb-4">No products found.</p>
-            {!query.trim() && searchTagIds.length === 0 && (
-              <p className="inline-flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400">
-                <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
-                Try searching for RTX 4090, Pi 5, CRS326, or AirPods Max
-              </p>
-            )}
-          </div>
-        )}
-        {/* Mobile shows the Discover footer whenever there is a query, even with
-            partial catalog matches, so the exact product can still be found. */}
-        {query.trim() && (
-          <div className="pt-4">
-            {discovering ? (
-              <div className="flex flex-col items-center gap-2 py-4">
-                <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
-                <span className="text-sm text-gray-500">Discovering...</span>
-              </div>
-            ) : (
-              <button
-                onClick={handleDiscover}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-4 rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-600 text-sm font-medium"
-                aria-label="Discover with AI"
-              >
-                <Wand2 className="w-5 h-5" /> Discover with AI
-              </button>
-            )}
-            {discoverError && (
-              <div role="alert" className="mt-4 mx-auto max-w-md p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-left">
-                <p className="text-sm font-semibold text-red-700 dark:text-red-300">{discoverError.title}</p>
-                <p className="text-sm text-red-600 dark:text-red-400 mt-1">{discoverError.message}</p>
-                {discoverError.retry && <button onClick={() => void handleDiscover()} className="mt-2 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700">Retry</button>}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <SearchResults
+        results={sortedResults}
+        trackedIds={trackedIds}
+        pendingTags={pendingTags}
+        tagDefinitions={tagDefinitions}
+        query={query}
+        searchTagIds={searchTagIds}
+        discovering={discovering}
+        discoverError={discoverError}
+        onOpen={(productId) => navigate(`/product/${productId}`)}
+        onAdd={(product) => void handleAdd(product)}
+        onAssignTags={setTagPickerFor}
+        onDiscover={() => void handleDiscover()}
+      />
 
       {toast && <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm shadow-lg">{toast}</div>}
 
-      {tagPickerFor && (
-        <DialogOverlay open onClose={() => setTagPickerFor(null)} label="Assign tags">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-5">
-            <div className="flex items-center justify-between mb-3"><h3 className="font-semibold text-sm">Assign tags</h3><button onClick={() => setTagPickerFor(null)} aria-label="Close" className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X className="w-4 h-4" /></button></div>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {Object.values(tagDefinitions).map((def) => {
-                const sel = (pendingTags[tagPickerFor] ?? []).includes(def.id);
-                return <label key={def.id} className="flex items-center gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"><input type="checkbox" checked={sel} onChange={() => setPendingTags((prev) => { const cur = prev[tagPickerFor] ?? []; const nxt = sel ? cur.filter((id) => id !== def.id) : [...cur, def.id]; return { ...prev, [tagPickerFor]: nxt }; })} /><span className="w-3 h-3 rounded-full" style={{ backgroundColor: def.color }} /><span className="text-sm">{def.name}</span></label>;
-              })}
-              {Object.keys(tagDefinitions).length === 0 && <p className="text-sm text-gray-500">No tags yet — create one below.</p>}
-            </div>
-            {/* Mobile's TagPickerSheet creates tags inline; desktop's search
-                picker only toggled existing tags. */}
-            <div className="mt-3">
-              <input
-                value={newTagName}
-                onChange={(e) => setNewTagName(e.target.value)}
-                maxLength={24}
-                placeholder="New tag name"
-                aria-label="New tag name"
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
-              />
-              <button
-                onClick={() => void handleCreateTag()}
-                disabled={!newTagName.trim()}
-                aria-label="Create tag"
-                className="mt-2 w-full px-3 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium disabled:opacity-50"
-              >
-                Create tag
-              </button>
-            </div>
-            <div className="flex justify-end gap-2 mt-4"><button onClick={() => setTagPickerFor(null)} className="px-3 py-1.5 rounded-lg border text-sm">Done</button><button onClick={() => { setPendingTags((p) => { const n = { ...p }; delete n[tagPickerFor]; return n; }); setTagPickerFor(null); }} className="px-3 py-1.5 text-sm text-gray-500">Clear</button></div>
-          </div>
-        </DialogOverlay>
-      )}
+      <TagPickerDialog
+        open={tagPickerFor !== null}
+        productId={tagPickerFor}
+        tagDefinitions={tagDefinitions}
+        pendingTags={pendingTags}
+        newTagName={newTagName}
+        onNewTagName={setNewTagName}
+        onToggleTag={(tagId) => {
+          if (!tagPickerFor) return;
+          setPendingTags((prev) => {
+            const cur = prev[tagPickerFor] ?? [];
+            const nxt = cur.includes(tagId)
+              ? cur.filter((id) => id !== tagId)
+              : [...cur, tagId];
+            return { ...prev, [tagPickerFor]: nxt };
+          });
+        }}
+        onCreateTag={() => void handleCreateTag()}
+        onClear={() => {
+          if (!tagPickerFor) return;
+          setPendingTags((p) => {
+            const n = { ...p };
+            delete n[tagPickerFor];
+            return n;
+          });
+          setTagPickerFor(null);
+        }}
+        onClose={() => setTagPickerFor(null)}
+      />
 
-      {bulkOpen && (
-        <DialogOverlay open onClose={() => setBulkOpen(false)} label="Import List">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
-            <h3 className="font-semibold mb-2 flex items-center gap-2"><Upload className="w-4 h-4" /> Import List</h3>
-            <p className="text-xs text-gray-500 mb-2">Paste model numbers (e.g. CRS326-24S) — one per line or comma-separated.</p>
-            <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)} rows={6} placeholder="CRS804-4DDQ-hRM\nCCR2216-1G-12XS-2XQ" className="w-full p-3 rounded-lg border text-sm mb-3" />
-            {bulkText.trim() && (
-              <div className="mb-3 space-y-1">
-                <p className="text-xs font-semibold">{bulkPreview.matched.length} matched · {bulkPreview.unmatched.length} not found · {bulkNew.length} new{bulkPreview.matched.length - bulkNew.length > 0 ? ` · ${bulkPreview.matched.length - bulkNew.length} already tracked` : ""}</p>
-                {bulkPreview.unmatched.slice(0, 5).map((m) => <p key={m} className="text-xs text-red-600">Not found: {m}</p>)}
-                {bulkPreview.unmatched.length > 5 && <p className="text-xs text-gray-500">+{bulkPreview.unmatched.length - 5} more not found</p>}
-                {bulkPreview.matched.length - bulkNew.length > 0 && <p className="text-xs text-gray-500">{bulkPreview.matched.length - bulkNew.length} already in watchlist</p>}
-              </div>
-            )}
-            <div className="flex justify-end gap-2"><button onClick={() => setBulkOpen(false)} className="px-3 py-2 rounded-lg border text-sm">Cancel</button><button onClick={handleBulkImport} disabled={bulkNew.length === 0 || bulkImporting} className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm disabled:opacity-50">{bulkImporting ? "Importing…" : `Import ${bulkNew.length}`}</button></div>
-          </div>
-        </DialogOverlay>
-      )}
-      {manualOpen && (
-        <DialogOverlay open onClose={closeManualModal} label="Add Custom Product">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h3 className="font-semibold mb-1">Add Custom Product</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Paste anything — a model number, product name, or a spec-sheet paragraph. AI cleans it up.
-            </p>
-            <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} rows={3} placeholder="Paste a model number, product name, or spec paragraph…" aria-label="Paste product text" className="w-full px-3 py-2 rounded-lg border text-sm mb-2" />
-            <button onClick={handleManualParse} disabled={!pasteText.trim() || manualParsing} className="w-full mb-3 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">{manualParsing ? "Parsing…" : "Clean up with AI"}</button>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Paste distributor URL</p>
-            <input value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="https://distributor.com/product/..." aria-label="Distributor URL" className="w-full px-3 py-2 rounded-lg border text-sm mb-2" />
-            <button onClick={handleUrlFetch} disabled={!isUrlLike(urlInput) || urlParsing} className="w-full mb-3 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50">{urlParsing ? "Fetching…" : "Fetch from URL"}</button>
-            {manualError && (
-              <div role="alert" className="mb-3 p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-left">
-                <p className="text-sm font-semibold text-red-700 dark:text-red-300">{manualError.title}</p>
-                <p className="text-sm text-red-600 dark:text-red-400 mt-1">{manualError.message}</p>
-                {manualError.retry && <button onClick={() => void handleManualParse()} className="mt-2 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700">Retry</button>}
-              </div>
-            )}
-            {manualProgress && <p className="text-xs text-gray-500 mb-2">{manualProgress}</p>}
-            {manualTimedOut && (
-              <div role="alert" className="mb-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-left">
-                <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Discovery timed out</p>
-                <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">Added {manualTimedOut.name} — listings can be retried.</p>
-                <div className="flex gap-2 mt-2">
-                  <button onClick={() => void handleManualRetry()} disabled={manualRetrying} aria-label="Retry discovery" className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-medium hover:bg-amber-700 disabled:opacity-50">{manualRetrying ? "Retrying…" : "Retry"}</button>
-                  <button onClick={closeManualModal} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700">Done</button>
-                </div>
-              </div>
-            )}
-            <div className="space-y-3">
-              <input value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Product name *" className="w-full px-3 py-2 rounded-lg border text-sm" />
-              <input value={manualModel} onChange={(e) => setManualModel(e.target.value)} placeholder="Model number *" className="w-full px-3 py-2 rounded-lg border text-sm" />
-              <input value={manualBrand} onChange={(e) => setManualBrand(e.target.value)} placeholder="Brand" list="b-list" className="w-full px-3 py-2 rounded-lg border text-sm" /><datalist id="b-list">{brands.map((b) => <option key={b} value={b} />)}</datalist>
-              <input value={manualCategory} onChange={(e) => setManualCategory(e.target.value)} placeholder="Category" list="c-list" className="w-full px-3 py-2 rounded-lg border text-sm" /><datalist id="c-list">{categories.map((c) => <option key={c} value={c} />)}</datalist>
-              <textarea value={manualDescription} onChange={(e) => setManualDescription(e.target.value)} placeholder="Description" aria-label="Description" rows={2} className="w-full px-3 py-2 rounded-lg border text-sm" />
-            </div>
-            <div className="flex justify-end gap-2 mt-4"><button onClick={closeManualModal} className="px-3 py-2 rounded-lg border text-sm">Cancel</button><button onClick={handleManualAdd} disabled={manualDiscovering} aria-label="Add manual product" className="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm disabled:opacity-50">{manualDiscovering ? "Discovering…" : "Add"}</button></div>
-          </div>
-        </DialogOverlay>
-      )}
+      <BulkImportDialog
+        open={bulkOpen}
+        text={bulkText}
+        onTextChange={setBulkText}
+        matchedCount={bulkPreview.matched.length}
+        unmatched={bulkPreview.unmatched}
+        newCount={bulkNew.length}
+        importing={bulkImporting}
+        onImport={handleBulkImport}
+        onClose={() => setBulkOpen(false)}
+      />
+      <ManualAddDialog
+        open={manualOpen}
+        pasteText={pasteText}
+        onPasteText={setPasteText}
+        urlInput={urlInput}
+        onUrlInput={setUrlInput}
+        urlParsing={urlParsing}
+        manualParsing={manualParsing}
+        manualError={manualError}
+        manualProgress={manualProgress}
+        manualTimedOut={manualTimedOut}
+        manualRetrying={manualRetrying}
+        manualName={manualName}
+        onManualName={setManualName}
+        manualModel={manualModel}
+        onManualModel={setManualModel}
+        manualBrand={manualBrand}
+        onManualBrand={setManualBrand}
+        manualCategory={manualCategory}
+        onManualCategory={setManualCategory}
+        manualDescription={manualDescription}
+        onManualDescription={setManualDescription}
+        manualDiscovering={manualDiscovering}
+        brands={brands}
+        categories={categories}
+        onManualParse={() => void handleManualParse()}
+        onUrlFetch={() => void handleUrlFetch()}
+        onManualAdd={() => void handleManualAdd()}
+        onManualRetry={() => void handleManualRetry()}
+        onClose={closeManualModal}
+      />
     </div>
   );
 }

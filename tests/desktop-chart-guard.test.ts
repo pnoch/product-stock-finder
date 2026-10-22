@@ -1731,15 +1731,22 @@ describe("desktop chart guard", () => {
   // "Assign tags" modal only toggled existing tags.
   it("creates tags inline in the desktop search tag picker", async () => {
     const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    const dialog = await readFile(
+      "desktop/src/components/search/TagPickerDialog.tsx",
+      "utf8",
+    );
     expect(text).toContain("handleCreateTag");
-    expect(text).toContain("New tag name");
-    expect(text).toContain("Create tag");
+    expect(dialog).toContain("New tag name");
+    expect(dialog).toContain("Create tag");
   });
 
   // QA round 165: mobile's bulk-import modal is titled "Import List";
   // desktop's was titled "Bulk Import".
   it("titles the desktop bulk-import modal like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/search/BulkImportDialog.tsx",
+      "utf8",
+    );
     expect(text).toContain("Import List");
   });
 
@@ -1747,7 +1754,10 @@ describe("desktop chart guard", () => {
   // with AI" and the URL field "Paste distributor URL"; desktop said "Parse
   // with AI" with no URL label.
   it("labels the desktop manual-add buttons like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/search/ManualAddDialog.tsx",
+      "utf8",
+    );
     expect(text).toContain("Clean up with AI");
     expect(text).toContain("Paste distributor URL");
     expect(text).not.toContain("Parse with AI");
@@ -1757,7 +1767,10 @@ describe("desktop chart guard", () => {
   // with a "Paste anything … AI cleans it up." hint; desktop's modal was titled
   // "Manual Add" with no hint.
   it("titles the desktop manual-add modal like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/search/ManualAddDialog.tsx",
+      "utf8",
+    );
     expect(text).toContain("Add Custom Product");
     expect(text).toContain("AI cleans it up.");
   });
@@ -1766,7 +1779,10 @@ describe("desktop chart guard", () => {
   // a query (even with partial catalog matches); desktop only showed it when
   // there were zero results.
   it("shows the Discover footer for any desktop search query", async () => {
-    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/search/SearchResults.tsx",
+      "utf8",
+    );
     expect(text).toMatch(/\{query\.trim\(\) && \(\s*<div className="pt-4">/);
     expect(text).toMatch(/aria-label="Discover with AI"/);
   });
@@ -1774,7 +1790,10 @@ describe("desktop chart guard", () => {
   // QA round 161: mobile's SearchEmptyState shows a "Try searching for RTX
   // 4090, Pi 5, CRS326, or AirPods Max" hint; desktop's empty state had none.
   it("shows the search suggestion hint on desktop", async () => {
-    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/search/SearchResults.tsx",
+      "utf8",
+    );
     expect(text).toContain("Try searching for RTX 4090, Pi 5, CRS326, or AirPods Max");
   });
 
