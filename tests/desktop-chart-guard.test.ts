@@ -378,7 +378,7 @@ describe("desktop chart guard", () => {
   it("has a per-product tag picker on the desktop watchlist", async () => {
     const text = await readFile("desktop/src/pages/Watchlist.tsx", "utf8");
     const row = await readFile(
-      "desktop/src/components/watchlist/WatchlistRow.tsx",
+      "desktop/src/components/watchlist/WatchlistRowActions.tsx",
       "utf8",
     );
     const tags = await readFile(

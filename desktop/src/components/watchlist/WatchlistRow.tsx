@@ -1,18 +1,18 @@
 import {
-  CheckCircle,
   Minus,
-  Tag as TagIcon,
-  Trash2,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
 import { formatPrice } from "@shared/currency";
 import { getBestPrice } from "../../../../lib/currency";
 import { formatLastRefreshed } from "../../../../lib/last-refreshed";
-import { dealBandLabel, type DealScore } from "../../../../lib/deal-score";
+import type { DealScore } from "../../../../lib/deal-score";
 import type { Product, TagDefinition } from "../../../../lib/types";
 import { getDominantStatus, getTrend } from "../../lib/watchlist-view";
 import { ProductImage } from "../ProductImage";
+import { WatchlistRowBadges } from "./WatchlistRowBadges";
+import { WatchlistRowSparkline } from "./WatchlistRowSparkline";
+import { WatchlistRowActions } from "./WatchlistRowActions";
 import { StockBadge } from "../StockBadge";
 
 type Insight = { atAllTimeLow: boolean; dropStreak: number };
@@ -103,61 +103,12 @@ export function WatchlistRow({
           <div>
             <div className="flex items-center gap-1.5 flex-wrap">
               <p className="font-medium text-sm">{product.name}</p>
-              {(() => {
-                const insight = insightMap.get(product.id);
-                if (
-                  !insight ||
-                  !(insight.atAllTimeLow || insight.dropStreak >= 2)
-                )
-                  return null;
-                return (
-                  <>
-                    {insight.atAllTimeLow && (
-                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                        All-time low
-                      </span>
-                    )}
-                    {insight.dropStreak >= 2 && (
-                      <span className="text-[11px] font-semibold text-red-600 dark:text-red-400">
-                        ▼ Dropping ×{insight.dropStreak}
-                      </span>
-                    )}
-                  </>
-                );
-              })()}
-              {(() => {
-                const d = dealScores.get(product.id);
-                return d?.band === "hot" ? (
-                  <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                    {dealBandLabel(d.band)}
-                  </span>
-                ) : null;
-              })()}
-              {(product.tags ?? [])
-                .filter((tagId) => tagDefinitions[tagId])
-                .map((tagId) => {
-                  const def = tagDefinitions[tagId];
-                  return (
-                    <span
-                      key={tagId}
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white"
-                      style={{ backgroundColor: def.color }}
-                      title={def.name}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
-                      {def.name}
-                    </span>
-                  );
-                })}
-              {(product.tags ?? []).filter((id) => tagDefinitions[id]).length ===
-                0 &&
-                product.tags &&
-                product.tags.length > 0 && (
-                  <span className="text-[10px] text-gray-400">
-                    · {product.tags.length} tag
-                    {product.tags.length !== 1 ? "s" : ""}
-                  </span>
-                )}
+              <WatchlistRowBadges
+                product={product}
+                insight={insightMap.get(product.id)}
+                dealScore={dealScores.get(product.id)}
+                tagDefinitions={tagDefinitions}
+              />
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {product.brand} · {product.modelNumber}
@@ -189,62 +140,7 @@ export function WatchlistRow({
         ) : (
           <span className="text-sm text-gray-400">No price</span>
         )}
-        {(() => {
-          const history = (product.listings ?? [])
-            .flatMap((l) => l.priceHistory ?? [])
-            .sort(
-              (a, b) =>
-                new Date(a.date).getTime() - new Date(b.date).getTime(),
-            )
-            .slice(-10);
-          if (history.length < 2) return null;
-          const prices = history.map((p) => p.price);
-          const min = Math.min(...prices);
-          const max = Math.max(...prices);
-          const range = max - min || 1;
-          const w = 64,
-            h = 24,
-            pad = 3;
-          const coords = history
-            .map((p, i) => {
-              const x = pad + (i / (history.length - 1)) * (w - pad * 2);
-              const y = pad + (1 - (p.price - min) / range) * (h - pad * 2);
-              return `${x},${y}`;
-            })
-            .join(" ");
-          const color =
-            prices[prices.length - 1]! >= prices[0]!
-              ? range === 0
-                ? "#9CA3AF"
-                : "#EF4444"
-              : "#10B981";
-          return (
-            <svg
-              width={w}
-              height={h}
-              className="mt-1 block"
-              role="img"
-              aria-label={`Price sparkline ${history.length} point${
-                history.length === 1 ? "" : "s"
-              }`}
-            >
-              <polyline
-                points={coords}
-                fill="none"
-                stroke={color}
-                strokeWidth={1.5}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-              <circle
-                cx={Number(coords.split(" ").pop()!.split(",")[0])}
-                cy={Number(coords.split(" ").pop()!.split(",")[1])}
-                r={2.5}
-                fill={color}
-              />
-            </svg>
-          );
-        })()}
+        <WatchlistRowSparkline listings={product.listings ?? []} />
       </td>
       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
         {(() => {
@@ -277,43 +173,13 @@ export function WatchlistRow({
       <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
         {formatLastRefreshed(refreshed)}
       </td>
-      <td className="px-4 py-3 text-right">
-        <button
-          type="button"
-          onClick={(e) => void onToggleAcquired(e, product)}
-          onKeyDown={(e) => e.stopPropagation()}
-          className={`p-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-            acquired
-              ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-              : "text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/30"
-          }`}
-          aria-label={acquired ? "Mark as not acquired" : "Mark as acquired"}
-          aria-pressed={acquired}
-        >
-          <CheckCircle className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEditTags(product);
-          }}
-          onKeyDown={(e) => e.stopPropagation()}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-          aria-label={`Edit tags for ${product.name}`}
-        >
-          <TagIcon className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => onRemove(e, product.id)}
-          onKeyDown={(e) => e.stopPropagation()}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-          aria-label={`Remove ${product.name} from watchlist`}
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </td>
+      <WatchlistRowActions
+        product={product}
+        acquired={acquired}
+        onToggleAcquired={onToggleAcquired}
+        onEditTags={onEditTags}
+        onRemove={onRemove}
+      />
     </tr>
   );
 }

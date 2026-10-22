@@ -21,7 +21,7 @@ describe("desktop list awareness", () => {
       "utf8",
     );
     const row = await readFile(
-      "desktop/src/components/watchlist/WatchlistRow.tsx",
+      "desktop/src/components/watchlist/WatchlistRowBadges.tsx",
       "utf8",
     );
     const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
