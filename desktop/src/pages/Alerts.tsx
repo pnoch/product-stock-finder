@@ -5,28 +5,26 @@ import {
   BarChart3,
   Bell,
   BellRing,
-  Calendar,
   CircleCheck,
   Clock,
   TrendingDown,
   TrendingUp,
   TriangleAlert,
   Sparkles,
-  X,
 } from "lucide-react";
 import { useAlerts } from "../hooks/use-storage";
 import { useToast } from "../hooks/use-toast";
 import { storage } from "../storage";
 import { syncDesktopNotifications } from "../server-notifications";
-import { EXCHANGE_RATES } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
 import { countOpenAlerts } from "../../../lib/alert-state";
 import { formatRelativeTime } from "../../../lib/relative-time";
 import { AlertsTab } from "../components/alerts/AlertsTab";
 import { RemindersTab } from "../components/alerts/RemindersTab";
+import { EditAlertDialog } from "../components/alerts/EditAlertDialog";
+import { RescheduleDialog } from "../components/alerts/RescheduleDialog";
 import { EmptyState } from "../components/EmptyState";
 import { LoadingSpinner } from "../components/LoadingSpinner";
-import { DialogOverlay } from "../components/DialogOverlay";
 import type {
   BackOrderReminder,
   NotificationHistoryEntry,
@@ -522,116 +520,32 @@ export function Alerts() {
         </div>
       )}
 
-      {/* RescheduleModal — desktop port */}
       {rescheduleTarget && (
-        <DialogOverlay open onClose={() => setRescheduleTarget(null)} label="Reschedule Reminder">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Calendar className="w-4 h-4" /> Reschedule Reminder
-              </h3>
-              <button
-                onClick={() => setRescheduleTarget(null)}
-                className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                aria-label="Close reschedule modal"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 truncate">
-              Choose a new date for <span className="font-semibold text-gray-900 dark:text-gray-100">{rescheduleTarget.distributorName}</span> · {rescheduleTarget.productName}
-            </p>
-            <button
-              onClick={() => {
-                const input = document.getElementById("reschedule-date") as HTMLInputElement | null;
-                input?.showPicker?.();
-                input?.focus();
-              }}
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 mb-3 text-left"
-              aria-label="Select date"
-            >
-              <span className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-brand-600" />
-                <span className="text-sm font-semibold">
-                  {new Date(rescheduleDate + "T12:00:00").toLocaleDateString(undefined, {
-                    weekday: "short",
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-              </span>
-              <span className="text-gray-400">▾</span>
-            </button>
-            <input
-              id="reschedule-date"
-              type="date"
-              value={rescheduleDate}
-              onChange={(e) => setRescheduleDate(e.target.value)}
-              min={new Date().toISOString().slice(0, 10)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              aria-label="Reminder date"
-            />
-            {rescheduleError && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">{rescheduleError}</p>
-            )}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setRescheduleTarget(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700"
-                aria-label="Cancel reschedule"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReschedule}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700"
-                aria-label="Confirm reschedule"
-              >
-                Reschedule
-              </button>
-            </div>
-          </div>
-        </DialogOverlay>
+        <RescheduleDialog
+          target={rescheduleTarget}
+          date={rescheduleDate}
+          error={rescheduleError}
+          onDateChange={setRescheduleDate}
+          onClose={() => setRescheduleTarget(null)}
+          onConfirm={handleReschedule}
+        />
       )}
-      {/* Edit Alert Modal — desktop Tailwind port of components/product/price-alert-modal.tsx */}
       {editingAlert && (
-        <DialogOverlay open onClose={() => setEditingAlert(null)} label="Edit Alert">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-lg">Edit Alert</h3>
-              <button onClick={() => setEditingAlert(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close edit modal"><X className="w-4 h-4" /></button>
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Get notified when {productNames.get(editingAlert.productId) ?? "this product"} {editDirection === "rise" ? "rises above" : "drops below"} your target.</p>
-            {editError && <p className="text-xs text-red-600 dark:text-red-400 mb-3">{editError}</p>}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {Object.keys(EXCHANGE_RATES).map((c) => (
-                <button key={c} onClick={() => setEditCurrency(c)} aria-pressed={editCurrency === c} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${editCurrency === c ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"}`}>{c}</button>
-              ))}
-            </div>
-            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg w-fit mb-4">
-              {(["drop", "rise"] as const).map((d) => (
-                <button key={d} onClick={() => setEditDirection(d)} aria-pressed={editDirection === d} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${editDirection === d ? "bg-white dark:bg-gray-600 shadow-sm" : "text-gray-500 dark:text-gray-400"}`}>{d === "drop" ? "▼ Drops below" : "▲ Rises above"}</button>
-              ))}
-            </div>
-            {editDistributors.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                <button onClick={() => setEditDistributorId(null)} aria-pressed={editDistributorId == null} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId == null ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>All distributors</button>
-                {editDistributors.map((d) => (
-                  <button key={d.id} onClick={() => setEditDistributorId(d.id)} aria-pressed={editDistributorId === d.id} className={`px-3 py-1 rounded-full text-xs font-semibold border ${editDistributorId === d.id ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"}`}>{d.countryCode} {d.name}</button>
-                ))}
-              </div>
-            )}
-            <div className="mb-4">
-              <label className="block text-xs font-semibold mb-1">Target price ({editCurrency})</label>
-              <input type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} placeholder={`Target price in ${editCurrency}`} min="0" step="0.01" className="w-full px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setEditingAlert(null)} className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-semibold">Cancel</button>
-              <button onClick={handleSaveEdit} className="flex-1 px-4 py-2.5 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700">Save Changes</button>
-            </div>
-          </div>
-        </DialogOverlay>
+        <EditAlertDialog
+          productName={productNames.get(editingAlert.productId)}
+          price={editPrice}
+          currency={editCurrency}
+          direction={editDirection}
+          distributorId={editDistributorId}
+          distributors={editDistributors}
+          error={editError}
+          onPriceChange={setEditPrice}
+          onCurrencyChange={setEditCurrency}
+          onDirectionChange={setEditDirection}
+          onDistributorChange={setEditDistributorId}
+          onClose={() => setEditingAlert(null)}
+          onSave={handleSaveEdit}
+        />
       )}
     </div>
   );

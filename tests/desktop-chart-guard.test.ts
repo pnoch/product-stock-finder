@@ -1301,10 +1301,13 @@ describe("desktop chart guard", () => {
       "utf8",
     );
     expect(inlineSections).toContain("aria-pressed={alertDirection === dir}");
-    const alerts = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
-    expect(alerts).toContain("aria-pressed={editCurrency === c}");
-    expect(alerts).toContain("aria-pressed={editDirection === d}");
-    expect(alerts).toContain("aria-pressed={editDistributorId == null}");
+    const alerts = await readFile(
+      "desktop/src/components/alerts/EditAlertDialog.tsx",
+      "utf8",
+    );
+    expect(alerts).toContain("aria-pressed={currency === c}");
+    expect(alerts).toContain("aria-pressed={direction === d}");
+    expect(alerts).toContain("aria-pressed={distributorId == null}");
     const compare = await readFile("desktop/src/pages/Compare.tsx", "utf8");
     expect(compare).toContain('aria-pressed={sortBy === "name"}');
     const settings = await readFile("desktop/src/pages/Settings.tsx", "utf8");
@@ -1585,7 +1588,10 @@ describe("desktop chart guard", () => {
   // QA round 172: mobile's RescheduleModal title is "Reschedule Reminder";
   // desktop's was "Reschedule Reminder" without the emoji.
   it("titles the desktop reschedule modal like mobile", async () => {
-    const text = await readFile("desktop/src/pages/Alerts.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/alerts/RescheduleDialog.tsx",
+      "utf8",
+    );
     expect(text).toContain("Reschedule Reminder");
   });
 
