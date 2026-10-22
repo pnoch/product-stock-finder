@@ -53,7 +53,6 @@ describe("bulk discovery UI", () => {
   });
 
   it("watchlist offers a no-prices repair CTA (desktop)", () => {
-    const src = readFileSync("desktop/src/pages/Watchlist.tsx", "utf8");
     const row = readFileSync(
       "desktop/src/components/watchlist/WatchlistRow.tsx",
       "utf8",
