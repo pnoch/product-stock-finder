@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
-  ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -16,6 +13,9 @@ import { useColors } from "@/hooks/use-colors";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { PaywallScreen } from "@/components/paywall/paywall-screen";
+import { ManualAddInputStep } from "./manual-add-input-step";
+import { ManualAddDraftStep } from "./manual-add-draft-step";
+import { EMPTY_DRAFT, type Draft } from "./manual-add-helpers";
 import { showAlert } from "@/lib/alert";
 import { addToWatchlist, getWatchlist, updateProductListings } from "@/lib/storage";
 import { canAddToWatchlist, shouldEnforceFreeLimits } from "@/lib/pro-features";
@@ -23,62 +23,13 @@ import { track } from "@/lib/telemetry";
 import { DISCOVER_TIMEOUT_MS, manualAddProduct } from "@/lib/manual-add";
 import { fetchParsedProduct } from "@/lib/server-product-parse";
 import { fetchMarketplaceResolution } from "@/lib/server-marketplace";
-import { buildMarketplaceProduct, marketplaceBrandName, marketplaceCurrency, marketplaceShortName, parseManualPrice } from "@/lib/marketplace";
-import { isEbayInput, isFacebookInput, isLazadaInput, isMarketplaceInput, isShopeeInput, marketplaceResolutionMessage, parseMarketplaceUrl, type MarketplaceIdentity } from "@/shared/marketplace-url";
+import { buildMarketplaceProduct, marketplaceBrandName, marketplaceShortName, parseManualPrice } from "@/lib/marketplace";
+import { isEbayInput, isFacebookInput, isLazadaInput, isMarketplaceInput, marketplaceResolutionMessage, parseMarketplaceUrl, type MarketplaceIdentity } from "@/shared/marketplace-url";
 import type { EbaySearchListing } from "@/shared/ebay-search";
-import { formatPrice } from "@shared/currency";
 import {
   customProductSlug,
   discoverListings,
 } from "@/lib/listing-discovery";
-
-interface Draft {
-  name: string;
-  modelNumber: string;
-  brand: string;
-  category: string;
-  description: string;
-}
-
-const EMPTY_DRAFT: Draft = {
-  name: "",
-  modelNumber: "",
-  brand: "",
-  category: "",
-  description: "",
-};
-
-function marketplaceSummary(marketplace: MarketplaceIdentity): string {
-  switch (marketplace.platform) {
-    case "lazada": return `Lazada TH · item ${marketplace.itemId} · sku ${marketplace.skuId}`;
-    case "shopee": return `Shopee TH · shop ${marketplace.shopId} · item ${marketplace.itemId}`;
-    case "ebay": return `eBay · item ${marketplace.itemId}`;
-    default: return `Facebook Marketplace · item ${marketplace.itemId}`;
-  }
-}
-
-function marketplaceConfirmNote(marketplace: MarketplaceIdentity): string {
-  switch (marketplace.platform) {
-    case "facebook": return "Confirm the seller. The variant field is optional. Prices are manual; Facebook may require login for a price check. No automatic price or stock alerts.";
-    case "shopee": return "Confirm the selected variant and seller. Prices are manual; Shopee may require login. No automatic price or stock alerts.";
-    case "ebay": return "Confirm the seller. The variant field is optional. Prices are manual; eBay may require login for a price check. No automatic price or stock alerts.";
-    default: return "Confirm the selected variant and seller. Prices are manual. No automatic price or stock alerts.";
-  }
-}
-
-function fieldStyle(colors: ReturnType<typeof useColors>) {
-  return {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: colors.foreground,
-    fontSize: 14,
-    marginBottom: 12,
-  };
-}
 
 export function ManualAddSheet({
   visible,
@@ -425,283 +376,40 @@ export function ManualAddSheet({
           </View>
 
           {draft === null ? (
-            <>
-              <Text
-                style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}
-              >
-                Paste anything — a model number, product name, or a spec-sheet
-                paragraph, or a Shopee Thailand / Lazada Thailand / Facebook
-                Marketplace / eBay product link. Marketplace imports require manual confirmation.
-              </Text>
-              <TextInput
-                value={raw}
-                onChangeText={setRaw}
-                multiline
-                autoFocus
-                placeholder={
-                  "e.g. MikroTik CRS326-24S+2Q+RM switch, 24x SFP+ 2x QSFP+, desktop rackmount"
-                }
-                placeholderTextColor={colors.muted}
-                style={{
-                  ...fieldStyle(colors),
-                  minHeight: 110,
-                  textAlignVertical: "top",
-                }}
-              />
-              <TouchableOpacity activeOpacity={0.85}
-                onPress={handleParse}
-                disabled={parsing || raw.trim().length === 0}
-                style={{
-                  backgroundColor:
-                    raw.trim().length > 0 && !parsing
-                      ? colors.primary
-                      : colors.border,
-                  opacity: parsing || raw.trim().length === 0 ? 0.5 : 1,
-                  borderRadius: 14,
-                  paddingVertical: 14,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-                accessibilityLabel={isFacebookInput(raw) ? "Import Facebook link" : isLazadaInput(raw) ? "Resolve Lazada link" : isShopeeInput(raw) ? "Resolve Shopee link" : isEbayInput(raw) ? "Resolve eBay link" : "Clean up with AI"}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: parsing || raw.trim().length === 0 }}
-              >
-                {parsing ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <IconSymbol name="wand.and.stars" size={18} color="#fff" />
-                    <Text
-                      style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
-                    >
-                       {isFacebookInput(raw) ? "Import Facebook Link" : isLazadaInput(raw) ? "Resolve Lazada Link" : isShopeeInput(raw) ? "Resolve Shopee Link" : isEbayInput(raw) ? "Resolve eBay Link" : "Clean up with AI"}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 14 }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-                <Text style={{ color: colors.muted, fontSize: 12 }}>or</Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-              </View>
-              <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8, fontWeight: "600" }}>
-                Paste distributor, Shopee Thailand, Lazada Thailand, Facebook Marketplace, or eBay URL
-              </Text>
-              <TextInput
-                value={urlInput}
-                onChangeText={setUrlInput}
-                autoCorrect={false}
-                autoCapitalize="none"
-                keyboardType="url"
-                placeholder="https://distributor.com/product/..."
-                placeholderTextColor={colors.muted}
-                style={{
-                  ...fieldStyle(colors),
-                  marginBottom: 12,
-                }}
-              />
-              <TouchableOpacity activeOpacity={0.85}
-                onPress={handleUrlParse}
-                disabled={urlParsing || !isUrlLike(urlInput)}
-                style={{
-                  backgroundColor:
-                    isUrlLike(urlInput) && !urlParsing
-                      ? colors.primary
-                      : colors.border,
-                  opacity: isUrlLike(urlInput) && !urlParsing ? 1 : 0.5,
-                  borderRadius: 14,
-                  paddingVertical: 14,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-                accessibilityLabel="Fetch from URL"
-                accessibilityRole="button"
-                accessibilityState={{ disabled: urlParsing || !isUrlLike(urlInput) }}
-              >
-                {urlParsing ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <IconSymbol name="link" size={18} color="#fff" />
-                    <Text
-                      style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
-                    >
-                      Fetch from URL
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </>
+            <ManualAddInputStep
+              colors={colors}
+              raw={raw}
+              onRawChange={setRaw}
+              urlInput={urlInput}
+              onUrlInputChange={setUrlInput}
+              parsing={parsing}
+              urlParsing={urlParsing}
+              onParse={() => void handleParse()}
+              onUrlParse={() => void handleUrlParse()}
+              isUrlLike={isUrlLike}
+            />
           ) : (
-            <ScrollView>
-              {aiFailed && (
-                <Text
-                  style={{
-                    color: colors.warning,
-                    fontSize: 12,
-                    marginBottom: 10,
-                  }}
-                >
-                  Couldn&apos;t reach the AI — please fill in the details
-                  manually.
-                </Text>
-              )}
-              <Text
-                style={{ color: colors.muted, fontSize: 12, marginBottom: 8 }}
-              >
-                Review and edit before adding.
-              </Text>
-              <TextInput
-                value={draft.name}
-                onChangeText={(v) => setDraft({ ...draft, name: v })}
-                placeholder="Product name"
-                placeholderTextColor={colors.muted}
-                style={fieldStyle(colors)}
-              />
-              {marketplace ? (
-                <>
-                  <Text style={{ color: colors.muted, marginBottom: 12 }}>
-                    {marketplaceSummary(marketplace)}{"\n"}
-                    {marketplaceConfirmNote(marketplace)}
-                    {initialEbayListing?.price !== null && initialEbayListing?.price !== undefined && initialEbayListing.currency
-                      ? `\nSearch price: ${formatPrice(initialEbayListing.price, initialEbayListing.currency)}${initialEbayListing.currency !== "USD" ? ". This is the displayed search currency. Enter the item's USD price below; do not copy this number as USD." : ". Confirm the current listing price before saving."}`
-                      : ""}
-                  </Text>
-                  <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8, fontWeight: "600" }}>
-                    Market
-                  </Text>
-                  <View
-                    accessibilityLabel={`Market: ${marketplace.platform === "ebay" ? "United States, US dollar" : "Thailand, Thai baht"}`}
-                    style={{
-                      backgroundColor: colors.surface,
-                      borderRadius: 14,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      paddingHorizontal: 14,
-                      paddingVertical: 10,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Text style={{ color: colors.foreground, fontSize: 14 }}>
-                      {marketplace.platform === "ebay" ? "United States · USD" : "Thailand · THB"}
-                    </Text>
-                  </View>
-                  <TextInput value={variant} onChangeText={setVariant} placeholder={marketplace.platform === "facebook" || marketplace.platform === "ebay" ? "Variant (optional)" : "Selected variant (or Single option)"} accessibilityLabel="Selected variant" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
-                  <TextInput value={seller} onChangeText={setSeller} placeholder="Seller" accessibilityLabel="Seller" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
-                  <TextInput value={manualPrice} onChangeText={setManualPrice} placeholder={`Manually entered price (${marketplaceCurrency(marketplace.platform)})`} accessibilityLabel={`Manual ${marketplaceCurrency(marketplace.platform)} price`} keyboardType="decimal-pad" placeholderTextColor={colors.muted} style={fieldStyle(colors)} />
-                </>
-              ) : (
-              <>
-              <TextInput
-                value={draft.modelNumber}
-                onChangeText={(v) => setDraft({ ...draft, modelNumber: v })}
-                placeholder="Model number"
-                placeholderTextColor={colors.muted}
-                style={fieldStyle(colors)}
-              />
-              <TextInput
-                value={draft.brand}
-                onChangeText={(v) => setDraft({ ...draft, brand: v })}
-                placeholder="Brand"
-                placeholderTextColor={colors.muted}
-                style={fieldStyle(colors)}
-              />
-              <TextInput
-                value={draft.category}
-                onChangeText={(v) => setDraft({ ...draft, category: v })}
-                placeholder="Category"
-                placeholderTextColor={colors.muted}
-                style={fieldStyle(colors)}
-              />
-              <TextInput
-                value={draft.description}
-                onChangeText={(v) => setDraft({ ...draft, description: v })}
-                placeholder="Description"
-                placeholderTextColor={colors.muted}
-                multiline
-                style={{
-                  ...fieldStyle(colors),
-                  minHeight: 70,
-                  textAlignVertical: "top",
-                }}
-              />
-              </>
-              )}
-              {progress && (
-                <Text
-                  style={{
-                    color: colors.muted,
-                    fontSize: 12,
-                    marginBottom: 10,
-                  }}
-                >
-                  {progress}
-                </Text>
-              )}
-              <TouchableOpacity activeOpacity={0.85}
-                onPress={handleAdd}
-                disabled={!canAdd || adding}
-                style={{
-                  backgroundColor:
-                    canAdd && !adding ? colors.primary : colors.border,
-                  opacity: !canAdd || adding ? 0.5 : 1,
-                  borderRadius: 14,
-                  paddingVertical: 14,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-                accessibilityLabel={marketplace ? `Save manual ${marketplaceBrandName(marketplace.platform)} product` : "Add and search distributors"}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !canAdd || adding }}
-              >
-                {adding ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <IconSymbol
-                      name="plus.circle.fill"
-                      size={18}
-                      color="#fff"
-                    />
-                    <Text
-                      style={{ color: "#fff", fontWeight: "600", fontSize: 15 }}
-                    >
-                      {marketplace ? `Save Manual ${marketplaceBrandName(marketplace.platform)} Product` : "Add & Search Distributors"}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.7}
-                onPress={() => { setDraft(null); setMarketplace(null); }}
-                disabled={parsing || adding}
-                style={{ alignItems: "center", paddingVertical: 6, opacity: parsing || adding ? 0.5 : 1 }}
-                accessibilityLabel="Back to paste"
-                accessibilityRole="button"
-              >
-                <Text style={{ color: colors.muted, fontSize: 13 }}>
-                  Back to paste
-                </Text>
-              </TouchableOpacity>
-              {adding ? (
-                <TouchableOpacity activeOpacity={0.7}
-                  onPress={handleForceClose}
-                  style={{ alignItems: "center", paddingVertical: 10 }}
-                  accessibilityLabel="Cancel"
-                  accessibilityRole="button"
-                >
-                  <Text style={{ color: colors.muted, fontSize: 13 }}>
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-            </ScrollView>
+            <ManualAddDraftStep
+              colors={colors}
+              draft={draft}
+              onDraftChange={setDraft}
+              marketplace={marketplace}
+              initialEbayListing={initialEbayListing}
+              variant={variant}
+              onVariantChange={setVariant}
+              seller={seller}
+              onSellerChange={setSeller}
+              manualPrice={manualPrice}
+              onManualPriceChange={setManualPrice}
+              aiFailed={aiFailed}
+              progress={progress}
+              canAdd={canAdd}
+              adding={adding}
+              parsing={parsing}
+              onAdd={() => void handleAdd()}
+              onBack={() => { setDraft(null); setMarketplace(null); }}
+              onForceClose={handleForceClose}
+            />
           )}
         </View>
       </View>
