@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop export shortcut", () => {
   it("handles export failure with feedback", async () => {
-    const text = await readFile("desktop/src/App.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/app/KeyboardShortcuts.tsx",
+      "utf8",
+    );
     expect(text).toContain("exportWatchlistAsJson().catch");
     expect(text).toContain("Export failed");
   });

@@ -4,10 +4,13 @@ import { readFile } from "node:fs/promises";
 describe("desktop notification history", () => {
   it("records Rust trigger events", async () => {
     const bg = await readFile("desktop/src/background.ts", "utf8");
-    const app = await readFile("desktop/src/App.tsx", "utf8");
+    const app = await readFile(
+      "desktop/src/hooks/use-app-bootstrap.ts",
+      "utf8",
+    );
     expect(bg).toContain("price-drops-triggered");
     expect(bg).toContain("onPriceDropsTriggered");
-    expect(app).toContain("price-drops-triggered");
+    expect(app).toContain("onPriceDropsTriggered");
   });
 
   it("badges the sidebar with the same count as the mobile Alerts tab badge", async () => {

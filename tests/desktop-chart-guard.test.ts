@@ -1105,7 +1105,10 @@ describe("desktop chart guard", () => {
   // in-app history (like price-drop/restock/basket), or the Notifications tab
   // and its unread count diverge from what was actually delivered.
   it("records the desktop digest in the notification history", async () => {
-    const app = await readFile("desktop/src/App.tsx", "utf8");
+    const app = await readFile(
+      "desktop/src/hooks/use-app-bootstrap.ts",
+      "utf8",
+    );
     // lastIndexOf: the restock notifier shares this signature; the digest one
     // is the last.
     const at = app.lastIndexOf("async (title, body) => {");
@@ -1342,7 +1345,10 @@ describe("desktop chart guard", () => {
   // the shared default uses the browser Notification API, which is ungranted in
   // the Tauri webview, so restock alerts silently never fired.
   it("passes the desktop notifier to checkRestocks", async () => {
-    const app = await readFile("desktop/src/App.tsx", "utf8");
+    const app = await readFile(
+      "desktop/src/hooks/use-app-bootstrap.ts",
+      "utf8",
+    );
     expect(app).toContain("await checkRestocks(storage, async (title, body) => {");
     expect(app).toContain("sendDesktopNotification(title, body,");
   });

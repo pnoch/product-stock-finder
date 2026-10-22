@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop shortcuts overlay hooks", () => {
   it("calls hooks before the closed early return", async () => {
-    const text = await readFile("desktop/src/App.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/components/app/ShortcutsOverlay.tsx",
+      "utf8",
+    );
     const componentStart = text.indexOf("function ShortcutsOverlay(");
     expect(componentStart).toBeGreaterThanOrEqual(0);
     const body = text.slice(componentStart);

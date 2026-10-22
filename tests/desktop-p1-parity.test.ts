@@ -29,18 +29,27 @@ describe("desktop P1 parity", () => {
   });
 
   it("sweeps stale device bindings on sign-in", async () => {
-    const app = await readFile("desktop/src/App.tsx", "utf8");
+    const app = await readFile(
+      "desktop/src/hooks/use-app-bootstrap.ts",
+      "utf8",
+    );
     expect(app).toContain("cleanupStaleDevices");
     expect(app).toContain("void cleanupStaleDevices(trpcClient)");
   });
 
   it("backfills local price history to the server on sign-in", async () => {
-    const app = await readFile("desktop/src/App.tsx", "utf8");
+    const app = await readFile(
+      "desktop/src/hooks/use-app-bootstrap.ts",
+      "utf8",
+    );
     expect(app).toContain("backfillLocalHistory(trpcClient, await storage.getWatchlist())");
   });
 
   it("evaluates the basket alert after price sweeps", async () => {
-    const app = await readFile("desktop/src/App.tsx", "utf8");
+    const app = await readFile(
+      "desktop/src/hooks/use-app-bootstrap.ts",
+      "utf8",
+    );
     expect(app).toContain("evaluateBasketAlert(storage");
     const helper = await readFile("desktop/src/lib/basket-alert.ts", "utf8");
     expect(helper).toContain("basketAlertThreshold: null");

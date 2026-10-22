@@ -8,7 +8,10 @@ import { join } from "path";
 // every pushed event was delivered twice.
 describe("desktop web-push dedup wiring", () => {
   it("registers the shared push-dedup listener on init", () => {
-    const src = readFileSync(join(process.cwd(), "src/App.tsx"), "utf8");
+    const src = readFileSync(
+      join(process.cwd(), "src/hooks/use-app-bootstrap.ts"),
+      "utf8",
+    );
     expect(src).toContain("setupWebNotifications");
     expect(src).toMatch(/return setupWebNotifications\(\)/);
   });

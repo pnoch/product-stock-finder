@@ -445,7 +445,10 @@ describe("desktop/mobile scraper parity", () => {
     // manual-only desktop never evaluated any of them.
     const mobileLayout = await readFile("app/_layout.tsx", "utf8");
     const launch = await readFile("desktop/src/lib/launch.ts", "utf8");
-    const app = await readFile("desktop/src/App.tsx", "utf8");
+    const app = await readFile(
+      "desktop/src/hooks/use-app-bootstrap.ts",
+      "utf8",
+    );
     expect(mobileLayout).toContain("checkPriceDropsNow()");
     expect(launch).toContain("await checkPricesOnce()");
     expect(app).toContain("checkPricesOnce:");
@@ -458,7 +461,10 @@ describe("desktop/mobile scraper parity", () => {
     // failed until the next storage change.
     const mobileLayout = await readFile("app/_layout.tsx", "utf8");
     const helper = await readFile("desktop/src/lib/sync-retry.ts", "utf8");
-    const app = await readFile("desktop/src/App.tsx", "utf8");
+    const app = await readFile(
+      "desktop/src/hooks/use-app-bootstrap.ts",
+      "utf8",
+    );
     expect(mobileLayout).toContain("Retry a failed sync when the app returns to the foreground");
     expect(mobileLayout).toContain("lastSyncError");
     expect(helper).toContain("lastSyncError");
@@ -485,7 +491,10 @@ describe("desktop/mobile scraper parity", () => {
     // must feed its price-check results into the same health service.
     const mobileCheck = await readFile("lib/background-tasks/price-check.ts", "utf8");
     const probe = await readFile("desktop/src/lib/health-probe.ts", "utf8");
-    const app = await readFile("desktop/src/App.tsx", "utf8");
+    const app = await readFile(
+      "desktop/src/hooks/use-app-bootstrap.ts",
+      "utf8",
+    );
     expect(mobileCheck).toContain("healthCollector.flush()");
     expect(probe).toContain("export async function recordHealthFromPriceCheck");
     expect(probe).toContain("recordSample(");
@@ -519,7 +528,10 @@ describe("desktop/mobile scraper parity", () => {
     // prices-checked handler.
     const helper = await readFile("lib/manual-add.ts", "utf8");
     const mobile = await readFile("app/_layout.tsx", "utf8");
-    const desktop = await readFile("desktop/src/App.tsx", "utf8");
+    const desktop = await readFile(
+      "desktop/src/hooks/use-app-bootstrap.ts",
+      "utf8",
+    );
     expect(helper).toContain("export async function rediscoverMissingListings");
     expect(mobile).toContain("rediscoverMissingListings({");
     expect(desktop).toContain("rediscoverMissingListings({");
