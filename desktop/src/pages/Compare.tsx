@@ -1,16 +1,7 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useParams, useSearchParams } from "react-router";
-import { storage } from "../storage";
+import { useState, useRef } from "react";
+import { useParams } from "react-router";
 import { useToast } from "../hooks/use-toast";
 import { formatPrice } from "@shared/currency";
-import { convertPrice } from "@/lib/currency";
-import { DISTRIBUTORS, getDistributorById } from "@shared/distributors";
-import type { Product, PriceAlert } from "../../../lib/types";
-import { buildShareText } from "../../../lib/price-share";
-import { priceHistoryToCsv } from "../../../lib/csv";
-import { copyTextWithFallback, saveNodeAsPng } from "../lib/share";
-import { saveCsv } from "../lib/save-csv";
-import { checkNotificationPermission } from "../lib/notification-permission";
 import { StockBadge } from "../components/StockBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { EmptyState } from "../components/EmptyState";
@@ -21,337 +12,61 @@ import { DistributorSelector } from "../components/compare/DistributorSelector";
 import { CompareDistributorList } from "../components/compare/CompareDistributorList";
 import { CrossAlertCard } from "../components/compare/CrossAlertCard";
 import { CurrentPricesTable } from "../components/compare/CurrentPricesTable";
-import { filterByRange, cheapestByRegion, distributorColor, type TimeRange } from "@shared/compare-utils";
-import {
-  GitCompareArrows,
-  TrendingDown,
-} from "lucide-react";
-
-function toTimeRange(k: string): TimeRange {
-  switch (k) {
-    case "1w":
-      return "1W";
-    case "1m":
-      return "1M";
-    case "3m":
-      return "3M";
-    case "6m":
-      return "6M";
-    case "1y":
-      return "1Y";
-    default:
-      return "All";
-  }
-}
+import { GitCompareArrows, TrendingDown } from "lucide-react";
+import { useCompareData } from "../hooks/use-compare-data";
+import { useCompareDerived } from "../hooks/use-compare-derived";
+import { useCompareActions } from "../hooks/use-compare-actions";
 
 export function Compare() {
   const { id } = useParams();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState("3m");
   const [sortBy, setSortBy] = useState<"name" | "price" | "trend">("name");
-  const [displayCurrency, setDisplayCurrency] = useState("USD");
-  const [searchParams] = useSearchParams();
-  const [selected, setSelected] = useState<Set<string>>(() => {
-    const d = searchParams.get("distributor");
-    return new Set(d ? [d] : []);
-  });
-  const [loadError, setLoadError] = useState<string | null>(null);
-  // Guards against a double-click creating two identical cross-distributor alerts.
   const [creatingAlert, setCreatingAlert] = useState(false);
-  const selectionInitialized = useRef<string | null>(null);
-  const lastAppliedParam = useRef<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
-  const distributorParam = searchParams.get("distributor");
   const { toast, showToast } = useToast();
+  const {
+    product,
+    loading,
+    displayCurrency,
+    loadError,
+    selected,
+    handleToggleSelect,
+    loadCompare,
+  } = useCompareData({ id, showToast });
 
-  const loadCompare = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const [list, settings] = await Promise.all([
-        storage.getWatchlist(),
-        storage.getSettings(),
-      ]);
-      setProduct(list.find((p) => p.id === id) ?? null);
-      if (settings?.displayCurrency) setDisplayCurrency(settings.displayCurrency);
-    } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Couldn't load comparison");
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const {
+    chartSeries,
+    priceTrends,
+    sortedListings,
+    cheapest,
+    regionBest,
+    crossBest,
+    alertTarget,
+  } = useCompareDerived({
+    product,
+    selected,
+    timeRange,
+    sortBy,
+    displayCurrency,
+  });
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      void loadCompare();
-    });
-  }, [loadCompare]);
-
-  useEffect(() => {
-    if (!product) return;
-    const paramKey = `${product.id}|${distributorParam ?? ""}`;
-    if (distributorParam && (product.listings ?? []).some((l) => l.distributorId === distributorParam)) {
-      if (lastAppliedParam.current !== paramKey) {
-        lastAppliedParam.current = paramKey;
-        selectionInitialized.current = product.id;
-        setSelected(new Set([distributorParam]));
-      }
-      return;
-    }
-    if (selectionInitialized.current === product.id) return;
-    selectionInitialized.current = product.id;
-    const withHistory = (product.listings ?? [])
-      .filter((l) => l.priceHistory && l.priceHistory.length >= 2)
-      .sort((a, b) => {
-        // Null-safe: the raw-price fallback mixed currencies when a rate was
-        // unavailable (mobile sorts unconvertible listings last).
-        const aConv = convertPrice(a.price, a.currency, displayCurrency);
-        const bConv = convertPrice(b.price, b.currency, displayCurrency);
-        if (aConv === null && bConv === null) return 0;
-        if (aConv === null) return 1;
-        if (bConv === null) return -1;
-        return aConv - bConv;
-      });
-    setSelected(new Set(withHistory.slice(0, 3).map((l) => l.distributorId)));
-  }, [product, displayCurrency, distributorParam]);
-
-  const toggleSelect = useCallback((distributorId: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(distributorId)) {
-        next.delete(distributorId);
-      } else if (next.size < 5) {
-        next.add(distributorId);
-      }
-      return next;
-    });
-  }, []);
-  const handleToggleSelect = useCallback(
-    (distributorId: string) => {
-      // Mobile shows a toast when the 5-distributor cap is hit; desktop
-      // silently ignored the click.
-      if (!selected.has(distributorId) && selected.size >= 5) {
-        showToast("You can compare up to 5 distributors");
-        return;
-      }
-      toggleSelect(distributorId);
-    },
-    [selected, toggleSelect, showToast],
-  );
-
-  const timeRangeTyped = useMemo(() => toTimeRange(timeRange), [timeRange]);
-
-  const chartSeries = useMemo(() => {
-    if (!product) return [];
-    const range = timeRangeTyped;
-    const selectedIds = selected;
-    const list = (product.listings ?? []).filter(
-      (l) =>
-        selectedIds.has(l.distributorId) &&
-        l.priceHistory &&
-        l.priceHistory.length >= 2,
-    );
-    return list.map((l) => {
-      const distributor = getDistributorById(l.distributorId);
-      const filtered = filterByRange(l.priceHistory, range);
-      return {
-        label: distributor?.name ?? l.distributorId,
-        color: distributorColor(l.distributorId),
-        data: filtered as { price: number; currency: string; date: string }[],
-      };
-    });
-  }, [product, timeRangeTyped, selected]);
-
-  const priceTrends = useMemo(() => {
-    if (!product) return new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
-    const map = new Map<string, { pct: number; dir: "up" | "down" | "flat" }>();
-    for (const l of product.listings ?? []) {
-      if (!l.priceHistory || l.priceHistory.length < 2) {
-        map.set(l.distributorId, { pct: 0, dir: "flat" });
-        continue;
-      }
-      const sorted = [...l.priceHistory].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-      );
-      const oldest = sorted[0].price;
-      const current = l.price;
-      const pct = oldest > 0 ? ((current - oldest) / oldest) * 100 : 0;
-      map.set(l.distributorId, {
-        pct: Math.abs(pct),
-        dir: pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat",
-      });
-    }
-    return map;
-  }, [product]);
-
-  const sortedListings = useMemo(() => {
-    if (!product) return [];
-    const listings = (product.listings ?? []).map((l) => {
-      const dist = DISTRIBUTORS.find((d) => d.id === l.distributorId);
-      return { ...l, distName: dist?.name ?? l.distributorId, dist };
-    });
-    if (sortBy === "price") {
-      return listings.sort((a, b) => {
-        // Null-safe: falling back to the raw price mixed currencies when a
-        // listing's rate was unavailable (mobile sorts those last).
-        const pa = convertPrice(a.price, a.currency, displayCurrency);
-        const pb = convertPrice(b.price, b.currency, displayCurrency);
-        if (pa === null && pb === null) return 0;
-        if (pa === null) return 1;
-        if (pb === null) return -1;
-        return pa - pb;
-      });
-    }
-    if (sortBy === "trend") {
-      return listings.sort((a, b) => {
-        const ta = priceTrends.get(a.distributorId);
-        const tb = priceTrends.get(b.distributorId);
-        const scoreA =
-          ta?.dir === "down" ? ta.pct : ta?.dir === "up" ? -ta.pct : 0;
-        const scoreB =
-          tb?.dir === "down" ? tb.pct : tb?.dir === "up" ? -tb.pct : 0;
-        return scoreB - scoreA;
-      });
-    }
-    return listings.sort((a, b) => a.distName.localeCompare(b.distName));
-  }, [product, sortBy, displayCurrency, priceTrends]);
-
-  const cheapest = useMemo(() => {
-    if (!sortedListings.length) return null;
-    const inStock = sortedListings.filter(
-      (l) => l.stockStatus !== "out_of_stock" && l.price > 0,
-    );
-    if (!inStock.length) return null;
-    // Skip listings whose currency can't be converted rather than falling back
-    // to the raw price, which mixed currencies in the comparison.
-    const convertible = inStock.filter(
-      (l) => convertPrice(l.price, l.currency, displayCurrency) !== null,
-    );
-    if (!convertible.length) return null;
-    return convertible.reduce((best, curr) => {
-      const currConv = convertPrice(curr.price, curr.currency, displayCurrency)!;
-      const bestConv = convertPrice(best.price, best.currency, displayCurrency)!;
-      return currConv < bestConv ? curr : best;
-    });
-  }, [sortedListings, displayCurrency]);
-
-  const regionBest = useMemo(
-    () => cheapestByRegion(sortedListings, displayCurrency, convertPrice),
-    [sortedListings, displayCurrency],
-  );
-
-  const crossBest = useMemo(() => {
-    const inStock = sortedListings.filter((l) => l.stockStatus === "in_stock");
-    if (inStock.length === 0) return null;
-    const vals = inStock
-      .map((l) => convertPrice(l.price, l.currency, displayCurrency))
-      .filter((v): v is number => v !== null && Number.isFinite(v));
-    if (vals.length === 0) return null;
-    return Math.min(...vals);
-  }, [sortedListings, displayCurrency]);
-
-  const alertTarget = useMemo(
-    () => (crossBest === null ? null : Math.round(crossBest * 0.95 * 100) / 100),
-    [crossBest],
-  );
-
-  const handleCrossAlert = useCallback(async () => {
-    if (!id || !product || alertTarget === null || creatingAlert) return;
-    // Mobile's compare cross-alert checks notification permission first; without
-    // it the alert is saved but can never notify.
-    const granted = await checkNotificationPermission();
-    if (!granted) {
-      showToast("Enable notifications to receive price alerts.");
-      return;
-    }
-    const alert: PriceAlert = {
-      id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      productId: id,
-      distributorId: undefined,
-      targetPrice: alertTarget,
-      currency: displayCurrency,
-      createdAt: new Date().toISOString(),
-      isActive: true,
-    };
-    setCreatingAlert(true);
-    try {
-      await storage.addAlert(alert);
-    } catch {
-      showToast("Couldn't create alert. Please try again.");
-      return;
-    } finally {
-      setCreatingAlert(false);
-    }
-    showToast(`Alert set below ${formatPrice(alertTarget, displayCurrency)}`);
-  }, [id, product, alertTarget, displayCurrency, creatingAlert, showToast]);
-
-  const handleShareCompare = useCallback(async () => {
-    if (!product) return;
-    const message = `${buildShareText({ product, listings: sortedListings, displayCurrency, limit: 5 })}\n\n${window.location.origin}/#/compare/${product.id}`;
-    if (await copyTextWithFallback(message)) showToast("Copied to clipboard");
-    else showToast("Couldn't copy share text");
-  }, [product, sortedListings, displayCurrency, showToast]);
-
-  const handleSaveImage = useCallback(async () => {
-    if (!chartRef.current || !product) return;
-    try {
-      await saveNodeAsPng(chartRef.current, `compare-${product.id}.png`);
-      showToast("Comparison image saved");
-    } catch {
-      showToast("Couldn't save comparison image");
-    }
-  }, [product, showToast]);
-
-  // Mobile's compare screen exports the price history as CSV; desktop's had only
-  // Share / Save image.
-  const handleExportCsv = useCallback(async () => {
-    if (!product) return;
-    // Mobile refuses to export when no listing has history ("Nothing to
-    // export"); without this the desktop wrote a header-only CSV and reported
-    // success.
-    const withHistory = sortedListings.filter(
-      (l) => l.priceHistory && l.priceHistory.length > 0,
-    );
-    if (withHistory.length === 0) {
-      showToast("Nothing to export — no price history yet");
-      return;
-    }
-    try {
-      const rows = withHistory
-        .flatMap((l) =>
-          (l.priceHistory ?? []).map((pt) => ({
-            ...pt,
-            distributor: getDistributorById(l.distributorId)?.name ?? l.distributorId,
-          })),
-        )
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      const csv = priceHistoryToCsv(rows, {
-        name: product.name,
-        modelNumber: product.modelNumber ?? product.id,
-      });
-      const fileName = `${product.id}-price-history-${new Date().toISOString().slice(0, 10)}.csv`;
-      const result = await saveCsv(fileName, csv);
-      if (result.status === "cancelled") return;
-      if (result.status === "failed") {
-        showToast("Couldn't export the price history");
-        return;
-      }
-      showToast(result.path ? `Exported to ${result.path}` : "Price history exported");
-    } catch {
-      showToast("Couldn't export the price history");
-    }
-  }, [product, sortedListings, showToast]);
-
-  const getTrend = (priceHistory: { price: number; date: string }[] | undefined) => {
-    if (!priceHistory || priceHistory.length < 2) return "flat";
-    const recent = priceHistory[priceHistory.length - 1].price;
-    const prev = priceHistory[priceHistory.length - 2].price;
-    if (recent < prev) return "down";
-    if (recent > prev) return "up";
-    return "flat";
-  };
+  const {
+    handleCrossAlert,
+    handleShareCompare,
+    handleSaveImage,
+    handleExportCsv,
+    getTrend,
+  } = useCompareActions({
+    id,
+    product,
+    alertTarget,
+    displayCurrency,
+    creatingAlert,
+    setCreatingAlert,
+    sortedListings,
+    chartRef,
+    showToast,
+  });
 
   if (loading) return <LoadingSpinner size="large" label="Loading prices..." />;
   if (loadError)

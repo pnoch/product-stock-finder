@@ -10,7 +10,8 @@ describe("shared/desktop release blockers", () => {
     const livePages = [
       "desktop/src/components/home/RecentActivity.tsx",
       "desktop/src/components/home/HomeWatchlistPreview.tsx",
-      "desktop/src/pages/Compare.tsx",
+      "desktop/src/hooks/use-compare-derived.ts",
+      "desktop/src/components/compare/CurrentPricesTable.tsx",
     ];
     for (const file of livePages) {
       const text = await readFile(file, "utf8");

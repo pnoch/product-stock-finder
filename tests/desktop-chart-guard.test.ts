@@ -153,7 +153,10 @@ describe("desktop chart guard", () => {
   // QA round 45: the desktop Compare cross-distributor alert awaited
   // storage.addAlert with no try/catch (mobile wraps it).
   it("wraps the desktop compare cross-alert in try/catch", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-compare-actions.ts",
+      "utf8",
+    );
     const start = text.indexOf("const handleCrossAlert");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("}, [id, product, alertTarget", start));
@@ -439,7 +442,10 @@ describe("desktop chart guard", () => {
   // when no listing has price history; desktop wrote a header-only CSV and
   // reported success.
   it("guards the desktop compare CSV export against empty history", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-compare-actions.ts",
+      "utf8",
+    );
     const start = text.indexOf("const handleExportCsv");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("const getTrend", start));
@@ -1328,7 +1334,7 @@ describe("desktop chart guard", () => {
       "app/compare/[id].tsx",
       "components/compare/current-prices-table.tsx",
       "components/compare/distributor-selector.tsx",
-      "desktop/src/pages/Compare.tsx",
+      "desktop/src/hooks/use-compare-derived.ts",
     ]) {
       const src = await readFile(file, "utf8");
       expect(src, file).toContain("distributorColor(");
@@ -1501,7 +1507,10 @@ describe("desktop chart guard", () => {
   // QA round 189: mobile's compare toggleSelect toasts when the 5-distributor
   // cap is hit; desktop silently ignored the click.
   it("warns when the desktop compare selection cap is reached", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-compare-data.ts",
+      "utf8",
+    );
     const selector = await readFile(
       "desktop/src/components/compare/DistributorSelector.tsx",
       "utf8",
@@ -1940,7 +1949,10 @@ describe("desktop chart guard", () => {
   // QA round 150: mobile's compare screen exports the price history as CSV;
   // desktop's had only Share / Save image.
   it("exports price history CSV from the desktop compare screen", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-compare-actions.ts",
+      "utf8",
+    );
     const header = await readFile(
       "desktop/src/components/compare/CompareHeader.tsx",
       "utf8",
@@ -1988,7 +2000,10 @@ describe("desktop chart guard", () => {
   // before creating the alert; desktop's handleCrossAlert saved it regardless,
   // so it could never notify.
   it("checks notification permission in the desktop compare cross-alert", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-compare-actions.ts",
+      "utf8",
+    );
     const start = text.indexOf("const handleCrossAlert = useCallback");
     expect(start).toBeGreaterThan(-1);
     const block = text.slice(start, text.indexOf("}, [id, product, alertTarget", start));
@@ -2169,7 +2184,10 @@ describe("desktop chart guard", () => {
   // to the raw price when a listing's currency couldn't be converted, mixing
   // currencies in the comparison. Mobile sorts unconvertible listings last.
   it("does not mix currencies in the desktop compare price sort", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-compare-derived.ts",
+      "utf8",
+    );
     const sortStart = text.indexOf('if (sortBy === "price")');
     expect(sortStart).toBeGreaterThan(-1);
     const sortBlock = text.slice(sortStart, text.indexOf('if (sortBy === "trend")', sortStart));
@@ -2472,9 +2490,13 @@ describe("desktop chart guard", () => {
   // QA round 59: the desktop Compare cross-alert had no double-submit guard.
   it("guards the desktop compare cross-alert against double-submit", async () => {
     const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const actions = await readFile(
+      "desktop/src/hooks/use-compare-actions.ts",
+      "utf8",
+    );
     expect(text).toContain("const [creatingAlert, setCreatingAlert] = useState(false)");
-    const start = text.indexOf("const handleCrossAlert");
-    const block = text.slice(start, text.indexOf("}, [id, product, alertTarget", start));
+    const start = actions.indexOf("const handleCrossAlert");
+    const block = actions.slice(start, actions.indexOf("}, [id, product, alertTarget", start));
     expect(block).toContain("creatingAlert");
     expect(block).toContain("setCreatingAlert(true)");
     expect(block).toContain("setCreatingAlert(false)");

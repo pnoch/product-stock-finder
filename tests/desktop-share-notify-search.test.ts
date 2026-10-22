@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 
 describe("desktop share, notifications, search tags", () => {
   it("shares comparisons as text", async () => {
-    const text = await readFile("desktop/src/pages/Compare.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-compare-actions.ts",
+      "utf8",
+    );
     expect(text).toContain("buildShareText");
     expect(text).toContain("/#/compare/");
   });
