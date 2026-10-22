@@ -21,7 +21,7 @@ describe("shared search options", () => {
       expect(text).not.toContain('name: "modelNumber"');
     });
   }
-  for (const f of ["desktop/src/pages/Search.tsx", "desktop/src/components/SearchModal.tsx"]) {
+  for (const f of ["desktop/src/hooks/use-search-data.ts", "desktop/src/components/SearchModal.tsx"]) {
     it(`${f} defers the search query`, async () => {
       const text = await readFile(f, "utf8");
       expect(text).toContain("useDeferredValue");

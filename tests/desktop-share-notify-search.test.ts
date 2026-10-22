@@ -27,8 +27,12 @@ describe("desktop share, notifications, search tags", () => {
   });
 
   it("filters search by tracked tags with counts", async () => {
-    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    const text = await readFile("desktop/src/hooks/use-search-data.ts", "utf8");
+    const filters = await readFile(
+      "desktop/src/components/search/SearchFilters.tsx",
+      "utf8",
+    );
     expect(text).toContain("countTagMatches");
-    expect(text).toContain("watchlist matches only");
+    expect(filters).toContain("watchlist matches only");
   });
 });

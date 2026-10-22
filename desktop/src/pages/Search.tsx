@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { PRODUCT_CATALOG, getAllCategories, getAllBrands, SEARCH_OPTIONS, sortCatalogByPrice } from "@shared/catalog";
-import Fuse from "fuse.js";
+import { PRODUCT_CATALOG } from "@shared/catalog";
 import { storage } from "../storage";
 import { discoverProduct, toDiscoverErrorState } from "../../../lib/llm-discovery";
 import { discoverListings, customProductSlug } from "../../../lib/listing-discovery";
@@ -9,29 +8,22 @@ import { manualAddProduct, rediscoverProduct } from "../../../lib/manual-add";
 import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import { runDiscoveryLoop } from "../../../lib/bulk-discovery";
 import { nextTagColor } from "../../../lib/tags";
-import type { TagDefinition, DistributorListing } from "../../../lib/types";
-import { TagFilterRow } from "../components/TagFilterRow";
-import { countTagMatches, filterWatchlist } from "../../../lib/watchlist-org";
+import type { DistributorListing } from "../../../lib/types";
 import { useToast } from "../hooks/use-toast";
+import { useSearchData } from "../hooks/use-search-data";
 import { isUrlLike } from "../lib/url-like";
 import { TagPickerDialog } from "../components/search/TagPickerDialog";
 import { BulkImportDialog } from "../components/search/BulkImportDialog";
 import { ManualAddDialog } from "../components/search/ManualAddDialog";
 import { SearchResults } from "../components/search/SearchResults";
 import { SearchHeader } from "../components/search/SearchHeader";
+import { SearchFilters } from "../components/search/SearchFilters";
 
-import { PREVIEW_LIMIT, sortPreviewByStock } from "../../../lib/search-preview";
-import { RECENT_KEY, loadRecent, recordRecent, type CatalogSort, CATALOG_SORT_OPTIONS, PillFilterRow } from "../components/search-chrome";
+import { RECENT_KEY, recordRecent, type CatalogSort } from "../components/search-chrome";
 
 export function Search() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
-  const [watchlistProducts, setWatchlistProducts] = useState<Awaited<ReturnType<typeof storage.getWatchlist>>>([]);
-  const [discoveredProducts, setDiscoveredProducts] = useState<typeof PRODUCT_CATALOG>([]);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [tagDefinitions, setTagDefinitions] = useState<Record<string, TagDefinition>>({});
-  const [pendingTags, setPendingTags] = useState<Record<string, string[]>>({});
   const [tagPickerFor, setTagPickerFor] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
   const [discovering, setDiscovering] = useState(false);
@@ -60,88 +52,30 @@ export function Search() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [catalogSort, setCatalogSort] = useState<CatalogSort>("relevance");
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    storage.getWatchlist().then((p) => { setTrackedIds(new Set(p.map((x) => x.id))); setWatchlistProducts(p); }).catch(() => {});
-    storage.getDiscoveredProducts().then((disc) => {
-      let list = disc.map((p) => ({ id: p.id, name: p.name, modelNumber: p.modelNumber, brand: p.brand, category: p.category, description: p.description ?? "" }));
-      if (list.length > 50) list = list.slice(-50);
-      setDiscoveredProducts(list as typeof PRODUCT_CATALOG);
-    }).catch(() => {});
-    queueMicrotask(() => {
-      setRecentSearches(loadRecent());
-    });
-    storage.getSettings().then((s) => setTagDefinitions((s.tagDefinitions ?? {}) as Record<string, TagDefinition>)).catch(() => {});
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }, []);
-
-  const combinedCatalog = useMemo(() => {
-    if (discoveredProducts.length === 0) return PRODUCT_CATALOG;
-    const ids = new Set(PRODUCT_CATALOG.map((p) => p.id));
-    return [...PRODUCT_CATALOG, ...discoveredProducts.filter((p) => !ids.has(p.id))] as typeof PRODUCT_CATALOG;
-  }, [discoveredProducts]);
-
-  const tagMatchedIds = useMemo(() => {
-    if (searchTagIds.length === 0) return null;
-    const matching = filterWatchlist(watchlistProducts, {
-      region: "all",
-      status: "all",
-      query: "",
-      tagIds: searchTagIds,
-      tagMatchMode: searchTagMode,
-    });
-    return new Set(matching.map((p) => p.id));
-  }, [watchlistProducts, searchTagIds, searchTagMode]);
-
-  const fuse = useMemo(() => new Fuse(combinedCatalog, SEARCH_OPTIONS), [combinedCatalog]);
-  const deferredQuery = useDeferredValue(query);
-
-  const tagCounts = useMemo(() => {
-    return countTagMatches(watchlistProducts, {
-      region: "all",
-      status: "all",
-      query: deferredQuery,
-    });
-  }, [watchlistProducts, deferredQuery]);
-
-  const results = useMemo(() => {
-    let base: typeof combinedCatalog;
-    if (!deferredQuery.trim()) base = sortPreviewByStock(combinedCatalog).slice(0, PREVIEW_LIMIT);
-    else {
-      base = fuse.search(deferredQuery).map((r) => r.item);
-    }
-    if (searchTagIds.length > 0) {
-      // Show watchlist tag matches plus untracked catalog products
-      base = base.filter((p) => tagMatchedIds?.has(p.id) || !trackedIds.has(p.id));
-    }
-    return base;
-  }, [deferredQuery, fuse, combinedCatalog, searchTagIds, tagMatchedIds, trackedIds]);
-
-  const categories = useMemo(() => getAllCategories(), []);
-  const brands = useMemo(() => getAllBrands(), []);
-
-  const categoryBrandFiltered = useMemo(() => {
-    let out = results;
-    if (selectedCategory) out = out.filter((p) => p.category === selectedCategory);
-    if (selectedBrand) out = out.filter((p) => p.brand === selectedBrand);
-    return out;
-  }, [results, selectedCategory, selectedBrand]);
-
-  const sortedResults = useMemo(() => {
-    if (catalogSort === "relevance") return categoryBrandFiltered;
-    const copy = [...categoryBrandFiltered];
-    switch (catalogSort) {
-      case "name":
-        return copy.sort((a, b) => a.name.localeCompare(b.name));
-      case "brand":
-        return copy.sort((a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
-      case "price":
-        return sortCatalogByPrice(copy);
-      default:
-        return copy;
-    }
-  }, [categoryBrandFiltered, catalogSort]);
+  const {
+    trackedIds,
+    setTrackedIds,
+    discoveredProducts,
+    recentSearches,
+    setRecentSearches,
+    tagDefinitions,
+    setTagDefinitions,
+    pendingTags,
+    setPendingTags,
+    inputRef,
+    tagCounts,
+    categories,
+    brands,
+    sortedResults,
+  } = useSearchData({
+    query,
+    searchTagIds,
+    searchTagMode,
+    selectedCategory,
+    selectedBrand,
+    catalogSort,
+  });
 
   const handleAdd = async (product: (typeof PRODUCT_CATALOG)[number]) => {
     const tags = pendingTags[product.id] ?? [];
@@ -174,7 +108,7 @@ export function Search() {
       setDiscoverError(errState);
       showToast(errState.title);
     } finally { setDiscovering(false); }
-  }, [query, discovering, navigate, showToast]);
+  }, [query, discovering, navigate, showToast, setTrackedIds, setRecentSearches]);
 
   const handleCreateTag = useCallback(async () => {
     const name = newTagName.trim();
@@ -191,7 +125,7 @@ export function Search() {
     } catch {
       showToast("Couldn't create tag");
     }
-  }, [newTagName, tagPickerFor, showToast]);
+  }, [newTagName, tagPickerFor, showToast, setTagDefinitions, setPendingTags]);
 
   const bulkPreview = useMemo(() => matchModels(parseModelInput(bulkText)), [bulkText]);
   const bulkNew = useMemo(() => bulkPreview.matched.filter((p) => !trackedIds.has(p.id)), [bulkPreview, trackedIds]);
@@ -385,50 +319,29 @@ export function Search() {
         discoveredCount={discoveredProducts.length}
       />
 
-      {Object.keys(tagDefinitions).length > 0 && (
-        <TagFilterRow
-          tagDefinitions={tagDefinitions}
-          selectedTagIds={searchTagIds}
-          tagMatchMode={searchTagMode}
-          counts={tagCounts}
-          onToggleTag={(id) => setSearchTagIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
-          onChangeMode={setSearchTagMode}
-          onClearAll={() => setSearchTagIds([])}
-        />
-      )}
-
-      <PillFilterRow label="Category" options={categories} selected={selectedCategory} onSelect={setSelectedCategory} />
-      <PillFilterRow label="Brand" options={brands} selected={selectedBrand} onSelect={setSelectedBrand} />
-
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Sort</span>
-        {CATALOG_SORT_OPTIONS.map((opt) => {
-          const active = catalogSort === opt.key;
-          return (
-            <button
-              key={opt.key}
-              onClick={() => setCatalogSort(opt.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${active ? "bg-brand-600 text-white border-brand-600" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
-              aria-label={`Sort by ${opt.label}`}
-              aria-pressed={active}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-        {(selectedCategory || selectedBrand) && (
-          <button onClick={() => { setSelectedCategory(null); setSelectedBrand(null); }} className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 ml-1">Clear</button>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2 text-xs text-gray-500">
-        <span>{sortedResults.length} result{sortedResults.length !== 1 ? "s" : ""}</span>
-        {query.trim() && <span className="px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-900/30 text-brand-600">{query}</span>}
-      </div>
-
-      {searchTagIds.length > 0 && (
-        <p className="text-xs text-gray-500 px-1">Tag filter: showing watchlist matches only — clear to see catalog</p>
-      )}
+      <SearchFilters
+        tagDefinitions={tagDefinitions}
+        searchTagIds={searchTagIds}
+        searchTagMode={searchTagMode}
+        tagCounts={tagCounts}
+        onToggleTag={(id) =>
+          setSearchTagIds((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+          )
+        }
+        onChangeTagMode={setSearchTagMode}
+        onClearTags={() => setSearchTagIds([])}
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        brands={brands}
+        selectedBrand={selectedBrand}
+        onSelectBrand={setSelectedBrand}
+        catalogSort={catalogSort}
+        onCatalogSort={setCatalogSort}
+        resultCount={sortedResults.length}
+        query={query}
+      />
 
       <SearchResults
         results={sortedResults}

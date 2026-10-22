@@ -1366,7 +1366,7 @@ describe("desktop chart guard", () => {
     expect(chrome).toContain("aria-pressed={selected === null}");
     expect(chrome).toContain("aria-pressed={active}");
     for (const file of [
-      "desktop/src/pages/Search.tsx",
+      "desktop/src/components/search/SearchFilters.tsx",
       "desktop/src/components/SearchModal.tsx",
     ]) {
       expect(await readFile(file, "utf8")).toContain("aria-pressed={active}");
