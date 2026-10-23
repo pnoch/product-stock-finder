@@ -251,7 +251,7 @@ describe("desktop/mobile scraper parity", () => {
       const body = src.slice(start, src.indexOf("];", start));
       return [...body.matchAll(/"([^"]+)"/g)].map((m) => m[1]!);
     };
-    const ts = await readFile("lib/scrapers/resilient.ts", "utf8");
+    const ts = await readFile("lib/scrapers/fetch-status.ts", "utf8");
     const tsMarkers = listOf(ts, "export const BLOCKED_MARKERS");
     const rust = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
     const rustMarkers = listOf(rust, "pub const BLOCKED_MARKERS");

@@ -37,7 +37,10 @@ describe("server bundle purity", () => {
 
   it("the storage barrel is the only place that imports AsyncStorage", () => {
     // Anything else server-reachable would drag react-native into the bundle.
-    const src = readFileSync(join(ROOT, "lib", "scrapers", "resilient.ts"), "utf8");
+    const src = readFileSync(
+      join(ROOT, "lib", "scrapers", "breaker-store.ts"),
+      "utf8",
+    );
     expect(src).toContain('from "../storage/adapter"');
     expect(src).not.toMatch(/from\s+"\.\.\/storage"/);
   });
