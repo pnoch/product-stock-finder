@@ -1395,7 +1395,8 @@ describe("desktop chart guard", () => {
   // storage error message.
   it("names the product in the desktop restock-watch confirm", async () => {
     const text = await readFile("desktop/src/pages/RestockWatches.tsx", "utf8");
-    expect(text).toContain("Stop watching for ${productName}? This cannot be undone.");
+    expect(text).toContain("Stop watching for ${productName}?");
+    expect(text).toContain("This cannot be undone.");
     expect(text).toContain("We couldn't remove that watch. Please try again.");
     expect(text).toContain("handleRemove(watch.id, watch.productName)");
   });

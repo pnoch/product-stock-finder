@@ -130,6 +130,7 @@ vi.mock("../src/lib/trpc", () => ({
 }));
 
 import { Alerts } from "../src/pages/Alerts";
+import { ConfirmHost } from "../src/components/app/ConfirmHost";
 import { Watchlist } from "../src/pages/Watchlist";
 import { RestockWatches } from "../src/pages/RestockWatches";
 import { Search } from "../src/pages/Search";
@@ -241,96 +242,61 @@ describe("delete confirmations", () => {
 
   it("does not delete an alert when the confirm is dismissed", async () => {
     mockAlertsPageData();
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-    try {
-      render(<MemoryRouter><Alerts /></MemoryRouter>);
-      await userEvent.click(await screen.findByRole("button", { name: /delete price alert/i }));
-      await waitFor(() => expect(confirm).toHaveBeenCalled());
-      expect(mockStorage.removeAlert).not.toHaveBeenCalled();
-    } finally {
-      confirm.mockRestore();
-    }
+    render(<MemoryRouter><Alerts /><ConfirmHost /></MemoryRouter>);
+    await userEvent.click(await screen.findByRole("button", { name: /delete price alert/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^cancel$/i }));
+    expect(mockStorage.removeAlert).not.toHaveBeenCalled();
   });
 
   it("deletes an alert when the confirm is accepted", async () => {
     mockAlertsPageData();
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-    try {
-      render(<MemoryRouter><Alerts /></MemoryRouter>);
-      await userEvent.click(await screen.findByRole("button", { name: /delete price alert/i }));
-      await waitFor(() => expect(mockStorage.removeAlert).toHaveBeenCalledWith("a1"));
-      expect(confirm).toHaveBeenCalledWith(expect.stringContaining("cannot be undone"));
-    } finally {
-      confirm.mockRestore();
-    }
+    render(<MemoryRouter><Alerts /><ConfirmHost /></MemoryRouter>);
+    await userEvent.click(await screen.findByRole("button", { name: /delete price alert/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^remove$/i }));
+    await waitFor(() => expect(mockStorage.removeAlert).toHaveBeenCalledWith("a1"));
   });
 
   it("does not delete a reminder when the confirm is dismissed", async () => {
     mockAlertsPageData();
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-    try {
-      render(<MemoryRouter><Alerts /></MemoryRouter>);
-      await userEvent.click(await screen.findByRole("button", { name: /show reminders/i }));
-      await userEvent.click(await screen.findByRole("button", { name: /^delete reminder$/i }));
-      await waitFor(() => expect(confirm).toHaveBeenCalled());
-      expect(mockStorage.removeBackOrderReminder).not.toHaveBeenCalled();
-    } finally {
-      confirm.mockRestore();
-    }
+    render(<MemoryRouter><Alerts /><ConfirmHost /></MemoryRouter>);
+    await userEvent.click(await screen.findByRole("button", { name: /show reminders/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^delete reminder$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^cancel$/i }));
+    expect(mockStorage.removeBackOrderReminder).not.toHaveBeenCalled();
   });
 
   it("deletes a reminder when the confirm is accepted", async () => {
     mockAlertsPageData();
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-    try {
-      render(<MemoryRouter><Alerts /></MemoryRouter>);
-      await userEvent.click(await screen.findByRole("button", { name: /show reminders/i }));
-      await userEvent.click(await screen.findByRole("button", { name: /^delete reminder$/i }));
-      await waitFor(() => expect(mockStorage.removeBackOrderReminder).toHaveBeenCalledWith("r1"));
-      expect(confirm).toHaveBeenCalledWith(expect.stringContaining("cannot be undone"));
-    } finally {
-      confirm.mockRestore();
-    }
+    render(<MemoryRouter><Alerts /><ConfirmHost /></MemoryRouter>);
+    await userEvent.click(await screen.findByRole("button", { name: /show reminders/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^delete reminder$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^cancel reminder$/i }));
+    await waitFor(() => expect(mockStorage.removeBackOrderReminder).toHaveBeenCalledWith("r1"));
   });
 
   it("does not delete a stock watch when the confirm is dismissed", async () => {
     mockAlertsPageData();
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-    try {
-      render(<MemoryRouter><Alerts /></MemoryRouter>);
-      await userEvent.click(await screen.findByRole("button", { name: /show reminders/i }));
-      await userEvent.click(await screen.findByRole("button", { name: /delete stock watch/i }));
-      await waitFor(() => expect(confirm).toHaveBeenCalled());
-      expect(mockStorage.removeStockWatch).not.toHaveBeenCalled();
-    } finally {
-      confirm.mockRestore();
-    }
+    render(<MemoryRouter><Alerts /><ConfirmHost /></MemoryRouter>);
+    await userEvent.click(await screen.findByRole("button", { name: /show reminders/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /delete stock watch/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^cancel$/i }));
+    expect(mockStorage.removeStockWatch).not.toHaveBeenCalled();
   });
 
   it("does not remove a restock watch when the confirm is dismissed", async () => {
     mockStorage.getStockWatches.mockResolvedValue([watchFixture]);
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-    try {
-      render(<MemoryRouter><RestockWatches /></MemoryRouter>);
-      await userEvent.click(await screen.findByRole("button", { name: /remove CRS326-24G-2S\+RM from restock watches/i }));
-      await waitFor(() => expect(confirm).toHaveBeenCalled());
-      expect(mockStorage.removeStockWatch).not.toHaveBeenCalled();
-    } finally {
-      confirm.mockRestore();
-    }
+    render(<MemoryRouter><RestockWatches /><ConfirmHost /></MemoryRouter>);
+    await userEvent.click(await screen.findByRole("button", { name: /remove CRS326-24G-2S\+RM from restock watches/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^cancel$/i }));
+    expect(mockStorage.removeStockWatch).not.toHaveBeenCalled();
   });
 
   it("removes a restock watch when the confirm is accepted", async () => {
     mockStorage.getStockWatches.mockResolvedValue([watchFixture]);
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-    try {
-      render(<MemoryRouter><RestockWatches /></MemoryRouter>);
-      await userEvent.click(await screen.findByRole("button", { name: /remove CRS326-24G-2S\+RM from restock watches/i }));
-      await waitFor(() => expect(mockStorage.removeStockWatch).toHaveBeenCalledWith("w1"));
-      expect(confirm).toHaveBeenCalledWith(expect.stringContaining("cannot be undone"));
-    } finally {
-      confirm.mockRestore();
-    }
+    render(<MemoryRouter><RestockWatches /><ConfirmHost /></MemoryRouter>);
+    await userEvent.click(await screen.findByRole("button", { name: /remove CRS326-24G-2S\+RM from restock watches/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^stop watching$/i }));
+    await waitFor(() => expect(mockStorage.removeStockWatch).toHaveBeenCalledWith("w1"));
   });
 });
 

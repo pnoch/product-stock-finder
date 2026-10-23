@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { storage } from "../storage";
+import { confirmAction } from "../lib/confirm";
 import type { BackOrderReminder } from "../../../lib/types";
 
 export function useRemindersData({
@@ -36,7 +37,15 @@ export function useRemindersData({
   }, [loadReminders]);
 
   const handleDeleteReminder = async (id: string) => {
-    if (!window.confirm("Cancel this reminder? This cannot be undone.")) return;
+    if (
+      !(await confirmAction({
+        title: "Cancel this reminder?",
+        message: "This cannot be undone.",
+        confirmLabel: "Cancel reminder",
+        destructive: true,
+      }))
+    )
+      return;
     try {
       await storage.removeBackOrderReminder(id);
       setReminders((prev) => prev.filter((r) => r.id !== id));
@@ -46,7 +55,15 @@ export function useRemindersData({
   };
 
   const handleDeleteWatch = async (id: string) => {
-    if (!window.confirm("Stop watching for this restock? This cannot be undone.")) return;
+    if (
+      !(await confirmAction({
+        title: "Stop watching for this restock?",
+        message: "This cannot be undone.",
+        confirmLabel: "Stop watching",
+        destructive: true,
+      }))
+    )
+      return;
     try {
       await storage.removeStockWatch(id);
       setWatches((prev) => prev.filter((w) => w.id !== id));

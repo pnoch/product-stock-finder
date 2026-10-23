@@ -66,7 +66,7 @@ export async function runDiscoveryLoop(deps: {
   discover: DiscoverFn;
   onProgress?: (done: number, total: number, modelNumber: string) => void;
   shouldCancel?: () => boolean;
-  confirmContinue?: (remaining: number) => boolean;
+  confirmContinue?: (remaining: number) => boolean | Promise<boolean>;
 }): Promise<{ nextIndex: number; discovered: number }> {
   const { items, batchSize, storage, discover, onProgress, shouldCancel, confirmContinue } = deps;
   let nextIndex = 0;
@@ -89,7 +89,7 @@ export async function runDiscoveryLoop(deps: {
     // would spin forever when confirmContinue keeps returning true.
     if (nextIndex === before) break;
     const remaining = items.length - nextIndex;
-    if (remaining > 0 && confirmContinue && !confirmContinue(remaining)) break;
+    if (remaining > 0 && confirmContinue && !(await confirmContinue(remaining))) break;
   }
   return { nextIndex, discovered };
 }

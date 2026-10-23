@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Trash2 } from "lucide-react";
 import { storage } from "../storage";
+import { confirmAction } from "../lib/confirm";
 import { useToast } from "../hooks/use-toast";
 import { getDistributorById } from "@shared/distributors";
 import { StockBadge } from "../components/StockBadge";
@@ -37,7 +38,15 @@ export function RestockWatches() {
   const handleRemove = useCallback(async (id: string, productName: string) => {
     // Name the product like mobile does ("Stop watching for X?"); the generic
     // wording gave no indication of which watch was about to be removed.
-    if (!window.confirm(`Stop watching for ${productName}? This cannot be undone.`)) return;
+    if (
+      !(await confirmAction({
+        title: `Stop watching for ${productName}?`,
+        message: "This cannot be undone.",
+        confirmLabel: "Stop watching",
+        destructive: true,
+      }))
+    )
+      return;
     try {
       await storage.removeStockWatch(id);
       setWatches((prev) => prev.filter((w) => w.id !== id));

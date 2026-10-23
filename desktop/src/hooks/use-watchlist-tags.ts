@@ -3,6 +3,7 @@ import { log } from "@shared/log";
 import { TAG_PALETTE, nextTagColor } from "../../../lib/tags";
 import type { Product, TagDefinition } from "../../../lib/types";
 import { storage } from "../storage";
+import { confirmAction } from "../lib/confirm";
 
 type Options = {
   settings: { tagDefinitions?: Record<string, TagDefinition> } | null;
@@ -110,9 +111,12 @@ export function useWatchlistTags({
     const def = tagDefinitions[id];
     if (!def) return;
     if (
-      !window.confirm(
-        `Delete "${def.name}"? It will be removed from all products.`,
-      )
+      !(await confirmAction({
+        title: `Delete "${def.name}"?`,
+        message: "It will be removed from all products.",
+        confirmLabel: "Delete",
+        destructive: true,
+      }))
     )
       return;
     setManageError(null);

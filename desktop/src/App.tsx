@@ -11,6 +11,7 @@ import { HeaderBar } from "./components/app/HeaderBar";
 import { ShortcutsOverlay } from "./components/app/ShortcutsOverlay";
 import { KeyboardShortcuts } from "./components/app/KeyboardShortcuts";
 import { NotificationRouter } from "./components/app/NotificationRouter";
+import { ConfirmHost } from "./components/app/ConfirmHost";
 import { trpc, trpcHeaders } from "./lib/trpc";
 import { setDiscoveryHeadersProvider } from "../../lib/llm-discovery";
 
@@ -109,6 +110,7 @@ export default function App() {
             open={searchModalOpen}
             onClose={() => setSearchModalOpen(false)}
           />
+          <ConfirmHost />
           <div className="flex h-screen bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100">
             <Sidebar />
             <main className="flex-1 overflow-auto bg-gray-50/50 dark:bg-gray-900/20">

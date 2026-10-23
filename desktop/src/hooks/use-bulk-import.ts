@@ -4,6 +4,7 @@ import { matchModels, parseModelInput } from "../../../lib/bulk-import";
 import { runDiscoveryLoop } from "../../../lib/bulk-discovery";
 import { discoverListings } from "../../../lib/listing-discovery";
 import type { DistributorListing } from "../../../lib/types";
+import { confirmAction } from "../lib/confirm";
 
 export function useBulkImport({
   trackedIds,
@@ -49,7 +50,11 @@ export function useBulkImport({
           storage: rediscoverStorage,
           discover: discoverListings,
           confirmContinue: (remaining) =>
-            window.confirm(`Fetch prices for the remaining ${remaining} product${remaining === 1 ? "" : "s"}?`),
+            confirmAction({
+              title: "Continue discovery?",
+              message: `Fetch prices for the remaining ${remaining} product${remaining === 1 ? "" : "s"}?`,
+              confirmLabel: "Continue",
+            }),
         });
         discovered = loop.discovered;
       }

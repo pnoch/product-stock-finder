@@ -5,6 +5,7 @@ import type {
   Product,
 } from "../../../lib/types";
 import { storage } from "../storage";
+import { confirmAction } from "../lib/confirm";
 
 type Options = {
   products: Product[];
@@ -76,7 +77,14 @@ export function useWatchlistRemove({
   const handleRemove = async (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
     const product = products.find((p) => p.id === productId);
-    if (!window.confirm("Remove this product from your watchlist?")) return;
+    if (
+      !(await confirmAction({
+        title: "Remove this product from your watchlist?",
+        confirmLabel: "Remove",
+        destructive: true,
+      }))
+    )
+      return;
     try {
       // Capture everything the removal cascade will delete so Undo can restore
       // it (otherwise undo silently loses the product's alerts, reminders, and
@@ -109,9 +117,11 @@ export function useWatchlistRemove({
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     if (
-      !window.confirm(
-        `Remove ${ids.length} product${ids.length !== 1 ? "s" : ""} from watchlist?`,
-      )
+      !(await confirmAction({
+        title: `Remove ${ids.length} product${ids.length !== 1 ? "s" : ""} from watchlist?`,
+        confirmLabel: "Remove",
+        destructive: true,
+      }))
     )
       return;
     try {

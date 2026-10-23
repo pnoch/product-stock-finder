@@ -44,14 +44,14 @@ describe("bulk discovery UI", () => {
       "utf8",
     );
     expect(search).toContain("runDiscoveryLoop");
-    expect(search).toContain("window.confirm");
+    expect(search).toContain("confirmAction");
     expect(search).toContain("Fetch prices for the remaining");
     const modal = readFileSync(
       "desktop/src/hooks/use-bulk-import.ts",
       "utf8",
     );
     expect(modal).toContain("runDiscoveryLoop");
-    expect(modal).toContain("window.confirm");
+    expect(modal).toContain("confirmAction");
     expect(modal).toContain("Fetch prices for the remaining");
   });
 

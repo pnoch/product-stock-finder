@@ -1,4 +1,5 @@
 import { storage } from "../storage";
+import { confirmAction } from "../lib/confirm";
 
 export function useAlertMutations({
   refreshAlerts,
@@ -20,7 +21,15 @@ export function useAlertMutations({
   };
 
   const handleDeleteAlert = async (id: string) => {
-    if (!window.confirm("Remove this price alert? This cannot be undone.")) return;
+    if (
+      !(await confirmAction({
+        title: "Remove this price alert?",
+        message: "This cannot be undone.",
+        confirmLabel: "Remove",
+        destructive: true,
+      }))
+    )
+      return;
     try {
       await storage.removeAlert(id);
       showToast("Alert deleted");
