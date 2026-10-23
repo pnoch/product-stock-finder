@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Animated,
-  SectionList,
-  RefreshControl,
-  Platform,
-} from "react-native";
+import { Animated, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -43,12 +38,10 @@ import {
   Product,
 } from "@/lib/types";
 import { getAllRegions } from "@/lib/region-filter";
-import {
-} from "@/lib/watchlist-org";
-import { WatchlistRow } from "@/components/watchlist/watchlist-row";
-import { WatchlistSectionHeader } from "@/components/watchlist/watchlist-section-header";
 import { WatchlistLoadingSkeleton } from "@/components/watchlist/watchlist-loading-skeleton";
 import { WatchlistSheets } from "@/components/watchlist/watchlist-sheets";
+import { WatchlistSectionList } from "@/components/watchlist/watchlist-section-list";
+import { useWatchlistRenderers } from "@/hooks/use-watchlist-renderers";
 import { isAcquired } from "@/lib/acquired";
 import { WatchlistHeader } from "@/components/watchlist/watchlist-header";
 import { EmptyState } from "@/components/watchlist/empty-state";
@@ -297,137 +290,29 @@ export default function WatchlistScreen() {
     },
     [enterSelection],
   );
-  const renderSectionHeader = useCallback(
-    ({
-      section,
-    }: {
-      section: { key: string; title: string; products: Product[] };
-    }) => (
-      <WatchlistSectionHeader
-        section={section}
-        groupMode={groupMode}
-        tagDefinitions={tagDefinitions}
-      />
-    ),
-    [groupMode, tagDefinitions],
-  );
-
-  // Memoized so unrelated state changes (sheets, query, prefs) don't rebuild and
-  // re-render every visible row; combined with the stabilized `liveProducts` in
-  // use-live-prices this keeps the SectionList cheap on large watchlists.
-  const renderItem = useCallback(
-    ({ item }: { item: Product & { _sectionKey?: string } }) => (
-      <WatchlistRow
-        product={item}
-        displayCurrency={displayCurrency}
-        selectionMode={selectionMode}
-        insight={
-          insightMap.has(item.id)
-            ? {
-                atAllTimeLow: insightMap.get(item.id)!.atAllTimeLow,
-                dropStreak: insightMap.get(item.id)!.dropStreak,
-              }
-            : undefined
-        }
-        dealScore={dealScoreMap.get(item.id) ?? undefined}
-        selected={selectedIds.has(item.id)}
-        findingPrices={findingIds.has(item.id)}
-        hasAlert={alertProductIds.has(item.id)}
-        isAcquired={isAcquired(item)}
-        tagDefinitions={tagDefinitions}
-        onPress={() => handleProductPress(item)}
-        onLongPress={() => handleProductLongPress(item)}
-        onDelete={() => handleDelete(item)}
-        onTagPress={() => setPickerProduct(item)}
-        onFindPrices={() => handleFindPrices(item)}
-        onToggleAcquired={() => void handleToggleAcquired(item)}
-        onToggleAlert={() => handleSwipeAlert(item)}
-      />
-    ),
-    [
-      selectionMode,
-      displayCurrency,
-      insightMap,
-      dealScoreMap,
-      selectedIds,
-      findingIds,
-      tagDefinitions,
-      handleProductPress,
-      handleProductLongPress,
-      handleDelete,
-      handleFindPrices,
-      handleToggleAcquired,
-      handleSwipeAlert,
-      alertProductIds,
-    ],
-  );
+  const { renderSectionHeader, renderItem } = useWatchlistRenderers({
+    groupMode,
+    tagDefinitions,
+    selectionMode,
+    displayCurrency,
+    insightMap,
+    dealScoreMap,
+    selectedIds,
+    findingIds,
+    alertProductIds,
+    handleProductPress,
+    handleProductLongPress,
+    handleDelete,
+    setPickerProduct,
+    handleFindPrices,
+    handleToggleAcquired,
+    handleSwipeAlert,
+  });
 
   if (!loaded) return <WatchlistLoadingSkeleton />;
 
-  return (
-    <ScreenContainer>
-      <Animated.View
-        style={{
-          opacity: headerCollapse.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.6, 1] }),
-          transform: [
-            {
-              translateY: scrollY.interpolate({ inputRange: [0, 80], outputRange: [0, -10], extrapolate: "clamp" }),
-            },
-          ],
-        }}
-      >
-        <WatchlistHeader
-          mode={selectionMode ? "selection" : "normal"}
-          selectedCount={selectedIds.size}
-          watchlistLength={watchlist.length}
-          filteredCount={filteredWatchlist.length}
-          isRefreshingAny={isRefreshingAny}
-          checking={checking}
-          checkProgress={checkProgress}
-          onAnalysis={() => router.push("/distributor-analysis")}
-          onRefresh={handleRefreshAll}
-          onCheckNow={handleCheckNow}
-          onAdd={() => router.push("/search")}
-          onImport={handleImportCsv}
-          onBulkDelete={handleBulkDelete}
-          onBulkTag={() => setBulkTagVisible(true)}
-          onExitSelection={exitSelection}
-          onShare={handleShareWatchlist}
-        />
-      </Animated.View>
+  const listHeader = (
 
-                                          <SectionList
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={true}
-        scrollEventThrottle={16}
-        // QA round 8: scroll gestures were dead on device with
-        // removeClippedSubviews enabled on Android.
-        removeClippedSubviews={false}
-        sections={sectionData}
-        keyExtractor={(item: Product & { _sectionKey?: string }) => `${item.id}-${item._sectionKey ?? ''}`}
-        extraData={groupMode}
-        initialNumToRender={8}
-        windowSize={7}
-        maxToRenderPerBatch={8}
-        updateCellsBatchingPeriod={50}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingBottom: 24,
-          flexGrow: 1,
-        }}
-        stickySectionHeadersEnabled={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshingAny}
-            onRefresh={() => void refreshAll()}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-            progressBackgroundColor={colors.surface}
-            titleColor={colors.muted}
-          />
-        }
-        ListHeaderComponent={
           <WatchlistListHeader
             watchlistLength={watchlist.length}
             summary={summary}
@@ -499,8 +384,10 @@ export default function WatchlistScreen() {
               />
             }
           />
-        }
-        ListEmptyComponent={
+  );
+
+  const listEmpty = (
+
           <EmptyState
             query={query}
             statusFilter={statusFilter}
@@ -512,7 +399,48 @@ export default function WatchlistScreen() {
             onClearFilters={clearAllFilters}
             onAddProduct={() => router.push("/search")}
           />
-        }
+  );
+
+  return (
+    <ScreenContainer>
+      <Animated.View
+        style={{
+          opacity: headerCollapse.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.6, 1] }),
+          transform: [
+            {
+              translateY: scrollY.interpolate({ inputRange: [0, 80], outputRange: [0, -10], extrapolate: "clamp" }),
+            },
+          ],
+        }}
+      >
+        <WatchlistHeader
+          mode={selectionMode ? "selection" : "normal"}
+          selectedCount={selectedIds.size}
+          watchlistLength={watchlist.length}
+          filteredCount={filteredWatchlist.length}
+          isRefreshingAny={isRefreshingAny}
+          checking={checking}
+          checkProgress={checkProgress}
+          onAnalysis={() => router.push("/distributor-analysis")}
+          onRefresh={handleRefreshAll}
+          onCheckNow={handleCheckNow}
+          onAdd={() => router.push("/search")}
+          onImport={handleImportCsv}
+          onBulkDelete={handleBulkDelete}
+          onBulkTag={() => setBulkTagVisible(true)}
+          onExitSelection={exitSelection}
+          onShare={handleShareWatchlist}
+        />
+      </Animated.View>
+
+      <WatchlistSectionList
+        sectionData={sectionData}
+        groupMode={groupMode}
+        isRefreshingAny={isRefreshingAny}
+        refreshAll={refreshAll}
+        colors={colors}
+        listHeader={listHeader}
+        listEmpty={listEmpty}
         renderSectionHeader={renderSectionHeader}
         renderItem={renderItem}
       />

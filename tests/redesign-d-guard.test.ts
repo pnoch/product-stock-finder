@@ -12,7 +12,7 @@ describe("redesign D wiring", () => {
   });
 
   it("watchlist wires swipe handlers", () => {
-    const src = read("app/(tabs)/watchlist.tsx");
+    const src = read("hooks/use-watchlist-renderers.tsx");
     expect(src).toContain("onToggleAlert");
     expect(src).toContain("onToggleAcquired");
   });

@@ -30,7 +30,10 @@ describe("bulk discovery UI", () => {
     expect(card).toContain("onFindPrices");
     expect(card).toContain("No prices — Find");
     expect(card).toContain("stopPropagation");
-    const screen = readFileSync("app/(tabs)/watchlist.tsx", "utf8");
+    const screen = readFileSync(
+      "hooks/use-watchlist-renderers.tsx",
+      "utf8",
+    );
     expect(screen).toContain("onFindPrices={");
     expect(screen).toContain("findingIds");
   });

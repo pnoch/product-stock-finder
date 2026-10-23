@@ -188,7 +188,10 @@ describe("best-distributor lowest-ever badge uses the display currency", () => {
 // Round 264: the card's Delete button removed with no undo at all; both paths
 // now share `removeProductWithUndo`.
 describe("watchlist undo restores the deleted product's cascade", () => {
-  const src = readFileSync(path.join(process.cwd(), "app/(tabs)/watchlist.tsx"), "utf8");
+  const src = readFileSync(
+    path.join(process.cwd(), "hooks/use-watchlist-renderers.tsx"),
+    "utf8",
+  );
   const removeSrc = readFileSync(
     path.join(process.cwd(), "hooks/use-watchlist-remove.ts"),
     "utf8",
