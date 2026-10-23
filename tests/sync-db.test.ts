@@ -273,7 +273,7 @@ describe("shouldAcceptSyncWrite", () => {
     // upsert embeds the same rule. This pins the SQL text to prevent the two
     // from silently diverging again.
     const { readFile } = await import("node:fs/promises");
-    const source = await readFile("server/sync-db.ts", "utf8");
+    const source = await readFile("server/sync-upsert.ts", "utf8");
     // Legacy-NULL branch must compare against the server stamp, never
     // unconditionally accept.
     expect(source).toContain(
