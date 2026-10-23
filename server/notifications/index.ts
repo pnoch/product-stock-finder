@@ -57,7 +57,7 @@ async function processHealthEvents(
               ),
             )
         : [];
-    const existingSet = new Set(existingRows.map((r: any) => r.dedupKey));
+    const existingSet = new Set(existingRows.map((r) => r.dedupKey));
     const seen = new Set<string>();
     for (const event of healthEvents) {
       const dedupKey = dedupKeyForHealth(event, event.distributorId);
@@ -244,7 +244,7 @@ export async function pullPendingEvents(
       await tx
         .insert(notificationEventDeliveries)
         .values(
-          selected.map((r: any) => ({
+          selected.map((r) => ({
             deviceId,
             eventId: r.id,
             deliveredAt: Date.now(),

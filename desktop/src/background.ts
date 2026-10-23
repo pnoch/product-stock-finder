@@ -33,16 +33,16 @@ export function onListingUpdated(
     lastChecked: string;
   }) => void,
 ): Promise<UnlistenFn> {
-  return listen("listing-updated", (event) => {
-    callback(event.payload as any);
+  return listen<Parameters<typeof callback>[0]>("listing-updated", (event) => {
+    callback(event.payload);
   });
 }
 
 export function onPricesChecked(
-  callback: (results: any[]) => void,
+  callback: (results: unknown[]) => void,
 ): Promise<UnlistenFn> {
-  return listen("prices-checked", (event) => {
-    callback(event.payload as any);
+  return listen<unknown[]>("prices-checked", (event) => {
+    callback(event.payload);
   });
 }
 
@@ -51,7 +51,7 @@ export function onPricesChecked(
 export function onPriceDropsTriggered(
   callback: (events: { alertId: string; productId: string; productName: string; bestPrice: number; currency: string; targetPrice: number; isRise?: boolean }[]) => void,
 ): Promise<UnlistenFn> {
-  return listen("price-drops-triggered", (event) => {
-    callback(event.payload as any);
+  return listen<Parameters<typeof callback>[0]>("price-drops-triggered", (event) => {
+    callback(event.payload);
   });
 }

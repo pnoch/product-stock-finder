@@ -148,7 +148,17 @@ export async function discoverProduct(
     }
     throw new DiscoveryError("server", `Discovery failed (${res.status})`, { status: res.status });
   }
-  let body: { result?: { data?: { json?: { product?: any; retailers?: any[] } } } };
+  type DiscoveryPayload = {
+    result?: {
+      data?: {
+        json?: {
+          product?: Omit<Product, "addedAt" | "isWatched" | "listings">;
+          retailers?: Distributor[];
+        };
+      };
+    };
+  };
+  let body: DiscoveryPayload;
   try {
     body = (await res.json()) as typeof body;
   } catch (e) {
@@ -164,7 +174,7 @@ export async function discoverProduct(
     listings: [],
   };
 
-  const retailers: Distributor[] = (data.retailers ?? []).map((r: any) => ({
+  const retailers: Distributor[] = (data.retailers ?? []).map((r) => ({
     ...r,
     paymentMethods: r.paymentMethods ?? [],
     shippingCosts: r.shippingCosts ?? {},
