@@ -90,24 +90,30 @@ export function useLiveProduct(
 
   const results = useQueries({ queries });
 
+  // `results` is a new array on every render; key the derived listings on
+  // `dataUpdatedAt` so they only recompute when a query actually resolves.
+  const persistKey = useMemo(
+    () => results.map((r) => r.dataUpdatedAt).join("|"),
+    [results],
+  );
+  // Intentional cache key: `results` changes every render, `persistKey` only
+  // when a query resolves new data.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableResults = useMemo(() => results, [persistKey]);
+
   const listings = useMemo(
     () =>
       composeLiveListings(
         seedListings,
-        results.map((r) => r.data ?? null),
+        stableResults.map((r) => r.data ?? null),
       ),
-    [seedListings, results],
+    [seedListings, stableResults],
   );
 
   const listingsRef = useRef<DistributorListing[]>([]);
   useEffect(() => {
     listingsRef.current = listings;
   }, [listings]);
-
-  const persistKey = useMemo(
-    () => results.map((r) => r.dataUpdatedAt).join("|"),
-    [results],
-  );
 
   const hasLiveData = useMemo(
     () => results.some((r) => r.data != null),
@@ -207,12 +213,6 @@ export function useLiveWatchlist() {
 
   const results = useQueries({ queries });
 
-  const resultsRef = useRef(results);
-  // Keep the latest results available to the cache-keyed memo below. Moving
-  // this into an effect would make the memo read the previous render's results.
-  // eslint-disable-next-line react-hooks/refs
-  resultsRef.current = results;
-
   // `results` is a new array on every render (useQueries), so key the derived
   // values on dataUpdatedAt (which changes only when a query resolves new data)
   // instead — otherwise `liveProducts` is new every render and invalidates every
@@ -221,10 +221,12 @@ export function useLiveWatchlist() {
     () => results.map((r) => r.dataUpdatedAt).join("|"),
     [results],
   );
+  // Intentional cache key: `results` changes every render, `persistKey` only
+  // when a query resolves new data.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableResults = useMemo(() => results, [persistKey]);
 
   const liveProducts = useMemo(() => {
-     
-    const current = resultsRef.current;
     const next: Product[] = [];
     let idx = 0;
     for (const p of products) {
@@ -233,8 +235,7 @@ export function useLiveWatchlist() {
         continue;
       }
       const count = p.listings?.length ?? 0;
-      // eslint-disable-next-line react-hooks/refs -- intentional cache-key read; see above.
-      const productResults = current
+      const productResults = stableResults
         .slice(idx, idx + count)
         .map((r) => r.data ?? null);
       idx += count;
@@ -244,15 +245,7 @@ export function useLiveWatchlist() {
       });
     }
     return next;
-    // `persistKey` is an intentional cache key: the callback reads `results`
-    // through `resultsRef`, so the rule cannot see the dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, persistKey]);
-
-  const liveProductsRef = useRef<Product[]>([]);
-  useEffect(() => {
-    liveProductsRef.current = liveProducts;
-  }, [liveProducts]);
+  }, [products, stableResults]);
 
   const hasLiveData = useMemo(
     () => results.some((r) => r.data != null),
@@ -262,13 +255,11 @@ export function useLiveWatchlist() {
   useEffect(() => {
     if (!loaded || !hasLiveData) return;
     const timer = setTimeout(() => {
-      const ref = liveProductsRef.current;
-      const res = resultsRef.current;
       let idx = 0;
-      for (const p of ref) {
+      for (const p of liveProducts) {
         if (!isAutomaticProduct(p)) continue;
         const count = p.listings?.length ?? 0;
-        const hasLive = res
+        const hasLive = stableResults
           .slice(idx, idx + count)
           .some((r) => r.data != null);
         idx += count;
@@ -276,7 +267,7 @@ export function useLiveWatchlist() {
       }
     }, PERSIST_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [loaded, persistKey, hasLiveData]);
+  }, [loaded, liveProducts, stableResults, hasLiveData]);
 
   const refreshAll = useCallback(async () => {
     // Read the watchlist fresh and derive the keys from it rather than the
