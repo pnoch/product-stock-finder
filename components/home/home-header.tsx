@@ -50,7 +50,7 @@ export function HomeHeader({
             onPress={onOpenProfile}
             accessibilityLabel="Open profile and settings"
             accessibilityRole="button"
-            style={{ padding: 8 }}
+            style={{ padding: 10 }}
           >
             <IconSymbol name="gearshape.fill" size={24} color={colors.muted} />
           </TouchableOpacity>
@@ -60,9 +60,9 @@ export function HomeHeader({
             accessibilityRole="button"
             style={{
               backgroundColor: colors.primary,
-              borderRadius: 20,
-              width: 40,
-              height: 40,
+              borderRadius: 22,
+              width: 44,
+              height: 44,
               alignItems: "center",
               justifyContent: "center",
             }}
