@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
-import { getDb, getUserByEmail, getUserById } from "../db";
+import { getDb, getUserByEmail, getUserById, getUsersByIds } from "../db";
 import {
   sharedWatchlists,
   sharedWatchlistMembers,
@@ -267,21 +267,21 @@ export const sharedWatchlistsRouter = router({
       const memberRows = await db.select().from(sharedWatchlistMembers).where(eq(sharedWatchlistMembers.token, input.token));
       const isMember = memberRows.some((m) => m.userId === ctx.user.id);
       if (!isOwner && !isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not a member" });
-      // Resolve display names for the roster UI — the raw rows only carry
-      // userId/role, which the owner cannot map to a person.
-      const members = await Promise.all(
-        memberRows.map(async (m) => {
-          const u = await getUserById(m.userId);
-          return {
-            userId: m.userId,
-            role: m.role,
-            name: u?.name ?? null,
-            // Only the owner (who manages the roster) sees member emails;
-            // a plain member viewing the share must not harvest co-members' PII.
-            email: isOwner ? (u?.email ?? null) : null,
-          };
-        }),
-      );
+      // Resolve display names for the roster UI in one query — the raw rows
+      // only carry userId/role, which the owner cannot map to a person.
+      const userRows = await getUsersByIds(memberRows.map((m) => m.userId));
+      const userById = new Map(userRows.map((u) => [u.id, u]));
+      const members = memberRows.map((m) => {
+        const u = userById.get(m.userId);
+        return {
+          userId: m.userId,
+          role: m.role,
+          name: u?.name ?? null,
+          // Only the owner (who manages the roster) sees member emails;
+          // a plain member viewing the share must not harvest co-members' PII.
+          email: isOwner ? (u?.email ?? null) : null,
+        };
+      });
       return { members } as const;
     }),
   inviteByEmail: protectedProcedure

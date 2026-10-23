@@ -8,6 +8,7 @@ export {
   updateUserPasswordHash,
   createUserWithPassword,
   getUserById,
+  getUsersByIds,
   updateUserPasswordHashById,
   deleteUserById,
 } from "./db-users";

@@ -161,6 +161,14 @@ export async function getUserById(id: number) {
   return rows[0] ?? null;
 }
 
+// Batched lookup for rosters and other list screens: one query instead of N.
+export async function getUsersByIds(ids: number[]) {
+  if (ids.length === 0) return [];
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(users).where(inArray(users.id, ids));
+}
+
 export async function updateUserPasswordHashById(
   id: number,
   passwordHash: string,

@@ -4,16 +4,18 @@ vi.mock("../server/db", () => ({
   getDb: vi.fn(),
   getUserByEmail: vi.fn(),
   getUserById: vi.fn(),
+  getUsersByIds: vi.fn(),
 }));
 
 import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
 import { sharedWatchlists, sharedWatchlistMembers } from "../drizzle/schema";
-import { getDb, getUserByEmail, getUserById } from "../server/db";
+import { getDb, getUserByEmail, getUserById, getUsersByIds } from "../server/db";
 
 const mockedGetDb = vi.mocked(getDb);
 const mockedGetUserByEmail = vi.mocked(getUserByEmail);
 const mockedGetUserById = vi.mocked(getUserById);
+const mockedGetUsersByIds = vi.mocked(getUsersByIds);
 
 function createAuthedContext(userId = 1): TrpcContext {
   return {
@@ -341,7 +343,7 @@ describe("sharedWatchlists router", () => {
         memberRows: [{ userId: 2, role: "viewer" }],
       }) as never,
     );
-    mockedGetUserById.mockResolvedValue({ id: 2, name: "Bob", email: "bob@example.com" } as never);
+    mockedGetUsersByIds.mockResolvedValue([{ id: 2, name: "Bob", email: "bob@example.com" }] as never);
     const owner = appRouter.createCaller(createAuthedContext(1));
     await expect(owner.sharedWatchlists.members({ token: "tok123" })).resolves.toMatchObject({
       members: [{ userId: 2, role: "viewer", name: "Bob", email: "bob@example.com" }],
