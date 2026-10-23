@@ -1377,7 +1377,7 @@ describe("desktop chart guard", () => {
   // could disagree). All now use the shared distributorColor.
   it("assigns distributor colors from the shared helper", async () => {
     for (const file of [
-      "app/compare/[id].tsx",
+      "hooks/use-compare-screen.ts",
       "components/compare/current-prices-table.tsx",
       "components/compare/distributor-selector.tsx",
       "desktop/src/hooks/use-compare-derived.ts",

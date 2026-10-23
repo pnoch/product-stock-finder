@@ -560,7 +560,10 @@ describe("product detail alert creation guards against double-submit", () => {
 // so a rapid double-tap created two identical alerts.
 describe("compare cross-alert guards against double-submit", () => {
   it("mobile sets and checks a creatingAlert guard", () => {
-    const src = readFileSync(path.join(process.cwd(), "app/compare/[id].tsx"), "utf8");
+    const src = readFileSync(
+      path.join(process.cwd(), "hooks/use-compare-screen.ts"),
+      "utf8",
+    );
     expect(src).toContain("const [creatingAlert, setCreatingAlert] = useState(false)");
     const start = src.indexOf("const handleCrossAlert");
     const block = src.slice(start, src.indexOf("}, [listings, id, productName", start));
@@ -722,12 +725,19 @@ describe("product detail keeps its notes and distributor targets", () => {
 // refactor dropped it. Compare is now the chart surface, so the export moved
 // there; the modal is deleted rather than left as unreachable dead code.
 describe("price-history CSV export lives on the Compare screen", () => {
-  const compare = readFileSync(path.join(process.cwd(), "app/compare/[id].tsx"), "utf8");
+  const compare = readFileSync(
+    path.join(process.cwd(), "hooks/use-compare-screen.ts"),
+    "utf8",
+  );
 
   it("exports price history via the shared csv helper", () => {
     expect(compare).toContain("priceHistoryToCsv");
     expect(compare).toContain("exportCsvFile");
-    expect(compare).toMatch(/accessibilityLabel="Export price history as CSV"/);
+    const page = readFileSync(
+      path.join(process.cwd(), "app/compare/[id].tsx"),
+      "utf8",
+    );
+    expect(page).toMatch(/accessibilityLabel="Export price history as CSV"/);
   });
 
   it("no longer ships the unreachable PriceChartModal", () => {

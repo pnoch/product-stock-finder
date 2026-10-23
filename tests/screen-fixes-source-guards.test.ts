@@ -42,7 +42,7 @@ describe("screen-level fixes", () => {
   });
 
   it("the compare screen latches the selection on manual/param changes", () => {
-    const src = read("app/compare/[id].tsx");
+    const src = read("hooks/use-compare-screen.ts");
     // The default selection is derived from the distributor deep link or the
     // top-3 by price; manual toggles take over via userSelected.
     expect(src).toContain("const [userSelected, setUserSelected]");
