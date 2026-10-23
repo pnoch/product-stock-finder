@@ -3,11 +3,7 @@ import { Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { formatPrice } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
-import { addAlert } from "@/lib/storage";
-import {
-  ensureNotificationPermission,
-  schedulePriceAlert,
-} from "@/lib/notifications";
+import { createPriceAlert } from "@/lib/create-price-alert";
 import { showAlert } from "@/lib/alert";
 import { suggestAlertPrices } from "@/lib/alert-suggestions";
 import type { DistributorListing, PriceAlert, Product } from "@/lib/types";
@@ -72,12 +68,16 @@ export function useProductAlerts({
   const handleSetBestAlert = useCallback(
     async (listing: DistributorListing, targetPrice: number) => {
       if (!id || creatingAlert) return;
-      // Claim the guard before the await: ensureNotificationPermission resolves
-      // asynchronously, so a double-tap could start two alert creations.
       setCreatingAlert(true);
       try {
-        const granted = await ensureNotificationPermission();
-        if (!granted) {
+        const result = await createPriceAlert({
+          productId: id,
+          productName: product?.name ?? "Product",
+          targetPrice,
+          currency: listing.currency,
+          distributorId: listing.distributorId,
+        });
+        if (result.reason === "permission") {
           if (Platform.OS !== "web")
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           showAlert(
@@ -88,31 +88,27 @@ export function useProductAlerts({
           );
           return;
         }
-        await schedulePriceAlert(
-          product?.name ?? "Product",
-          targetPrice,
-          listing.currency,
-          id,
-        );
-        const alert: PriceAlert = {
-          id: `alert-${id}-${listing.distributorId}-${Date.now()}`,
-          productId: id,
-          distributorId: listing.distributorId,
-          targetPrice,
-          currency: listing.currency,
-          createdAt: new Date().toISOString(),
-          isActive: true,
-        };
-        await addAlert(alert);
-        setAlerts((prev) => [...prev, alert]);
+        if (result.reason === "duplicate") {
+          showToast("That alert already exists", "info");
+          return;
+        }
+        if (!result.saved || !result.alert) {
+          if (Platform.OS !== "web")
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          showAlert(
+            "Couldn't create alert",
+            "We couldn't save your price alert. Please try again.",
+          );
+          return;
+        }
+        setAlerts((prev) => [...prev, result.alert!]);
         if (Platform.OS !== "web")
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast(
-          `Alert created — you'll be notified below ${formatPrice(
-            targetPrice,
-            listing.currency,
-          )}`,
-          "success",
+          result.scheduled
+            ? `Alert created — you'll be notified below ${formatPrice(targetPrice, listing.currency)}`
+            : "Alert saved — enable notifications to get push alerts",
+          result.scheduled ? "success" : "info",
         );
       } catch {
         if (Platform.OS !== "web")
@@ -144,8 +140,15 @@ export function useProductAlerts({
     }
     setCreatingAlert(true);
     try {
-      const granted = await ensureNotificationPermission();
-      if (!granted) {
+      const result = await createPriceAlert({
+        productId: id,
+        productName: product?.name ?? "Product",
+        targetPrice: price,
+        currency: alertCurrency,
+        distributorId: alertDistributorId ?? undefined,
+        direction: alertDirection,
+      });
+      if (result.reason === "permission") {
         if (Platform.OS !== "web")
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         showAlert(
@@ -156,38 +159,33 @@ export function useProductAlerts({
         );
         return;
       }
-      await schedulePriceAlert(
-        product?.name ?? "Product",
-        price,
-        alertCurrency,
-        id,
-      );
-      const newAlert: PriceAlert = {
-        id: `alert-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        productId: id,
-        targetPrice: price,
-        currency: alertCurrency,
-        distributorId: alertDistributorId ?? undefined,
-        direction: alertDirection,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      };
-      await addAlert(newAlert);
-      setAlerts((prev) => [...prev, newAlert]);
+      if (result.reason === "duplicate") {
+        showToast("That alert already exists", "info");
+        return;
+      }
+      if (!result.saved || !result.alert) {
+        if (Platform.OS !== "web")
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showAlert(
+          "Couldn't create alert",
+          "We couldn't save your price alert. Please try again.",
+        );
+        return;
+      }
+      setAlerts((prev) => [...prev, result.alert!]);
       setAlertModalVisible(false);
       setAlertPrice("");
       if (Platform.OS !== "web")
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast(
-        `Alert set — ${
-          alertDistributorId
-            ? `${getDistributorById(alertDistributorId)?.name ?? "that distributor"}'s price`
-            : "the price"
-        } ${alertDirection === "rise" ? "rises above" : "drops below"} ${formatPrice(
-          price,
-          alertCurrency,
-        )}`,
-        "success",
+        result.scheduled
+          ? `Alert set — ${
+              alertDistributorId
+                ? `${getDistributorById(alertDistributorId)?.name ?? "that distributor"}'s price`
+                : "the price"
+            } ${alertDirection === "rise" ? "rises above" : "drops below"} ${formatPrice(price, alertCurrency)}`
+          : "Alert saved — enable notifications to get push alerts",
+        result.scheduled ? "success" : "info",
       );
     } catch {
       if (Platform.OS !== "web")

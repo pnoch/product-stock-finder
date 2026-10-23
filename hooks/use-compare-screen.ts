@@ -11,9 +11,8 @@ import { priceHistoryToCsv } from "@/lib/csv";
 import { exportCsvFile } from "@/lib/csv-export";
 import { showAlert } from "@/lib/alert";
 import { useLiveProduct } from "@/hooks/use-live-prices";
-import { addAlert } from "@/lib/storage";
+import { createPriceAlert } from "@/lib/create-price-alert";
 import { useSettings } from "@/lib/settings-provider";
-import { schedulePriceAlert, ensureNotificationPermission } from "@/lib/notifications";
 import { formatPrice } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
 import { getDistributorById } from "@shared/distributors";
@@ -27,7 +26,6 @@ import {
   filterByRange,
 } from "@shared/compare-utils";
 import { LOG_ERROR, log } from "@shared/log";
-import type { PriceAlert } from "@/lib/types";
 
 const EMPTY_SELECTION = new Set<string>();
 
@@ -156,8 +154,13 @@ export function useCompareScreen() {
     const targetPrice = parseFloat((bestPrice * 0.95).toFixed(2));
     setCreatingAlert(true);
     try {
-      const granted = await ensureNotificationPermission();
-      if (!granted) {
+      const result = await createPriceAlert({
+        productId: id,
+        productName: productName || "Product",
+        targetPrice,
+        currency: displayCurrency,
+      });
+      if (result.reason === "permission") {
         showAlert(
           "Permission Denied",
           Platform.OS === "web"
@@ -166,31 +169,32 @@ export function useCompareScreen() {
         );
         return;
       }
-      const alert: PriceAlert = {
-        id: `cross-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        productId: id,
-        distributorId: undefined,
-        targetPrice,
-        currency: displayCurrency,
-        createdAt: new Date().toISOString(),
-        isActive: true,
-      };
-      await addAlert(alert);
-      await schedulePriceAlert(productName || "Product", targetPrice, displayCurrency, id);
+      if (result.reason === "duplicate") {
+        showToast("That alert already exists", "info");
+        return;
+      }
+      if (!result.saved) {
+        showAlert(
+          "Couldn't create alert",
+          "We couldn't save your price alert. Please try again.",
+        );
+        return;
+      }
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      showToast(
+        result.scheduled
+          ? `Alert created — watching below ${formatPrice(targetPrice, displayCurrency)}`
+          : "Alert saved — enable notifications to get push alerts",
+        result.scheduled ? "success" : "info",
+      );
     } catch (e) {
       log.error("[Compare] alert creation failed", e);
       showAlert("Couldn't create alert", "We couldn't save your price alert. Please try again.");
-      return;
     } finally {
       setCreatingAlert(false);
     }
-    if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-    showToast(
-      `Alert created — watching below ${formatPrice(targetPrice, displayCurrency)}`,
-      "success",
-    );
   }, [listings, id, productName, displayCurrency, showToast, creatingAlert]);
 
   const priceTrends = useMemo(() => {
