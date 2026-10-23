@@ -362,15 +362,22 @@ describe("CSV import doesn't duplicate alerts", () => {
 // / `void maybeRefreshFxRates()` with no catch, so a storage read failure was
 // an unhandled rejection.
 describe("launch side effects are guarded", () => {
-  const src = readFileSync(path.join(process.cwd(), "app/_layout.tsx"), "utf8");
+  const gate = readFileSync(
+    path.join(process.cwd(), "hooks/use-onboarding-gate.ts"),
+    "utf8",
+  );
+  const sync = readFileSync(
+    path.join(process.cwd(), "hooks/use-app-sync.ts"),
+    "utf8",
+  );
 
   it("guards the launch price check", () => {
-    expect(src).toContain("void checkPriceDropsNow().catch(");
+    expect(gate).toContain("void checkPriceDropsNow().catch(");
   });
 
   it("guards the FX loads", () => {
-    expect(src).toContain("void loadFxRates().catch(");
-    expect(src).toContain("void maybeRefreshFxRates().catch(");
+    expect(sync).toContain("void loadFxRates().catch(");
+    expect(sync).toContain("void maybeRefreshFxRates().catch(");
   });
 });
 

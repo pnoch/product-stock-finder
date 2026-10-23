@@ -108,7 +108,7 @@ describe("screen-level fixes", () => {
   });
 
   it("the launch price check runs only after the app UI (and webview host) mounts", () => {
-    const src = read("app/_layout.tsx");
+    const src = read("hooks/use-onboarding-gate.ts");
     // Running it in the mount effect raced the hidden WebView host: during
     // onboarding the host isn't mounted, so the check was plain-HTTP only.
     expect(src).toContain("launchCheckRanRef");

@@ -85,7 +85,10 @@ describe("isPublicRoute", () => {
 // A pure `isPublicRoute` unit test would still pass if the root layout stopped
 // calling it, so guard the wiring too.
 describe("root layout gates onboarding on public routes", () => {
-  const src = readFileSync(join(__dirname, "..", "app/_layout.tsx"), "utf8");
+  const src = readFileSync(
+    join(__dirname, "..", "hooks/use-onboarding-gate.ts"),
+    "utf8",
+  );
 
   it("imports and evaluates isPublicRoute from the current pathname", () => {
     expect(src).toContain("isPublicRoute");
@@ -94,7 +97,11 @@ describe("root layout gates onboarding on public routes", () => {
   });
 
   it("only renders the spinner and the tour for non-public routes", () => {
-    expect(src).toMatch(/onboardingState === "checking" && !isPublic/);
-    expect(src).toMatch(/onboardingState === "intro" && !isPublic/);
+    const layout = readFileSync(
+      join(__dirname, "..", "app/_layout.tsx"),
+      "utf8",
+    );
+    expect(layout).toMatch(/onboardingState === "checking" && !isPublic/);
+    expect(layout).toMatch(/onboardingState === "intro" && !isPublic/);
   });
 });

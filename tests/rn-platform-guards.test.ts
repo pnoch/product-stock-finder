@@ -47,7 +47,9 @@ describe("React Native platform guards", () => {
   //    listener must live in its own effect, and the launch setup must not
   //    early-return on Android.
   it("the Android app-state listener does not short-circuit launch setup", async () => {
-    const src = stripComments(await readFile("app/_layout.tsx", "utf8"));
+    const src = stripComments(
+      await readFile("hooks/use-notification-setup.ts", "utf8"),
+    );
     const channelSetup = src.indexOf("setupAndroidNotificationChannel()");
     expect(channelSetup).toBeGreaterThan(-1);
     // The setup effect (the one containing the channel call) must not

@@ -1,15 +1,16 @@
 import { log } from "@shared/log";
+import { useNotificationSetup } from "@/hooks/use-notification-setup";
+import { useAppSync } from "@/hooks/use-app-sync";
+import { useOnboardingGate } from "@/hooks/use-onboarding-gate";
 import "@/global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, router, usePathname } from "expo-router";
-import * as Notifications from "expo-notifications";
+import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import {
   ActivityIndicator,
-  AppState,
   Platform,
   View,
   useColorScheme,
@@ -19,37 +20,14 @@ import { ThemeProvider } from "@/lib/theme-provider";
 import { SettingsProvider } from "@/lib/settings-provider";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { WebViewFetchHost } from "@/components/webview-fetch-host";
-import { showAlert } from "@/lib/alert";
-import {
-  requestNotificationPermissions,
-  setupAndroidNotificationChannel,
-  setupPushEventTracking,
-} from "@/lib/notifications";
-import {
-  getSettings,
-  getWatchlist,
-  updateProductListings,
-  defaultStorage,
-  getSyncMeta,
-} from "@/lib/storage";
-import { rediscoverMissingListings } from "@/lib/manual-add";
-import { discoverListings } from "@/lib/listing-discovery";
 import { seedWatchlistProducts } from "@/lib/launch-seed";
-import {
-  registerPriceCheckTask,
-  registerHealthProbeTask,
-  checkPriceDropsNow,
-} from "@/lib/background-price-check";
+import { defaultStorage } from "@/lib/storage";
+import { notificationRouteFor } from "@/lib/notification-routing";
 import { setupWebNotifications } from "@/lib/web-notifications";
-import { hasSeenOnboarding, isPublicRoute } from "@/lib/onboarding";
-import { setBackgroundAppState } from "@/lib/background-safe-timers";
 import { ConciergeScreen } from "@/components/onboarding/concierge-screen";
 import { registerServiceWorker } from "@/lib/web-push";
 import { PRODUCT_CATALOG } from "@shared/catalog";
-import {
-  SAMPLE_LISTINGS,
-  freshenSampleListings,
-} from "@/lib/sample-data";
+import { SAMPLE_LISTINGS, freshenSampleListings } from "@/lib/sample-data";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -63,23 +41,6 @@ import { setDiscoveryHeadersProvider } from "@/lib/llm-discovery";
 import { ToastProvider } from "@/components/ui/toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Colors } from "@/lib/_core/theme";
-import {
-  registerDeviceRevokedHandler,
-  resetDeviceRevoked,
-} from "@/lib/device-revoked";
-import { isServerConfigured } from "@/constants/oauth";
-import { cleanupStaleDevices } from "@/lib/devices";
-import {
-  setupSync,
-  registerSyncSetup,
-  getSyncSetup,
-  type SyncSetup,
-} from "@/lib/sync";
-import { backfillLocalHistory } from "@/lib/history-sync";
-import { syncServerNotifications } from "@/lib/server-notifications";
-import { registerPushToken } from "@/lib/push-token";
-import { loadFxRates, maybeRefreshFxRates } from "@/lib/fx";
-import { notificationRouteFor } from "@/lib/notification-routing";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -118,102 +79,7 @@ export default function RootLayout() {
     return () => window.removeEventListener("unhandledrejection", handler);
   }, []);
 
-  // Android backgrounded: frame-driven timers freeze, so the background-task
-  // path switches to 0ms-timer polling. iOS keeps timers alive natively.
-  // This must be its own effect: folding it into the launch-setup effect below
-  // with an early `return` skipped channel creation, permission requests,
-  // background-task registration, the launch price check, and push/server
-  // notification setup on Android entirely (verified: a fresh install created
-  // no notification channels).
-  useEffect(() => {
-    if (Platform.OS !== "android") return;
-    const sub = AppState.addEventListener("change", (state) => {
-      setBackgroundAppState(state === "active" ? "foreground" : "background");
-    });
-    return () => sub.remove();
-  }, []);
-
-  // Request notification permissions and set up Android channel on first load
-  useEffect(() => {
-    if (Platform.OS === "web") return;
-    // Route notification taps to their target screens — dedup with short TTL to avoid double-fire on cold start
-    const handledResponses = new Map<string, number>();
-    const handleNotificationResponse = (
-      response: Notifications.NotificationResponse,
-    ) => {
-      const rawId = response.notification.request.identifier;
-      const dataForId = response.notification.request.content.data as {
-        eventId?: string;
-        productId?: string;
-        distributorId?: string;
-        type?: string;
-      };
-      const fallbackId = dataForId?.eventId ?? dataForId?.productId ?? dataForId?.type ?? "unknown";
-      const id = rawId ?? `${fallbackId}:${response.actionIdentifier ?? "default"}`;
-      const now = Date.now();
-      const last = handledResponses.get(id);
-      if (last !== undefined && now - last < 2000) return;
-      handledResponses.set(id, now);
-      // prune entries older than 10s to bound memory + cap size to prevent leak
-      for (const [k, v] of handledResponses.entries()) {
-        if (now - v > 10_000) handledResponses.delete(k);
-      }
-      if (handledResponses.size > 100) {
-        const oldest = [...handledResponses.entries()].sort((a, b) => a[1] - b[1])[0]?.[0];
-        if (oldest) handledResponses.delete(oldest);
-      }
-      const data = dataForId;
-      // expo-router throws if navigation happens before the root layout has
-      // mounted (cold start). Defer until the navigation tree is ready.
-      const route = notificationRouteFor(data) ?? "/(tabs)";
-      if (rootNavigationReadyRef.current) {
-        router.push(route);
-      } else {
-        pendingRouteRef.current = route;
-      }
-    };
-    const responseSubscription =
-      Notifications.addNotificationResponseReceivedListener(
-        handleNotificationResponse,
-      );
-    void Notifications.getLastNotificationResponseAsync()
-      .then((response) => {
-        if (response) handleNotificationResponse(response);
-      })
-      .catch(() => {});
-    // Record eventIds from push notifications for dedup (registered first so
-    // pushes arriving during channel setup are captured too)
-    const stopPushTracking = setupPushEventTracking();
-    // Channel/permission setup must not gate task registration or the launch
-    // price check: a rejection from either previously skipped everything below.
-    void setupAndroidNotificationChannel().catch((e) =>
-      log.error("[Launch] notification channel setup failed", e),
-    );
-    void (async () => {
-      try {
-        // Only prompt for notification permission if the user enabled them.
-        const settings = await getSettings().catch(() => null);
-        if (settings?.notificationsEnabled) {
-          await requestNotificationPermissions();
-        }
-      } catch (e) {
-        log.error("[Launch] notification permission request failed", e);
-      }
-    })();
-    // Register background tasks
-    registerPriceCheckTask();
-    registerHealthProbeTask();
-    if (isServerConfigured()) {
-      // Register for Expo push delivery (best-effort)
-      void registerPushToken();
-      // Pull any server-queued notification events
-      void syncServerNotifications();
-    }
-    return () => {
-      responseSubscription.remove();
-      stopPushTracking();
-    };
-  }, []);
+  useNotificationSetup({ rootNavigationReadyRef, pendingRouteRef });
 
   // Web notifications: poll server events while the tab is open
   useEffect(() => {
@@ -252,86 +118,8 @@ export default function RootLayout() {
   const [trpcClient] = useState(() => createTRPCClient());
 
   const { isAuthenticated, refresh } = useAuth();
-  const isAuthenticatedRef = useRef(isAuthenticated);
-  useEffect(() => {
-    isAuthenticatedRef.current = isAuthenticated;
-  }, [isAuthenticated]);
-  const syncRef = useRef<SyncSetup | null>(null);
 
-  useEffect(() => {
-    if (!isServerConfigured()) return;
-    const setup = setupSync({
-      storage: defaultStorage,
-      isSignedIn: () => isAuthenticatedRef.current,
-      pull: (since, cursor) => trpcClient.sync.pull.query({ since, cursor: cursor ?? null }),
-      push: (items) => trpcClient.sync.push.mutate({ items }),
-    });
-    syncRef.current = setup;
-    const unregister = registerSyncSetup(setup);
-    return () => {
-      unregister();
-      syncRef.current = null;
-    };
-  }, [trpcClient]);
-
-  // Retry a failed sync when the app returns to the foreground.
-  useEffect(() => {
-    let lastActive = 0;
-    const onActive = async () => {
-      const now = Date.now();
-      if (now - lastActive < 1000) return;
-      lastActive = now;
-      const setup = getSyncSetup();
-      if (!setup) return;
-      // A storage read failure must not reject unhandled in a focus handler.
-      const meta = await getSyncMeta().catch(() => null);
-      if (meta?.lastSyncError) void setup.syncNow();
-    };
-    if (Platform.OS === "web") {
-      const onVisibility = () => {
-        if (document.visibilityState === "visible") void onActive();
-      };
-      window.addEventListener("focus", onActive);
-      document.addEventListener("visibilitychange", onVisibility);
-      return () => {
-        window.removeEventListener("focus", onActive);
-        document.removeEventListener("visibilitychange", onVisibility);
-      };
-    }
-    const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active") void onActive();
-    });
-    return () => sub.remove();
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated && isServerConfigured()) {
-      resetDeviceRevoked();
-      syncRef.current?.syncNow();
-      void backfillLocalHistory();
-      void cleanupStaleDevices();
-      // A sign-in without a restart previously left the device unbound and
-      // never pulled server notification events until the next cold launch.
-      void registerPushToken();
-      void syncServerNotifications();
-    }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    return registerDeviceRevokedHandler(() => {
-      showAlert("Signed Out", "You were signed out on another device.", [
-        { text: "OK", onPress: () => void refresh() },
-      ]);
-    });
-  }, [refresh]);
-
-  useEffect(() => {
-    if (!isServerConfigured()) return;
-    // A storage read failure must not reject unhandled; rates fall back to the
-    // static table.
-    void loadFxRates().catch(() => {});
-    void maybeRefreshFxRates().catch(() => {});
-  }, []);
+  useAppSync({ trpcClient, isAuthenticated, refresh });
 
   // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {
@@ -349,57 +137,10 @@ export default function RootLayout() {
     };
   }, [initialInsets, initialFrame]);
 
-  const [onboardingState, setOnboardingState] = useState<
-    "checking" | "app" | "intro"
-  >("checking");
-  // The initial path is known synchronously (web reads window.location, native
-  // reads the launch URL), so a public route can bypass the onboarding gate on
-  // the very first render. `usePathname` keeps this correct for in-app
-  // navigation too (e.g. an OAuth callback deep link while the tour is showing).
-  const pathname = usePathname();
-  const isPublic = isPublicRoute(pathname);
-  useEffect(() => {
-    void hasSeenOnboarding().then((seen) =>
-      setOnboardingState(seen ? "app" : "intro"),
-    );
-  }, []);
-
-  // Mark navigation ready and flush any buffered notification route once the
-  // Stack has actually mounted. Gated on onboardingState === "app": during
-  // "checking"/"intro" the component returns early and no <Stack> exists, so
-  // setting the flag then would let a notification tap navigate with no
-  // navigator (the exact crash this buffering exists to prevent).
-  useEffect(() => {
-    if (onboardingState !== "app") return;
-    rootNavigationReadyRef.current = true;
-    const pending = pendingRouteRef.current;
-    if (pending) {
-      pendingRouteRef.current = null;
-      // Defer a tick so the navigator is fully ready.
-      const t = setTimeout(() => router.push(pending), 0);
-      return () => clearTimeout(t);
-    }
-  }, [onboardingState]);
-
-  // Run the launch price check + missing-listings discovery once the app UI has
-  // mounted, NOT in the mount effect above: during "checking"/"intro" the
-  // component returns early so the hidden WebView host isn't mounted yet, and
-  // the check fell back to plain HTTP for browser-only distributors. The host is
-  // a child of the content tree, so its effect registers the renderer before
-  // this (parent) effect runs on the same commit.
-  const launchCheckRanRef = useRef(false);
-  useEffect(() => {
-    if (onboardingState !== "app" || launchCheckRanRef.current) return;
-    launchCheckRanRef.current = true;
-    void checkPriceDropsNow().catch((e) =>
-      log.error("[Launch] price check failed", e),
-    );
-    void rediscoverMissingListings({
-      storage: { getWatchlist, updateProductListings },
-      discover: discoverListings,
-    }).catch((e) => log.error("[Launch] missing-listings discovery failed", e));
-  }, [onboardingState]);
-
+  const { onboardingState, setOnboardingState, isPublic } = useOnboardingGate({
+    rootNavigationReadyRef,
+    pendingRouteRef,
+  });
 
   if (onboardingState === "checking" && !isPublic) {
     return (

@@ -443,7 +443,10 @@ describe("desktop/mobile scraper parity", () => {
     // The mobile evaluates alerts/restock/digest on launch (checkPriceDropsNow);
     // the desktop only started its poller for a non-manual interval, so a
     // manual-only desktop never evaluated any of them.
-    const mobileLayout = await readFile("app/_layout.tsx", "utf8");
+    const mobileLayout = await readFile(
+      "hooks/use-onboarding-gate.ts",
+      "utf8",
+    );
     const launch = await readFile("desktop/src/lib/launch.ts", "utf8");
     const app = await readFile(
       "desktop/src/hooks/use-app-bootstrap.ts",
@@ -459,7 +462,10 @@ describe("desktop/mobile scraper parity", () => {
     // The shared engine has no retry timer; mobile retries from its foreground
     // handler, so the desktop needed the equivalent or a failed sync stayed
     // failed until the next storage change.
-    const mobileLayout = await readFile("app/_layout.tsx", "utf8");
+    const mobileLayout = await readFile(
+      "hooks/use-app-sync.ts",
+      "utf8",
+    );
     const helper = await readFile("desktop/src/lib/sync-retry.ts", "utf8");
     const app = await readFile(
       "desktop/src/hooks/use-app-bootstrap.ts",
@@ -527,7 +533,10 @@ describe("desktop/mobile scraper parity", () => {
     // discovery fills it — on both the mobile price check and the desktop
     // prices-checked handler.
     const helper = await readFile("lib/manual-add.ts", "utf8");
-    const mobile = await readFile("app/_layout.tsx", "utf8");
+    const mobile = await readFile(
+      "hooks/use-onboarding-gate.ts",
+      "utf8",
+    );
     const desktop = await readFile(
       "desktop/src/hooks/use-app-bootstrap.ts",
       "utf8",
