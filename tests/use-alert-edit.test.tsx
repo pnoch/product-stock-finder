@@ -4,13 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PriceAlert, Product } from "../lib/types";
 
 const state = vi.hoisted(() => ({
-  updateAlert: vi.fn(async () => {}),
+  updateAlert: vi.fn(async (_id: string, _patch: unknown) => {}),
   reject: false,
 }));
 
 vi.mock("../desktop/src/storage", () => ({
   storage: {
-    updateAlert: (...args: unknown[]) => state.updateAlert(...args),
+    updateAlert: (id: string, patch: unknown) => state.updateAlert(id, patch),
   },
 }));
 
