@@ -129,10 +129,10 @@ function SharedLinkMembers({
     if (!email.trim() || busy) return;
     setBusy(true);
     try {
-      const res = await inviteMutation.mutateAsync({ token, email: email.trim() });
+      await inviteMutation.mutateAsync({ token, email: email.trim() });
       await membersQuery.refetch();
       setEmail("");
-      showToast(`Invited ${res.name}`);
+      showToast("Invitation sent");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Invite failed");
     } finally {

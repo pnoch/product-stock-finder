@@ -292,7 +292,7 @@ describe("sharedWatchlists router", () => {
     const caller = appRouter.createCaller(createAuthedContext(1));
     await expect(
       caller.sharedWatchlists.inviteByEmail({ token: "tok123", email: "Bob@Example.com" }),
-    ).resolves.toMatchObject({ invited: true, name: "Bob" });
+    ).resolves.toEqual({ invited: true });
     // Emails are matched normalised.
     expect(mockedGetUserByEmail).toHaveBeenCalledWith("bob@example.com");
   });
@@ -306,7 +306,7 @@ describe("sharedWatchlists router", () => {
     // Same success shape as a real invite, but nothing is stored — no oracle.
     await expect(
       caller.sharedWatchlists.inviteByEmail({ token: "tok123", email: "nobody@example.com" }),
-    ).resolves.toMatchObject({ invited: true, name: "nobody@example.com" });
+    ).resolves.toEqual({ invited: true });
   });
 
   it("inviteByEmail is owner-only", async () => {

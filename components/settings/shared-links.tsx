@@ -159,10 +159,10 @@ function SharedLinkMembers({
     if (!email.trim() || busy) return;
     setBusy(true);
     try {
-      const res = await inviteMutation.mutateAsync({ token, email: email.trim() });
+      await inviteMutation.mutateAsync({ token, email: email.trim() });
       await membersQuery.refetch();
       setEmail("");
-      showAlert("Invited", `${res.name} can now view this share.`);
+      showAlert("Invited", "They can now view this share.");
     } catch (e) {
       showAlert("Invite failed", e instanceof Error ? e.message : "Please try again.");
     } finally {

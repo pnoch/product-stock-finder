@@ -243,12 +243,10 @@ export const sharedWatchlistsRouter = router({
       try {
         await db.insert(sharedWatchlistMembers).values({ token: input.token, userId: input.userId, role: input.role }).onDuplicateKeyUpdate({ set: { role: input.role } });
       } catch (e) {
-        // A stale/unknown user id is a normal validation case; the FK error
-        // used to surface as INTERNAL_SERVER_ERROR (inviteByEmail already
-        // returns NOT_FOUND for it).
-        if (isForeignKeyError(e)) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
-        }
+        // A stale/unknown user id is a normal validation case. Return the same
+        // success shape as a real invite so an owner cannot enumerate user ids
+        // by probing this endpoint.
+        if (isForeignKeyError(e)) return { invited: true } as const;
         throw e;
       }
       return { invited: true } as const;
@@ -323,10 +321,9 @@ export const sharedWatchlistsRouter = router({
           .values({ token: input.token, userId: target.id, role: "viewer" })
           .onDuplicateKeyUpdate({ set: { role: "viewer" } });
       }
-      return {
-        invited: true,
-        name: target?.name ?? target?.email ?? normalizedEmail,
-      } as const;
+      // Never echo the resolved name/email: a real account and an unknown
+      // address must be indistinguishable to the caller.
+      return { invited: true } as const;
     }),
   removeMember: protectedProcedure
     .input(
