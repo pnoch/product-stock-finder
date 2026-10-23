@@ -15,7 +15,10 @@ function stripComments(src: string): string {
 describe("settings share-watchlist auth guard", () => {
   it("prompts sign-in instead of calling the endpoint when signed out", async () => {
     const src = stripComments(
-      await readFile("components/settings/shared-links.tsx", "utf8"),
+      await readFile(
+        "components/settings/shared-links/share-watchlist-button.tsx",
+        "utf8",
+      ),
     );
     const start = src.indexOf("function ShareWatchlistButton");
     expect(start).toBeGreaterThan(-1);

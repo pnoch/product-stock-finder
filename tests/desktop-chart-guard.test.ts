@@ -1282,15 +1282,24 @@ describe("desktop chart guard", () => {
 
   // Phase 537: members-only shares + the "shared with me" list.
   it("wires members-only gating and the shared-with-me list", async () => {
-    for (const file of [
-      "components/settings/shared-links.tsx",
+    const mobileList = await readFile(
+      "components/settings/shared-links/shared-links-list.tsx",
+      "utf8",
+    );
+    const mobileJoined = await readFile(
+      "components/settings/shared-links/joined-shared-list.tsx",
+      "utf8",
+    );
+    expect(mobileList).toContain("sharedWatchlists.setMembersOnly.useMutation()");
+    expect(mobileList).toContain("membersOnly");
+    expect(mobileJoined).toContain("sharedWatchlists.listJoined.useQuery()");
+    const desktop = await readFile(
       "desktop/src/components/settings/shared-links.tsx",
-    ]) {
-      const src = await readFile(file, "utf8");
-      expect(src, file).toContain("sharedWatchlists.setMembersOnly.useMutation()");
-      expect(src, file).toContain("sharedWatchlists.listJoined.useQuery()");
-      expect(src, file).toContain("membersOnly");
-    }
+      "utf8",
+    );
+    expect(desktop).toContain("sharedWatchlists.setMembersOnly.useMutation()");
+    expect(desktop).toContain("sharedWatchlists.listJoined.useQuery()");
+    expect(desktop).toContain("membersOnly");
     const routers = await readAllServerRouters();
     expect(routers).toContain("setMembersOnly: protectedProcedure");
     expect(routers).toContain("listJoined: protectedProcedure");
@@ -1302,15 +1311,20 @@ describe("desktop chart guard", () => {
 
   // Phase 536: invite-by-email + roster management for shared watchlists.
   it("wires invite-by-email and the member roster on both platforms", async () => {
-    for (const file of [
-      "components/settings/shared-links.tsx",
+    const mobile = await readFile(
+      "components/settings/shared-links/shared-link-members.tsx",
+      "utf8",
+    );
+    expect(mobile).toContain("sharedWatchlists.inviteByEmail.useMutation()");
+    expect(mobile).toContain("sharedWatchlists.removeMember.useMutation()");
+    expect(mobile).toContain("sharedWatchlists.members.useQuery(");
+    const desktop = await readFile(
       "desktop/src/components/settings/shared-links.tsx",
-    ]) {
-      const src = await readFile(file, "utf8");
-      expect(src, file).toContain("sharedWatchlists.inviteByEmail.useMutation()");
-      expect(src, file).toContain("sharedWatchlists.removeMember.useMutation()");
-      expect(src, file).toContain("sharedWatchlists.members.useQuery(");
-    }
+      "utf8",
+    );
+    expect(desktop).toContain("sharedWatchlists.inviteByEmail.useMutation()");
+    expect(desktop).toContain("sharedWatchlists.removeMember.useMutation()");
+    expect(desktop).toContain("sharedWatchlists.members.useQuery(");
     const routers = await readAllServerRouters();
     expect(routers).toContain("inviteByEmail: protectedProcedure");
     expect(routers).toContain("removeMember: protectedProcedure");
