@@ -20,6 +20,7 @@ export function AlertsHeader({
         }}
       >
         <Text
+          accessibilityRole="header"
           style={{
             color: colors.foreground,
             fontSize: 28,

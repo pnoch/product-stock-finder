@@ -25,6 +25,7 @@ export function ConciergeStepRegion({
   return (
     <View style={{ flex: 1, paddingHorizontal: 32 }}>
       <Text
+        accessibilityRole="header"
         style={{
           color: colors.foreground,
           fontSize: 28,

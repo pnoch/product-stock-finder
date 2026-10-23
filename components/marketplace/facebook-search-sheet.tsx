@@ -101,7 +101,7 @@ export function FacebookSearchSheet({ visible, onClose, initialQuery = "" }: { v
       >
         <View style={{ flex: 1, backgroundColor: colors.background, padding: 16, paddingTop: 48 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <Text style={{ color: colors.foreground, fontSize: 28, fontWeight: "700" }}>Facebook Marketplace</Text>
+            <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 28, fontWeight: "700" }}>Facebook Marketplace</Text>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
               <Text style={{ color: colors.primary, fontSize: 16 }}>Done</Text>
             </TouchableOpacity>

@@ -202,7 +202,7 @@ export default function SharedWatchlistScreen() {
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <Text style={{ color: colors.foreground, fontSize: 22, fontWeight: "800" }}>{data?.title ?? "Shared Watchlist"}</Text>
+        <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 22, fontWeight: "800" }}>{data?.title ?? "Shared Watchlist"}</Text>
         <Text style={{ color: colors.muted, marginTop: 4 }}>{products.length} product{products.length === 1 ? "" : "s"}{truncated ? " (first 500)" : ""}</Text>
         {truncated && (
           <Text style={{ color: colors.warning, marginTop: 4, fontSize: 12 }}>

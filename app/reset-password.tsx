@@ -73,7 +73,7 @@ export default function ResetPasswordScreen() {
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={{ padding: 24, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-        <Text style={{ fontSize: 22, fontWeight: "800", color: colors.foreground, marginBottom: 8 }}>Reset Password</Text>
+        <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "800", color: colors.foreground, marginBottom: 8 }}>Reset Password</Text>
         <Text style={{ fontSize: 14, color: colors.muted, marginBottom: 24 }}>Enter a new password for your account.</Text>
 
         <TextInput

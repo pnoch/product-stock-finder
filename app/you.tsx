@@ -51,7 +51,7 @@ export default function YouScreen() {
           >
             <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
           </TouchableOpacity>
-          <Text style={{ color: colors.foreground, fontSize: 28, fontWeight: "700" }}>
+          <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 28, fontWeight: "700" }}>
             You
           </Text>
         </View>

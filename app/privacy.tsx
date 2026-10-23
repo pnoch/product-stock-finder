@@ -33,7 +33,7 @@ export default function PrivacyPolicyScreen() {
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
-        <Text style={{ color: colors.foreground, fontSize: 24, fontWeight: "800" }}>
+        <Text accessibilityRole="header" style={{ color: colors.foreground, fontSize: 24, fontWeight: "800" }}>
           Privacy Policy
         </Text>
         <Text style={{ color: colors.muted, fontSize: 13, marginTop: 4 }}>

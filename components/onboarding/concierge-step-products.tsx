@@ -28,6 +28,7 @@ export function ConciergeStepProducts({
   return (
     <View style={{ flex: 1 }}>
       <Text
+        accessibilityRole="header"
         style={{
           color: colors.foreground,
           fontSize: 28,
