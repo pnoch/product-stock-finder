@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Text, View, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import { DistributorListing } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { convertPrice } from "@/lib/currency";
@@ -9,8 +10,13 @@ import { cheapestByRegion } from "@shared/compare-utils";
 
 export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { listings: DistributorListing[]; displayCurrency?: string }) {
   const colors = useColors();
+  const reduceMotion = useReduceMotion();
   const pulse = useState(() => new Animated.Value(1))[0];
   useEffect(() => {
+    if (reduceMotion) {
+      pulse.setValue(1);
+      return;
+    }
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1.04, duration: 900, useNativeDriver: true }),
@@ -19,7 +25,7 @@ export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { list
     );
     anim.start();
     return () => anim.stop();
-  }, [pulse]);
+  }, [pulse, reduceMotion]);
 
   // Pass the live-rate converter so this card agrees with the prices shown
   // beside it (the shared default uses static rates).

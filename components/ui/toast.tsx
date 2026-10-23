@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { IconSymbol, type IconSymbolName } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import {
   resolveToastColors,
   type ToastType,
@@ -51,6 +52,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     type: "success",
     visible: false,
   });
+  const reduceMotion = useReduceMotion();
   const opacity = useState(() => new Animated.Value(0))[0];
   const translateY = useState(() => new Animated.Value(20))[0];
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,19 +61,28 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (message: string, type: ToastType = "success") => {
       if (timerRef.current) clearTimeout(timerRef.current);
       setToast({ message, type, visible: true });
-      Animated.parallel([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      if (reduceMotion) {
+        opacity.setValue(1);
+        translateY.setValue(0);
+      } else {
+        Animated.parallel([
+          Animated.timing(opacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateY, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
       timerRef.current = setTimeout(() => {
+        if (reduceMotion) {
+          setToast((prev) => ({ ...prev, visible: false }));
+          return;
+        }
         Animated.parallel([
           Animated.timing(opacity, {
             toValue: 0,
@@ -91,7 +102,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         });
       }, 3000);
     },
-    [opacity, translateY],
+    [opacity, translateY, reduceMotion],
   );
 
   useEffect(() => {

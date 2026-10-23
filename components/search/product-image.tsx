@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { View, Text, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { fetchProductImage } from "@/lib/server-images";
 
@@ -96,6 +97,7 @@ export function ProductImage({
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const loaded = loadedFor === productId;
   const [errorFor, setErrorFor] = useState<string | null>(null);
+  const reduceMotion = useReduceMotion();
   const imageError = errorFor === productId;
   const opacity = useState(() => new Animated.Value(0))[0];
 
@@ -148,8 +150,12 @@ export function ProductImage({
 
   const handleLoad = useCallback(() => {
     setLoadedFor(productId);
+    if (reduceMotion) {
+      opacity.setValue(1);
+      return;
+    }
     Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: true }).start();
-  }, [opacity, productId]);
+  }, [opacity, productId, reduceMotion]);
 
   const handleError = useCallback(() => {
     setImageCache(productId, null);

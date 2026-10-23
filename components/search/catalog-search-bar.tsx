@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { TouchableOpacity, TextInput, Keyboard, Animated } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 interface CatalogSearchBarProps {
@@ -15,16 +16,21 @@ export function CatalogSearchBar({
   onSearchSubmit,
 }: CatalogSearchBarProps) {
   const colors = useColors();
+  const reduceMotion = useReduceMotion();
   const [focused, setFocused] = useState(false);
   const borderAnim = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
+    if (reduceMotion) {
+      borderAnim.setValue(focused ? 1 : 0);
+      return;
+    }
     Animated.timing(borderAnim, {
       toValue: focused ? 1 : 0,
       duration: 150,
       useNativeDriver: false,
     }).start();
-  }, [focused, borderAnim]);
+  }, [focused, borderAnim, reduceMotion]);
 
   const borderColor = borderAnim.interpolate({
     inputRange: [0, 1],

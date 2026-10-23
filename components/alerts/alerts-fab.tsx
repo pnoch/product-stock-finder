@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Animated, Platform, TouchableOpacity } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 export function AlertsFab({
@@ -14,25 +15,28 @@ export function AlertsFab({
   onPress: () => void;
 }) {
   const colors = useColors();
+  const reduceMotion = useReduceMotion();
   const fabScale = useState(() => new Animated.Value(1))[0];
 
   const handlePressIn = useCallback(() => {
+    if (reduceMotion) return;
     Animated.spring(fabScale, {
       toValue: 0.92,
       useNativeDriver: true,
       speed: 50,
       bounciness: 6,
     }).start();
-  }, [fabScale]);
+  }, [fabScale, reduceMotion]);
 
   const handlePressOut = useCallback(() => {
+    if (reduceMotion) return;
     Animated.spring(fabScale, {
       toValue: 1,
       useNativeDriver: true,
       speed: 20,
       bounciness: 8,
     }).start();
-  }, [fabScale]);
+  }, [fabScale, reduceMotion]);
 
   if (!visible) return null;
 

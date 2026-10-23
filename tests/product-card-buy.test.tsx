@@ -35,6 +35,10 @@ vi.mock("react-native", async () => {
       spring: () => anim,
     },
     Platform: { OS: "ios" },
+    AccessibilityInfo: {
+      isReduceMotionEnabled: async () => false,
+      addEventListener: () => ({ remove: () => {} }),
+    },
   };
 });
 vi.mock("@/hooks/use-colors", () => ({
