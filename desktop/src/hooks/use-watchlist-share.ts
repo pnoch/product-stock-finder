@@ -82,32 +82,31 @@ export function useWatchlistShare({
           const chunk = rows.slice(i, i + 50);
           for (const row of chunk) {
             const hit = byModel.get(row.model.toLowerCase());
-            const product = hit
-              ? ({
+            const product: Product = hit
+              ? {
                   ...hit,
-                  tags: row.tags.length
-                    ? row.tags
-                    : (hit as unknown as { tags?: string[] }).tags,
+                  tags: row.tags.length ? row.tags : (hit.tags ?? []),
                   isWatched: true,
                   addedAt: new Date().toISOString(),
-                } as unknown as Product)
-              : ({
+                  listings: [],
+                }
+              : {
                   id: row.model,
                   name: row.model,
                   modelNumber: row.model,
                   brand: "Unknown",
-                  category: "Switch",
+                  category: "Other",
                   description: "",
                   isWatched: true,
                   addedAt: new Date().toISOString(),
                   listings: [],
                   tags: row.tags,
-                } as unknown as Product);
+                };
             try {
               // addToWatchlist returns false when the product is already
               // tracked; count those separately so the summary doesn't claim
               // to have added products that were already on the watchlist.
-              if (await storage.addToWatchlist(product as Product)) added += 1;
+              if (await storage.addToWatchlist(product)) added += 1;
               else duplicates += 1;
               if (
                 row.targetPrice !== null &&

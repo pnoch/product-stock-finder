@@ -6,7 +6,7 @@ import { EmptyState } from "../components/EmptyState";
 import { SharedWatchlistHeader } from "../components/shared-watchlist/SharedWatchlistHeader";
 import { SharedWatchlistProductCard, type SharedProduct } from "../components/shared-watchlist/SharedWatchlistProductCard";
 import { SharedWatchlistLoading, SharedWatchlistError } from "../components/shared-watchlist/SharedWatchlistStates";
-import type { Product } from "../../../lib/types";
+import { normalizeSharedWatchlistProduct } from "../../../lib/shared-watchlist";
 
 export function SharedWatchlist() {
   const { token } = useParams();
@@ -102,7 +102,7 @@ export function SharedWatchlist() {
                   showToast(`Couldn't add ${p.name}.`);
                 }
               }}
-              onExportHistory={() => handleExportHistory(p as unknown as Product)}
+              onExportHistory={() => handleExportHistory(normalizeSharedWatchlistProduct(p))}
             />
           ))}
         </div>
