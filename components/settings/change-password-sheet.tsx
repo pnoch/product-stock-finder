@@ -76,7 +76,7 @@ export function ChangePasswordSheet({
               style={{ backgroundColor: colors.background, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: colors.foreground, borderWidth: 1, borderColor: colors.border, marginBottom: 12 }}
               accessibilityLabel="Confirm new password"
             />
-            {changeError && <Text style={{ color: colors.error, fontSize: 13, marginBottom: 12 }}>{changeError}</Text>}
+            {changeError && <Text accessibilityRole="alert" style={{ color: colors.error, fontSize: 13, marginBottom: 12 }}>{changeError}</Text>}
             <TouchableOpacity activeOpacity={0.85} onPress={onSubmit} disabled={changing} style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginBottom: 12, opacity: changing ? 0.5 : 1 }} accessibilityLabel="Submit change password" accessibilityRole="button">
               {changing ? <ActivityIndicator color="#fff" /> : <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>Update password</Text>}
             </TouchableOpacity>

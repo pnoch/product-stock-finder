@@ -110,7 +110,7 @@ export function ForgotPasswordView({
             }}
           />
           {forgotError && (
-            <Text style={{ color: colors.error, fontSize: 13, marginBottom: 12 }}>{forgotError}</Text>
+            <Text accessibilityRole="alert" style={{ color: colors.error, fontSize: 13, marginBottom: 12 }}>{forgotError}</Text>
           )}
           <TouchableOpacity
             activeOpacity={0.85}

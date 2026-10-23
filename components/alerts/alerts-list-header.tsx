@@ -33,7 +33,7 @@ export function AlertsListHeader({
             size={16}
             color={colors.error}
           />
-          <Text style={{ color: colors.error, fontSize: 13, flex: 1 }}>
+          <Text accessibilityRole="alert" style={{ color: colors.error, fontSize: 13, flex: 1 }}>
             {loadError}
           </Text>
           <TouchableOpacity
