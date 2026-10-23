@@ -160,7 +160,7 @@ describe("screen-level fixes", () => {
     );
     for (const file of [
       "desktop/src/hooks/use-bulk-import.ts",
-      "desktop/src/components/SearchModal.tsx",
+      "desktop/src/hooks/use-bulk-import.ts",
     ]) {
       const src = read(file);
       expect(src, file).toContain("PromiseFulfilledResult<boolean>");

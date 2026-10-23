@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 
 describe("shared search chrome", () => {
-  for (const f of ["desktop/src/pages/Search.tsx", "desktop/src/components/SearchModal.tsx"]) {
+  for (const f of ["desktop/src/pages/Search.tsx", "desktop/src/hooks/use-catalog-search.ts"]) {
     it(`${f} imports shared chrome`, async () => {
       const text = await readFile(f, "utf8");
       expect(text).toContain("search-chrome");
@@ -15,7 +15,8 @@ describe("shared search chrome", () => {
     // import (mobile uses Promise.allSettled and reports skipped items).
     it(`${f} bulk import tolerates per-item failures`, async () => {
       const text = await readFile(
-        f === "desktop/src/pages/Search.tsx"
+        f === "desktop/src/pages/Search.tsx" ||
+        f === "desktop/src/hooks/use-catalog-search.ts"
           ? "desktop/src/hooks/use-bulk-import.ts"
           : f,
         "utf8",

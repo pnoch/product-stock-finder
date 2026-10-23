@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 const SEARCH_SURFACES = [
   "app/search.tsx",
   "desktop/src/pages/Search.tsx",
-  "desktop/src/components/SearchModal.tsx",
+  "desktop/src/hooks/use-search-data.ts",
 ];
 
 describe("shared search options", () => {
@@ -21,7 +21,7 @@ describe("shared search options", () => {
       expect(text).not.toContain('name: "modelNumber"');
     });
   }
-  for (const f of ["desktop/src/hooks/use-search-data.ts", "desktop/src/components/SearchModal.tsx"]) {
+  for (const f of ["desktop/src/hooks/use-search-data.ts"]) {
     it(`${f} defers the search query`, async () => {
       const text = await readFile(f, "utf8");
       expect(text).toContain("useDeferredValue");

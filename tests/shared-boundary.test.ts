@@ -3,9 +3,8 @@ import { readFile } from "node:fs/promises";
 
 const desktopPages = [
   "desktop/src/pages/Rates.tsx",
-  "desktop/src/pages/Search.tsx",
   "desktop/src/components/watchlist/WatchlistEmptyPage.tsx",
-  "desktop/src/components/SearchModal.tsx",
+  "desktop/src/hooks/use-catalog-search.ts",
 ];
 
 describe("desktop parity architecture", () => {

@@ -1811,7 +1811,10 @@ describe("desktop chart guard", () => {
   // QA round 167: the same inline-tag-creation gap existed in desktop's
   // SearchModal (the other search surface).
   it("creates tags inline in the desktop SearchModal tag picker", async () => {
-    const text = await readFile("desktop/src/components/SearchModal.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-catalog-search.ts",
+      "utf8",
+    );
     const dialog = await readFile(
       "desktop/src/components/search/TagPickerDialog.tsx",
       "utf8",
@@ -2500,10 +2503,13 @@ describe("desktop chart guard", () => {
   // QA round 67: desktop AI discovery added to the watchlist but never marked
   // the product tracked, so the catalog row kept offering "Add".
   it("marks a discovered product tracked in desktop Search", async () => {
-    const text = await readFile("desktop/src/pages/Search.tsx", "utf8");
+    const text = await readFile(
+      "desktop/src/hooks/use-catalog-search.ts",
+      "utf8",
+    );
     const start = text.indexOf("const handleDiscover");
     expect(start).toBeGreaterThan(-1);
-    const block = text.slice(start, text.indexOf("}, [query, discovering, navigate]);", start));
+    const block = text.slice(start, text.indexOf("}, [query, discovering, search", start));
     expect(block).toContain("setTrackedIds((prev) => new Set([...prev, res.product.id]))");
   });
 
@@ -2625,7 +2631,7 @@ describe("desktop chart guard", () => {
       ["desktop/src/pages/Alerts.tsx", "storage\n      .getSettings()"],
       ["desktop/src/hooks/use-watchlist-view.ts", ".getSettings()"],
       ["desktop/src/components/TrendingSection.tsx", "storage.getWatchlist().then((w) => {"],
-      ["desktop/src/components/SearchModal.tsx", "storage.getWatchlist().then((products) =>"],
+      ["desktop/src/hooks/use-search-data.ts", "storage.getWatchlist().then((p) =>"],
     ];
     for (const [file, needle] of cases) {
       const text = await readFile(file, "utf8");

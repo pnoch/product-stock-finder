@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 
 describe("desktop recent-searches dedup", () => {
-  for (const f of ["desktop/src/pages/Search.tsx", "desktop/src/components/SearchModal.tsx"]) {
+  for (const f of ["desktop/src/pages/Search.tsx", "desktop/src/hooks/use-catalog-search.ts"]) {
     it(`${f} delegates recents to shared chrome`, async () => {
       const text = await readFile(f, "utf8");
       expect(text).toContain("search-chrome");

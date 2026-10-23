@@ -20,6 +20,8 @@ export function useSearchData({
   selectedCategory,
   selectedBrand,
   catalogSort,
+  reloadKey,
+  focusOnLoad = true,
 }: {
   query: string;
   searchTagIds: string[];
@@ -27,6 +29,8 @@ export function useSearchData({
   selectedCategory: string | null;
   selectedBrand: string | null;
   catalogSort: CatalogSort;
+  reloadKey?: unknown;
+  focusOnLoad?: boolean;
 }) {
   const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
   const [watchlistProducts, setWatchlistProducts] = useState<Awaited<ReturnType<typeof storage.getWatchlist>>>([]);
@@ -47,8 +51,10 @@ export function useSearchData({
       setRecentSearches(loadRecent());
     });
     storage.getSettings().then((s) => setTagDefinitions((s.tagDefinitions ?? {}) as Record<string, TagDefinition>)).catch(() => {});
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }, []);
+    if (focusOnLoad) setTimeout(() => inputRef.current?.focus(), 100);
+    // `reloadKey` lets the modal refresh its snapshot each time it opens while
+    // the page keeps the default (mount-only) behavior.
+  }, [reloadKey, focusOnLoad]);
 
   const combinedCatalog = useMemo(() => {
     if (discoveredProducts.length === 0) return PRODUCT_CATALOG;
