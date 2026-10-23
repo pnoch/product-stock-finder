@@ -13,7 +13,9 @@ describe("drops feature wiring", () => {
 
   it("full screen route exists and exports", () => {
     const src = read("app/drops.tsx");
-    expect(src).toContain("Price Drops");
+    const header = read("components/drops/drops-header.tsx");
+    expect(src).toContain("DropsScreen");
+    expect(header).toContain("Price Drops");
   });
 
   it("computeLocalDrops is defined", () => {
