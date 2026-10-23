@@ -2,12 +2,61 @@ import { invoke } from "@tauri-apps/api/core";
 import { save, open } from "@tauri-apps/plugin-dialog";
 import { readFile, writeFile } from "@tauri-apps/plugin-fs";
 import { storage } from "./storage";
+import { isTauri } from "./lib/tauri";
+import { applyBackup, buildBackup, parseBackup } from "../../lib/backup";
+
+const EXPORT_FILENAME = "product-stock-finder-export.json";
+
+async function readCurrentBackupInput() {
+  const [watchlist, alerts, reminders, stockWatches, settings] =
+    await Promise.all([
+      storage.getWatchlist(),
+      storage.getAlerts(),
+      storage.getBackOrderReminders(),
+      storage.getStockWatches(),
+      storage.getSettings(),
+    ]);
+  return { watchlist, alerts, reminders, stockWatches, settings };
+}
+
+function downloadText(filename: string, content: string): void {
+  const blob = new Blob([content], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function pickTextFile(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) {
+        resolve(null);
+        return;
+      }
+      file.text().then(resolve, () => resolve(null));
+    };
+    input.click();
+  });
+}
 
 export async function exportWatchlistAsJson(): Promise<string> {
+  if (!isTauri()) {
+    const content = buildBackup(await readCurrentBackupInput());
+    downloadText(EXPORT_FILENAME, content);
+    return `Exported ${EXPORT_FILENAME}`;
+  }
+
   const content = await invoke<string>("export_watchlist", { format: "json" });
 
   const filePath = await save({
-    defaultPath: "product-stock-finder-export.json",
+    defaultPath: EXPORT_FILENAME,
     filters: [{ name: "JSON", extensions: ["json"] }],
   });
 
@@ -20,6 +69,23 @@ export async function exportWatchlistAsJson(): Promise<string> {
 }
 
 export async function importWatchlistFromJson(): Promise<string> {
+  if (!isTauri()) {
+    const content = await pickTextFile();
+    if (content === null) return "Import cancelled";
+    const backup = parseBackup(content);
+    if (!backup) return "Invalid backup file";
+    const current = await readCurrentBackupInput();
+    const result = applyBackup(backup, current);
+    await storage.saveWatchlist(result.watchlist);
+    await storage.saveAlerts(result.alerts);
+    await storage.saveBackOrderReminders(result.reminders);
+    await storage.saveStockWatches(result.stockWatches);
+    if (result.settingsApplied) await storage.saveSettings(result.settings);
+    return `Imported ${result.counts.watchlistAdded} new product${
+      result.counts.watchlistAdded === 1 ? "" : "s"
+    }`;
+  }
+
   const filePath = await open({
     filters: [{ name: "JSON", extensions: ["json"] }],
     multiple: false,

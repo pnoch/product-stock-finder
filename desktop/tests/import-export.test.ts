@@ -55,6 +55,7 @@ describe("importWatchlistFromJson", () => {
   beforeEach(() => {
     state.savedWatches = [];
     state.savedWatchlist = [];
+    (globalThis as unknown as { isTauri?: boolean }).isTauri = true;
   });
 
   it("rehydrates restock watches alongside the other collections", async () => {
