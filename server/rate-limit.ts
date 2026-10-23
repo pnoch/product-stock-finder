@@ -50,7 +50,13 @@ function getClientIp(req: TrpcContext["req"]): string {
 }
 
 function clientKey(ctx: TrpcContext): string {
-  return getClientIp(ctx.req);
+  // Prefer the authenticated user: an IP-only key lets one signed-in user
+  // exhaust a shared NAT/proxy bucket for everyone behind it, and lets a
+  // caller rotate addresses to bypass the limit. Public procedures still fall
+  // back to the socket address.
+  const userId = ctx.user?.id;
+  if (userId) return `user:${userId}`;
+  return `ip:${getClientIp(ctx.req)}`;
 }
 
 export function checkRateLimit(

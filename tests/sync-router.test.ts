@@ -20,6 +20,7 @@ import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
 import { listChangedItems } from "../server/sync-db";
 import { getDb } from "../server/db";
+import { clearRateLimitsForTests } from "../server/rate-limit";
 
 const mockedGetDb = vi.mocked(getDb);
 const mockedListChanged = vi.mocked(listChangedItems);
@@ -56,6 +57,10 @@ function createAuthContext(): TrpcContext {
 }
 
 describe("sync router", () => {
+  beforeEach(() => {
+    clearRateLimitsForTests();
+  });
+
   it("pull returns empty items when DB is unavailable", async () => {
     const caller = appRouter.createCaller(createAuthContext());
     const result = await caller.sync.pull({ since: null });
