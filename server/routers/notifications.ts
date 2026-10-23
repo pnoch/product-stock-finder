@@ -10,7 +10,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { checkRateLimit } from "../rate-limit";
 import { assertDeviceAccess } from "../devices";
 import { upsertDeviceConfig, pullPendingEvents } from "../notifications";
-import { upsertPushToken, pruneDeviceToken, getPushOutcome, sendPushForDevice } from "../push-notifications";
+import { upsertPushToken, pruneDeviceToken, getPushOutcome, getPushOutcomes, sendPushForDevice } from "../push-notifications";
 import type { PushOutcome } from "../push-notifications";
 
 export interface PushStatusDevice {
@@ -214,7 +214,7 @@ export const notificationsRouter = router({
       const db = await getDb();
       if (!db) return { devices: [] as PushStatusDevice[] };
       const { devicePushTokens, deviceLabels } = await import("../../drizzle/schema");
-      const { eq } = await import("drizzle-orm");
+      const { eq, inArray } = await import("drizzle-orm");
       const tokens = await db
         .select({
           deviceId: devicePushTokens.deviceId,
@@ -222,21 +222,24 @@ export const notificationsRouter = router({
         })
         .from(devicePushTokens)
         .where(eq(devicePushTokens.userId, ctx.user.id));
-      const labels = await db
-        .select()
-        .from(deviceLabels);
+      const deviceIds = tokens.map((t) => t.deviceId);
+      // Scope labels to this user's devices: selecting the whole table leaked
+      // other tenants' labels into memory and grew with the user base.
+      const labels = deviceIds.length
+        ? await db
+            .select()
+            .from(deviceLabels)
+            .where(inArray(deviceLabels.deviceId, deviceIds))
+        : [];
       const labelByDevice = new Map(labels.map((l) => [l.deviceId, l.label]));
-      const devices: PushStatusDevice[] = [];
-      for (const t of tokens) {
-        const outcome = await getPushOutcome(t.deviceId);
-        devices.push({
-          deviceId: t.deviceId,
-          label: labelByDevice.get(t.deviceId) ?? null,
-          platform: t.platform,
-          hasToken: true,
-          outcome,
-        });
-      }
+      const outcomes = await getPushOutcomes(deviceIds);
+      const devices: PushStatusDevice[] = tokens.map((t) => ({
+        deviceId: t.deviceId,
+        label: labelByDevice.get(t.deviceId) ?? null,
+        platform: t.platform,
+        hasToken: true,
+        outcome: outcomes.get(t.deviceId) ?? null,
+      }));
       return { devices };
     }),
   sendTestPush: protectedProcedure

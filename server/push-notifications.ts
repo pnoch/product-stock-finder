@@ -88,6 +88,43 @@ export async function getPushOutcome(deviceId: string): Promise<PushOutcome | nu
   }
 }
 
+// Batched variant for the diagnostics screen: one query for every device
+// instead of one per device.
+export async function getPushOutcomes(
+  deviceIds: string[],
+): Promise<Map<string, PushOutcome>> {
+  const out = new Map<string, PushOutcome>();
+  if (deviceIds.length === 0) return out;
+  try {
+    const db = await getDb();
+    if (!db) {
+      for (const id of deviceIds) {
+        const outcome = memoryOutcomes.get(id);
+        if (outcome) out.set(id, outcome);
+      }
+      return out;
+    }
+    const { pushDeliveryLog } = await import("../drizzle/schema");
+    const { inArray } = await import("drizzle-orm");
+    const rows = await db
+      .select()
+      .from(pushDeliveryLog)
+      .where(inArray(pushDeliveryLog.deviceId, deviceIds));
+    for (const row of rows) {
+      out.set(row.deviceId, {
+        status: row.status as "ok" | "error",
+        error: row.error,
+        sentAt: row.sentAt,
+        eventCount: row.eventCount,
+        ticketId: row.ticketId,
+      });
+    }
+  } catch (error) {
+    console.warn("[Push] Failed to read outcomes:", error);
+  }
+  return out;
+}
+
 export function clearPushOutcomesForTests(): void {
   memoryOutcomes.clear();
 }
