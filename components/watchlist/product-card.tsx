@@ -11,25 +11,18 @@ import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { Product, TagDefinition } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
-import { convertPrice, getBestPrice, selectBestListing } from "@/lib/currency";
-import { computePriceChange } from "@/lib/price-change";
 import { StockBadge } from "@/components/stock-badge";
 import { ScarcityBadge } from "@/components/watchlist/scarcity-badge";
-import { computeAvailability } from "@/lib/availability";
 import { PriceSparkline } from "@/components/price-sparkline";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { IconActionButton } from "@/components/ui/icon-action-button";
 import { ProductImage } from "@/components/search/product-image";
-import {
-  formatLastRefreshed,
-  getLastRefreshedColor,
-} from "@/lib/last-refreshed";
-import { getTagById } from "@/lib/tags";
 import { openListingUrl } from "@/lib/listing-utils";
-import { productStatus } from "@/lib/watchlist-org";
 import { isAcquired } from "@/lib/acquired";
+import { useProductCardDerived } from "@/hooks/use-product-card-derived";
+import { ProductCardTags } from "./product-card-tags";
+import { ProductCardInsights } from "./product-card-insights";
+import { ProductCardFooter } from "./product-card-footer";
 import type { DealScore } from "@/lib/deal-score";
-import { dealBandLabel } from "@/lib/deal-score";
 
 export const ProductCard = memo(function ProductCard({
   product,
@@ -82,56 +75,24 @@ export const ProductCard = memo(function ProductCard({
     },
     [onToggleAcquired],
   );
-  const currency = displayCurrency ?? "USD";
-  const showInsightRow =
-    (insight != null && (insight.atAllTimeLow || insight.dropStreak >= 2)) ||
-    (dealScore != null && dealScore.band === "hot");
-  const bestPrice = useMemo(
-    () => getBestPrice(product.listings ?? [], currency),
-    [product.listings, currency],
-  );
-  const bestInStockListing = useMemo(
-    // The Buy button opens the store, so require a url — an in-stock listing
-    // without one would render a dead button (the Visit CTA guards the same way).
-    () =>
-      selectBestListing(product.listings ?? [], {
-        currency,
-        stock: "in_stock",
-        requireUrl: true,
-      })?.listing ?? null,
-    [product.listings, currency],
-  );
-  const bestStatus = useMemo(() => productStatus(product), [product]);
-  const availability = useMemo(
-    () => computeAvailability(product.listings ?? []),
-    [product.listings],
-  );
-  const distributorCount = product.listings?.length ?? 0;
-  const validTags = useMemo(
-    () => (product.tags ?? []).filter((id) => getTagById(tagDefinitions, id)),
-    [product.tags, tagDefinitions],
-  );
-  const priceChange = useMemo(
-    () => computePriceChange(product.listings ?? [], currency),
-    [product.listings, currency],
-  );
-  const sparklineData = useMemo(() => {
-    // Convert each listing's history into the display currency before
-    // flattening: mixing raw USD and MYR points draws a meaningless chart that
-    // contradicts the converted "Best Price" next to it.
-    const all = (product.listings ?? []).flatMap((l) =>
-      (l.priceHistory ?? []).map((p) => {
-        const converted = convertPrice(p.price, p.currency, currency);
-        return converted === null ? null : { ...p, price: converted, currency };
-      }),
-    ).filter((p): p is NonNullable<typeof p> => p !== null);
-    if (all.length < 2) return null;
-    return all;
-  }, [product.listings, currency]);
-  const refreshColorKey = useMemo(
-    () => getLastRefreshedColor(product.lastRefreshed),
-    [product.lastRefreshed],
-  );
+  const {
+    showInsightRow,
+    bestPrice,
+    bestInStockListing,
+    bestStatus,
+    availability,
+    distributorCount,
+    validTags,
+    priceChange,
+    sparklineData,
+    refreshColorKey,
+  } = useProductCardDerived({
+    product,
+    tagDefinitions,
+    insight,
+    dealScore,
+    displayCurrency,
+  });
   const pressScale = useState(() => new Animated.Value(1))[0];
   const sparklineOpacity = useState(() => new Animated.Value(1))[0];
   const selectionAnim = useState(() => new Animated.Value(selectionMode ? 1 : 0))[0];
@@ -392,200 +353,30 @@ export const ProductCard = memo(function ProductCard({
           )}
         </View>
       </View>
-      {validTags.length > 0 && (
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: 6,
-            marginTop: 10,
-          }}
-        >
-          {validTags.slice(0, 3).map((id) => {
-            const tag = getTagById(tagDefinitions, id);
-            if (!tag) return null;
-            return (
-              <View
-                key={id}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: colors.surface,
-                  borderRadius: 10,
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  flexShrink: 1,
-                  minWidth: 0,
-                }}
-              >
-                <View
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: 3.5,
-                    backgroundColor: tag.color,
-                    marginRight: 5,
-                  }}
-                />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1} ellipsizeMode="tail">
-                    {tag.name}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-          {validTags.length > 3 && (
-            <Text
-              style={{
-                color: colors.muted,
-                fontSize: 11,
-                alignSelf: "center",
-              }}
-            >
-              +{validTags.length - 3}
-            </Text>
-          )}
-        </View>
-      )}
+      <ProductCardTags
+        colors={colors}
+        validTags={validTags}
+        tagDefinitions={tagDefinitions}
+      />
       {showInsightRow && (
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: 6,
-            marginTop: validTags.length > 0 ? 6 : 10,
-          }}
-        >
-          {insight?.atAllTimeLow && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-                backgroundColor: colors.success + "22",
-                borderRadius: 8,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-              }}
-            >
-              <Text
-                style={{
-                  color: colors.success,
-                  fontSize: 10,
-                  fontWeight: "700",
-                }}
-              >
-                All-time low
-              </Text>
-            </View>
-          )}
-          {insight != null && insight.dropStreak >= 2 && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-                backgroundColor: colors.primary + "22",
-                borderRadius: 8,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-              }}
-            >
-              <Text
-                style={{
-                  color: colors.primary,
-                  fontSize: 10,
-                  fontWeight: "700",
-                }}
-              >
-                ▼ Dropping ×{insight.dropStreak}
-              </Text>
-            </View>
-          )}
-          {dealScore != null && dealScore.band === "hot" && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-                backgroundColor: colors.warning + "22",
-                borderRadius: 8,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-              }}
-            >
-              <Text
-                style={{
-                  color: colors.warning,
-                  fontSize: 10,
-                  fontWeight: "700",
-                }}
-              >
-                {dealBandLabel(dealScore.band)}
-              </Text>
-            </View>
-          )}
-        </View>
+        <ProductCardInsights
+          colors={colors}
+          insight={insight}
+          dealScore={dealScore}
+          hasTags={validTags.length > 0}
+        />
       )}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: 12,
-          paddingTop: 10,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-        }}
-      >
-        <Text style={{ color: colors.muted, fontSize: 12 }}>
-          {distributorCount} distributor{distributorCount !== 1 ? "s" : ""}{" "}
-          tracked
-        </Text>
-        {(() => {
-          const colorMap = {
-            green: colors.success,
-            yellow: colors.warning,
-            red: colors.error,
-            gray: colors.muted,
-          };
-          return (
-            <Text style={{ color: colorMap[refreshColorKey], fontSize: 11 }}>
-              Updated {formatLastRefreshed(product.lastRefreshed)}
-            </Text>
-          );
-        })()}
-        {onToggleAcquired && (
-          <IconActionButton
-            name="checkmark.circle.fill"
-            size={16}
-            color={acquired ? colors.success : colors.muted}
-            onPress={handleToggleAcquired}
-            accessibilityLabel={acquired ? "Mark as not acquired" : "Mark as acquired"}
-            accessibilityState={{ selected: acquired }}
-            style={{ marginRight: 4 }}
-          />
-        )}
-        <IconActionButton
-          name="tag.fill"
-          size={16}
-          color={(product.tags?.length ?? 0) > 0 ? colors.primary : colors.muted}
-          onPress={handleTagPress}
-          accessibilityLabel="Edit tags"
-          style={{ marginRight: 4 }}
-        />
-        <IconActionButton
-          name="trash.fill"
-          size={16}
-          color={colors.error}
-          onPress={handleDeletePress}
-          accessibilityLabel="Delete product"
-          accessibilityHint="Removes this product from your watchlist"
-        />
-      </View>
+      <ProductCardFooter
+        colors={colors}
+        product={product}
+        distributorCount={distributorCount}
+        refreshColorKey={refreshColorKey}
+        acquired={acquired}
+        onToggleAcquired={onToggleAcquired}
+        onToggleAcquiredPress={handleToggleAcquired}
+        onTagPress={handleTagPress}
+        onDeletePress={handleDeletePress}
+      />
       </Animated.View>
     </Pressable>
   );
