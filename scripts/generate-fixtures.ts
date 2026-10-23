@@ -6,6 +6,9 @@ const FIXTURES_DIR = path.join(__dirname, "../tests/fixtures/scrapers");
 
 async function generateFixtures() {
   await fs.mkdir(FIXTURES_DIR, { recursive: true });
+  // Fixtures are committed and tests assert against them. Refetching live
+  // pages silently rewrites that baseline, so overwriting requires --force.
+  const force = process.argv.includes("--force");
 
   for (const parser of PARSERS) {
     console.log(`Generating fixture for ${parser.id}...`);
@@ -19,6 +22,15 @@ async function generateFixtures() {
       });
       const html = await response.text();
       const filePath = path.join(FIXTURES_DIR, `${parser.id}.html`);
+      if (!force) {
+        try {
+          await fs.access(filePath);
+          console.log(`  Skipped ${filePath} (exists; pass --force to overwrite)`);
+          continue;
+        } catch {
+          // no existing fixture — write it
+        }
+      }
       await fs.writeFile(filePath, html);
       console.log(`  Saved ${filePath} (${html.length} bytes)`);
     } catch (error) {

@@ -139,7 +139,7 @@ desktop/              Tauri desktop app (Vite + React 19 + Tailwind 4) — versi
 shared/               Cross-platform types/consts; shared/_core/ — don't modify
 tests/                vitest (~545 files: ~496 root + 49 scrapers, ~4145 tests, incl. per-scraper tests under tests/scrapers/)
 docs/superpowers/     Design specs (specs/) + implementation plans (plans/)
-scripts/              load-env.js, generate_qr.mjs, reset-project.js
+scripts/              generate_qr.mjs, generate-fixtures.ts, smoke-web.ts, test-db.mjs
 references/           periodic-updates.md (reference docs)
 design.md             Full UI/UX design spec
 todo.md               Phase-by-phase feature checklist (read for history/context)

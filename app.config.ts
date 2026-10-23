@@ -1,5 +1,5 @@
 // Load environment variables with proper priority (system > .env)
-import "./scripts/load-env.js";
+import "dotenv/config";
 import type { ExpoConfig } from "expo/config";
 
 export interface AndroidIntentFilterData {
