@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Text, View, Animated } from "react-native";
+import { Text, View, Animated, type ViewStyle } from "react-native";
 import { Card } from "@/components/ui/card";
 import { useColors } from "@/hooks/use-colors";
 import { useReduceMotion } from "@/hooks/use-reduce-motion";
@@ -59,8 +59,7 @@ export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { list
       {regionBest.map((item, i) => {
         const isCheapest = i === 0;
         const distributor = getDistributorById(item.listing.distributorId);
-        const RowWrapper: any = isCheapest ? Animated.View : View;
-        const rowStyle: any = {
+        const rowStyle: ViewStyle = {
           flexDirection: "row",
           alignItems: "center",
           paddingVertical: 10,
@@ -70,10 +69,10 @@ export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { list
           borderRadius: isCheapest ? 10 : 0,
           paddingHorizontal: isCheapest ? 8 : 0,
           marginHorizontal: isCheapest ? -8 : 0,
-          transform: isCheapest ? [{ scale: pulse }] : undefined,
+          transform: isCheapest ? [{ scale: pulse as unknown as number }] : undefined,
         };
         return (
-          <RowWrapper
+          <Animated.View
             key={item.region}
             style={rowStyle}
           >
@@ -170,7 +169,7 @@ export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { list
                 </Text>
               </View>
             </View>
-          </RowWrapper>
+          </Animated.View>
         );
       })}
     </Card>
