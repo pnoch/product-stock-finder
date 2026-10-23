@@ -4,6 +4,51 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.28.0] - 2026-10-23
+
+### Fixed
+
+- Share invitations are no longer account-enumeration oracles: `inviteByEmail`
+  and `invite` return only `{ invited: true }`, and unknown user ids no longer
+  surface a `NOT_FOUND`.
+- Notification events use server-generated ids instead of the client-supplied
+  primary key, preventing cross-user collisions.
+- Test-push no longer blocks the request for ~15 s waiting on Expo receipts.
+- `notifications.pushStatusAll` batches push outcomes and scopes device labels
+  to the caller instead of reading every tenant's labels.
+- Rate limits key on the authenticated user (IP fallback for public routes), so
+  shared NAT users no longer exhaust one bucket and address rotation no longer
+  bypasses the limit.
+- The desktop browser pool closes disconnected Chrome processes instead of
+  leaking one per crash.
+- Desktop scraper status reads the circuit breaker instead of inferring health
+  from `lastChecked` (which is stamped on failures too).
+- The drops tab is a real tab (no back button); the full-screen route falls back
+  to Home when there is no history.
+- CSV import supplies real brand/category/model defaults instead of
+  `as unknown as Product`.
+
+### Changed
+
+- Decomposed the largest screens and modules into focused hooks/components:
+  mobile watchlist, settings, product detail, search, alerts, stats, health,
+  compare, drops, onboarding, manual add, login, account, notifications; desktop
+  watchlist, settings, product detail, compare, stats, health, search, alerts,
+  home, and the app shell.
+- Unified desktop `Search` and `SearchModal` on one `useCatalogSearch`.
+- Added `createPriceAlert` (save-then-schedule, deterministic id) and migrated
+  the product-detail and compare flows.
+- Consolidated the desktop localStorage adapters and replaced `window.confirm`
+  with a shared confirm dialog.
+- Shared currency conversion math between the static and live-rate layers.
+- Added coverage thresholds for `lib/` and `hooks/`, plus behavior tests for the
+  refactored hooks.
+- Accessibility: labeled login inputs, header/alert roles, 44 px touch targets,
+  and reduced-motion support across the animated components.
+- Removed the unused `axios` dependency and dead template scripts; fixture
+  regeneration now requires `--force`.
+- Added `cargo fmt --check` and `cargo clippy -D warnings` to `pnpm verify`.
+
 ## [5.27.3] - 2026-10-20
 
 ### Fixed
