@@ -8,7 +8,7 @@ import {
   type DistributorHealth,
   type HealthSample,
 } from "../../../lib/scrapers/health";
-import type { StorageAdapter } from "../../../lib/storage/adapter";
+import { localStorageAdapter as localAdapter } from "./local-storage-adapter";
 import type { PendingHealthEvent } from "../../../lib/storage/notifications";
 import { isInQuietHours } from "../../../lib/quiet-hours";
 import { MAX_UPLOAD_HEALTH_EVENTS } from "../../../shared/const";
@@ -20,12 +20,6 @@ import { sendDesktopNotification } from "../notifications";
 const LAST_PROBE_KEY = "last_health_probe_at";
 const CADENCE_MS = { hourly: 3600_000, daily: 86_400_000 } as const;
 
-const localAdapter: StorageAdapter = {
-  getItem: async (k: string) => localStorage.getItem(k),
-  setItem: async (k: string, v: string) => localStorage.setItem(k, v),
-  removeItem: async (k: string) => localStorage.removeItem(k),
-  multiRemove: async (keys: string[]) => keys.forEach((k) => localStorage.removeItem(k)),
-};
 
 async function probeDistributors(): Promise<DistributorHealth[]> {
   try {

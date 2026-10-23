@@ -1,14 +1,9 @@
 import { checkNotificationPermission } from "./notification-permission";
+import { localStorageAdapter } from "./local-storage-adapter";
 import { storage } from "../storage";
 import type { PriceAlert } from "../../../lib/types";
 
-export const notesStore = {
-  getItem: (k: string) => Promise.resolve(localStorage.getItem(k)),
-  setItem: (k: string, v: string): Promise<void> => {
-    localStorage.setItem(k, v);
-    return Promise.resolve();
-  },
-};
+export const notesStore = localStorageAdapter;
 
 export async function createPriceAlert(input: {
   productId: string;

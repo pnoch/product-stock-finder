@@ -3,7 +3,7 @@ import { Activity } from "lucide-react";
 import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "../../../../lib/scrapers/registry";
 import { clearDistributorBreaker } from "../../../../lib/scrapers/breaker-clear";
-import type { StorageAdapter } from "../../../../lib/storage/adapter";
+import { localStorageAdapter } from "../../lib/local-storage-adapter";
 import type { Product } from "../../../../lib/types";
 import { storage } from "../../storage";
 
@@ -98,11 +98,7 @@ export function ScraperStatusSection({
         // fetch again. Do NOT stamp lastChecked: that field means "last
         // successful check", so stamping it made a failed distributor show
         // "OK / Last checked: today" with no prices actually fetched.
-        const breakerAdapter: Pick<StorageAdapter, "getItem" | "setItem"> = {
-          getItem: async (k: string) => localStorage.getItem(k),
-          setItem: async (k: string, v: string) => localStorage.setItem(k, v),
-        };
-        await clearDistributorBreaker(distributorId, breakerAdapter).catch(
+        await clearDistributorBreaker(distributorId, localStorageAdapter).catch(
           () => {},
         );
         showToast("Distributor re-enabled");

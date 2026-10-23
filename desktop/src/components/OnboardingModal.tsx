@@ -3,6 +3,7 @@ import { Bell, ShoppingCart, Sparkles } from "lucide-react";
 import { Modal } from "./Modal";
 import { hasSeenOnboarding, setOnboardingSeen } from "../../../lib/onboarding";
 import { DISTRIBUTORS } from "@shared/distributors";
+import { localStorageAdapter } from "../lib/local-storage-adapter";
 
 // Icons, not emoji: emoji glyphs depend on a system emoji font, which is absent
 // on many Linux desktops and renders as an empty "tofu" box in the tour.
@@ -24,13 +25,7 @@ const SLIDES = [
   },
 ];
 
-const localStore = {
-  getItem: (k: string) => Promise.resolve(localStorage.getItem(k)),
-  setItem: (k: string, v: string): Promise<void> => {
-    localStorage.setItem(k, v);
-    return Promise.resolve();
-  },
-};
+const localStore = localStorageAdapter;
 
 export function useOnboardingModal() {
   const [open, setOpen] = useState(false);
