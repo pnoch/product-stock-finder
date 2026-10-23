@@ -96,9 +96,9 @@ describe("useProductDerived", () => {
   it("flags a new all-time low", () => {
     const low = listing("linitx-uk", 80, {
       priceHistory: [
-        { price: 120, currency: "USD", date: "2026-01-01" },
-        { price: 110, currency: "USD", date: "2026-01-15" },
-        { price: 80, currency: "USD", date: "2026-02-01" },
+        { price: 120, currency: "USD", date: "2026-01-01", stockStatus: "in_stock" },
+        { price: 110, currency: "USD", date: "2026-01-15", stockStatus: "in_stock" },
+        { price: 80, currency: "USD", date: "2026-02-01", stockStatus: "in_stock" },
       ],
     });
     const { result } = renderHook(() =>
@@ -116,8 +116,8 @@ describe("useProductDerived", () => {
   it("does not flag a price above the prior low", () => {
     const higher = listing("linitx-uk", 100, {
       priceHistory: [
-        { price: 80, currency: "USD", date: "2026-01-01" },
-        { price: 100, currency: "USD", date: "2026-02-01" },
+        { price: 80, currency: "USD", date: "2026-01-01", stockStatus: "in_stock" },
+        { price: 100, currency: "USD", date: "2026-02-01", stockStatus: "in_stock" },
       ],
     });
     const { result } = renderHook(() =>
