@@ -4,6 +4,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { formatPrice } from "@shared/currency";
+import { useMemo } from "react";
 import { getBestPrice } from "../../../../lib/currency";
 import { formatLastRefreshed } from "../../../../lib/last-refreshed";
 import type { DealScore } from "../../../../lib/deal-score";
@@ -60,10 +61,15 @@ export function WatchlistRow({
   onEditTags: (product: Product) => void;
   onRemove: (e: React.MouseEvent, productId: string) => void;
 }) {
-  const best = getBestPrice(product.listings ?? [], displayCurrency);
-  const trend = getTrend(product);
+  // Virtualized rows re-render on every scroll tick; keep the per-row scans
+  // (best-price over listings, trend over history) off that path.
+  const best = useMemo(
+    () => getBestPrice(product.listings ?? [], displayCurrency),
+    [product.listings, displayCurrency],
+  );
+  const trend = useMemo(() => getTrend(product), [product]);
   const refreshed = product.lastRefreshed ?? product.addedAt;
-  const acquired = isAcquired(product);
+  const acquired = useMemo(() => isAcquired(product), [product, isAcquired]);
 
   return (
     <tr
