@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Card } from "@/components/ui/card";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -45,17 +46,7 @@ export function NotesCard({ productId }: { productId: string }) {
   };
 
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        marginBottom: 16,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: 16,
-      }}
-    >
+    <Card style={{ marginHorizontal: 16, marginBottom: 16 }}>
       <View
         style={{
           flexDirection: "row",
@@ -155,6 +146,6 @@ export function NotesCard({ productId }: { productId: string }) {
           )}
         </TouchableOpacity>
       )}
-    </View>
+    </Card>
   );
 }

@@ -1,5 +1,6 @@
 import type { JSX } from "react";
-import { Text, View } from "react-native";
+import { Text } from "react-native";
+import { Card } from "@/components/ui/card";
 import { useColors } from "@/hooks/use-colors";
 import {
   scarcityColorToken,
@@ -32,17 +33,8 @@ export function AvailabilityCard({ data }: { data: Availability }): JSX.Element 
   const a11yLabel = `${scarcityLabel(data.scarcity)} — ${clauses.join(". ")}`;
 
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        marginBottom: 16,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: 16,
-        gap: 6,
-      }}
+    <Card
+      style={{ marginHorizontal: 16, marginBottom: 16, gap: 6 }}
       accessibilityLabel={a11yLabel}
     >
       <Text style={{ color: scarcityColor, fontSize: 16, fontWeight: "700" }}>
@@ -61,6 +53,6 @@ export function AvailabilityCard({ data }: { data: Availability }): JSX.Element 
           Typically restocks ~every {Math.round(data.typicalRestockDays)} days
         </Text>
       ) : null}
-    </View>
+    </Card>
   );
 }

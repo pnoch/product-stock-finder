@@ -1,21 +1,12 @@
 import { Text, View } from "react-native";
+import { Card } from "@/components/ui/card";
 import { useColors } from "@/hooks/use-colors";
 import { dealBandLabel, type DealScore } from "@/lib/deal-score";
 
 export function DealScoreCard({ dealScore }: { dealScore: DealScore }) {
   const colors = useColors();
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: 16,
-      }}
-    >
+    <Card style={{ marginHorizontal: 16, marginBottom: 16 }}>
       <Text
         style={{ color: colors.foreground, fontWeight: "700", fontSize: 15 }}
       >
@@ -42,6 +33,6 @@ export function DealScoreCard({ dealScore }: { dealScore: DealScore }) {
           Volatility {dealScore.factors.volatility}
         </Text>
       </View>
-    </View>
+    </Card>
   );
 }

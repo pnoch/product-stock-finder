@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { Card } from "@/components/ui/card";
 import { useColors } from "@/hooks/use-colors";
 import { formatPrice } from "@shared/currency";
 import type { PriceVsAverage } from "@/lib/price-average";
@@ -26,15 +27,10 @@ export function PriceVsAvgCard({ data, displayCurrency = "USD" }: { data: PriceV
   const a11yLabel = `${VERDICT_ICON[data.verdict]} ${data.percentVsAvg > 0 ? "+" : ""}${data.percentVsAvg.toFixed(1)}% versus 30-day average — ${VERDICT_COPY[data.verdict]}`;
 
   return (
-    <View
+    <Card
       style={{
         marginHorizontal: 16,
         marginBottom: 16,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: 16,
         flexDirection: "row",
         alignItems: "center",
         gap: 14,
@@ -61,6 +57,6 @@ export function PriceVsAvgCard({ data, displayCurrency = "USD" }: { data: PriceV
           {VERDICT_COPY[data.verdict]}
         </Text>
       </View>
-    </View>
+    </Card>
   );
 }
