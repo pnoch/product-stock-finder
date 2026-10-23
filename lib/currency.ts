@@ -1,7 +1,7 @@
 // Live-rate currency layer over @shared/currency: mutable FX overlay
 // (setExchangeRates) + conversions. Pure formatting/constants live in
 // @shared/currency — import those directly.
-import { EXCHANGE_RATES } from "@shared/currency";
+import { EXCHANGE_RATES, convertWithRates } from "@shared/currency";
 
 let liveRates: Record<string, number> | null = null;
 
@@ -22,14 +22,7 @@ function effectiveRates(): Record<string, number> {
 }
 
 export function convertPrice(amount: number, fromCurrency: string, toCurrency: string): number | null {
-  if (!Number.isFinite(amount) || amount < 0) return null;
-  const rates = effectiveRates();
-  if (!(fromCurrency in rates) || !(toCurrency in rates)) return null;
-  const fromRate = rates[fromCurrency];
-  const toRate = rates[toCurrency];
-  if (!Number.isFinite(fromRate) || !Number.isFinite(toRate)) return null;
-  if (fromRate <= 0 || toRate <= 0) return null;
-  return (amount / fromRate) * toRate;
+  return convertWithRates(amount, fromCurrency, toCurrency, effectiveRates());
 }
 
 export function hasExchangeRate(currency: string): boolean {
@@ -83,10 +76,11 @@ export function selectBestListing<
     }
     if (stock === "in_stock" && listing.stockStatus !== "in_stock") continue;
     if (opts.requireUrl && !listing.url) continue;
-    const converted = convertPrice(
+    const converted = convertWithRates(
       listing.price,
       listing.currency,
       opts.currency,
+      effectiveRates(),
     );
     if (converted === null || !Number.isFinite(converted)) continue;
     const price = roundMoney(converted);

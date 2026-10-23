@@ -104,18 +104,29 @@ export function roundMoney(amount: number): number {
   return Math.round(amount * 100) / 100;
 }
 
+// The conversion math lives here once; callers pass the rate table they want
+// (static EXCHANGE_RATES on the server/desktop, the live FX overlay on mobile).
+export function convertWithRates(
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+  rates: Record<string, number>,
+): number | null {
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  if (!(fromCurrency in rates) || !(toCurrency in rates)) return null;
+  const fromRate = rates[fromCurrency];
+  const toRate = rates[toCurrency];
+  if (!Number.isFinite(fromRate) || !Number.isFinite(toRate)) return null;
+  if (fromRate <= 0 || toRate <= 0) return null;
+  return (amount / fromRate) * toRate;
+}
+
 export function convertPrice(
   amount: number,
   fromCurrency: string,
   toCurrency: string,
 ): number | null {
-  if (!Number.isFinite(amount) || amount < 0) return null;
-  if (!(fromCurrency in EXCHANGE_RATES) || !(toCurrency in EXCHANGE_RATES)) return null;
-  const fromRate = EXCHANGE_RATES[fromCurrency];
-  const toRate = EXCHANGE_RATES[toCurrency];
-  if (!Number.isFinite(fromRate) || !Number.isFinite(toRate)) return null;
-  if (fromRate <= 0 || toRate <= 0) return null;
-  return (amount / fromRate) * toRate;
+  return convertWithRates(amount, fromCurrency, toCurrency, EXCHANGE_RATES);
 }
 
 export function hasExchangeRate(currency: string): boolean {
@@ -151,12 +162,13 @@ export function formatPrice(amount: number, currency: string): string {
   })}`;
 }
 
-export function getBestPrice(
+export function getBestPriceWithRates(
   listings: { price: number; currency: string; stockStatus: string }[],
   displayCurrency: string,
+  rates: Record<string, number>,
 ): { price: number; currency: string } | null {
-  // Must match lib/currency.ts: only orderable statuses count, so
-  // unknown-availability listings never anchor best-price/sort decisions.
+  // Only orderable statuses count, so unknown-availability listings never
+  // anchor best-price/sort decisions.
   const available = listings.filter(
     (l) =>
       (l.stockStatus === "in_stock" || l.stockStatus === "back_order") &&
@@ -165,7 +177,7 @@ export function getBestPrice(
   if (!available.length) return null;
   const converted = available
     .map((l) => {
-      const price = convertPrice(l.price, l.currency, displayCurrency);
+      const price = convertWithRates(l.price, l.currency, displayCurrency, rates);
       return price === null
         ? null
         : { price: roundMoney(price), currency: displayCurrency };
@@ -175,4 +187,11 @@ export function getBestPrice(
   return converted.reduce((best, curr) =>
     curr.price < best.price ? curr : best,
   );
+}
+
+export function getBestPrice(
+  listings: { price: number; currency: string; stockStatus: string }[],
+  displayCurrency: string,
+): { price: number; currency: string } | null {
+  return getBestPriceWithRates(listings, displayCurrency, EXCHANGE_RATES);
 }
