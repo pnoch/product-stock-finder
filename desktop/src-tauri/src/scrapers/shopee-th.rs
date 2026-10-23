@@ -8,12 +8,9 @@ use super::ScrapeResult;
 // Browser-first with no wait selector (deliberately None, matching mobile's
 // omitted browserOptions): Shopee's price element classes are obfuscated.
 pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, String> {
-    let (shop_id, item_id) = split_model(model)
-        .ok_or_else(|| format!("Not a Shopee TH model key: {}", model))?;
-    let url = format!(
-        "https://shopee.co.th/product/{}/{}",
-        shop_id, item_id
-    );
+    let (shop_id, item_id) =
+        split_model(model).ok_or_else(|| format!("Not a Shopee TH model key: {}", model))?;
+    let url = format!("https://shopee.co.th/product/{}/{}", shop_id, item_id);
     // Browser-first (mirrors mobile `useBrowser: true`): plain fetch from a
     // datacenter is traffic-walled, so only fall back to it when no browser.
     let html = if use_browser {
@@ -32,10 +29,18 @@ pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, Stri
 fn split_model(model: &str) -> Option<(&str, &str)> {
     let rest = model.strip_prefix("shopee-th-")?;
     let (shop, item) = rest.split_once('-')?;
-    if shop.is_empty() || item.is_empty() { return None; }
-    if !shop.bytes().all(|b| b.is_ascii_digit()) { return None; }
-    if !item.bytes().all(|b| b.is_ascii_digit()) { return None; }
-    if shop == "0" || item == "0" { return None; }
+    if shop.is_empty() || item.is_empty() {
+        return None;
+    }
+    if !shop.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    if !item.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    if shop == "0" || item == "0" {
+        return None;
+    }
     Some((shop, item))
 }
 
@@ -48,7 +53,11 @@ fn is_login_wall(html: &str) -> bool {
 // Finds a {...} JSON object containing both ids and returns (price, stock,
 // variant). Balanced-brace scan from each `"shopid"`/`"shopId"` occurrence;
 // keeps the first object whose ids match.
-fn find_state_object<'a>(html: &'a str, shop_id: &str, item_id: &str) -> Option<(f64, i64, Option<String>)> {
+fn find_state_object(
+    html: &str,
+    shop_id: &str,
+    item_id: &str,
+) -> Option<(f64, i64, Option<String>)> {
     for key in ["\"shopid\"", "\"shopId\""] {
         let mut search_from = 0;
         while let Some(pos) = html[search_from..].find(key).map(|p| p + search_from) {
@@ -56,9 +65,14 @@ fn find_state_object<'a>(html: &'a str, shop_id: &str, item_id: &str) -> Option<
             let mut depth: i32 = 0;
             let mut start: Option<usize> = None;
             for (i, ch) in html[..pos].char_indices().rev() {
-                if ch == '}' { depth += 1; }
+                if ch == '}' {
+                    depth += 1;
+                }
                 if ch == '{' {
-                    if depth == 0 { start = Some(i); break; }
+                    if depth == 0 {
+                        start = Some(i);
+                        break;
+                    }
                     depth -= 1;
                 }
             }
@@ -67,28 +81,48 @@ fn find_state_object<'a>(html: &'a str, shop_id: &str, item_id: &str) -> Option<
                 let mut d: i32 = 0;
                 let mut end: Option<usize> = None;
                 for (i, ch) in html[s..].char_indices() {
-                    if ch == '{' { d += 1; }
+                    if ch == '{' {
+                        d += 1;
+                    }
                     if ch == '}' {
                         d -= 1;
-                        if d == 0 { end = Some(s + i + ch.len_utf8()); break; }
+                        if d == 0 {
+                            end = Some(s + i + ch.len_utf8());
+                            break;
+                        }
                     }
                 }
                 if let Some(e) = end {
                     if let Ok(v) = serde_json::from_str::<serde_json::Value>(&html[s..e]) {
                         let sid = v.get("shopid").or_else(|| v.get("shopId"));
                         let iid = v.get("itemid").or_else(|| v.get("itemId"));
-                        let sid = sid.and_then(|x| x.as_u64().map(|n| n.to_string()).or_else(|| x.as_str().map(|s| s.to_string())));
-                        let iid = iid.and_then(|x| x.as_u64().map(|n| n.to_string()).or_else(|| x.as_str().map(|s| s.to_string())));
+                        let sid = sid.and_then(|x| {
+                            x.as_u64()
+                                .map(|n| n.to_string())
+                                .or_else(|| x.as_str().map(|s| s.to_string()))
+                        });
+                        let iid = iid.and_then(|x| {
+                            x.as_u64()
+                                .map(|n| n.to_string())
+                                .or_else(|| x.as_str().map(|s| s.to_string()))
+                        });
                         if sid.as_deref() == Some(shop_id) && iid.as_deref() == Some(item_id) {
                             let price = v.get("price").and_then(|x| x.as_f64());
                             let pmin = v.get("price_min").and_then(|x| x.as_f64());
                             let pmax = v.get("price_max").and_then(|x| x.as_f64());
                             let stock = v.get("stock").and_then(|x| x.as_i64()).unwrap_or(1);
-                            let variant = v.get("selected_model").and_then(|m| m.get("name")).and_then(|n| n.as_str()).map(|s| s.to_string());
+                            let variant = v
+                                .get("selected_model")
+                                .and_then(|m| m.get("name"))
+                                .and_then(|n| n.as_str())
+                                .map(|s| s.to_string());
                             // Range without a selected variant price: refuse to guess.
                             if let (Some(lo), Some(hi)) = (pmin, pmax) {
                                 if (hi - lo).abs() > f64::EPSILON {
-                                    let sel = v.get("selected_model").and_then(|m| m.get("price")).and_then(|x| x.as_f64());
+                                    let sel = v
+                                        .get("selected_model")
+                                        .and_then(|m| m.get("price"))
+                                        .and_then(|x| x.as_f64());
                                     if let Some(p) = sel {
                                         return Some((p, stock, variant));
                                     }
@@ -124,7 +158,11 @@ fn parse_html(html: &str, url: &str, shop_id: &str, item_id: &str) -> Result<Scr
             return Ok(ScrapeResult {
                 price,
                 currency: "THB".to_string(),
-                stock_status: if stock > 0 { "in_stock".to_string() } else { "out_of_stock".to_string() },
+                stock_status: if stock > 0 {
+                    "in_stock".to_string()
+                } else {
+                    "out_of_stock".to_string()
+                },
                 expected_date: None,
                 url: url.to_string(),
             });
@@ -139,7 +177,10 @@ mod tests {
 
     #[test]
     fn splits_valid_model_keys() {
-        assert_eq!(split_model("shopee-th-1950119-28177881956"), Some(("1950119", "28177881956")));
+        assert_eq!(
+            split_model("shopee-th-1950119-28177881956"),
+            Some(("1950119", "28177881956"))
+        );
         assert_eq!(split_model("CRS804"), None);
         assert_eq!(split_model("shopee-th-abc-123"), None);
         assert_eq!(split_model("shopee-th-1950119-"), None);
@@ -154,7 +195,13 @@ mod tests {
     #[test]
     fn extracts_embedded_state_price() {
         let html = r#"<html><body><script>{"shopid":1950119,"itemid":28177881956,"price":1290,"stock":42}</script></body></html>"#;
-        let out = parse_html(html, "https://shopee.co.th/product/1950119/28177881956", "1950119", "28177881956").unwrap();
+        let out = parse_html(
+            html,
+            "https://shopee.co.th/product/1950119/28177881956",
+            "1950119",
+            "28177881956",
+        )
+        .unwrap();
         assert_eq!(out.price, 1290.0);
         assert_eq!(out.currency, "THB");
         assert_eq!(out.stock_status, "in_stock");

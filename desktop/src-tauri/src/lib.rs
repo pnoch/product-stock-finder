@@ -1375,8 +1375,11 @@ struct WatchedProduct {
 }
 
 fn is_automatic_product(product: &serde_json::Value) -> bool {
-    !product.get("marketplace").is_some_and(|v| !v.is_null())
-        && !product.get("modelNumber").and_then(|v| v.as_str()).is_some_and(|s| s.starts_with("shopee-th-") || s.starts_with("lazada-th-"))
+    product.get("marketplace").is_none_or(|v| v.is_null())
+        && !product
+            .get("modelNumber")
+            .and_then(|v| v.as_str())
+            .is_some_and(|s| s.starts_with("shopee-th-") || s.starts_with("lazada-th-"))
 }
 
 #[tauri::command]
@@ -1391,7 +1394,9 @@ async fn check_all_prices(
     let mut futures = futures::stream::FuturesUnordered::new();
 
     for product in products {
-        if product.model_number.starts_with("shopee-th-") || product.model_number.starts_with("lazada-th-") {
+        if product.model_number.starts_with("shopee-th-")
+            || product.model_number.starts_with("lazada-th-")
+        {
             continue;
         }
         for distributor_id in product.distributor_ids {
@@ -2393,9 +2398,15 @@ mod tests {
 
     #[test]
     fn marketplace_products_are_excluded_from_automatic_monitoring() {
-        assert!(!is_automatic_product(&serde_json::json!({"marketplace": {"platform": "shopee"}, "modelNumber": "edited-model"})));
-        assert!(!is_automatic_product(&serde_json::json!({"modelNumber": "shopee-th-1-2"})));
-        assert!(is_automatic_product(&serde_json::json!({"modelNumber": "CRS804"})));
+        assert!(!is_automatic_product(
+            &serde_json::json!({"marketplace": {"platform": "shopee"}, "modelNumber": "edited-model"})
+        ));
+        assert!(!is_automatic_product(
+            &serde_json::json!({"modelNumber": "shopee-th-1-2"})
+        ));
+        assert!(is_automatic_product(
+            &serde_json::json!({"modelNumber": "CRS804"})
+        ));
     }
 
     fn point(ts: &str, price: f64) -> serde_json::Value {
@@ -2450,7 +2461,8 @@ mod tests {
             // The formatted body must carry a symbol, not a bare number.
             let formatted = format_price(1204.0, code);
             assert!(
-                formatted.contains(code) || formatted.chars().any(|c| !c.is_ascii_digit() && c != '.'),
+                formatted.contains(code)
+                    || formatted.chars().any(|c| !c.is_ascii_digit() && c != '.'),
                 "format_price({code}) produced no symbol: {formatted}"
             );
         }

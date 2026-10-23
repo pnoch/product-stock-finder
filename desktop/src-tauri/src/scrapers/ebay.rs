@@ -12,8 +12,8 @@ use std::sync::OnceLock;
 // available. No wait selector (deliberately None): the price is embedded
 // JSON-LD, not a rendered element.
 pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, String> {
-    let item_id = split_model(model)
-        .ok_or_else(|| format!("Not an eBay US model key: {}", model))?;
+    let item_id =
+        split_model(model).ok_or_else(|| format!("Not an eBay US model key: {}", model))?;
     let url = format!("https://www.ebay.com/itm/{}", item_id);
     let html = if use_browser {
         fetch_with_browser(&url, None, Some(25000)).await?
@@ -29,9 +29,15 @@ fn split_model(model: &str) -> Option<&str> {
     let rest = model.strip_prefix("ebay-us-")?;
     // Matches the shared `^ebay-us-([1-9]\d{0,19})$`: digits only, no leading
     // zero, at most 20 digits.
-    if rest.is_empty() || rest.len() > 20 { return None; }
-    if rest.starts_with('0') { return None; }
-    if !rest.bytes().all(|b| b.is_ascii_digit()) { return None; }
+    if rest.is_empty() || rest.len() > 20 {
+        return None;
+    }
+    if rest.starts_with('0') {
+        return None;
+    }
+    if !rest.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
     Some(rest)
 }
 
@@ -148,7 +154,11 @@ fn parse_html(html: &str, url: &str, item_id: &str) -> Result<ScrapeResult, Stri
     Ok(ScrapeResult {
         price: found.price,
         currency: found.currency,
-        stock_status: if found.in_stock { "in_stock".to_string() } else { "out_of_stock".to_string() },
+        stock_status: if found.in_stock {
+            "in_stock".to_string()
+        } else {
+            "out_of_stock".to_string()
+        },
         expected_date: None,
         url: url.to_string(),
     })

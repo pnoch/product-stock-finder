@@ -10,8 +10,8 @@ use std::sync::OnceLock;
 // `pdt_price` guarded by item identity and the selected sku. No login wall was
 // observed, so a missing price is a plain miss.
 pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, String> {
-    let (item_id, sku_id) = split_model(model)
-        .ok_or_else(|| format!("Not a Lazada TH model key: {}", model))?;
+    let (item_id, sku_id) =
+        split_model(model).ok_or_else(|| format!("Not a Lazada TH model key: {}", model))?;
     let url = format!(
         "https://www.lazada.co.th/products/i{}-s{}.html",
         item_id, sku_id
@@ -34,10 +34,18 @@ pub async fn scrape(model: &str, use_browser: bool) -> Result<ScrapeResult, Stri
 fn split_model(model: &str) -> Option<(&str, &str)> {
     let rest = model.strip_prefix("lazada-th-")?;
     let (item, sku) = rest.split_once('-')?;
-    if item.is_empty() || sku.is_empty() { return None; }
-    if !item.bytes().all(|b| b.is_ascii_digit()) { return None; }
-    if !sku.bytes().all(|b| b.is_ascii_digit()) { return None; }
-    if item == "0" || sku == "0" { return None; }
+    if item.is_empty() || sku.is_empty() {
+        return None;
+    }
+    if !item.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    if !sku.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    if item == "0" || sku == "0" {
+        return None;
+    }
     Some((item, sku))
 }
 
@@ -90,8 +98,7 @@ fn parse_thb(text: &str) -> Option<f64> {
 fn is_out_of_stock(html: &str) -> bool {
     static OOS_RE: OnceLock<Regex> = OnceLock::new();
     let re = OOS_RE.get_or_init(|| {
-        Regex::new(r#""availability"\s*:\s*"https?://schema\.org/OutOfStock""#)
-            .expect("oos regex")
+        Regex::new(r#""availability"\s*:\s*"https?://schema\.org/OutOfStock""#).expect("oos regex")
     });
     re.is_match(html)
 }
@@ -119,7 +126,11 @@ fn parse_html(html: &str, url: &str, item_id: &str, sku_id: &str) -> Result<Scra
             return Ok(ScrapeResult {
                 price,
                 currency: "THB".to_string(),
-                stock_status: if in_stock { "in_stock".to_string() } else { "out_of_stock".to_string() },
+                stock_status: if in_stock {
+                    "in_stock".to_string()
+                } else {
+                    "out_of_stock".to_string()
+                },
                 expected_date: None,
                 url: url.to_string(),
             });
@@ -194,7 +205,13 @@ mod tests {
     #[test]
     fn rejects_mismatched_selected_sku() {
         // Page selected another variant's sku: the price belongs to it, not us.
-        assert!(parse_html(&fixture("999", "฿100.00", "https://schema.org/InStock"), "https://www.lazada.co.th", ITEM, SKU).is_err());
+        assert!(parse_html(
+            &fixture("999", "฿100.00", "https://schema.org/InStock"),
+            "https://www.lazada.co.th",
+            ITEM,
+            SKU
+        )
+        .is_err());
     }
 
     #[test]

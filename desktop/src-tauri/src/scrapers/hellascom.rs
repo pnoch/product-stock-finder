@@ -1,6 +1,4 @@
-use super::{
-    fetch_html, infer_stock_status, parse_price_page, text_mentions_model, ScrapeResult,
-};
+use super::{fetch_html, infer_stock_status, parse_price_page, text_mentions_model, ScrapeResult};
 use crate::scrapers::browser::fetch_with_browser;
 use scraper::{Html, Selector};
 

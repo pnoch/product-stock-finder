@@ -164,6 +164,8 @@ mod tests {
 
     #[test]
     fn matrix_table_errors_when_no_column_matches() {
-        assert!(parse_matrix_table(MATRIX, "https://www.roc-noc.com/x", "CRS804-4DDQ-hRM").is_err());
+        assert!(
+            parse_matrix_table(MATRIX, "https://www.roc-noc.com/x", "CRS804-4DDQ-hRM").is_err()
+        );
     }
 }
