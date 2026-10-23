@@ -1,9 +1,7 @@
-import { useState } from "react";
 import {
   Text,
   View,
   TouchableOpacity,
-  TextInput,
   Switch,
   Platform,
 } from "react-native";
@@ -12,6 +10,9 @@ import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SettingRow } from "@/components/settings/setting-row";
+import { NotificationToggleRow } from "@/components/settings/notification-toggle-row";
+import { WebhookSettings } from "@/components/settings/webhook-settings";
+import { useNotificationWebhook } from "@/hooks/use-notification-webhook";
 import { PillPicker } from "@/components/settings/pill-picker";
 import { SectionHeader } from "@/components/settings/section-header";
 import { setWebNotificationsEnabled } from "@/lib/web-notifications";
@@ -33,39 +34,15 @@ export function NotificationsSection({
   const colors = useColors();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const [webhookUrl, setWebhookUrl] = useState(settings.alertWebhookUrl ?? "");
-  const [testingWebhook, setTestingWebhook] = useState(false);
-  const [webhookHint, setWebhookHint] = useState<string | null>(null);
-  const [webhookHintOk, setWebhookHintOk] = useState(false);
-
-  const commitWebhookUrl = () => {
-    const next = webhookUrl.trim();
-    if (next !== (settings.alertWebhookUrl ?? "")) {
-      updateSetting("alertWebhookUrl", next);
-    }
-  };
-
-  const handleTestWebhook = async () => {
-    const url = webhookUrl.trim();
-    if (!url) {
-      setWebhookHintOk(false);
-      setWebhookHint("Enter a webhook URL first.");
-      return;
-    }
-    setTestingWebhook(true);
-    setWebhookHint(null);
-    try {
-      const { testWebhook } = await import("@/lib/server-notifications");
-      const result = await testWebhook(url);
-      setWebhookHintOk(result.ok);
-      setWebhookHint(result.ok ? "Test message sent." : (result.error ?? "Test failed."));
-    } catch {
-      setWebhookHintOk(false);
-      setWebhookHint("Test failed.");
-    } finally {
-      setTestingWebhook(false);
-    }
-  };
+  const {
+    webhookUrl,
+    setWebhookUrl,
+    testingWebhook,
+    webhookHint,
+    webhookHintOk,
+    commitWebhookUrl,
+    handleTestWebhook,
+  } = useNotificationWebhook({ settings, updateSetting });
 
   return (
     <>
@@ -80,25 +57,14 @@ export function NotificationsSection({
           overflow: "hidden",
         }}
       >
-        <SettingRow
+        <NotificationToggleRow
+          colors={colors}
           icon="bell.fill"
           label="Enable Notifications"
           description="Receive alerts on your device"
-          right={
-            <Switch
-              value={settings.notificationsEnabled}
-              onValueChange={(v) => updateSetting("notificationsEnabled", v)}
-              trackColor={{
-                false: colors.border,
-                true: colors.primary + "88",
-              }}
-              thumbColor={
-                settings.notificationsEnabled ? colors.primary : colors.muted
-              }
-              accessibilityLabel="Enable notifications"
-              accessibilityRole="switch"
-            />
-          }
+          value={settings.notificationsEnabled}
+          onValueChange={(v) => updateSetting("notificationsEnabled", v)}
+          accessibilityLabel="Enable notifications"
         />
         {Platform.OS === "web" && (
           <>
@@ -152,171 +118,55 @@ export function NotificationsSection({
             )}
           </>
         )}
-        <SettingRow
+        <NotificationToggleRow
+          colors={colors}
           icon="checkmark.circle.fill"
           label="Stock Alerts"
           description="Notify when item comes in stock"
-          right={
-            <Switch
-              value={settings.stockAlerts}
-              onValueChange={(v) => updateSetting("stockAlerts", v)}
-              trackColor={{
-                false: colors.border,
-                true: colors.primary + "88",
-              }}
-              thumbColor={
-                settings.stockAlerts ? colors.primary : colors.muted
-              }
-              accessibilityLabel="Enable stock alerts"
-              accessibilityRole="switch"
-            />
-          }
+          value={settings.stockAlerts}
+          onValueChange={(v) => updateSetting("stockAlerts", v)}
+          accessibilityLabel="Enable stock alerts"
         />
-        <SettingRow
+        <NotificationToggleRow
+          colors={colors}
           icon="tag.fill"
           label="Price Alerts"
           description="Notify when price drops below target"
-          right={
-            <Switch
-              value={settings.priceAlerts}
-              onValueChange={(v) => updateSetting("priceAlerts", v)}
-              trackColor={{
-                false: colors.border,
-                true: colors.primary + "88",
-              }}
-              thumbColor={
-                settings.priceAlerts ? colors.primary : colors.muted
-              }
-              accessibilityLabel="Enable price alerts"
-              accessibilityRole="switch"
-            />
-          }
+          value={settings.priceAlerts}
+          onValueChange={(v) => updateSetting("priceAlerts", v)}
+          accessibilityLabel="Enable price alerts"
         />
-        <SettingRow
+        <NotificationToggleRow
+          colors={colors}
           icon="exclamationmark.triangle.fill"
           label="Health Alerts"
           description="Notify when a distributor is blocked or down"
-          right={
-            <Switch
-              value={settings.healthAlerts}
-              onValueChange={(v) => updateSetting("healthAlerts", v)}
-              trackColor={{
-                false: colors.border,
-                true: colors.primary + "88",
-              }}
-              thumbColor={
-                settings.healthAlerts ? colors.primary : colors.muted
-              }
-              accessibilityLabel="Enable health alerts"
-              accessibilityRole="switch"
-            />
-          }
+          value={settings.healthAlerts}
+          onValueChange={(v) => updateSetting("healthAlerts", v)}
+          accessibilityLabel="Enable health alerts"
         />
-        <SettingRow
+        <NotificationToggleRow
+          colors={colors}
           icon="envelope.fill"
           label="Email Alerts"
           description="Email me when an alert fires"
-          right={
-            <Switch
-              value={!!settings.emailAlerts}
-              onValueChange={(v) => updateSetting("emailAlerts", v)}
-              trackColor={{
-                false: colors.border,
-                true: colors.primary + "88",
-              }}
-              thumbColor={settings.emailAlerts ? colors.primary : colors.muted}
-              accessibilityLabel="Enable email alerts"
-              accessibilityRole="switch"
-            />
-          }
+          value={!!settings.emailAlerts}
+          onValueChange={(v) => updateSetting("emailAlerts", v)}
+          accessibilityLabel="Enable email alerts"
         />
-        <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
-          <Text
-            style={{
-              color: colors.foreground,
-              fontSize: 14,
-              fontWeight: "600",
-              marginBottom: 8,
-            }}
-          >
-            Webhook Alerts
-          </Text>
-          <TextInput
-            value={webhookUrl}
-            onChangeText={setWebhookUrl}
-            onBlur={commitWebhookUrl}
-            placeholder="https://discord.com/api/webhooks/…"
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            editable={isAuthenticated}
-            accessibilityLabel="Webhook URL"
-            style={{
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 10,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              color: colors.foreground,
-              backgroundColor: colors.background,
-            }}
-          />
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginTop: 12,
-            }}
-          >
-            <Switch
-              value={!!settings.webhookAlerts}
-              disabled={!isAuthenticated}
-              onValueChange={(v) => updateSetting("webhookAlerts", v)}
-              trackColor={{
-                false: colors.border,
-                true: colors.primary + "88",
-              }}
-              thumbColor={settings.webhookAlerts ? colors.primary : colors.muted}
-              accessibilityLabel="Enable webhook alerts"
-              accessibilityRole="switch"
-            />
-            <TouchableOpacity
-              activeOpacity={0.7}
-              disabled={!isAuthenticated || testingWebhook}
-              onPress={handleTestWebhook}
-              accessibilityLabel="Send test webhook"
-              accessibilityRole="button"
-            >
-              <Text
-                style={{
-                  color: isAuthenticated ? colors.primary : colors.muted,
-                  fontSize: 14,
-                  fontWeight: "600",
-                }}
-              >
-                {testingWebhook ? "Sending…" : "Send test"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {webhookHint && (
-            <Text
-              style={{
-                color: webhookHintOk ? colors.success : colors.error,
-                fontSize: 13,
-                marginTop: 8,
-              }}
-            >
-              {webhookHint}
-            </Text>
-          )}
-          {!isAuthenticated && (
-            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8 }}>
-              Sign in to use webhook alerts.
-            </Text>
-          )}
-        </View>
+        <WebhookSettings
+          colors={colors}
+          isAuthenticated={isAuthenticated}
+          webhookUrl={webhookUrl}
+          onWebhookUrl={setWebhookUrl}
+          onCommit={commitWebhookUrl}
+          webhookAlerts={!!settings.webhookAlerts}
+          onWebhookAlerts={(v) => updateSetting("webhookAlerts", v)}
+          testing={testingWebhook}
+          onTest={() => void handleTestWebhook()}
+          hint={webhookHint}
+          hintOk={webhookHintOk}
+        />
         <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
           <PillPicker
             icon="newspaper.fill"
