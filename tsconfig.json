@@ -2,7 +2,7 @@
   "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
     "strict": true,
-    "types": ["node", "nativewind/types"],
+    "types": ["node", "nativewind/types", "vite/client"],
     "paths": {
       "@/*": ["./*"],
       "@shared/*": ["./shared/src/*", "./shared/*"]
