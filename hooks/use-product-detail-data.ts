@@ -41,15 +41,12 @@ export function useProductDetailData({
       setInsight(null);
       setInsightLoading(true);
       setProductImage(null);
-      // Storage reads can reject; without a catch the setters below never run
-      // and the screen hangs on the loading skeleton forever.
-      const [stockWatchesData, insightData, imageData, alertsData] =
-        await Promise.all([
-          getStockWatches().catch(() => []),
-          fetchPriceInsight(id).catch(() => null),
-          fetchProductImage(id).catch(() => null),
-          getAlerts().catch(() => []),
-        ]);
+      // Local data first: the screen must paint without waiting on the
+      // optional server enrichment (LLM insight, generated image).
+      const [stockWatchesData, alertsData] = await Promise.all([
+        getStockWatches().catch(() => []),
+        getAlerts().catch(() => []),
+      ]);
       if (signal?.cancelled) return;
       setAlerts(alertsData);
       const watchMap: Record<string, boolean> = {};
@@ -57,9 +54,24 @@ export function useProductDetailData({
         if (watch.productId === id) watchMap[watch.distributorId] = true;
       }
       setStockWatches(watchMap);
-      if (insightData) setInsight(insightData.insight);
-      setInsightLoading(false);
-      if (imageData) setProductImage(imageData.imageUrl);
+
+      // Optional enrichment runs independently; a slow or failed server call
+      // must not hold the product detail skeleton.
+      void fetchPriceInsight(id)
+        .then((data) => {
+          if (signal?.cancelled) return;
+          if (data) setInsight(data.insight);
+          setInsightLoading(false);
+        })
+        .catch(() => {
+          if (!signal?.cancelled) setInsightLoading(false);
+        });
+      void fetchProductImage(id)
+        .then((data) => {
+          if (signal?.cancelled) return;
+          if (data) setProductImage(data.imageUrl);
+        })
+        .catch(() => {});
     },
     [id],
   );
