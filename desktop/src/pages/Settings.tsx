@@ -103,7 +103,7 @@ export function Settings() {
         </span>
       </button>
 
-      <ScraperStatusSection now={now} showToast={showToast} />
+      <ScraperStatusSection showToast={showToast} />
 
       <DeviceManagementSection
         isAuthenticated={isAuthenticated}

@@ -3,53 +3,65 @@ import { Activity } from "lucide-react";
 import { getDistributorById } from "@shared/distributors";
 import { getAllParserIds } from "../../../../lib/scrapers/registry";
 import { clearDistributorBreaker } from "../../../../lib/scrapers/breaker-clear";
+import {
+  createStorageBreakerStore,
+  type BreakerEntry,
+} from "../../../../lib/scrapers/breaker-store";
 import { localStorageAdapter } from "../../lib/local-storage-adapter";
 import type { Product } from "../../../../lib/types";
 import { storage } from "../../storage";
 
 type DistributorStatus = {
-  lastSuccess: string | null;
-  lastError: string | null;
-  consecutiveFailures: number;
+  lastAttempt: string | null;
+  breaker: BreakerEntry | null;
 };
 
+// The real health dashboard reads the circuit breaker, not listing timestamps:
+// `lastChecked` is stamped on failures too, so a timestamp heuristic showed
+// "OK" for a distributor that had been blocked for days.
 function getDistributorHealth(
-  lastSuccess: string | null,
-  nowMs: number,
+  breaker: BreakerEntry | null,
 ): { label: string; dot: string } {
-  if (!lastSuccess) {
+  if (!breaker) {
     return { label: "Never Checked", dot: "bg-gray-400" };
   }
-  const hoursSince =
-    (nowMs - new Date(lastSuccess).getTime()) / (1000 * 60 * 60);
-  if (hoursSince < 24) {
+  if (breaker.status === "working") {
     return { label: "OK", dot: "bg-emerald-500" };
   }
-  if (hoursSince < 168) {
-    return { label: "Stale", dot: "bg-amber-500" };
+  if (breaker.status === "blocked") {
+    return { label: "Blocked", dot: "bg-amber-500" };
   }
-  return { label: "Failed", dot: "bg-red-500" };
+  return { label: "Failing", dot: "bg-red-500" };
 }
 
 export function ScraperStatusSection({
-  now,
   showToast,
 }: {
-  now: number;
   showToast: (message: string) => void;
 }) {
   const [products, setProducts] = useState<Product[]>([]);
+  const [breakers, setBreakers] = useState<Record<string, BreakerEntry>>({});
   const [productsLoading, setProductsLoading] = useState(true);
   const [reenabling, setReenabling] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    storage
-      .getWatchlist()
-      .then((w) => {
-        if (!cancelled) setProducts(w);
+    const store = createStorageBreakerStore(localStorageAdapter);
+    Promise.all([
+      storage.getWatchlist().catch(() => [] as Product[]),
+      Promise.all(
+        getAllParserIds().map(async (id) => [id, await store.get(id)] as const),
+      ),
+    ])
+      .then(([watchlist, entries]) => {
+        if (cancelled) return;
+        setProducts(watchlist);
+        const map: Record<string, BreakerEntry> = {};
+        for (const [id, entry] of entries) {
+          if (entry) map[id] = entry;
+        }
+        setBreakers(map);
       })
-      .catch(() => {})
       .finally(() => {
         if (!cancelled) setProductsLoading(false);
       });
@@ -61,33 +73,22 @@ export function ScraperStatusSection({
   const distributorStatuses = useMemo(() => {
     const statuses: Record<string, DistributorStatus> = {};
     for (const id of getAllParserIds()) {
+      statuses[id] = { lastAttempt: null, breaker: null };
+    }
+    for (const [id, breaker] of Object.entries(breakers)) {
       statuses[id] = {
-        lastSuccess: null,
-        lastError: null,
-        consecutiveFailures: 0,
+        lastAttempt:
+          breaker.lastAttemptAt > 0
+            ? new Date(breaker.lastAttemptAt).toISOString()
+            : null,
+        breaker,
       };
     }
-    for (const product of products) {
-      if (!product.listings) continue;
-      for (const listing of product.listings) {
-        const id = listing.distributorId;
-        if (!statuses[id]) {
-          statuses[id] = {
-            lastSuccess: null,
-            lastError: null,
-            consecutiveFailures: 0,
-          };
-        }
-        if (listing.lastChecked) {
-          const existing = statuses[id].lastSuccess;
-          if (!existing || listing.lastChecked > existing) {
-            statuses[id].lastSuccess = listing.lastChecked;
-          }
-        }
-      }
-    }
+    // Keep the watchlist read so the section still reflects tracked products;
+    // the breaker is the source of truth for health.
+    void products;
     return statuses;
-  }, [products]);
+  }, [products, breakers]);
 
   const handleReenableDistributor = useCallback(
     async (distributorId: string) => {
@@ -128,7 +129,7 @@ export function ScraperStatusSection({
               .filter(([id]) => getDistributorById(id))
               .map(([id, status]) => {
                 const distributor = getDistributorById(id)!;
-                const health = getDistributorHealth(status.lastSuccess, now);
+                const health = getDistributorHealth(status.breaker);
                 return (
                   <div
                     key={id}
@@ -143,9 +144,10 @@ export function ScraperStatusSection({
                         {distributor.countryCode} {distributor.name}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {status.lastSuccess
-                          ? `Last checked: ${new Date(status.lastSuccess).toLocaleDateString()}`
+                        {status.lastAttempt
+                          ? `Last attempt: ${new Date(status.lastAttempt).toLocaleDateString()}`
                           : "Never checked"}
+                        {status.breaker?.reason ? ` · ${status.breaker.reason}` : ""}
                       </p>
                     </div>
                     {health.label !== "OK" ? (
