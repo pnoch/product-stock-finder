@@ -16,7 +16,7 @@ const DIALOG_PAGES = [
   "desktop/src/components/search/TagPickerDialog.tsx",
   "desktop/src/components/search/BulkImportDialog.tsx",
   "desktop/src/components/search/ManualAddDialog.tsx",
-  "desktop/src/components/SearchModal.tsx",
+  "desktop/src/components/search/SearchModalManualAddDialog.tsx",
 ];
 
 describe("desktop custom dialogs are keyboard-accessible", () => {

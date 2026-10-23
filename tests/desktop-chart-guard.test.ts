@@ -1812,9 +1812,13 @@ describe("desktop chart guard", () => {
   // SearchModal (the other search surface).
   it("creates tags inline in the desktop SearchModal tag picker", async () => {
     const text = await readFile("desktop/src/components/SearchModal.tsx", "utf8");
+    const dialog = await readFile(
+      "desktop/src/components/search/TagPickerDialog.tsx",
+      "utf8",
+    );
     expect(text).toContain("handleCreateTag");
-    expect(text).toContain("New tag name");
-    expect(text).toContain("Create tag");
+    expect(dialog).toContain("New tag name");
+    expect(dialog).toContain("Create tag");
   });
 
   // QA round 166: mobile's TagPickerSheet creates tags inline; desktop's search
