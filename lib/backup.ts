@@ -238,7 +238,16 @@ function mergeSettings(current: AppSettings, incoming: AppSettings): AppSettings
     ) {
       continue;
     }
-    merged[key] = incomingRecord[key];
+    // Drop unknown keys and type mismatches: a hand-edited backup must not
+    // inject e.g. `displayCurrency: 123` or `checkInterval: {}`.
+    if (!(key in current)) continue;
+    const currentValue = merged[key];
+    const incomingValue = incomingRecord[key];
+    if (currentValue !== undefined) {
+      if (typeof incomingValue !== typeof currentValue) continue;
+      if (Array.isArray(currentValue) !== Array.isArray(incomingValue)) continue;
+    }
+    merged[key] = incomingValue;
   }
   if (incoming.tagDefinitions) {
     merged.tagDefinitions = {
