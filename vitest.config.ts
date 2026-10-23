@@ -20,6 +20,11 @@ export default defineConfig({
     setupFiles: ["tests/setup.ts"],
     fileParallelism: !process.env.RUN_DB_TESTS,
     coverage: {
+      provider: "v8",
+      // Only the shared app logic is gated. Screens/components are exercised by
+      // the emulator/desktop smoke passes, and instrumenting them makes the
+      // report noisy without protecting an invariant.
+      include: ["lib/**", "hooks/**"],
       // `coverage.all` scans the whole tree; without this it walks the Rust
       // build output (`desktop/src-tauri/target/**`, thousands of generated
       // files) and the report is unusable.
@@ -32,6 +37,12 @@ export default defineConfig({
         "**/*.config.*",
         "**/*.d.ts",
       ],
+      thresholds: {
+        statements: 70,
+        branches: 66,
+        functions: 72,
+        lines: 71,
+      },
     },
   },
 });
