@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import {
   deviceNotificationConfigs,
@@ -63,7 +64,7 @@ async function processHealthEvents(
       if (existingSet.has(dedupKey) || seen.has(dedupKey)) continue;
       seen.add(dedupKey);
       const dbEvent = {
-        id: event.id,
+        id: randomUUID(),
         type: "health",
         title: event.title,
         body: event.body,
@@ -99,7 +100,7 @@ async function processHealthEvents(
       if (existingSet.has(dedupKey) || seen.has(dedupKey)) continue;
       seen.add(dedupKey);
       const dbEvent = {
-        id: event.id,
+        id: randomUUID(),
         type: "health",
         title: event.title,
         body: event.body,

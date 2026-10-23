@@ -865,7 +865,7 @@ describe("upsertDeviceConfig with healthEvents", () => {
     expect(sendPushForUser).toHaveBeenCalledWith(
       42,
       expect.arrayContaining([
-        expect.objectContaining({ id: "health-winncom-blocked-1234" }),
+        expect.objectContaining({ title: "Distributor Blocked" }),
       ]),
       "dev-2",
     );
