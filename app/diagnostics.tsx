@@ -226,6 +226,8 @@ export default function DiagnosticsScreen() {
         await load();
         if (outcome?.status === "ok") {
           showToast("Test push delivered ✅", "success");
+        } else if (outcome == null) {
+          showToast("Test push sent — check your device", "success");
         } else {
           showToast(`Test push failed: ${pushErrorHelpText(outcome?.error ?? "unknown")}`, "error");
         }

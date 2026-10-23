@@ -133,6 +133,8 @@ export function Diagnostics() {
         await load();
         if (outcome?.status === "ok") {
           showToast("Test push delivered");
+        } else if (outcome == null) {
+          showToast("Test push sent — check your device");
         } else {
           showToast(`Test push failed: ${pushErrorHelpText(outcome?.error ?? "unknown")}`);
         }

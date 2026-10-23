@@ -200,7 +200,9 @@ export async function sendPushForDevice(
     if (hasNotRegistered) {
       await pruneDeviceToken(deviceId);
     }
-    await recordReceiptOutcome(expo, deviceId, ticketIds, events.length);
+    // Receipts take ~15s to exist; recording them must not block the request
+    // path (the test-push endpoint awaited this and hung for 15s).
+    void recordReceiptOutcome(expo, deviceId, ticketIds, events.length);
   } catch (error) {
     console.warn(`[Push] Failed to send push for device ${deviceId}:`, error);
   }
