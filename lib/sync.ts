@@ -12,6 +12,8 @@ import { currentSyncGeneration } from "@/lib/sync-gate";
 import { collectDirty, markDirty } from "./sync/dirty";
 import { applyLocalItem, removeLocalItem } from "./sync/apply";
 import { batchSyncItems } from "./sync/serialize";
+import { pullAllPages, type PullResult } from "./sync/pull";
+import { pruneMissingAfterFullResync } from "./sync/full-resync";
 import type { SyncSetup } from "./sync/status";
 
 export type { SyncSetup, SyncStatus } from "./sync/status";
@@ -72,32 +74,9 @@ async function doSync(
   const oldCursor = meta.lastSyncedAt || 0;
   const since = meta.lastSyncedAt || null;
 
-  let pulled: {
-    lastSyncedAt: number;
-    items: SyncItem[];
-    fullResyncSince?: number | null;
-    hasMore?: boolean;
-    nextCursor?: { stamp: number; collection: string; id: string } | null;
-  };
+  let pulled: PullResult;
   try {
-    pulled = await opts.pull(since);
-    // Drain remaining pages. The server caps each pull; without this a large
-    // account would only ever receive the first page. `cursor` is the newest
-    // stamp seen so far, and the server re-includes rows at that stamp so a
-    // page boundary cannot skip an item (the client dedupes by key).
-    let guard = 0;
-    while (pulled.hasMore && pulled.nextCursor && guard < 50) {
-      guard += 1;
-      const next = await opts.pull(since, pulled.nextCursor);
-      if (next.items.length === 0) break;
-      pulled = {
-        lastSyncedAt: next.lastSyncedAt,
-        items: [...pulled.items, ...next.items],
-        fullResyncSince: pulled.fullResyncSince ?? next.fullResyncSince,
-        hasMore: next.hasMore,
-        nextCursor: next.nextCursor,
-      };
-    }
+    pulled = await pullAllPages(opts.pull, since);
   } catch (error) {
     log.warn("[Sync] Pull failed; skipping sync", error);
     await storage.saveSyncMeta({
@@ -141,53 +120,13 @@ async function doSync(
     storage.setChangeSuppressed(false, applied);
   }
 
-  // Full resync: the server's tombstone window has moved past our cursor, so
-  // locally-present items absent from the pull may shadow purged deletes.
-  // Drop those with stale sync meta. Items with no meta entry are genuine
-  // never-synced offline work and are preserved (and pushed below).
-  // Known limitation: seeds and ancient never-synced items can resurrect
-  // rows deleted + purged elsewhere (tombstone expiry is inherent to the
-  // design); the user can delete them again.
-  // Settings is excluded: the client never emits settings tombstones, so
-  // there is nothing to resurrect.
-  if (pulled.fullResyncSince != null) {
-    if (currentSyncGeneration() !== gate) return;
-    const cutoff = pulled.fullResyncSince;
-    const pulledIds = new Set(pulled.items.map((i) => `${i.collection}:${i.id}`));
-    const localLists: { collection: Collection; ids: string[] }[] = [
-      {
-        collection: "watchlist",
-        ids: (await storage.getWatchlist()).map((p) => p.id),
-      },
-      {
-        collection: "alerts",
-        ids: (await storage.getAlerts()).map((a) => a.id),
-      },
-      {
-        collection: "reminders",
-        ids: [
-          ...(await storage.getBackOrderReminders()).map((r) => r.id),
-          ...(await storage.getStockWatches()).map((w) => w.id),
-        ],
-      },
-    ];
-    for (const { collection, ids } of localLists) {
-      for (const id of ids) {
-        if (currentSyncGeneration() !== gate) return;
-        if (pulledIds.has(`${collection}:${id}`)) continue;
-        const entry = meta.items[collection]?.[id];
-        // `entry.updatedAt <= oldCursor` means the item was already confirmed
-        // at or before the last successful sync; anything edited since is still
-        // dirty (or was never pushed at all) and must be kept and pushed —
-        // dropping it deleted genuinely local, never-synced work.
-        if (entry && entry.updatedAt < cutoff && entry.updatedAt <= oldCursor) {
-          await removeLocalItem(storage, collection, id);
-          await storage.clearItemSyncMeta(collection, id);
-          storage.notifyLocal(collection, id);
-        }
-      }
-    }
-  }
+  await pruneMissingAfterFullResync({
+    storage,
+    meta,
+    pulled,
+    oldCursor,
+    gate,
+  });
 
   const { dirty } = await collectDirty(
     storage,
