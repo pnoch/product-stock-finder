@@ -339,14 +339,14 @@ export function detailedCsvToProducts(rows: DetailedCsvRow[]): Product[] {
       product = {
         id: r.model || key,
         name: r.product || r.model,
-        brand: r.brand || undefined,
-        category: r.category || undefined,
-        modelNumber: r.model || undefined,
+        brand: r.brand || "Unknown",
+        category: r.category || "Other",
+        modelNumber: r.model || key,
         description: "",
         isWatched: true,
         addedAt: new Date().toISOString(),
         listings: [],
-      } as unknown as Product;
+      };
       map.set(key, product);
     }
     if (!r.distributor) continue;
@@ -456,14 +456,14 @@ export function parseWatchlistCsv(csv: string): Product[] {
     out.push({
       id: key,
       name: name || key,
-      modelNumber: model || undefined,
-      brand: unescapeCsv((padded[2] ?? "").trim()) || undefined,
-      category: unescapeCsv((padded[3] ?? "").trim()) || undefined,
+      modelNumber: model || key,
+      brand: unescapeCsv((padded[2] ?? "").trim()) || "Unknown",
+      category: unescapeCsv((padded[3] ?? "").trim()) || "Other",
       description: "",
       isWatched: true,
       addedAt: new Date().toISOString(),
       listings: [],
-    } as unknown as Product);
+    });
   }
   return out;
 }

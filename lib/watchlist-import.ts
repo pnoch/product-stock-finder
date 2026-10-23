@@ -5,7 +5,6 @@ import { PRODUCT_CATALOG } from "@shared/catalog";
 import { parseBulkImportCsv } from "./csv";
 import { canAddToWatchlist, shouldEnforceFreeLimits } from "./pro-features";
 import { addAlert, addToWatchlist, getAlerts, getWatchlist } from "./storage";
-import type { Product } from "./types";
 
 export type CsvImportResult =
   | { status: "canceled" }
@@ -85,10 +84,11 @@ export async function pickAndImportWatchlistCsv(opts: {
       const product = catalogHit
         ? ({
             ...catalogHit,
-            tags: row.tags.length > 0 ? row.tags : catalogHit.tags,
+            tags: row.tags.length > 0 ? row.tags : (catalogHit.tags ?? []),
             isWatched: true,
             addedAt: new Date().toISOString(),
-          } as unknown as Product)
+            listings: [],
+          })
         : ({
             id: row.model,
             name: row.model,
@@ -100,7 +100,7 @@ export async function pickAndImportWatchlistCsv(opts: {
             addedAt: new Date().toISOString(),
             listings: [],
             tags: row.tags,
-          } as unknown as Product);
+          });
       try {
         // addToWatchlist returns false when the product is already tracked;
         // count those separately so the summary doesn't claim to have added
