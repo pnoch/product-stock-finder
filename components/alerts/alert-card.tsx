@@ -3,6 +3,7 @@ import { Text, View, Switch } from "react-native";
 import { PriceAlert } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { IconActionButton } from "@/components/ui/icon-action-button";
 import { getDistributorById } from "@shared/distributors";
@@ -40,14 +41,10 @@ export const AlertCard = memo(function AlertCard({
   const handleEdit = useCallback(() => onEdit?.(alert.id), [onEdit, alert.id]);
 
   return (
-    <View
+    <Card
       style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
         marginBottom: 12,
         opacity: snoozed ? 0.7 : 1,
-        borderWidth: 1,
         borderColor: alert.triggeredAt
           ? colors.success + "44"
           : colors.border,
@@ -168,7 +165,7 @@ export const AlertCard = memo(function AlertCard({
           />
         </View>
       </View>
-    </View>
+    </Card>
   );
 });
 AlertCard.displayName = "AlertCard";

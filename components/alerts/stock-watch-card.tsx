@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Text, View } from "react-native";
+import { Card } from "@/components/ui/card";
 import { BackOrderReminder } from "@/lib/types";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -17,13 +18,10 @@ export const StockWatchCard = memo(function StockWatchCard({
   const colors = useColors();
 
   return (
-    <View
+    <Card
       style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
         padding: 14,
         marginBottom: 10,
-        borderWidth: 1,
         borderColor: colors.warning + "44",
       }}
     >
@@ -131,7 +129,7 @@ export const StockWatchCard = memo(function StockWatchCard({
           />
         </View>
       </View>
-    </View>
+    </Card>
   );
 });
 StockWatchCard.displayName = "StockWatchCard";

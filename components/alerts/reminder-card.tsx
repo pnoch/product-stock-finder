@@ -3,6 +3,7 @@ import { Platform, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { BackOrderReminder } from "@/lib/types";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { IconActionButton } from "@/components/ui/icon-action-button";
 
@@ -24,13 +25,9 @@ export const ReminderCard = memo(function ReminderCard({
   const isPast = reminderDate < startOfToday;
 
   return (
-    <View
+    <Card
       style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
         marginBottom: 12,
-        borderWidth: 1,
         borderColor: isPast ? colors.warning + "44" : colors.border,
       }}
     >
@@ -137,7 +134,7 @@ export const ReminderCard = memo(function ReminderCard({
           />
         </View>
       </View>
-    </View>
+    </Card>
   );
 });
 ReminderCard.displayName = "ReminderCard";

@@ -1,6 +1,7 @@
 import { memo, useMemo, useCallback } from "react";
 import { Text, View, TouchableOpacity } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 import { PriceAlert } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -30,13 +31,10 @@ export const TriggeredAlertCard = memo(function TriggeredAlertCard({
   const handleDelete = useCallback(() => onDelete(alert.id), [onDelete, alert.id]);
 
   return (
-    <View
+    <Card
       style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
         padding: 14,
         marginBottom: 10,
-        borderWidth: 1,
         borderColor: colors.success + "44",
       }}
     >
@@ -160,7 +158,7 @@ export const TriggeredAlertCard = memo(function TriggeredAlertCard({
           />
         </View>
       </View>
-    </View>
+    </Card>
   );
 });
 TriggeredAlertCard.displayName = "TriggeredAlertCard";
