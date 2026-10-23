@@ -5,7 +5,7 @@ import { join } from "node:path";
 describe("best-deal visit CTA", () => {
   it("the best-deal card offers a Visit action that opens the listing url", () => {
     const src = readFileSync(
-      join(__dirname, "..", "components/product/distributor-listing-section.tsx"),
+      join(__dirname, "..", "components/product/best-deal-estimate-card.tsx"),
       "utf8",
     );
     expect(src).toContain("openListingUrl");

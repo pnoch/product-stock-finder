@@ -1,11 +1,8 @@
 import { useState } from "react";
-import { Switch, Text, View, TouchableOpacity } from "react-native";
+import { Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
-import { formatPrice } from "@shared/currency";
 import { selectBestListing } from "@/lib/currency";
-import { formatEstimate } from "@/lib/estimate-format";
-import { getDistributorById } from "@shared/distributors";
 import { BestDistributorCard } from "@/components/best-distributor-card";
 import type { Product } from "@/lib/types";
 import type { BestDeal } from "@/lib/best-deal";
@@ -13,9 +10,12 @@ import type { Destination } from "@/lib/landed-cost";
 import { CountryPicker } from "@/components/ui/country-picker";
 import { SkeletonBox } from "@/components/ui/skeleton";
 import { getCountry } from "@shared/countries";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { openListingUrl } from "@/lib/listing-utils";
 import { DistributorListingCard } from "./distributor-listing-card";
+import { DistributorListingEmpty } from "./distributor-listing-empty";
+import { ShippingOptionsCard } from "./shipping-options-card";
+import { BestDealEstimateCard } from "./best-deal-estimate-card";
+import { RegionFilterRow } from "./region-filter-row";
+import { AiInsightCard } from "./ai-insight-card";
 
 interface DistributorListingSectionProps {
   sortedListings: DistributorListing[];
@@ -165,93 +165,17 @@ export function DistributorListingSection({
       >
         Distributor Prices
       </Text>
-      {sortedListings.length === 0 ? (
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: 16,
-            padding: 24,
-            alignItems: "center",
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-        >
-          <Text style={{ color: colors.muted, fontSize: 14 }}>
-            No distributor data available yet.
-          </Text>
-          {onFindPrices && (
-            <TouchableOpacity activeOpacity={0.85}
-              onPress={onFindPrices}
-              disabled={findingPrices}
-              style={{
-                marginTop: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 16,
-                backgroundColor: colors.primary,
-                opacity: findingPrices ? 0.6 : 1,
-              }}
-              accessibilityLabel="Find prices"
-              accessibilityRole="button"
-            >
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
-                {findingPrices ? "Finding prices…" : "Find prices"}
-              </Text>
-            </TouchableOpacity>
-          )}
-          {onWatchAny && (
-            <TouchableOpacity activeOpacity={0.85}
-              onPress={onWatchAny}
-              style={{
-                marginTop: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: watchingAny ? colors.success : colors.primary,
-              }}
-              accessibilityLabel={watchingAny ? "Stop watching all distributors" : "Watch for restock across all distributors"}
-              accessibilityRole="button"
-            >
-              <Text style={{ color: watchingAny ? colors.success : colors.primary, fontWeight: "600", fontSize: 13 }}>
-                {watchingAny ? "Watching — tap to stop" : "Watch anyway"}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : visibleListings.length === 0 ? (
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: 16,
-            padding: 24,
-            alignItems: "center",
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-        >
-          <Text style={{ color: colors.muted, fontSize: 14 }}>
-            No distributors in {regionFilter}.
-          </Text>
-          <TouchableOpacity activeOpacity={0.85}
-            onPress={() => onSetRegionFilter("all")}
-            style={{
-              marginTop: 12,
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 16,
-              backgroundColor: colors.primary,
-            }}
-            accessibilityLabel="Show all regions"
-            accessibilityRole="button"
-          >
-            <Text
-              style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}
-            >
-              Show All
-            </Text>
-          </TouchableOpacity>
-        </View>
+      {sortedListings.length === 0 || visibleListings.length === 0 ? (
+        <DistributorListingEmpty
+          colors={colors}
+          hasListings={sortedListings.length > 0}
+          regionFilter={regionFilter}
+          findingPrices={findingPrices ?? false}
+          watchingAny={watchingAny ?? false}
+          onFindPrices={onFindPrices}
+          onWatchAny={onWatchAny}
+          onShowAll={() => onSetRegionFilter("all")}
+        />
       ) : (
         <>
           {globalBestInStockListing && (
@@ -267,121 +191,17 @@ export function DistributorListingSection({
           {insightLoading ? (
             <InsightSkeleton />
           ) : insight ? (
-            <View
-              style={{
-                backgroundColor: colors.surface,
-                borderRadius: 16,
-                padding: 16,
-                marginTop: 12,
-              }}
-            >
-              <Text
-                style={{
-                  color: colors.muted,
-                  fontSize: 12,
-                  fontWeight: "600",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
-                }}
-              >
-                AI insight
-              </Text>
-              <Text
-                style={{
-                  color: colors.foreground,
-                  fontSize: 14,
-                  marginTop: 4,
-                  lineHeight: 20,
-                }}
-              >
-                {insight}
-              </Text>
-            </View>
+            <AiInsightCard colors={colors} insight={insight} />
           ) : null}
-          <View
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: 16,
-              padding: 14,
-              marginBottom: 12,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <TouchableOpacity activeOpacity={0.85}
-              onPress={() => setPickerVisible(true)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                minHeight: 44,
-              }}
-              accessibilityLabel="Choose shipping country"
-              accessibilityRole="button"
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-                <IconSymbol name="globe" size={18} color={colors.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600", letterSpacing: 0.5 }}>
-                    SHIP TO
-                  </Text>
-                  <Text
-                    style={{
-                      color: selectedCountry ? colors.foreground : colors.muted,
-                      fontSize: 15,
-                      fontWeight: "600",
-                    }}
-                  >
-                    {selectedCountry ? selectedCountry.name : "Choose country"}
-                  </Text>
-                </View>
-              </View>
-              <IconSymbol name="chevron.right" size={16} color={colors.muted} />
-            </TouchableOpacity>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginTop: 8,
-                paddingTop: 8,
-                borderTopWidth: 1,
-                borderTopColor: colors.border,
-              }}
-            >
-              <Text style={{ color: colors.foreground, fontSize: 13, flex: 1, marginRight: 12 }}>
-                Tax-exempt (VAT/EORI)
-              </Text>
-              <Switch
-                value={taxExempt}
-                onValueChange={onToggleTaxExempt}
-                trackColor={{ false: colors.border, true: colors.primary + "88" }}
-                thumbColor={taxExempt ? colors.primary : colors.muted}
-                accessibilityLabel="Tax-exempt"
-                accessibilityRole="switch"
-              />
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginTop: 4,
-              }}
-            >
-              <Text style={{ color: colors.foreground, fontSize: 13, flex: 1, marginRight: 12 }}>
-                Include import estimate
-              </Text>
-              <Switch
-                value={includeImportEstimate}
-                onValueChange={onToggleImportEstimate}
-                trackColor={{ false: colors.border, true: colors.primary + "88" }}
-                thumbColor={includeImportEstimate ? colors.primary : colors.muted}
-                accessibilityLabel="Include import estimate"
-                accessibilityRole="switch"
-              />
-            </View>
-          </View>
+          <ShippingOptionsCard
+            colors={colors}
+            destination={destination}
+            taxExempt={taxExempt ?? false}
+            onToggleTaxExempt={onToggleTaxExempt}
+            includeImportEstimate={includeImportEstimate ?? false}
+            onToggleImportEstimate={onToggleImportEstimate}
+            onOpenPicker={() => setPickerVisible(true)}
+          />
           {visibleListings.length > 0 && (
             <Text
               style={{
@@ -396,181 +216,24 @@ export function DistributorListingSection({
               ALL DISTRIBUTORS
             </Text>
           )}
-          <View
-            style={{
-              flexDirection: "row",
-              marginBottom: 12,
-              flexWrap: "wrap",
-              gap: 8,
-            }}
-          >
-            {["all", ...regions].map((region) => (
-              <TouchableOpacity activeOpacity={0.85}
-                key={region}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                onPress={() => onSetRegionFilter(region)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 16,
-                  minHeight: 44,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  backgroundColor:
-                    regionFilter === region
-                      ? colors.primary
-                      : colors.surface,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}
-                accessibilityLabel={`Filter by ${region === "all" ? "all regions" : region}`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: regionFilter === region }}
-              >
-                <Text
-                  style={{
-                    color:
-                      regionFilter === region ? "#fff" : colors.foreground,
-                    fontSize: 13,
-                    fontWeight: "600",
-                  }}
-                >
-                  {region === "all" ? "All" : region}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <RegionFilterRow
+            colors={colors}
+            regions={regions}
+            regionFilter={regionFilter}
+            onSetRegionFilter={onSetRegionFilter}
+          />
           {!bestDeal && insightLoading && sortedListings.length > 0 ? (
             <BestDealSkeleton />
           ) : null}
           {bestDeal && (
-            <View
-              style={{
-                backgroundColor: colors.surface,
-                borderRadius: 16,
-                padding: 16,
-                marginBottom: 12,
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
-              <Text
-                style={{
-                  color: colors.muted,
-                  fontSize: 12,
-                  fontWeight: "600",
-                  letterSpacing: 0.5,
-                }}
-              >
-                {destination
-                  ? `BEST DEAL (to ${selectedCountry?.name ?? destination.countryCode})`
-                  : `BEST DEAL (incl. shipping to ${shippingRegion})`}
-              </Text>
-              {(() => {
-                const distrib = getDistributorById(bestDeal.distributorId);
-                return (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginTop: 8,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: colors.foreground,
-                        fontSize: 16,
-                        fontWeight: "700",
-                        flex: 1,
-                      }}
-                    >
-                      {distrib?.countryCode}{" "}
-                      {distrib?.name ?? bestDeal.distributorId}
-                    </Text>
-                    <Text
-                      style={{
-                        color: colors.primary,
-                        fontSize: 18,
-                        fontWeight: "700",
-                      }}
-                    >
-                      {destination
-                        ? formatEstimate(bestDeal.total, bestDeal.currency)
-                        : formatPrice(bestDeal.total, bestDeal.currency)}
-                    </Text>
-                  </View>
-                );
-              })()}
-              <View
-                style={{ flexDirection: "row", marginTop: 8, gap: 16 }}
-              >
-                <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  Price: {formatPrice(bestDeal.price, bestDeal.currency)}
-                </Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  Tax:{" "}
-                  {bestDeal.tax > 0
-                    ? formatPrice(bestDeal.tax, bestDeal.currency)
-                    : "Tax-free"}
-                </Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  Ship:{" "}
-                  {bestDeal.shipping === null
-                    ? "N/A"
-                    : destination
-                      ? formatEstimate(bestDeal.shipping, bestDeal.currency)
-                      : formatPrice(bestDeal.shipping, bestDeal.currency)}
-                </Text>
-              </View>
-              {destination && (
-                <>
-                  <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
-                    {formatPrice(bestDeal.price, bestDeal.currency)} +{" "}
-                    {formatEstimate(bestDeal.shipping ?? 0, bestDeal.currency)}
-                    {bestDeal.tax > 0
-                      ? ` + ${formatPrice(bestDeal.tax, bestDeal.currency)}`
-                      : ""}
-                    {bestDeal.importEstimate && bestDeal.importEstimate > 0
-                      ? ` + ${formatEstimate(bestDeal.importEstimate, bestDeal.currency)}`
-                      : ""}{" "}
-                    = {formatEstimate(bestDeal.total, bestDeal.currency)}
-                  </Text>
-                  <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>
-                    Shipping is estimated. Check exact rates at checkout.
-                  </Text>
-                </>
-              )}
-              {(() => {
-                const listing = sortedListings.find(
-                  (l) => l.distributorId === bestDeal.distributorId && l.url,
-                );
-                if (!listing) return null;
-                return (
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    accessibilityLabel="Visit store"
-                    accessibilityRole="button"
-                    onPress={() => void openListingUrl(listing.url)}
-                    style={{
-                      marginTop: 10,
-                      alignSelf: "flex-start",
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 6,
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      borderRadius: 16,
-                      backgroundColor: colors.primary,
-                    }}
-                  >
-                    <IconSymbol name="arrow.up.right.square" size={14} color="#fff" />
-                    <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
-                      Visit store
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })()}
-            </View>
+            <BestDealEstimateCard
+              colors={colors}
+              bestDeal={bestDeal}
+              destination={destination}
+              selectedCountry={selectedCountry}
+              shippingRegion={shippingRegion}
+              sortedListings={sortedListings}
+            />
           )}
           {visibleListings.map((listing) => (
             <DistributorListingCard

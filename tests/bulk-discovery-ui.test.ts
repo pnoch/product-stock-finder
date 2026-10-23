@@ -13,8 +13,12 @@ describe("bulk discovery UI", () => {
       "components/product/distributor-listing-section.tsx",
       "utf8",
     );
+    const empty = readFileSync(
+      "components/product/distributor-listing-empty.tsx",
+      "utf8",
+    );
     expect(section).toContain("onFindPrices");
-    expect(section).toContain("Find prices");
+    expect(empty).toContain("Find prices");
     const screen = readFileSync("app/product/[id].tsx", "utf8");
     expect(screen).toContain("rediscoverProduct");
     expect(screen).toContain("onFindPrices={handleFindPrices}");
