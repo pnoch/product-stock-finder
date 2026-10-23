@@ -112,9 +112,25 @@ export default function SharedWatchlistScreen() {
     );
   }
 
-  const data = query.data as unknown as { title: string; token: string; products: unknown[]; truncated?: boolean; createdAt: string | null; expiresAt: string | null } | undefined;
-  const rawProducts = (data?.products ?? []) as unknown as Product[];
-  const products = rawProducts as { id: string; name: string; brand?: string; modelNumber?: string; category?: string; listings?: { distributorId: string; price: number; currency: string; stockStatus: string; url?: string; priceHistory?: import("@/lib/types").PricePoint[] }[] }[];
+  const data = query.data as
+    | {
+        title: string;
+        token: string;
+        products: unknown[];
+        truncated?: boolean;
+        createdAt: string | null;
+        expiresAt: string | null;
+      }
+    | undefined;
+  // Validate the public payload instead of casting it: a malformed row must be
+  // dropped, not rendered as a half-typed Product.
+  const products = (data?.products ?? []).flatMap((p) => {
+    try {
+      return [normalizeSharedWatchlistProduct(p)];
+    } catch {
+      return [];
+    }
+  });
   const createdLabel = data?.createdAt ? formatLastRefreshed(data.createdAt) : null;
   const expiresLabel = data?.expiresAt ? new Date(data.expiresAt).toLocaleDateString() : null;
   // The server caps the public payload at 500 products; without surfacing the
@@ -129,7 +145,7 @@ export default function SharedWatchlistScreen() {
     let limited = false;
     let count = (await getWatchlist()).length;
     const enforce = shouldEnforceFreeLimits();
-    for (const p of rawProducts) {
+    for (const p of products) {
       if (enforce && !canAddToWatchlist(count, isPro)) {
         limited = true;
         break;
@@ -174,7 +190,7 @@ export default function SharedWatchlistScreen() {
     // Stamp the source link so re-imports keep provenance (the CSV parser
     // skips /w/ deep-link lines on import).
     const shareUrl = Platform.OS === "web" && typeof window !== "undefined" ? window.location.href : undefined;
-    const csv = watchlistToDetailedCsv(rawProducts as Product[], shareUrl ? { shareUrl } : undefined);
+    const csv = watchlistToDetailedCsv(products, shareUrl ? { shareUrl } : undefined);
     // Shared helper so native writes to the cache dir + opens the share sheet
     // (a bare react-native Share call rejects on some platforms) and the
     // outcome is reported instead of silently doing nothing.
@@ -276,7 +292,7 @@ export default function SharedWatchlistScreen() {
                 ) : (
                   <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8 }}>No distributor prices yet</Text>
                 )}
-                <TouchableOpacity activeOpacity={0.7} onPress={() => handleExportHistoryCsv(product as unknown as Product)} style={{ marginTop: 10, alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }} accessibilityLabel={`Export history for ${product.name}`} accessibilityRole="button">
+                <TouchableOpacity activeOpacity={0.7} onPress={() => handleExportHistoryCsv(product)} style={{ marginTop: 10, alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }} accessibilityLabel={`Export history for ${product.name}`} accessibilityRole="button">
                   <IconSymbol name="square.and.arrow.up" size={12} color={colors.muted} />
                   <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600" }}>Export History (CSV)</Text>
                 </TouchableOpacity>
