@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo } from "react";
 import { Text, View, TouchableOpacity, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 import { formatPrice } from "@shared/currency";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import type {
@@ -82,17 +83,7 @@ export const MoversCard = memo(function MoversCard({
   );
 
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        marginBottom: 12,
-        padding: 16,
-        borderRadius: 16,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
+    <Card style={{ marginHorizontal: 16, marginBottom: 12 }}>
       <View
         style={{
           flexDirection: "row",
@@ -180,7 +171,7 @@ export const MoversCard = memo(function MoversCard({
           ))}
         </>
       )}
-    </View>
+    </Card>
   );
 });
 MoversCard.displayName = "MoversCard";

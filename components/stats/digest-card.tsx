@@ -2,6 +2,7 @@ import { memo, useMemo } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 import { formatPrice } from "@shared/currency";
 import type { DigestResult } from "@/lib/price-digest";
 import type { rankDeals } from "@/lib/deal-score";
@@ -39,17 +40,7 @@ export const DigestCard = memo(function DigestCard({
   );
 
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        marginBottom: 12,
-        padding: 16,
-        borderRadius: 16,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
+    <Card style={{ marginHorizontal: 16, marginBottom: 12 }}>
       <Text style={{ color: colors.muted, fontSize: 13 }}>
         Digest — {periodLabel}
       </Text>
@@ -239,7 +230,7 @@ export const DigestCard = memo(function DigestCard({
           )}
         </>
       )}
-    </View>
+    </Card>
   );
 });
 DigestCard.displayName = "DigestCard";

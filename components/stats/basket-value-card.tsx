@@ -2,6 +2,7 @@ import { memo, useEffect, useState } from "react";
 import { Text, TouchableOpacity, View, Animated } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 import { formatPrice } from "@shared/currency";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import type { BasketValueResult } from "@/lib/watchlist-stats";
@@ -41,17 +42,7 @@ export const BasketValueCard = memo(function BasketValueCard({
   }, [basket.total, displayCurrency, reduceMotion, tickerOpacity, tickerTranslate]);
 
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        marginBottom: 12,
-        padding: 16,
-        borderRadius: 16,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
+    <Card style={{ marginHorizontal: 16, marginBottom: 12 }}>
       <View
         style={{
           flexDirection: "row",
@@ -95,7 +86,7 @@ export const BasketValueCard = memo(function BasketValueCard({
           Alert below {formatPrice(alertThreshold, displayCurrency)}
         </Text>
       )}
-    </View>
+    </Card>
   );
 });
 BasketValueCard.displayName = "BasketValueCard";

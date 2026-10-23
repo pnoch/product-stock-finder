@@ -2,6 +2,7 @@ import { memo, useState, useMemo, useCallback } from "react";
 import { Text, View, TouchableOpacity, useWindowDimensions } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 import { formatPrice } from "@shared/currency";
 import { dateKey, buildGridCells } from "@/lib/drop-calendar";
 import type {
@@ -99,17 +100,7 @@ export const DropCalendarCard = memo(function DropCalendarCard({
   };
 
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        marginBottom: 12,
-        padding: 16,
-        borderRadius: 16,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
+    <Card style={{ marginHorizontal: 16, marginBottom: 12 }}>
       <Text style={{ color: colors.muted, fontSize: 13 }}>
         {result.totalDrops} price drops in the last {days} days
       </Text>
@@ -206,7 +197,7 @@ export const DropCalendarCard = memo(function DropCalendarCard({
           ))}
         </View>
       )}
-    </View>
+    </Card>
   );
 });
 DropCalendarCard.displayName = "DropCalendarCard";
