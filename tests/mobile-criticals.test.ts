@@ -383,7 +383,7 @@ describe("forgot-password checks the API base URL", () => {
 
   it("login-modal guards an empty base URL", () => {
     const src = readFileSync(
-      path.join(process.cwd(), "components/settings/login-modal.tsx"),
+      path.join(process.cwd(), "hooks/use-login-modal.ts"),
       "utf8",
     );
     const start = src.indexOf("const res = await fetch(`${baseUrl}/api/auth/forgot`");
