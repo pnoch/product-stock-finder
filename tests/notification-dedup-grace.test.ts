@@ -98,9 +98,9 @@ describe("dedup is not blocked forever by a non-pulling device", () => {
 describe("per-device evaluation bounds its event read", () => {
   it("filters existing events by the delivery grace window", async () => {
     const { readFile } = await import("node:fs/promises");
-    const src = await readFile("server/notifications/evaluate.ts", "utf8");
-    const start = src.indexOf("async function evaluateConfigDb");
-    const block = src.slice(start, src.indexOf("async function evaluateUserDb", start));
+    const src = await readFile("server/notifications/evaluate-db.ts", "utf8");
+    const start = src.indexOf("export async function evaluateConfigDb");
+    const block = src.slice(start, src.indexOf("export async function evaluateUserDb", start));
     expect(block).toContain("gt(notificationEvents.createdAt, now - DELIVERY_GRACE_MS)");
   });
 });
