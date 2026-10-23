@@ -174,6 +174,9 @@ class BrowserPool {
             this.checkedOut++;
             break;
           }
+          // A disconnected browser is dead weight; close it so its Chrome
+          // process does not linger after the pool drops the reference.
+          void candidate.close().catch(() => {});
         }
       });
       if (waiting) return waiting;
@@ -194,6 +197,14 @@ class BrowserPool {
       }
       if (connected) {
         this.browsers.push(browser);
+      } else {
+        // Closing here is what actually reaps the Chrome process; dropping the
+        // reference alone leaked one process per crashed/disconnected browser.
+        try {
+          await browser.close();
+        } catch {
+          // already gone
+        }
       }
     });
   }
