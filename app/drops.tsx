@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
+import { goBackOrHome } from "@/lib/navigation";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
@@ -13,7 +14,7 @@ import { DropsControls } from "@/components/drops/drops-controls";
 import { DropRow } from "@/components/drops/drop-row";
 import type { DropSortBy, DropWindow } from "@/lib/price-leaderboard";
 
-export default function DropsScreen() {
+export function DropsScreen({ showBack = true }: { showBack?: boolean }) {
   const router = useRouter();
   const colors = useColors();
   const { isAuthenticated } = useAuth();
@@ -39,8 +40,9 @@ export default function DropsScreen() {
     <ScreenContainer>
       <DropsHeader
         colors={colors}
-        onBack={() => router.back()}
+        onBack={() => goBackOrHome(router)}
         onShare={() => void handleShare()}
+        showBack={showBack}
       />
 
       <DropsControls
@@ -95,3 +97,5 @@ export default function DropsScreen() {
     </ScreenContainer>
   );
 }
+
+export default DropsScreen;

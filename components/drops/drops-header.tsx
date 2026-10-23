@@ -8,10 +8,12 @@ export function DropsHeader({
   colors,
   onBack,
   onShare,
+  showBack = true,
 }: {
   colors: Colors;
   onBack: () => void;
   onShare: () => void;
+  showBack?: boolean;
 }) {
   return (
     <View
@@ -24,16 +26,18 @@ export function DropsHeader({
         gap: 12,
       }}
     >
-      <TouchableOpacity
-        activeOpacity={0.7}
-        accessibilityLabel="Go back"
-        accessibilityRole="button"
-        onPress={onBack}
-        style={{ padding: 4 }}
-        hitSlop={12}
-      >
-        <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
-      </TouchableOpacity>
+      {showBack && (
+        <TouchableOpacity
+          activeOpacity={0.7}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          onPress={onBack}
+          style={{ padding: 4 }}
+          hitSlop={12}
+        >
+          <IconSymbol name="arrow.left" size={24} color={colors.foreground} />
+        </TouchableOpacity>
+      )}
       <Text
         style={{
           color: colors.foreground,
