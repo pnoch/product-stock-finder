@@ -1,80 +1,59 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { Animated, Platform } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { showAlert } from "@/lib/alert";
 
 import { ScreenContainer } from "@/components/screen-container";
-import { useColors } from "@/hooks/use-colors";
-import { useSettings } from "@/lib/settings-provider";
-import { useWatchlistRemove } from "@/hooks/use-watchlist-remove";
-import { useWatchlistSelection } from "@/hooks/use-watchlist-selection";
-import { useWatchlistRefresh } from "@/hooks/use-watchlist-refresh";
-import { useWatchlistFilters } from "@/hooks/use-watchlist-filters";
-import { useWatchlistShare } from "@/hooks/use-watchlist-share";
-import { useWatchlistImport } from "@/hooks/use-watchlist-import";
-import { useWatchlistFindPrices } from "@/hooks/use-watchlist-find-prices";
 import { WatchlistFilterPanel } from "@/components/watchlist/watchlist-filter-panel";
 import { WatchlistListHeader } from "@/components/watchlist/watchlist-list-header";
-import { useAuth } from "@/hooks/use-auth";
-import { useEntitlements } from "@/hooks/use-entitlements";
-import { track } from "@/lib/telemetry";
-import { useLiveWatchlist } from "@/hooks/use-live-prices";
-import { useConnection } from "@/hooks/use-connection";
-import { trpc } from "@/lib/trpc";
-import {
-  getAlerts,
-  getSyncMeta,
-  updateProductAcquired,
-} from "@/lib/storage";
-import { useToast } from "@/components/ui/toast";
-import { countQueuedEdits } from "@/lib/sync";
-import { computeWatchlistSummary } from "@/lib/watchlist-summary";
-import { computeProductInsights } from "@/lib/product-insights";
-import { computeDealScore } from "@/lib/deal-score";
-import {
-  PriceAlert,
-  Product,
-} from "@/lib/types";
-import { getAllRegions } from "@/lib/region-filter";
 import { WatchlistLoadingSkeleton } from "@/components/watchlist/watchlist-loading-skeleton";
 import { WatchlistSheets } from "@/components/watchlist/watchlist-sheets";
 import { WatchlistSectionList } from "@/components/watchlist/watchlist-section-list";
-import { useWatchlistRenderers } from "@/hooks/use-watchlist-renderers";
 import { isAcquired } from "@/lib/acquired";
+import { useWatchlistScreen } from "@/hooks/use-watchlist-screen";
 import { WatchlistHeader } from "@/components/watchlist/watchlist-header";
 import { EmptyState } from "@/components/watchlist/empty-state";
-import { LOG_ERROR, log } from "@shared/log";
 
 // The header content lives in the list's ListHeaderComponent so it scrolls
 // away with the content (QA round 8: as flex siblings it squeezed the list
 // into a ~240px strip at the bottom of the screen).
 export default function WatchlistScreen() {
-  const router = useRouter();
-  const colors = useColors();
-  const { showToast } = useToast();
-  const { settings, loading: settingsLoading } = useSettings();
-  const insets = useSafeAreaInsets();
+  const screen = useWatchlistScreen();
   const {
-    products: watchlist,
+    router,
+    colors,
+    insets,
+    watchlist,
     loaded,
     isRefreshingAny,
     reload,
+    loadData,
     refreshAll,
-  } = useLiveWatchlist();
-  const { isAuthenticated } = useAuth();
-  const { isPro } = useEntitlements();
-  const [paywallVisible, setPaywallVisible] = useState(false);
-  const createShareLink = trpc.sharedWatchlists.create.useMutation();
-  const [sortMenuOpen, setSortMenuOpen] = useState(false);
-  const displayCurrency = settings.displayCurrency;
-  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
-  const tagDefinitions = useMemo(
-    () => settings.tagDefinitions ?? {},
-    [settings.tagDefinitions],
-  );
-
+    paywallVisible,
+    setPaywallVisible,
+    sortMenuOpen,
+    setSortMenuOpen,
+    displayCurrency,
+    tagDefinitions,
+    filters,
+    summary,
+    pickerProduct,
+    setPickerProduct,
+    manageVisible,
+    setManageVisible,
+    regions,
+    scrollY,
+    headerCollapse,
+    connection,
+    queuedCount,
+    selection,
+    refresh,
+    remove,
+    handleShareWatchlist,
+    handleImportCsv,
+    sectionData,
+    renderSectionHeader,
+    renderItem,
+  } = screen;
   const {
     query,
     setQuery,
@@ -106,208 +85,25 @@ export default function WatchlistScreen() {
     validSelectedTagIds,
     filteredWatchlist,
     tagCounts,
-    sections,
     toggleTagFilter,
     activeFilterCount,
     filtersExpanded,
     clearAllFilters,
-  } = useWatchlistFilters({
-    settings,
-    settingsLoading,
-    watchlist,
-    displayCurrency,
-    tagDefinitions,
-  });
-
-  const summary = useMemo(
-    () => computeWatchlistSummary(watchlist, displayCurrency),
-    [watchlist, displayCurrency],
-  );
-
-  const insightMap = useMemo(() => {
-    const result = computeProductInsights(watchlist, displayCurrency);
-    return new Map(result.products.map((p) => [p.productId, p] as const));
-  }, [watchlist, displayCurrency]);
-
-  const dealScoreMap = useMemo(() => {
-    return new Map(
-      watchlist.map(
-        (p) =>
-          [p.id, computeDealScore(p.listings ?? [], displayCurrency)] as const,
-      ),
-    );
-  }, [watchlist, displayCurrency]);
-
-  const [pickerProduct, setPickerProduct] = useState<Product | null>(null);
-  const [manageVisible, setManageVisible] = useState(false);
-  const regions = useMemo(() => getAllRegions(), []);
-  const scrollY = useState(() => new Animated.Value(0))[0];
-  const headerCollapse = scrollY.interpolate({ inputRange: [0, 80], outputRange: [1, 0], extrapolate: "clamp" });
-  const connection = useConnection();
-  const [queuedCount, setQueuedCount] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    const refreshQueue = async () => {
-      try {
-        const meta = await getSyncMeta();
-        if (!cancelled) setQueuedCount(countQueuedEdits(meta));
-      } catch (e) {
-        LOG_ERROR("[Watchlist] queued-count refresh failed", e);
-      }
-    };
-    void refreshQueue();
-    const interval = setInterval(refreshQueue, 30000);
-    const onFocus = () => void refreshQueue();
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") void refreshQueue();
-    };
-    if (Platform.OS === "web") {
-      window.addEventListener("focus", onFocus);
-      document.addEventListener("visibilitychange", onVisibilityChange);
-    }
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-      if (Platform.OS === "web") {
-        window.removeEventListener("focus", onFocus);
-        document.removeEventListener("visibilitychange", onVisibilityChange);
-      }
-    };
-  }, [watchlist.length]);
-
-  const reloadAlerts = useCallback(async () => {
-    try {
-      setAlerts(await getAlerts());
-    } catch (e) {
-      log.error("[Watchlist] alerts reload failed", e);
-    }
-  }, []);
-  const loadData = useCallback(async () => {
-    await reloadAlerts();
-  }, [reloadAlerts]);
-
-  useFocusEffect(
-    useCallback(() => {
-      void reload();
-      void loadData();
-    }, [reload, loadData]),
-  );
-
-  const handleToggleAcquired = useCallback(
-    async (product: Product) => {
-      try {
-        await updateProductAcquired(
-          product.id,
-          isAcquired(product) ? null : new Date().toISOString(),
-        );
-        await reload();
-      } catch (e) {
-        log.error("[Watchlist] toggle acquired failed", e);
-        showAlert("Update failed", "We couldn't update that product. Please try again.");
-      }
-    },
-    [reload],
-  );
-
-  // Swipe "Alert" action: alerts are created on the product detail screen
-  // (the watch row itself has no alert composer), so the swipe opens it.
-  const handleSwipeAlert = useCallback((product: Product) => {
-    router.push(`/product/${product.id}`);
-  }, [router]);
-
-  const alertProductIds = useMemo(
-    () => new Set(alerts.filter((a) => a.isActive && !a.triggeredAt).map((a) => a.productId)),
-    [alerts],
-  );
-
+  } = filters;
   const {
     selectionMode,
     selectedIds,
     bulkTagVisible,
     setBulkTagVisible,
-    toggleSelection,
-    enterSelection,
     exitSelection,
-  } = useWatchlistSelection();
-
-  const { checking, checkProgress, handleRefreshAll, handleCheckNow } =
-    useWatchlistRefresh({
-      watchlistLength: watchlist.length,
-      refreshAll,
-      reload,
-      loadData,
-      showAlert,
-    });
-
+  } = selection;
+  const { checking, checkProgress, handleRefreshAll, handleCheckNow } = refresh;
   const {
     undoProduct,
-    handleDelete,
     handleUndo,
     handleBulkDelete,
     handleBulkTagChanged,
-  } = useWatchlistRemove({
-    selectedIds,
-    exitSelection,
-    reload,
-    reloadAlerts,
-    loadData,
-    showAlert,
-  });
-
-  const { handleShareWatchlist } = useWatchlistShare({
-    watchlist,
-    displayCurrency,
-    isAuthenticated,
-    createShareLink,
-    showAlert,
-  });
-
-  const { handleImportCsv } = useWatchlistImport({
-    isPro,
-    reload,
-    loadData,
-    showAlert,
-    setPaywallVisible,
-    track,
-  });
-
-  const { findingIds, handleFindPrices } = useWatchlistFindPrices({
-    reload,
-    showToast,
-  });
-
-  const sectionData = useMemo(() => sections.map((s) => ({ ...s, data: s.products.map((p) => ({ ...p, _sectionKey: s.key } as Product & { _sectionKey: string })) })), [sections]);
-  const handleProductPress = useCallback((product: Product) => {
-    if (selectionMode) toggleSelection(product.id);
-    else router.push(`/product/${product.id}`);
-  }, [selectionMode, toggleSelection, router]);
-  const handleProductLongPress = useCallback(
-    (product: Product) => {
-      if (Platform.OS !== "web")
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      enterSelection(product.id);
-    },
-    [enterSelection],
-  );
-  const { renderSectionHeader, renderItem } = useWatchlistRenderers({
-    groupMode,
-    tagDefinitions,
-    selectionMode,
-    displayCurrency,
-    insightMap,
-    dealScoreMap,
-    selectedIds,
-    findingIds,
-    alertProductIds,
-    handleProductPress,
-    handleProductLongPress,
-    handleDelete,
-    setPickerProduct,
-    handleFindPrices,
-    handleToggleAcquired,
-    handleSwipeAlert,
-  });
+  } = remove;
 
   if (!loaded) return <WatchlistLoadingSkeleton />;
 

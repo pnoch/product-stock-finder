@@ -28,7 +28,10 @@ describe("silent failures", () => {
   });
 
   it("logs watchlist background failures", async () => {
-    const text = await readFile("app/(tabs)/watchlist.tsx", "utf8");
+    const text = await readFile(
+      "hooks/use-watchlist-screen.ts",
+      "utf8",
+    );
     const filters = await readFile(
       "hooks/use-watchlist-filters.ts",
       "utf8",

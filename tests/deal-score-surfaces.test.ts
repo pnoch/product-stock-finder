@@ -72,7 +72,7 @@ describe("deal score surfaces", () => {
 
   it("mobile watchlist sort options include Best deals", () => {
     expect(read("lib/watchlist-org.ts")).toContain("Best deals");
-    expect(read("app/(tabs)/watchlist.tsx")).toContain("dealScore");
+    expect(read("hooks/use-watchlist-screen.ts")).toContain("dealScore");
   });
 
   it("mobile product card shows Hot deal badge", () => {
