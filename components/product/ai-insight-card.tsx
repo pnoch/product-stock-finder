@@ -1,4 +1,5 @@
-import { Text, View } from "react-native";
+import { Text } from "react-native";
+import { Card } from "@/components/ui/card";
 import type { useColors } from "@/hooks/use-colors";
 
 type Colors = ReturnType<typeof useColors>;
@@ -11,14 +12,7 @@ export function AiInsightCard({
   insight: string;
 }) {
   return (
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
-        marginTop: 12,
-      }}
-    >
+    <Card style={{ marginTop: 12 }}>
       <Text
         style={{
           color: colors.muted,
@@ -40,6 +34,6 @@ export function AiInsightCard({
       >
         {insight}
       </Text>
-    </View>
+    </Card>
   );
 }

@@ -1,4 +1,5 @@
 import { Switch, Text, TouchableOpacity, View } from "react-native";
+import { Card } from "@/components/ui/card";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { getCountry } from "@shared/countries";
 import type { useColors } from "@/hooks/use-colors";
@@ -24,16 +25,7 @@ export function ShippingOptionsCard({
 }) {
   const selectedCountry = destination ? getCountry(destination.countryCode) : undefined;
   return (
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 14,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
+    <Card style={{ padding: 14, marginBottom: 12 }}>
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={onOpenPicker}
@@ -108,6 +100,6 @@ export function ShippingOptionsCard({
           accessibilityRole="switch"
         />
       </View>
-    </View>
+    </Card>
   );
 }

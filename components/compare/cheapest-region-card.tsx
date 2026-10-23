@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Text, View, Animated } from "react-native";
+import { Card } from "@/components/ui/card";
 import { useColors } from "@/hooks/use-colors";
 import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import { DistributorListing } from "@/lib/types";
@@ -36,35 +37,15 @@ export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { list
 
     if (regionBest.length === 0) {
     return (
-      <View
-        style={{
-          marginHorizontal: 16,
-          backgroundColor: colors.surface,
-          borderRadius: 16,
-          padding: 16,
-          borderWidth: 1,
-          borderColor: colors.border,
-          marginBottom: 16,
-        }}
-      >
+      <Card style={{ marginHorizontal: 16, marginBottom: 16 }}>
         <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 15, marginBottom: 8 }}>Cheapest by Region</Text>
         <Text style={{ color: colors.muted, fontSize: 13, textAlign: "center", paddingVertical: 12 }}>No in-stock regions</Text>
-      </View>
+      </Card>
     );
   }
 
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: 16,
-      }}
-    >
+    <Card style={{ marginHorizontal: 16, marginBottom: 16 }}>
       <Text
         style={{
           color: colors.foreground,
@@ -192,6 +173,6 @@ export function CheapestRegionCard({ listings, displayCurrency = "USD" }: { list
           </RowWrapper>
         );
       })}
-    </View>
+    </Card>
   );
 }

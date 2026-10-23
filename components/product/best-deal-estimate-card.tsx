@@ -1,4 +1,5 @@
 import { Text, TouchableOpacity, View } from "react-native";
+import { Card } from "@/components/ui/card";
 import { formatPrice } from "@shared/currency";
 import { formatEstimate } from "@/lib/estimate-format";
 import { getDistributorById } from "@shared/distributors";
@@ -31,16 +32,7 @@ export function BestDealEstimateCard({
     (l) => l.distributorId === bestDeal.distributorId && l.url,
   );
   return (
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
+    <Card style={{ marginBottom: 12 }}>
       <Text
         style={{
           color: colors.muted,
@@ -127,6 +119,6 @@ export function BestDealEstimateCard({
           </Text>
         </TouchableOpacity>
       )}
-    </View>
+    </Card>
   );
 }
