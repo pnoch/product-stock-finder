@@ -8606,3 +8606,15 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Added config plugins for the Room R8 keep rule and scoped storage permissions; Gradle 9.4.1 / AGP 9.
 - [x] Enabled all seven React Compiler lint rules; aligned desktop React 19.3; fixed the desktop build.
 - [x] Verified: `pnpm verify` exit 0, 4038 root tests, 349 desktop tests, 110 DB tests, Android release APK + notifications on emulator.
+
+## Phase 1154: v5.28.0 security, decomposition, a11y, and performance pass
+
+- [x] Security: share invitations are non-enumerable (`{invited:true}` only, no `NOT_FOUND` oracle); notification events use server-generated ids; rate limits key on the authenticated user (IP fallback for public routes).
+- [x] Performance: `pushStatusAll` batches outcomes and scopes device labels; shared-watchlist roster uses one `getUsersByIds` query; test-push no longer blocks 15 s on Expo receipts; the browser pool closes disconnected Chrome processes; desktop watchlist rows memoize best-price/trend/acquired scans.
+- [x] Correctness: desktop scraper status reads the circuit breaker instead of `lastChecked`; drops is a real tab with a safe full-screen back fallback; CSV import supplies real defaults instead of `as unknown as Product`; currency conversion math is shared between static and live-rate layers.
+- [x] Decomposition: mobile watchlist/settings/product detail/search/alerts/stats/health/compare/drops/onboarding/manual-add/login/account/notifications and desktop watchlist/settings/product detail/compare/stats/health/search/alerts/home/app shell split into focused hooks/components; desktop `Search` and `SearchModal` unified on `useCatalogSearch`.
+- [x] Foundations: `createPriceAlert` (save-then-schedule, deterministic id), one desktop localStorage adapter, shared confirm dialog, `Card` adoption, `useAuth` single-flight, stable live-price derivations.
+- [x] Quality: coverage thresholds for `lib/`/`hooks/` (70/66/72/71), behavior tests for `createPriceAlert`, `useCatalogSearch`, `useHomeData`, `useProductDerived`, `useProductCardDerived`, `useAlertEdit`, `useWatchlistRemove`, `useRemindersData`, `useNotificationWebhook`, `useNotificationsData`; `cargo fmt --check` + `cargo clippy -D warnings` in `pnpm verify`.
+- [x] Accessibility: labeled login inputs, header/alert roles, 44 px touch targets, reduced-motion support across animated components.
+- [x] Cleanup: removed unused `axios` and dead template scripts; fixture regeneration requires `--force`.
+- [x] Verified: `pnpm verify` exit 0 (4107 root tests, 349 desktop tests, coverage gate, Rust fmt/clippy/test, Android JS bundle, desktop build); 5.28.0 APK smoke-tested on emulator-5566; desktop release published.
