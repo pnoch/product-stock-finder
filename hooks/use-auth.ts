@@ -1,9 +1,18 @@
 import { log } from "@shared/log";
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
-import { getApiBaseUrl } from "@/constants/oauth";
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { Platform } from "react-native";
+import {
+  changePassword as changePasswordRequest,
+  deleteAccount as deleteAccountRequest,
+  fetchCurrentUser,
+  forgotPassword as forgotPasswordRequest,
+  loginWithEmail,
+  registerWithEmail,
+  resendVerification as resendVerificationRequest,
+  resetPassword as resetPasswordRequest,
+} from "./auth-api";
 
 const debugLog = (...args: unknown[]) => {
   if (!__DEV__) return;
@@ -13,24 +22,6 @@ const debugLog = (...args: unknown[]) => {
 type UseAuthOptions = {
   autoFetch?: boolean;
 };
-
-type ApiUser = NonNullable<Awaited<ReturnType<typeof Api.getMe>>> & {
-  emailVerified?: boolean;
-};
-
-// Every auth request must carry the device id: the server binds the session to
-// it, un-revokes the presenting device on login, and enforces revocation on the
-// account-mutation routes. Without it a revoked device could sign back in (and
-// mutate the account) because the server sees no device.
-async function deviceHeader(): Promise<Record<string, string>> {
-  try {
-    const { getDeviceId } = await import("@/lib/device-id");
-    const id = await getDeviceId();
-    return id ? { "x-device-id": id } : {};
-  } catch {
-    return {};
-  }
-}
 
 // Module-level shared auth state. Without this every `useAuth()` call had its
 // own copy, so signing in from Settings never flipped the root layout's
@@ -99,70 +90,7 @@ export function useAuth(options?: UseAuthOptions) {
     if (Date.now() - lastFetchAt < FETCH_TTL_MS) return;
     inFlightFetch = (async () => {
       debugLog("[useAuth] fetchUser called");
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Web platform: use cookie-based auth, fetch user from API
-        if (Platform.OS === "web") {
-          debugLog("[useAuth] Web platform: fetching user from API...");
-          const apiUser: ApiUser | null = await Api.getMe();
-
-          if (apiUser) {
-            const userInfo: Auth.User = {
-              id: apiUser.id,
-              openId: apiUser.openId,
-              name: apiUser.name,
-              email: apiUser.email,
-              loginMethod: apiUser.loginMethod,
-              lastSignedIn: new Date(apiUser.lastSignedIn),
-              emailVerified: apiUser.emailVerified ?? false,
-            };
-            setUser(userInfo);
-            // Cache user info in localStorage for faster subsequent loads
-            await Auth.setUserInfo(userInfo);
-            debugLog("[useAuth] Web user set from API");
-          } else {
-            debugLog("[useAuth] Web: No authenticated user from API");
-            setUser(null);
-            await Auth.clearUserInfo();
-          }
-          return;
-        }
-
-        // Native platform: use token-based auth
-        debugLog("[useAuth] Native platform: checking for session token...");
-        const sessionToken = await Auth.getSessionToken();
-        debugLog(
-          "[useAuth] Session token:",
-          sessionToken ? "present" : "missing",
-        );
-        if (!sessionToken) {
-          debugLog("[useAuth] No session token, setting user to null");
-          setUser(null);
-          return;
-        }
-
-        // Use cached user info for native (token validates the session)
-        const cachedUser = await Auth.getUserInfo();
-        debugLog("[useAuth] Cached user:", cachedUser ? "present" : "absent");
-        if (cachedUser) {
-          debugLog("[useAuth] Using cached user info");
-          setUser(cachedUser);
-        } else {
-          debugLog("[useAuth] No cached user, setting user to null");
-          setUser(null);
-        }
-      } catch (err) {
-        const error =
-          err instanceof Error ? err : new Error("Failed to fetch user");
-        log.error("[useAuth] fetchUser error:", error);
-        setError(error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-        debugLog("[useAuth] fetchUser completed");
-      }
+      await fetchCurrentUser(setUser, setLoading, setError);
     })().finally(() => {
       inFlightFetch = null;
       lastFetchAt = Date.now();
@@ -203,206 +131,45 @@ export function useAuth(options?: UseAuthOptions) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      try {
-        const baseUrl = getApiBaseUrl();
-        const res = await fetch(`${baseUrl}/api/auth/login`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(await deviceHeader()),
-          },
-          body: JSON.stringify({ email, password }),
-          credentials: "include",
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Login failed");
-        }
-        const data = await res.json();
-        if (data.sessionToken && Platform.OS !== "web") {
-          await Auth.setSessionToken(data.sessionToken);
-        }
-        if (data.user) {
-          const userInfo: Auth.User = {
-            id: data.user.id,
-            openId: data.user.openId,
-            name: data.user.name,
-            email: data.user.email,
-            loginMethod: "email",
-            lastSignedIn: new Date(),
-            emailVerified: data.user.emailVerified ?? false,
-          };
-          await Auth.setUserInfo(userInfo);
-          setUser(userInfo);
-        }
-      } catch (err) {
-        throw err instanceof Error ? err : new Error("Login failed");
-      }
+      await loginWithEmail(email, password, setUser);
     },
     [setUser],
   );
 
   const register = useCallback(
     async (email: string, password: string, name?: string) => {
-      try {
-        const baseUrl = getApiBaseUrl();
-        const res = await fetch(`${baseUrl}/api/auth/register`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(await deviceHeader()),
-          },
-          body: JSON.stringify({ email, password, name }),
-          credentials: "include",
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Registration failed");
-        }
-        const data = await res.json();
-        if (data.sessionToken && Platform.OS !== "web") {
-          await Auth.setSessionToken(data.sessionToken);
-        }
-        if (data.user) {
-          const userInfo: Auth.User = {
-            id: data.user.id,
-            openId: data.user.openId,
-            name: data.user.name,
-            email: data.user.email,
-            loginMethod: "email",
-            lastSignedIn: new Date(),
-            emailVerified: data.user.emailVerified ?? false,
-          };
-          await Auth.setUserInfo(userInfo);
-          setUser(userInfo);
-        }
-      } catch (err) {
-        throw err instanceof Error ? err : new Error("Registration failed");
-      }
+      await registerWithEmail(email, password, name, setUser);
     },
     [setUser],
   );
 
-  const forgotPassword = useCallback(async (email: string) => {
-    const baseUrl = getApiBaseUrl();
-    if (!baseUrl) throw new Error("This build isn't connected to a server.");
-    const res = await fetch(`${baseUrl}/api/auth/forgot`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-      credentials: "include",
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "Failed to send reset email");
-    }
-    return res.json();
-  }, []);
+  const forgotPassword = useCallback(
+    async (email: string) => forgotPasswordRequest(email),
+    [],
+  );
 
   const resetPassword = useCallback(
-    async (token: string, newPassword: string) => {
-      const baseUrl = getApiBaseUrl();
-      const res = await fetch(`${baseUrl}/api/auth/reset`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, newPassword }),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Password reset failed");
-      }
-      return res.json();
-    },
+    async (token: string, newPassword: string) =>
+      resetPasswordRequest(token, newPassword),
     [],
   );
 
   const changePassword = useCallback(
-    async (currentPassword: string, newPassword: string) => {
-      const baseUrl = getApiBaseUrl();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        ...(await deviceHeader()),
-      };
-      if (Platform.OS !== "web") {
-        const token = await Auth.getSessionToken();
-        if (token) headers["Authorization"] = `Bearer ${token}`;
-      }
-      if (!baseUrl) throw new Error("This build isn't connected to a server.");
-      const res = await fetch(`${baseUrl}/api/auth/change-password`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ currentPassword, newPassword }),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Change password failed");
-      }
-      const data = await res.json().catch(() => ({}));
-      // The server re-mints the caller's session under the new credential epoch;
-      // without persisting it the current device would be signed out too.
-      if (data?.sessionToken && Platform.OS !== "web") {
-        await Auth.setSessionToken(data.sessionToken);
-      }
-      return data;
-    },
+    async (currentPassword: string, newPassword: string) =>
+      changePasswordRequest(currentPassword, newPassword),
     [],
   );
 
   const deleteAccount = useCallback(
-    async (confirm: string = "DELETE") => {
-      const baseUrl = getApiBaseUrl();
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        ...(await deviceHeader()),
-      };
-      if (Platform.OS !== "web") {
-        const token = await Auth.getSessionToken();
-        if (token) headers["Authorization"] = `Bearer ${token}`;
-      }
-      if (!baseUrl) throw new Error("This build isn't connected to a server.");
-      const res = await fetch(`${baseUrl}/api/auth/delete-account`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ confirm }),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Delete account failed");
-      }
-      await Auth.removeSessionToken();
-      await Auth.clearUserInfo();
-      setUser(null);
-      return res.json();
-    },
+    async (confirm: string = "DELETE") =>
+      deleteAccountRequest(confirm, setUser),
     [setUser],
   );
 
-  const resendVerification = useCallback(async () => {
-    const baseUrl = getApiBaseUrl();
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(await deviceHeader()),
-    };
-    if (Platform.OS !== "web") {
-      const token = await Auth.getSessionToken();
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-    }
-    if (!baseUrl) throw new Error("This build isn't connected to a server.");
-    const res = await fetch(`${baseUrl}/api/auth/resend-verification`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({}),
-      credentials: "include",
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "Failed to resend verification email");
-    }
-    return res.json();
-  }, []);
+  const resendVerification = useCallback(
+    async () => resendVerificationRequest(),
+    [],
+  );
 
   const isAuthenticated = useMemo(() => Boolean(user), [user]);
 

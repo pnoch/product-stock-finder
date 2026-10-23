@@ -242,7 +242,10 @@ describe("watchlist undo restores the deleted product's cascade", () => {
 // (forgotPassword was fixed in Phase 326).
 describe("auth mutations check the API base URL", () => {
   it("guards every auth fetch", () => {
-    const src = readFileSync(path.join(process.cwd(), "hooks/use-auth.ts"), "utf8");
+    const src = readFileSync(
+      path.join(process.cwd(), "hooks/auth-api.ts"),
+      "utf8",
+    );
     for (const endpoint of ["forgot", "change-password", "delete-account", "resend-verification"]) {
       const idx = src.indexOf(`/api/auth/${endpoint}\``);
       expect(idx, endpoint).toBeGreaterThan(-1);
@@ -385,9 +388,12 @@ describe("launch side effects are guarded", () => {
 // without checking the base URL was configured.
 describe("forgot-password checks the API base URL", () => {
   it("useAuth.forgotPassword guards an empty base URL", () => {
-    const src = readFileSync(path.join(process.cwd(), "hooks/use-auth.ts"), "utf8");
-    const start = src.indexOf("const forgotPassword");
-    const block = src.slice(start, src.indexOf("}, []);", start));
+    const src = readFileSync(
+      path.join(process.cwd(), "hooks/auth-api.ts"),
+      "utf8",
+    );
+    const start = src.indexOf("export async function forgotPassword");
+    const block = src.slice(start, src.indexOf("export async function resetPassword", start));
     expect(block).toContain("if (!baseUrl) throw new Error");
   });
 
