@@ -51,7 +51,7 @@ describe("repositioned copy", () => {
     const config = read("app.config.ts");
     expect(config).toContain("Global stock & price radar for hard-to-find hardware");
     expect(config).toContain("alerts you the moment a watched part is back in stock");
-    const notifications = read("lib/notifications.ts");
+    const notifications = read("lib/notifications/channels.ts");
     expect(notifications).toContain("Alerts when a watched part restocks");
   });
 

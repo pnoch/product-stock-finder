@@ -23,7 +23,7 @@ describe("silent failures", () => {
   });
 
   it("logs notification settings-read failures", async () => {
-    const text = await readFile("lib/notifications.ts", "utf8");
+    const text = await readFile("lib/notifications/scheduling.ts", "utf8");
     expect(text).toContain("settings read failed");
   });
 
