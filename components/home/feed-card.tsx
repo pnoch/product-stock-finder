@@ -219,17 +219,7 @@ export const QuietCard = memo(function QuietCard({
 }) {
   const colors = useColors();
   return (
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: colors.border,
-        alignItems: "center",
-      }}
-    >
+    <Card style={{ marginBottom: 12, alignItems: "center" }}>
       <IconSymbol name="checkmark.circle.fill" size={28} color={colors.success} />
       <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700", marginTop: 8 }}>
         All quiet
@@ -239,6 +229,6 @@ export const QuietCard = memo(function QuietCard({
           ? `${dropCount} price${dropCount === 1 ? "" : "s"} fell this week.`
           : "We'll let you know when something moves."}
       </Text>
-    </View>
+    </Card>
   );
 });

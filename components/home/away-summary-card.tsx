@@ -3,6 +3,7 @@ import { View, Text, Pressable, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import type { AwaySummary } from "@/lib/away-summary";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
 function formatPct(pct: number): string {
@@ -46,16 +47,7 @@ export function AwaySummaryCard({
   const visible = expanded ? items : items.slice(0, 3);
 
   return (
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
+    <Card style={{ marginBottom: 16 }}>
       <View
         style={{
           flexDirection: "row",
@@ -134,6 +126,6 @@ export function AwaySummaryCard({
           </Text>
         </Pressable>
       ) : null}
-    </View>
+    </Card>
   );
 }

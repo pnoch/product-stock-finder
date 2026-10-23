@@ -26,9 +26,10 @@ describe("redesign D wiring", () => {
     for (const f of [
       "components/alerts/alerts-list-row.tsx",
       "components/drops/drops-controls.tsx",
-      "components/home/feed-card.tsx",
     ]) {
       expect(read(f)).toContain("borderRadius: 16");
     }
+    expect(read("components/ui/card.tsx")).toContain("borderRadius: 16");
+    expect(read("components/home/feed-card.tsx")).toContain("<Card");
   });
 });
