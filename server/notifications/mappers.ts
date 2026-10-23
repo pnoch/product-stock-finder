@@ -1,4 +1,46 @@
+import { z } from "zod";
 import type { EventDraft, NotificationConfig, NotificationEvent } from "./types";
+
+const alertSchema = z.object({
+  id: z.string().min(1),
+  productId: z.string().min(1),
+  modelNumber: z.string().optional(),
+  targetPrice: z.number(),
+  currency: z.string().min(1),
+  distributorId: z.string().optional(),
+  direction: z.enum(["drop", "rise"]).optional(),
+  snoozedUntil: z.string().optional(),
+});
+
+const stockWatchSchema = z.object({
+  id: z.string().min(1),
+  productId: z.string().min(1),
+  modelNumber: z.string().optional(),
+  distributorId: z.string().min(1),
+  scope: z.enum(["distributor", "any"]).optional(),
+  lastKnownStatus: z.string().optional(),
+  lastKnownStatusByDistributor: z.record(z.string(), z.string()).optional(),
+});
+
+const dateReminderSchema = z.object({
+  id: z.string().min(1),
+  productId: z.string().min(1),
+  modelNumber: z.string().optional(),
+  distributorId: z.string().min(1),
+  reminderDate: z.string(),
+});
+
+// A malformed row (hand-edited JSON, an older client, a partial write) must not
+// crash the whole evaluation tick. Drop only the invalid entries.
+function parseArray<T>(schema: z.ZodType<T>, value: unknown): T[] {
+  if (!Array.isArray(value)) return [];
+  const out: T[] = [];
+  for (const entry of value) {
+    const parsed = schema.safeParse(entry);
+    if (parsed.success) out.push(parsed.data);
+  }
+  return out;
+}
 
 export function rowToConfig(row: {
   alerts: unknown;
@@ -11,11 +53,9 @@ export function rowToConfig(row: {
     | null
     | undefined;
   return {
-    alerts: (row.alerts as NotificationConfig["alerts"]) ?? [],
-    stockWatches:
-      (row.stockWatches as NotificationConfig["stockWatches"]) ?? [],
-    dateReminders:
-      (row.dateReminders as NotificationConfig["dateReminders"]) ?? [],
+    alerts: parseArray(alertSchema, row.alerts),
+    stockWatches: parseArray(stockWatchSchema, row.stockWatches),
+    dateReminders: parseArray(dateReminderSchema, row.dateReminders),
     ...(typeof quietHours?.start === "string" &&
     typeof quietHours?.end === "string"
       ? {
