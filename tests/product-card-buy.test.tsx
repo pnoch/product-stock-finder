@@ -3,6 +3,10 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import React from "react";
 
+vi.mock("react-native-reanimated", () => ({
+  useReducedMotion: () => false,
+}));
+
 vi.mock("react-native", async () => {
   const React = await import("react");
   class AnimatedValue {

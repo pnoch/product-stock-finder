@@ -135,6 +135,7 @@ export function LoginModal({
                     onChangeText={setName}
                     placeholder="Name (optional)"
                     placeholderTextColor={colors.muted}
+                    accessibilityLabel="Name"
                     autoCapitalize="words"
                     onFocus={() => setFocusedField("name")}
                     onBlur={() => setFocusedField(null)}
@@ -157,6 +158,7 @@ export function LoginModal({
                   onChangeText={setEmail}
                   placeholder="Email"
                   placeholderTextColor={colors.muted}
+                  accessibilityLabel="Email"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
@@ -180,6 +182,7 @@ export function LoginModal({
                   onChangeText={setPassword}
                   placeholder="Password"
                   placeholderTextColor={colors.muted}
+                  accessibilityLabel="Password"
                   secureTextEntry
                   autoCapitalize="none"
                   onFocus={() => setFocusedField("password")}
@@ -207,6 +210,7 @@ export function LoginModal({
 
                 {error && (
                   <Text
+                    accessibilityRole="alert"
                     style={{
                       color: colors.error,
                       fontSize: 13,

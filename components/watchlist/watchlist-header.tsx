@@ -110,9 +110,9 @@ export function WatchlistHeader({
             onPress={onExitSelection}
             style={{
               backgroundColor: colors.surface,
-              borderRadius: 20,
-              width: 40,
-              minHeight: 40,
+              borderRadius: 22,
+              width: 44,
+              minHeight: 44,
               alignItems: "center",
               justifyContent: "center",
               borderWidth: 1,
@@ -143,9 +143,9 @@ export function WatchlistHeader({
           <TouchableOpacity activeOpacity={0.85}
             style={{
               backgroundColor: colors.surface,
-              borderRadius: 20,
-              width: 40,
-              minHeight: 40,
+              borderRadius: 22,
+              width: 44,
+              minHeight: 44,
               alignItems: "center",
               justifyContent: "center",
               borderWidth: 1,
@@ -164,9 +164,9 @@ export function WatchlistHeader({
           <TouchableOpacity activeOpacity={0.85}
             style={{
               backgroundColor: colors.surface,
-              borderRadius: 20,
-              width: 40,
-              minHeight: 40,
+              borderRadius: 22,
+              width: 44,
+              minHeight: 44,
               alignItems: "center",
               justifyContent: "center",
               borderWidth: 1,
@@ -185,9 +185,9 @@ export function WatchlistHeader({
           <TouchableOpacity activeOpacity={0.85}
             style={{
               backgroundColor: colors.primary,
-              borderRadius: 20,
-              width: 40,
-              minHeight: 40,
+              borderRadius: 22,
+              width: 44,
+              minHeight: 44,
               alignItems: "center",
               justifyContent: "center",
             }}

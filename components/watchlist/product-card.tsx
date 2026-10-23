@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/use-colors";
+import { useReducedMotion } from "react-native-reanimated";
 import { Product, TagDefinition } from "@/lib/types";
 import { formatPrice } from "@shared/currency";
 import { StockBadge } from "@/components/stock-badge";
@@ -56,15 +57,20 @@ export const ProductCard = memo(function ProductCard({
   onToggleAcquired?: () => void;
 }) {
   const colors = useColors();
+  const reduceMotion = useReducedMotion();
   const acquired = isAcquired(product);
   const cardOpacity = useState(() => new Animated.Value(acquired ? 0.55 : 1))[0];
   useEffect(() => {
+    if (reduceMotion) {
+      cardOpacity.setValue(acquired ? 0.55 : 1);
+      return;
+    }
     Animated.timing(cardOpacity, {
       toValue: acquired ? 0.55 : 1,
       duration: 200,
       useNativeDriver: true,
     }).start();
-  }, [acquired, cardOpacity]);
+  }, [acquired, cardOpacity, reduceMotion]);
   const handleToggleAcquired = useCallback(
     (e?: { stopPropagation?: () => void }) => {
       if (Platform.OS === "web") e?.stopPropagation?.();
@@ -143,48 +149,62 @@ export const ProductCard = memo(function ProductCard({
     [onDelete],
   );
   useEffect(() => {
+    if (reduceMotion) {
+      sparklineOpacity.setValue(1);
+      return;
+    }
     sparklineOpacity.setValue(0.55);
     Animated.timing(sparklineOpacity, {
       toValue: 1,
       duration: 420,
       useNativeDriver: true,
     }).start();
-  }, [product.id, sparklineOpacity]);
+  }, [product.id, sparklineOpacity, reduceMotion]);
 
   useEffect(() => {
+    if (reduceMotion) {
+      selectionAnim.setValue(selectionMode ? 1 : 0);
+      return;
+    }
     Animated.spring(selectionAnim, {
       toValue: selectionMode ? 1 : 0,
       useNativeDriver: true,
       tension: 140,
       friction: 12,
     }).start();
-  }, [selectionMode, selectionAnim]);
+  }, [selectionMode, selectionAnim, reduceMotion]);
 
   useEffect(() => {
+    if (reduceMotion) {
+      selectedPop.setValue(selected ? 1 : 0);
+      return;
+    }
     Animated.spring(selectedPop, {
       toValue: selected ? 1 : 0,
       useNativeDriver: true,
       tension: 220,
       friction: 10,
     }).start();
-  }, [selected, selectedPop]);
+  }, [selected, selectedPop, reduceMotion]);
 
   const handlePressIn = useCallback(() => {
+    if (reduceMotion) return;
     Animated.spring(pressScale, {
       toValue: 0.98,
       useNativeDriver: true,
       speed: 50,
       bounciness: 0,
     }).start();
-  }, [pressScale]);
+  }, [pressScale, reduceMotion]);
   const handlePressOut = useCallback(() => {
+    if (reduceMotion) return;
     Animated.spring(pressScale, {
       toValue: 1,
       useNativeDriver: true,
       speed: 22,
       bounciness: 4,
     }).start();
-  }, [pressScale]);
+  }, [pressScale, reduceMotion]);
 
   return (
     <Pressable

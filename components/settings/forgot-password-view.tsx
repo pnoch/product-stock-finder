@@ -91,6 +91,7 @@ export function ForgotPasswordView({
             onChangeText={onForgotEmail}
             placeholder={email || "Email"}
             placeholderTextColor={colors.muted}
+            accessibilityLabel="Email for password reset"
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
