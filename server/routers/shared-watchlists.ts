@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb, getUserByEmail, getUserById, getUsersByIds } from "../db";
@@ -384,7 +384,12 @@ export const sharedWatchlistsRouter = router({
           });
         }
       }
-      await db.insert(sharedWatchlistMembers).values({ token: input.token, userId: ctx.user.id, role: "viewer" }).onDuplicateKeyUpdate({ set: { role: "viewer" } });
+      // Preserve an existing role: an invited editor who re-runs join must not
+      // be downgraded to viewer.
+      await db
+        .insert(sharedWatchlistMembers)
+        .values({ token: input.token, userId: ctx.user.id, role: "viewer" })
+        .onDuplicateKeyUpdate({ set: { role: sql`${sharedWatchlistMembers.role}` } });
       return { joined: true } as const;
     }),
   leave: protectedProcedure

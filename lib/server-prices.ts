@@ -27,7 +27,7 @@ async function fetchServerPriceDirect(
     TIMEOUT_MS,
   );
   if (status !== 200) return null;
-  const parsed = JSON.parse(html) as {
+  let parsed: {
     0?: {
       result?: {
         data?: { json?: ServerPriceResult | null };
@@ -35,6 +35,13 @@ async function fetchServerPriceDirect(
       };
     };
   };
+  try {
+    parsed = JSON.parse(html) as typeof parsed;
+  } catch {
+    // A non-JSON body (proxy error page, truncated response) is a miss, not a
+    // crash: the caller falls back to the local scrape.
+    return null;
+  }
   const json = parsed[0]?.result?.data?.json;
   if (!json) return null;
   if (!json.snapshot && !json.history?.length) return null;
