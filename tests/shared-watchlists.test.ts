@@ -402,7 +402,7 @@ describe("sharedWatchlists router", () => {
         ],
       }) as never,
     );
-    mockedGetUserById.mockResolvedValue({ id: 1, name: "Owner", email: "o@example.com" } as never);
+    mockedGetUsersByIds.mockResolvedValue([{ id: 1, name: "Owner", email: "o@example.com" }] as never);
     const res = await appRouter.createCaller(createAuthedContext(2)).sharedWatchlists.listJoined();
     expect(res.shares).toHaveLength(1);
     expect(res.shares[0]).toMatchObject({

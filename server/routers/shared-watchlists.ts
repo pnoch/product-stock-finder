@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
-import { getDb, getUserByEmail, getUserById, getUsersByIds } from "../db";
+import { getDb, getUserByEmail, getUsersByIds } from "../db";
 import {
   sharedWatchlists,
   sharedWatchlistMembers,
@@ -98,33 +98,39 @@ export const sharedWatchlistsRouter = router({
       .select()
       .from(sharedWatchlistMembers)
       .where(eq(sharedWatchlistMembers.userId, ctx.user.id));
+    if (memberRows.length === 0) return { shares: [] } as const;
     const origin = getOrigin(ctx.req);
-    const joined = await Promise.all(
-      memberRows.map(async (m) => {
-        const rows = await db
-          .select()
-          .from(sharedWatchlists)
-          .where(eq(sharedWatchlists.token, m.token))
-          .limit(1);
-        const share = rows[0];
-        if (!share) return null;
-        // Drop expired shares (get/members reject them) so the list can't
-        // point at a dead link.
-        if (share.expiresAt && new Date(share.expiresAt).getTime() < Date.now()) {
-          return null;
-        }
-        const owner = await getUserById(share.ownerId);
+    // Batch both lookups: the previous per-membership share + owner queries
+    // were 2N round-trips for a user in many shares.
+    const tokens = memberRows.map((m) => m.token);
+    const shareRows = await db
+      .select()
+      .from(sharedWatchlists)
+      .where(inArray(sharedWatchlists.token, tokens));
+    const ownerRows = await getUsersByIds([
+      ...new Set(shareRows.map((s) => s.ownerId)),
+    ]);
+    const ownerById = new Map(ownerRows.map((u) => [u.id, u]));
+    const now = Date.now();
+    const joined = shareRows
+      .filter(
+        (share) =>
+          !share.expiresAt || new Date(share.expiresAt).getTime() >= now,
+      )
+      .map((share) => {
+        const owner = ownerById.get(share.ownerId);
         return {
           token: share.token,
           title: share.title,
           shareUrl: `${origin}/w/${share.token}`,
           ownerName: owner?.name ?? owner?.email ?? null,
-          expiresAt: share.expiresAt ? new Date(share.expiresAt).toISOString() : null,
+          expiresAt: share.expiresAt
+            ? new Date(share.expiresAt).toISOString()
+            : null,
           membersOnly: Boolean(share.membersOnly),
         };
-      }),
-    );
-    return { shares: joined.filter((s): s is NonNullable<typeof s> => s !== null) } as const;
+      });
+    return { shares: joined } as const;
   }),
   setMembersOnly: protectedProcedure
     .input(
