@@ -100,7 +100,7 @@ describe("desktop/mobile scraper parity", () => {
     // dropped it (a generic list wrapper validates a decoy price). The two
     // lists must stay identical.
     const rust = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
-    const ts = await readFile("lib/scrapers/utils.ts", "utf8");
+    const ts = await readFile("lib/scrapers/model-match.ts", "utf8");
     const parse = (s: string): string[] =>
       s
         .split(",")
@@ -139,7 +139,7 @@ describe("desktop/mobile scraper parity", () => {
       const body = src.match(block)?.[1] ?? "";
       return [...body.matchAll(/"([a-z]{2})"/g)].map((m) => m[1]!).sort();
     };
-    const ts = await readFile("lib/scrapers/utils.ts", "utf8");
+    const ts = await readFile("lib/scrapers/model-match.ts", "utf8");
     const tsSuffixes = suffixesOf(ts, /const COMMERCE_SUFFIXES = new Set\(\[([\s\S]*?)\]\)/);
     const rustSuffixes = suffixesOf(rust, /const COMMERCE_SUFFIXES: \[&str; \d+\] = \[([\s\S]*?)\]/);
     expect(tsSuffixes.length).toBeGreaterThan(5);
@@ -194,7 +194,7 @@ describe("desktop/mobile scraper parity", () => {
     // same way. `preorder` was missing from the shared list, so a store's
     // "Preorder available" was in_stock server-side/mobile while the desktop
     // said back_order.
-    const ts = await readFile("lib/scrapers/utils.ts", "utf8");
+    const ts = await readFile("lib/scrapers/price-parse.ts", "utf8");
     const tsStart = ts.indexOf("export function inferStockStatus");
     const tsBody = ts.slice(tsStart, ts.indexOf("\n}", tsStart));
     const tsMarkers = [...tsBody.matchAll(/includes\("([^"]+)"\)/g)]
@@ -358,7 +358,7 @@ describe("desktop/mobile scraper parity", () => {
     );
     const modRs = await readFile("desktop/src-tauri/src/scrapers/mod.rs", "utf8");
     const sharedBrowser = await readFile("lib/scrapers/browser.ts", "utf8");
-    const sharedUtils = await readFile("lib/scrapers/utils.ts", "utf8");
+    const sharedUtils = await readFile("lib/scrapers/fetch-utils.ts", "utf8");
 
     // Plain path: the shared fetch sends Accept-Language; without it a store may
     // render a different language (and currency) than the parser expects.
