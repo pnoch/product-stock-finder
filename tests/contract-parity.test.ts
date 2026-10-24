@@ -42,11 +42,15 @@ describe("server <-> client contract parity", () => {
   });
 
   it("both notification clients trim to every upload cap", () => {
+    const mobileSrc = [
+      read("lib/server-notifications/config.ts"),
+      read("lib/server-notifications/sync.ts"),
+    ].join("\n");
     for (const client of [
-      "lib/server-notifications.ts",
+      "lib/server-notifications/config.ts",
       "desktop/src/server-notifications.ts",
     ]) {
-      const src = read(client);
+      const src = client.startsWith("lib/") ? mobileSrc : read(client);
       for (const cap of [
         "MAX_UPLOAD_ALERTS",
         "MAX_UPLOAD_STOCK_WATCHES",

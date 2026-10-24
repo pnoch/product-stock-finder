@@ -36,6 +36,6 @@ describe("acquired consumers are wired", () => {
   });
 
   it("the server upload excludes acquired products", () => {
-    expect(read("lib/server-notifications.ts")).toContain("isAcquired");
+    expect(read("lib/server-notifications/sync.ts")).toContain("isAcquired");
   });
 });
