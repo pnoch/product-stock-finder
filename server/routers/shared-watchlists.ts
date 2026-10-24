@@ -1,21 +1,17 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb, getUserByEmail, getUserById, getUsersByIds } from "../db";
 import {
   sharedWatchlists,
   sharedWatchlistMembers,
-  watchlistItems,
 } from "../../drizzle/schema";
 import { isDuplicateKeyError, isForeignKeyError } from "../db-errors";
 import { checkRateLimit, checkRateLimitByKey } from "../rate-limit";
 import { getOrigin } from "./helpers";
-
-// Public share links return the owner's watchlist; cap the payload so a very
-// large watchlist can't turn the endpoint into an expensive unbounded read.
-const SHARED_WATCHLIST_MAX_ITEMS = 500;
+import { getSharedWatchlist } from "../shared-watchlist-get";
 
 export const sharedWatchlistsRouter = router({
   create: protectedProcedure
@@ -60,66 +56,7 @@ export const sharedWatchlistsRouter = router({
       );
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
-      const rows = await db
-        .select()
-        .from(sharedWatchlists)
-        .where(eq(sharedWatchlists.token, input.token))
-        .limit(1);
-      const row = rows[0];
-      if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Share not found" });
-      if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
-        await db.delete(sharedWatchlists).where(eq(sharedWatchlists.token, input.token));
-        throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
-      }
-      // Membership (for the viewer's Join/Leave control). `get` is public, so
-      // this is best-effort: signed-out viewers simply get false/false.
-      const viewerId = ctx.user?.id ?? null;
-      const isOwner = viewerId !== null && row.ownerId === viewerId;
-      let isMember = false;
-      if (viewerId !== null && !isOwner) {
-        const memberRows = await db
-          .select()
-          .from(sharedWatchlistMembers)
-          .where(
-            and(
-              eq(sharedWatchlistMembers.token, input.token),
-              eq(sharedWatchlistMembers.userId, viewerId),
-            ),
-          )
-          .limit(1);
-        isMember = memberRows.length > 0;
-      }
-      // Members-only shares: the token alone is not sufficient. Actionable
-      // message (the caller already holds the token, so this leaks nothing).
-      if (row.membersOnly && !isOwner && !isMember) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "This share is members-only. Ask the owner to invite you.",
-        });
-      }
-      // Cap the shared payload: a public endpoint must not return an
-      // arbitrarily large watchlist (or read every row into memory) just
-      // because the owner has thousands of items.
-      // Filter tombstones in SQL: counting them toward the cap truncated the
-      // live products for an owner with many deletions.
-      // Fetch one past the cap so a share with exactly MAX items is not
-      // misreported as truncated (the extra row is dropped before returning).
-      const items = await db
-        .select()
-        .from(watchlistItems)
-        .where(
-          and(
-            eq(watchlistItems.userId, row.ownerId),
-            isNull(watchlistItems.deletedAtMs),
-          ),
-        )
-        .limit(SHARED_WATCHLIST_MAX_ITEMS + 1);
-      const truncated = items.length > SHARED_WATCHLIST_MAX_ITEMS;
-      const products = items
-        .slice(0, SHARED_WATCHLIST_MAX_ITEMS)
-        .map((r) => r.data)
-        .filter(Boolean);
-      return { title: row.title, token: row.token, products, truncated, createdAt: row.createdAt?.toISOString?.() ?? null, expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null, isOwner, isMember } as const;
+      return getSharedWatchlist(db, input.token, ctx.user?.id ?? null);
     }),
   revoke: protectedProcedure
     .input(z.object({ token: z.string().min(1).max(64) }))

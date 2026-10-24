@@ -1303,7 +1303,11 @@ describe("desktop chart guard", () => {
     const routers = await readAllServerRouters();
     expect(routers).toContain("setMembersOnly: protectedProcedure");
     expect(routers).toContain("listJoined: protectedProcedure");
-    expect(routers).toContain("This share is members-only");
+    const getHelper = await readFile(
+      "server/shared-watchlist-get.ts",
+      "utf8",
+    );
+    expect(getHelper).toContain("This share is members-only");
     // The members-only column ships as a migration.
     const schema = await readFile("drizzle/schema.ts", "utf8");
     expect(schema).toContain('membersOnly: boolean("membersOnly")');
@@ -1351,8 +1355,12 @@ describe("desktop chart guard", () => {
     expect(hook).toContain("sharedWatchlists.leave.useMutation()");
     expect(header).toContain("isOwner");
     expect(header).toContain("isMember");
-    const routers = await readAllServerRouters();
-    expect(routers).toContain("isOwner, isMember } as const;");
+    const getHelper = await readFile(
+      "server/shared-watchlist-get.ts",
+      "utf8",
+    );
+    expect(getHelper).toContain("isOwner");
+    expect(getHelper).toContain("isMember");
   });
 
   // QA round 279: the desktop must pass its Tauri notifier to checkRestocks —
