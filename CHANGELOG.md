@@ -4,6 +4,34 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.28.1] - 2026-10-23
+
+### Security
+
+- Patched 11 transitive dependency advisories via pnpm overrides:
+  `proxy-addr` (critical IPv4-mapped IP spoofing), `shell-quote` (critical
+  command injection), `body-parser`, `source-map-js`, `compression`,
+  `postcss-selector-parser`, and `zod`; bumped `undici` to 7.30.1.
+  `pnpm audit --prod` is down from 12 findings (2 critical, 7 high) to 1
+  (node-forge, which has no patched release and is build-time only).
+
+### Fixed
+
+- `sharedWatchlists.join` no longer downgrades an invited editor to `viewer`.
+- `lib/server-prices.ts` treats a non-JSON body as a miss instead of throwing.
+- `sharedWatchlists.listJoined` batches its share and owner lookups (was 2N
+  queries).
+
+### Changed
+
+- Split the remaining large modules: `lib/sync.ts` pull/full-resync,
+  `lib/csv.ts`, `lib/server-notifications.ts`, `server/devices.ts`,
+  `lib/scrapers/utils.ts`, `server/routers/shared-watchlists.ts`.
+- Extracted the mobile watchlist, search, health, product-detail, and
+  manual-add screen hooks; extracted the desktop app shell and bootstrap.
+- Removed the remaining `any` casts at typed boundaries and relied on the
+  `Card` primitive in more shells.
+
 ## [5.28.0] - 2026-10-23
 
 ### Fixed
