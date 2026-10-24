@@ -42,6 +42,7 @@ export default defineConfig({
         "hooks/use-watchlist-screen.ts",
         "hooks/use-search-screen.ts",
         "hooks/use-product-detail-screen.ts",
+        "hooks/use-manual-add-sheet.ts",
       ],
       thresholds: {
         statements: 70,
