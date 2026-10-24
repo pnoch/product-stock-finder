@@ -170,7 +170,7 @@ describe("screen-level fixes", () => {
 
   it("AI discovery reports an already-tracked product instead of claiming success", () => {
     const add = read("lib/add-product.ts");
-    const src = read("app/search.tsx");
+    const src = read("hooks/use-search-screen.ts");
     expect(add).toContain("await addToWatchlist(");
     expect(src).toContain('"Already tracked"');
   });

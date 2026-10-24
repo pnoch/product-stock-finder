@@ -499,7 +499,10 @@ describe("edit product sheet handles save failure", () => {
 // watchlist) showed "Product not found".
 describe("AI discovery adds the product to the watchlist", () => {
   it("calls addToWatchlist before navigating", () => {
-    const src = readFileSync(path.join(process.cwd(), "app/search.tsx"), "utf8");
+    const src = readFileSync(
+      path.join(process.cwd(), "hooks/use-search-screen.ts"),
+      "utf8",
+    );
     const add = readFileSync(
       path.join(process.cwd(), "lib/add-product.ts"),
       "utf8",
@@ -812,7 +815,10 @@ describe("count labels pluralize", () => {
 // could never succeed. It now shares toDiscoverErrorState with desktop.
 describe("search discovery errors use the shared mapper", () => {
   it("maps via toDiscoverErrorState and honors its retry flag", () => {
-    const src = readFileSync(path.join(process.cwd(), "app/search.tsx"), "utf8");
+    const src = readFileSync(
+      path.join(process.cwd(), "hooks/use-search-screen.ts"),
+      "utf8",
+    );
     expect(src).toContain("toDiscoverErrorState(e)");
     expect(src).toContain("state.retry");
   });
