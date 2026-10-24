@@ -6,6 +6,7 @@ import { scheduleBackOrderReminder, ensureNotificationPermission, cancelNotifica
 import { showAlert } from "@/lib/alert";
 import { useToast } from "@/components/ui/toast";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 
 export function ReminderSection({
   productId,
@@ -27,9 +28,9 @@ export function ReminderSection({
   const [saving, setSaving] = useState(false);
   if (!distributorId) {
     return (
-      <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 }}>
+      <Card style={{ marginHorizontal: 16, marginTop: 12 }}>
         <Text style={{ color: colors.muted }}>No listings available for reminders</Text>
-      </View>
+      </Card>
     );
   }
   const onSet = async () => {

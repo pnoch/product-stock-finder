@@ -1,5 +1,6 @@
 import { Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 import { formatPrice } from "@shared/currency";
 import { getDistributorById } from "@shared/distributors";
 import {
@@ -30,17 +31,7 @@ export function TargetTableCard({
   if (rows.length === 0) return null;
 
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        marginBottom: 16,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: 16,
-      }}
-    >
+    <Card style={{ marginHorizontal: 16, marginBottom: 16 }}>
       <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8 }}>
         Distributor Targets
       </Text>
@@ -133,6 +124,6 @@ export function TargetTableCard({
           Set per-distributor targets with + to compare them here.
         </Text>
       )}
-    </View>
+    </Card>
   );
 }

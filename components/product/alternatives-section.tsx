@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
+import { Card } from "@/components/ui/card";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { formatPrice } from "@shared/currency";
 import type { Alternative } from "@/lib/alternatives";
@@ -19,17 +20,7 @@ export function AlternativesSection({
   if (alternatives.length === 0) return null;
 
   return (
-    <View
-      style={{
-        marginHorizontal: 16,
-        marginBottom: 16,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: 16,
-      }}
-    >
+    <Card style={{ marginHorizontal: 16, marginBottom: 16 }}>
       <Text
         style={{
           color: colors.foreground,
@@ -74,6 +65,6 @@ export function AlternativesSection({
           <IconSymbol name="chevron.right" size={18} color={colors.muted} />
         </TouchableOpacity>
       ))}
-    </View>
+    </Card>
   );
 }
