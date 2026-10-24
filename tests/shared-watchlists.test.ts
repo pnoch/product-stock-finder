@@ -10,11 +10,10 @@ vi.mock("../server/db", () => ({
 import { appRouter } from "../server/routers";
 import type { TrpcContext } from "../server/_core/context";
 import { sharedWatchlists, sharedWatchlistMembers } from "../drizzle/schema";
-import { getDb, getUserByEmail, getUserById, getUsersByIds } from "../server/db";
+import { getDb, getUserByEmail, getUsersByIds } from "../server/db";
 
 const mockedGetDb = vi.mocked(getDb);
 const mockedGetUserByEmail = vi.mocked(getUserByEmail);
-const mockedGetUserById = vi.mocked(getUserById);
 const mockedGetUsersByIds = vi.mocked(getUsersByIds);
 
 function createAuthedContext(userId = 1): TrpcContext {
