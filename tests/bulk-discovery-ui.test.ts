@@ -20,9 +20,13 @@ describe("bulk discovery UI", () => {
     expect(section).toContain("onFindPrices");
     expect(empty).toContain("Find prices");
     const screen = readFileSync("app/product/[id].tsx", "utf8");
-    expect(screen).toContain("rediscoverProduct");
+    const hook = readFileSync(
+      "hooks/use-product-detail-screen.ts",
+      "utf8",
+    );
+    expect(hook).toContain("rediscoverProduct");
     expect(screen).toContain("onFindPrices={handleFindPrices}");
-    expect(screen).toContain("timedOut");
+    expect(hook).toContain("timedOut");
   });
 
   it("watchlist card offers a no-prices repair CTA (mobile)", () => {
