@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { WatchlistSectionHeader } from "@/components/watchlist/watchlist-section-header";
 import { WatchlistRow } from "@/components/watchlist/watchlist-row";
 import { isAcquired } from "@/lib/acquired";
+import { hasIncompleteDiscovery } from "@/lib/manual-add";
 import type { Product, TagDefinition, WatchlistGroup } from "@/lib/types";
 import type { DealScore } from "@/lib/deal-score";
 
@@ -16,6 +17,7 @@ export function useWatchlistRenderers({
   dealScoreMap,
   selectedIds,
   findingIds,
+  findingProgress,
   alertProductIds,
   handleProductPress,
   handleProductLongPress,
@@ -33,6 +35,7 @@ export function useWatchlistRenderers({
   dealScoreMap: Map<string, DealScore | null>;
   selectedIds: Set<string>;
   findingIds: Set<string>;
+  findingProgress: Map<string, { done: number; total: number }>;
   alertProductIds: Set<string>;
   handleProductPress: (product: Product) => void;
   handleProductLongPress: (product: Product) => void;
@@ -70,6 +73,8 @@ export function useWatchlistRenderers({
         dealScore={dealScoreMap.get(item.id) ?? undefined}
         selected={selectedIds.has(item.id)}
         findingPrices={findingIds.has(item.id)}
+        findingProgress={findingProgress.get(item.id)}
+        hasIncompleteDiscovery={hasIncompleteDiscovery(item)}
         hasAlert={alertProductIds.has(item.id)}
         isAcquired={isAcquired(item)}
         tagDefinitions={tagDefinitions}
@@ -89,6 +94,7 @@ export function useWatchlistRenderers({
       dealScoreMap,
       selectedIds,
       findingIds,
+      findingProgress,
       tagDefinitions,
       handleProductPress,
       handleProductLongPress,

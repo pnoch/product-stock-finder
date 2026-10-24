@@ -215,10 +215,11 @@ export function useWatchlistScreen() {
     track,
   });
 
-  const { findingIds, handleFindPrices } = useWatchlistFindPrices({
-    reload,
-    showToast,
-  });
+  const { findingIds, findingProgress, handleFindPrices } =
+    useWatchlistFindPrices({
+      reload,
+      showToast,
+    });
 
   const sectionData = useMemo(
     () =>
@@ -257,6 +258,7 @@ export function useWatchlistScreen() {
     dealScoreMap,
     selectedIds: selection.selectedIds,
     findingIds,
+    findingProgress,
     alertProductIds,
     handleProductPress,
     handleProductLongPress,
@@ -307,6 +309,7 @@ export function useWatchlistScreen() {
     handleShareWatchlist,
     handleImportCsv,
     findingIds,
+    findingProgress,
     handleFindPrices,
     sectionData,
     handleProductPress,

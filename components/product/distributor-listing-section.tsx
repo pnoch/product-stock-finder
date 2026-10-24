@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { DistributorListing } from "@/lib/types";
 import { selectBestListing } from "@/lib/currency";
@@ -45,6 +45,8 @@ interface DistributorListingSectionProps {
   onRemind?: (listing: DistributorListing) => void;
   onFindPrices?: () => void;
   findingPrices?: boolean;
+  findingProgress?: { done: number; total: number } | null;
+  hasIncompleteDiscovery?: boolean;
   onWatchAny?: () => void;
   watchingAny?: boolean;
 }
@@ -130,6 +132,8 @@ export function DistributorListingSection({
   onRemind,
   onFindPrices,
   findingPrices,
+  findingProgress,
+  hasIncompleteDiscovery,
   onWatchAny,
   watchingAny,
 }: DistributorListingSectionProps) {
@@ -165,12 +169,20 @@ export function DistributorListingSection({
       >
         Distributor Prices
       </Text>
+      {findingPrices && (
+        <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 10 }}>
+          {findingProgress
+            ? `Checking distributors… ${findingProgress.done}/${findingProgress.total}`
+            : "Checking distributors…"}
+        </Text>
+      )}
       {sortedListings.length === 0 || visibleListings.length === 0 ? (
         <DistributorListingEmpty
           colors={colors}
           hasListings={sortedListings.length > 0}
           regionFilter={regionFilter}
           findingPrices={findingPrices ?? false}
+          findingProgress={findingProgress}
           watchingAny={watchingAny ?? false}
           onFindPrices={onFindPrices}
           onWatchAny={onWatchAny}
@@ -248,6 +260,30 @@ export function DistributorListingSection({
               hasDestination={destination != null}
             />
           ))}
+          {hasIncompleteDiscovery && onFindPrices && (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={onFindPrices}
+              disabled={findingPrices}
+              style={{
+                alignSelf: "center",
+                marginTop: 4,
+                marginBottom: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: colors.primary,
+                opacity: findingPrices ? 0.6 : 1,
+              }}
+              accessibilityLabel="Find more prices"
+              accessibilityRole="button"
+            >
+              <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>
+                {findingPrices ? "Finding more…" : "Find more prices"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </>
       )}
       <CountryPicker

@@ -176,6 +176,7 @@ export function useLiveProduct(
     isRefreshingAny,
     lastUpdatedAt,
     refresh,
+    reloadSeed: loadSeed,
   };
 }
 

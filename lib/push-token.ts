@@ -11,6 +11,10 @@ export async function registerPushToken(): Promise<void> {
   try {
     if (Platform.OS === "web") return;
     if (!Device.isDevice) return;
+    // Registration is a protected call; a signed-out device has no token and
+    // would only produce a 401.
+    const { getSessionToken } = await import("./_core/auth");
+    if (!(await getSessionToken())) return;
     const projectId = (
       Constants.expoConfig?.extra as { expoProjectId?: string } | undefined
     )?.expoProjectId;

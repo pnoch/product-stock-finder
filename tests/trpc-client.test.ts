@@ -16,6 +16,9 @@ vi.mock("../lib/device-id", () => ({ getDeviceId: vi.fn(async () => undefined) }
 const handleDeviceRevoked = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("../lib/device-revoked", () => ({ handleDeviceRevoked }));
 
+const handleSessionExpired = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("../lib/session-expired", () => ({ handleSessionExpired }));
+
 vi.mock("../lib/background-safe-timers", () => ({
   getBackgroundAppState: () => state.appState,
 }));
@@ -66,6 +69,7 @@ beforeEach(() => {
   backgroundFetch.mockClear();
   backgroundFetch.mockResolvedValue({ html: "ok", status: 200 });
   handleDeviceRevoked.mockClear();
+  handleSessionExpired.mockClear();
   globalFetch.mockReset();
   vi.stubGlobal("fetch", globalFetch);
 });
@@ -163,8 +167,18 @@ describe("revokedDeviceLink", () => {
     expect(handleDeviceRevoked).toHaveBeenCalledTimes(1);
   });
 
+  it("clears the session on an UNAUTHORIZED response", async () => {
+    const error = Object.assign(new Error("Please login (10001)"), {
+      data: { code: "UNAUTHORIZED" },
+    });
+    await runLink(error);
+    expect(handleSessionExpired).toHaveBeenCalledTimes(1);
+    expect(handleDeviceRevoked).not.toHaveBeenCalled();
+  });
+
   it("ignores unrelated errors", async () => {
     await runLink(new Error("some other failure"));
     expect(handleDeviceRevoked).not.toHaveBeenCalled();
+    expect(handleSessionExpired).not.toHaveBeenCalled();
   });
 });

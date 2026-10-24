@@ -39,6 +39,8 @@ export const ProductCard = memo(function ProductCard({
   displayCurrency,
   onFindPrices,
   findingPrices = false,
+  findingProgress,
+  hasIncompleteDiscovery = false,
   onToggleAcquired,
 }: {
   product: Product;
@@ -54,6 +56,8 @@ export const ProductCard = memo(function ProductCard({
   displayCurrency?: string;
   onFindPrices?: () => void;
   findingPrices?: boolean;
+  findingProgress?: { done: number; total: number };
+  hasIncompleteDiscovery?: boolean;
   onToggleAcquired?: () => void;
 }) {
   const colors = useColors();
@@ -321,10 +325,49 @@ export const ProductCard = memo(function ProductCard({
               style={{ alignSelf: "flex-start", marginTop: 6, opacity: findingPrices ? 0.5 : 1 }}
             >
               <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>
-                {findingPrices ? "Finding prices…" : "No prices — Find"}
+                {findingPrices
+                  ? findingProgress
+                    ? `Finding prices… ${findingProgress.done}/${findingProgress.total}`
+                    : "Finding prices…"
+                  : "No prices — Find"}
               </Text>
             </TouchableOpacity>
           )}
+          {!product.marketplace &&
+            (product.listings ?? []).length > 0 &&
+            hasIncompleteDiscovery &&
+            onFindPrices && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={(e) => {
+                  if (Platform.OS === "web") e?.stopPropagation?.();
+                  onFindPrices();
+                }}
+                disabled={findingPrices}
+                hitSlop={8}
+                accessibilityLabel="Find more prices"
+                accessibilityRole="button"
+                style={{
+                  alignSelf: "flex-start",
+                  marginTop: 6,
+                  opacity: findingPrices ? 0.5 : 1,
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: 12,
+                    fontWeight: "600",
+                  }}
+                >
+                  {findingPrices
+                    ? findingProgress
+                      ? `Finding more… ${findingProgress.done}/${findingProgress.total}`
+                      : "Finding more…"
+                    : "Find more prices"}
+                </Text>
+              </TouchableOpacity>
+            )}
         </View>
         <View style={{ alignItems: "flex-end", gap: 6 }}>
           <StockBadge status={bestStatus} />

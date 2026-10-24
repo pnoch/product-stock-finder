@@ -15,6 +15,9 @@ type Options = {
 
 export function useWatchlistFindPrices({ reload, showToast }: Options) {
   const [findingIds, setFindingIds] = useState<Set<string>>(new Set());
+  const [findingProgress, setFindingProgress] = useState<
+    Map<string, { done: number; total: number }>
+  >(new Map());
 
   const handleFindPrices = useCallback(
     async (product: Product) => {
@@ -27,6 +30,12 @@ export function useWatchlistFindPrices({ reload, showToast }: Options) {
           discover: discoverListings,
           productId: product.id,
           modelNumber: product.modelNumber,
+          completedDistributorIds: product.discovery?.completedDistributorIds,
+          onProgress: (done, total) =>
+            setFindingProgress((prev) =>
+              new Map(prev).set(product.id, { done, total }),
+            ),
+          onSaved: reload,
         });
         await reload();
         showToast(
@@ -46,10 +55,15 @@ export function useWatchlistFindPrices({ reload, showToast }: Options) {
           next.delete(product.id);
           return next;
         });
+        setFindingProgress((prev) => {
+          const next = new Map(prev);
+          next.delete(product.id);
+          return next;
+        });
       }
     },
     [findingIds, reload, showToast],
   );
 
-  return { findingIds, handleFindPrices };
+  return { findingIds, findingProgress, handleFindPrices };
 }

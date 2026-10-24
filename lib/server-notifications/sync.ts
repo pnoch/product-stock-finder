@@ -20,6 +20,14 @@ export function syncServerNotifications(): Promise<void> {
 
 async function runSyncServerNotifications(): Promise<void> {
   try {
+    // Uploading config and pulling events are protected calls. Skip them when
+    // signed out instead of provoking a 401 on every launch.
+    const { getSessionToken, getUserInfo } = await import("../_core/auth");
+    const [token, user] = await Promise.all([
+      getSessionToken(),
+      getUserInfo(),
+    ]);
+    if (!token && !user) return;
     const {
       getSettings,
       getAlerts,

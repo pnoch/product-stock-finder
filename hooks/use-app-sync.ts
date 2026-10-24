@@ -18,6 +18,7 @@ import {
   registerDeviceRevokedHandler,
   resetDeviceRevoked,
 } from "@/lib/device-revoked";
+import { registerSessionExpiredHandler } from "@/lib/session-expired";
 import type { createTRPCClient } from "@/lib/trpc";
 
 export function useAppSync({
@@ -95,6 +96,14 @@ export function useAppSync({
   useEffect(() => {
     return registerDeviceRevokedHandler(() => {
       showAlert("Signed Out", "You were signed out on another device.", [
+        { text: "OK", onPress: () => void refresh() },
+      ]);
+    });
+  }, [refresh]);
+
+  useEffect(() => {
+    return registerSessionExpiredHandler(() => {
+      showAlert("Session Expired", "Please sign in again to keep syncing.", [
         { text: "OK", onPress: () => void refresh() },
       ]);
     });

@@ -8,6 +8,7 @@ export function DistributorListingEmpty({
   hasListings,
   regionFilter,
   findingPrices,
+  findingProgress,
   watchingAny,
   onFindPrices,
   onWatchAny,
@@ -17,6 +18,7 @@ export function DistributorListingEmpty({
   hasListings: boolean;
   regionFilter: string;
   findingPrices: boolean;
+  findingProgress?: { done: number; total: number } | null;
   watchingAny: boolean;
   onFindPrices?: () => void;
   onWatchAny?: () => void;
@@ -53,7 +55,11 @@ export function DistributorListingEmpty({
           accessibilityRole="button"
         >
           <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
-            {findingPrices ? "Finding prices…" : "Find prices"}
+            {findingPrices
+              ? findingProgress
+                ? `Finding prices… ${findingProgress.done}/${findingProgress.total}`
+                : "Finding prices…"
+              : "Find prices"}
           </Text>
         </TouchableOpacity>
       )}

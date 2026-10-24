@@ -37,6 +37,11 @@ vi.mock("expo-constants", () => ({
   },
 }));
 
+vi.mock("../lib/_core/auth", () => ({
+  getSessionToken: vi.fn(async () => "token"),
+  getUserInfo: vi.fn(async () => ({ id: 1 })),
+}));
+
 vi.mock("expo-notifications", () => ({
   getExpoPushTokenAsync: vi.fn(async () => {
     if (state.failToken) throw new Error("no permission");
