@@ -1,6 +1,3 @@
-import { log } from "@shared/log";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { showAlert } from "@/lib/alert";
 import {
   ScrollView,
   Text,
@@ -11,161 +8,39 @@ import {
   Platform,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { goBackOrHome } from "@/lib/navigation";
-import Svg, { Polyline } from "react-native-svg";
 
 import { ScreenContainer } from "@/components/screen-container";
-import { useColors } from "@/hooks/use-colors";
-import {
-  computeHealthStats,
-  createHealthService,
-  DistributorHealth,
-  HealthStats,
-  sanitizeResponseTimeMs,
-} from "@/lib/scrapers/health";
+import { sanitizeResponseTimeMs } from "@/lib/scrapers/health";
 import { getDistributorById } from "@shared/distributors";
-import { healthStatusColor } from "@/lib/health-status";
 import { formatLastRefreshed } from "@/lib/last-refreshed";
 import { EmptyStateView } from "@/components/ui/empty-state-view";
 import { SessionAssistModal } from "@/components/session-assist-modal";
 import { assistUrl, isAssistCandidate } from "@/lib/scrapers/session-assist";
-import { markUnlocked } from "@/lib/scrapers/session-store";
 import { PARSERS } from "@/lib/scrapers/registry";
-
-const healthService = createHealthService(AsyncStorage);
-
-function HealthSparkline({ data, color }: { data: number[]; color: string }) {
-  if (data.length < 2) return null;
-  const width = 60;
-  const height = 24;
-  const pad = 2;
-  const usableW = width - pad * 2;
-  const usableH = height - pad * 2;
-  const coords = data.map((v, i) => {
-    const x = pad + (i / (data.length - 1)) * usableW;
-    const y = pad + (1 - v) * usableH;
-    return `${x},${y}`;
-  });
-  return (
-    <View
-      accessible={false}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      <Svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
-        accessible={false}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Polyline
-          points={coords.join(" ")}
-          fill="none"
-          stroke={color}
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      </Svg>
-    </View>
-  );
-}
+import { useHealthScreen } from "@/hooks/use-health-screen";
+import { HealthSparkline } from "@/components/health/health-sparkline";
 
 export default function HealthScreen() {
-  const colors = useColors();
   const router = useRouter();
-  const [health, setHealth] = useState<DistributorHealth[]>([]);
-  const [filter, setFilter] = useState<"all" | "working" | "blocked" | "error">(
-    "all",
-  );
-  const [loading, setLoading] = useState(true);
-  const [testing, setTesting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [stats, setStats] = useState<Record<string, HealthStats>>({});
-  const [assistParserId, setAssistParserId] = useState<string | null>(null);
-  const isMountedRef = useRef(true);
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  function resolveStatusColor(h: DistributorHealth): string {
-    return healthStatusColor(h.status, h.reason, colors);
-  }
-
-  const loadHealth = useCallback(async () => {
-    try {
-      const data = await healthService.getDistributorHealth();
-      setHealth(data);
-      const history = await healthService.getHealthHistory();
-      setStats(computeHealthStats(history));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadHealth().catch(() => {});
-  }, [loadHealth]);
-
-  const runTest = useCallback(async () => {
-    setTesting(true);
-    setProgress(0);
-    try {
-      const results = await healthService.testAllDistributors(
-        (current, total) => {
-          if (isMountedRef.current) setProgress(Math.round((current / total) * 100));
-        },
-      );
-      if (!isMountedRef.current) return;
-      setHealth(results);
-      const history = await healthService.getHealthHistory();
-      if (!isMountedRef.current) return;
-      setStats(computeHealthStats(history));
-    } catch (e) {
-      log.error("[Health] test all failed", e);
-      if (isMountedRef.current) {
-        showAlert("Test failed", "Couldn't test distributors. Please try again.");
-      }
-    } finally {
-      if (isMountedRef.current) setTesting(false);
-    }
-  }, []);
-
-  const handleAssistDone = useCallback(async () => {
-    const parserId = assistParserId;
-    setAssistParserId(null);
-    if (!parserId) return;
-    await markUnlocked(parserId);
-    try {
-      const result = await healthService.testDistributor(parserId);
-      if (!isMountedRef.current || !result) return;
-      setHealth((prev) => {
-        const next = prev.filter((h) => h.distributorId !== parserId);
-        next.push(result);
-        return next;
-      });
-      const history = await healthService.getHealthHistory();
-      if (isMountedRef.current) setStats(computeHealthStats(history));
-    } catch (e) {
-      log.error("[Health] re-probe after assist failed", e);
-    }
-  }, [assistParserId]);
-
-  const counts = {
-    working: health.filter((h) => h.status === "working").length,
-    blocked: health.filter((h) => h.status === "blocked").length,
-    error: health.filter((h) => h.status === "error").length,
-  };
-
-  const filtered = health.filter(
-    (h) => filter === "all" || h.status === filter,
-  );
+  const {
+    colors,
+    health,
+    filter,
+    setFilter,
+    loading,
+    testing,
+    progress,
+    stats,
+    assistParserId,
+    setAssistParserId,
+    resolveStatusColor,
+    runTest,
+    handleAssistDone,
+    counts,
+    filtered,
+  } = useHealthScreen();
 
   return (
     <ScreenContainer>
