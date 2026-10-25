@@ -37,7 +37,7 @@ class PsfForegroundService : Service() {
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
     val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-      .setContentTitle("Product Stock Finder")
+      .setContentTitle("OmniShop")
       .setContentText("Checking prices in the background")
       .setSmallIcon(android.R.drawable.stat_notify_sync)
       .setOngoing(true)
