@@ -21,6 +21,7 @@ import { createSyncMetaStorage } from "./sync-meta";
 import { createNotificationsStorage } from "./notifications";
 import { createDiscoveryStorage, createBackgroundTaskStorage } from "./discovery";
 import { bumpSyncGeneration } from "@/lib/sync-gate";
+import { clearExpiredAccount } from "../expired-account";
 import {
   FACEBOOK_SEARCH_PREFERENCES_KEY,
   MARKETPLACE_CONNECTIONS_KEY,
@@ -105,6 +106,7 @@ export function createStorage(
       QUARANTINE_INDEX_KEY,
     ]);
     ctx.setClearing(false);
+    await clearExpiredAccount();
     // Settings are preserved as device preferences, but account credentials are
     // not preferences: left in place, the next account on this shared device
     // could reveal the BYO-LLM key (billing the previous user's provider) or

@@ -2,6 +2,7 @@ import { log } from "@shared/log";
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
 import { getApiBaseUrl } from "@/constants/oauth";
+import { reconcileExpiredAccount } from "@/lib/expired-account";
 import { Platform } from "react-native";
 
 type ApiUser = NonNullable<Awaited<ReturnType<typeof Api.getMe>>> & {
@@ -114,6 +115,9 @@ async function emailAuthRequest(
   }
   if (data.user) {
     const userInfo = toUserInfo(data.user, "email");
+    // Clear a previous account's local data before publishing the new user,
+    // which is what starts sync. Same-account reauth keeps the data.
+    await reconcileExpiredAccount(userInfo.id);
     await Auth.setUserInfo(userInfo);
     setUser(userInfo);
   }

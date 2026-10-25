@@ -13,6 +13,9 @@ vi.mock("@/lib/_core/auth", () => ({
   clearUserInfo: vi.fn(async () => {}),
 }));
 
+const rememberExpiredAccount = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("@/lib/expired-account", () => ({ rememberExpiredAccount }));
+
 const mockedRemove = vi.mocked(Auth.removeSessionToken);
 const mockedClear = vi.mocked(Auth.clearUserInfo);
 const mockedToken = vi.mocked(Auth.getSessionToken);
@@ -44,6 +47,7 @@ describe("lib/session-expired", () => {
     await handleSessionExpired();
     expect(mockedRemove).toHaveBeenCalledTimes(1);
     expect(mockedClear).toHaveBeenCalledTimes(1);
+    expect(rememberExpiredAccount).toHaveBeenCalledWith(1);
     expect(handler).toHaveBeenCalledTimes(1);
   });
 

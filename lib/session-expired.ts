@@ -1,4 +1,5 @@
 import * as Auth from "@/lib/_core/auth";
+import { rememberExpiredAccount } from "@/lib/expired-account";
 
 let expiredHandler: (() => void) | null = null;
 let fired = false;
@@ -29,6 +30,7 @@ export async function handleSessionExpired(): Promise<void> {
     fired = false;
     return;
   }
+  if (user?.id != null) await rememberExpiredAccount(user.id);
   await Auth.removeSessionToken();
   await Auth.clearUserInfo();
   expiredHandler?.();
