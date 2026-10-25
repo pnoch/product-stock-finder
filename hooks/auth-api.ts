@@ -228,6 +228,14 @@ export async function deleteAccount(
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "Delete account failed");
   }
+  // The account is gone server-side, so its local rows are orphaned. Clear
+  // them before the next account signs in on this device.
+  try {
+    const { clearAccountData } = await import("@/lib/storage");
+    await clearAccountData();
+  } catch (err) {
+    log.error("[Auth] Local data clear after account deletion failed:", err);
+  }
   await Auth.removeSessionToken();
   await Auth.clearUserInfo();
   setUser(null);
