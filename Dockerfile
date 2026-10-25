@@ -1,7 +1,7 @@
 # Production image for the API server + web SPA. The server scrapes via a
 # headed Chromium (Cloudflare's gate keys on headed-ness), so the image ships
 # Xvfb and the patchright browser, and starts under a virtual display.
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 ENV NODE_ENV=production
 ENV PNPM_HOME=/pnpm

@@ -13,6 +13,16 @@ describe("production Docker runtime", () => {
     expect(dockerfile).toContain("scripts/start-production.sh");
   });
 
+  it("uses a Node major that satisfies package.json engines", async () => {
+    const pkg = JSON.parse(await readFile("package.json", "utf8")) as {
+      engines?: { node?: string };
+    };
+    const major = String(pkg.engines?.node ?? "").match(/\d+/)?.[0];
+    expect(major).toBeTruthy();
+    const dockerfile = await readFile("Dockerfile", "utf8");
+    expect(dockerfile).toContain(`FROM node:${major}-`);
+  });
+
   it("starts under a virtual display with headed scraping enabled", async () => {
     const script = await readFile("scripts/start-production.sh", "utf8");
     expect(script).toContain("Xvfb :99");
