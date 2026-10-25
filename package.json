@@ -1,6 +1,6 @@
 {
   "name": "product-stock-finder",
-  "version": "5.28.1",
+  "version": "5.28.2",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {

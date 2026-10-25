@@ -8618,3 +8618,13 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Accessibility: labeled login inputs, header/alert roles, 44 px touch targets, reduced-motion support across animated components.
 - [x] Cleanup: removed unused `axios` and dead template scripts; fixture regeneration requires `--force`.
 - [x] Verified: `pnpm verify` exit 0 (4107 root tests, 349 desktop tests, coverage gate, Rust fmt/clippy/test, Android JS bundle, desktop build); 5.28.0 APK smoke-tested on emulator-5566; desktop release published.
+
+## Phase 1155: v5.28.2 hardening — session isolation, discovery, and CI
+
+- [x] Session-expiry detection (`authFailureLink`) + sign-out dialog; protected push/notification calls skip while signed out.
+- [x] Cross-account local-data isolation via `expired_account_id` across session expiry, device revocation, and account deletion (E2E on emulator-5566).
+- [x] Progressive price discovery with per-distributor checkpoints, partial results on timeout, and retry ("Find more prices").
+- [x] `node-forge` CVE-2026-85393 patch + forged-signature regression test.
+- [x] Browser scraping degrades to headless when the X display is gone; `scripts/start-production.sh` guards Xvfb; production image on Node 22.
+- [x] Fixed stale DB suites blocking CI (non-enumerable invites, server-generated event ids).
+- [x] Verified: 4141 root tests, 110 DB tests, CI green; `pnpm check` / `pnpm lint` clean.

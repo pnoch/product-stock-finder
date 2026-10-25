@@ -4,6 +4,39 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [5.28.2] - 2026-10-25
+
+### Security
+
+- Patched `node-forge` 1.4.0 for CVE-2026-85393 (RSA PKCS#1 v1.5
+  signature forgery via extra nested `DigestAlgorithm` elements). The upstream
+  fix is applied with `pnpm patch` (no release exists yet) and guarded by a
+  regression test using the published forged signature.
+
+### Fixed
+
+- Session expiry is detected from `UNAUTHORIZED` / device-revoked tRPC
+  responses: the app signs out, shows "Session Expired", and skips protected
+  push/notification calls while signed out.
+- Local data is isolated across accounts. The previous account id is remembered
+  before local data is cleared on session expiry, device revocation, or account
+  deletion, so signing into a different account wipes the old watchlist and
+  signing back into the same account preserves it.
+- Price discovery is progressive: distributor lookups checkpoint per
+  distributor, return partial results on timeout, and retry the remaining
+  distributors on demand ("Find more prices").
+- Browser-backed scraping falls back to headless with a warning when
+  `PSF_BROWSER_HEADED=1` but the X display is missing or dead;
+  `scripts/start-production.sh` only enables headed mode when Xvfb's socket
+  exists.
+- The production image builds on Node 22 (was 20), matching `engines.node`.
+- DB suites were realigned with the non-enumerable invite behavior and
+  server-generated notification event ids (CI was red on `main`).
+
+### Changed
+
+- Android `versionCode` 3.
+
 ## [5.28.1] - 2026-10-23
 
 ### Security
