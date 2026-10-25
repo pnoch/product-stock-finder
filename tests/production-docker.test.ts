@@ -13,6 +13,29 @@ describe("production Docker runtime", () => {
     expect(dockerfile).toContain("scripts/start-production.sh");
   });
 
+  it("installs the patches before dependencies and builds before production mode", async () => {
+    const dockerfile = await readFile("Dockerfile", "utf8");
+    expect(dockerfile.indexOf("COPY patches")).toBeLessThan(
+      dockerfile.indexOf("RUN pnpm install"),
+    );
+    expect(dockerfile.indexOf("RUN pnpm build")).toBeLessThan(
+      dockerfile.indexOf("ENV NODE_ENV=production"),
+    );
+  });
+
+  it("keeps local secrets out of the build context", async () => {
+    const ignore = await readFile(".dockerignore", "utf8");
+    const entries = ignore.split("\n").map((line) => line.trim());
+    expect(entries).toContain(".env");
+    expect(entries).toContain(".env.*");
+    expect(entries).toContain("credentials");
+  });
+
+  it("builds the image in CI", async () => {
+    const ci = await readFile(".github/workflows/ci.yml", "utf8");
+    expect(ci).toContain("docker/build-push-action");
+  });
+
   it("uses a Node major that satisfies package.json engines", async () => {
     const pkg = JSON.parse(await readFile("package.json", "utf8")) as {
       engines?: { node?: string };

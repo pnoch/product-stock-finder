@@ -84,6 +84,22 @@ jobs:
       - run: npx patchright install --with-deps chromium
       - run: pnpm smoke:web
 
+  # The production image is the deploy artifact; nothing built it in CI, so a
+  # broken Dockerfile (or a secret copied into the context) could ship unseen.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   # The desktop Rust backend (72 tests + clippy) ran only on developer machines;
   # nothing in CI compiled it, so a Rust regression could merge unchecked.
   rust:

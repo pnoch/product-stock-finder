@@ -3,7 +3,6 @@
 # Xvfb and the patchright browser, and starts under a virtual display.
 FROM node:22-bookworm-slim
 
-ENV NODE_ENV=production
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
@@ -19,7 +18,11 @@ WORKDIR /app
 
 # Install dependencies first so the layer caches across source edits.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 COPY desktop/package.json ./desktop/package.json
+# Install with dev dependencies: the build (esbuild + Expo web export) needs
+# them. NODE_ENV=production is set only after the build, because pnpm treats it
+# as --prod and would skip them.
 RUN pnpm install --frozen-lockfile
 
 # patchright has no postinstall; install the headed Chromium explicitly.
@@ -28,5 +31,6 @@ RUN npx patchright install --with-deps chromium
 COPY . .
 RUN pnpm build
 
+ENV NODE_ENV=production
 EXPOSE 3000
 CMD ["bash", "scripts/start-production.sh"]

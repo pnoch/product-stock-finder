@@ -6,6 +6,22 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 
 ## [Unreleased]
 
+### Security
+
+- Share invitations require a verified email. Both invite paths silently skip
+  unverified accounts, closing a pre-registration takeover of invite-only
+  shares (password login does not require verification).
+- Product-page hops extracted from scraped HTML are pinned to the search
+  origin, so a compromised result page cannot make the server fetch arbitrary
+  hosts (SSRF).
+
+### Fixed
+
+- The production image builds again: `patches/` is copied before the dependency
+  install, dev dependencies are installed for `pnpm build`, and
+  `NODE_ENV=production` is set only after the build. `.env`/`credentials/` are
+  excluded from the build context, and CI now builds the image.
+
 ### Changed
 
 - Rebranded the app to **OmniShop** with a new icon, adaptive icon, monochrome

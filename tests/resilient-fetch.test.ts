@@ -737,21 +737,17 @@ describe("fetchAndParse", () => {
     expect(calls[1]).toBe("https://example.com/product/1");
   });
 
-  it("keeps a raw URL it cannot normalize", async () => {
+  it("drops a hop it cannot normalize and parses the search page", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (url: string) =>
-        new Response(url.includes("[bad") ? "<html>second</html>" : "<html>search</html>", {
-          status: 200,
-        }),
-      ),
+      vi.fn(async () => new Response("<html>search</html>", { status: 200 })),
     );
     const parser = makeParser({
       resolveProductUrl: () => "http://[bad",
-      parsePrice: (h) => (h.includes("second") ? ({ price: 3 } as never) : null),
+      parsePrice: (h) => (h.includes("search") ? ({ price: 3 } as never) : null),
     });
     const r = await fetchAndParse(parser, "CRS804", createMemoryBreakerStore());
-    expect(r.url).toBe("http://[bad");
+    expect(r.url).toBe("https://example.com/search?q=CRS804");
     expect((r.result as { price: number }).price).toBe(3);
   });
 

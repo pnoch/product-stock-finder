@@ -36,12 +36,17 @@ function ctxFor(id: number, tag: string): TrpcContext {
 }
 
 let seed = 0;
-async function seedUser(tag: string) {
+async function seedUser(tag: string, opts: { verified?: boolean } = {}) {
   const db = await getDb();
   const run = `${Date.now()}-${(seed += 1)}-${Math.random().toString(36).slice(2, 8)}`;
   const openId = `shared-${tag}-${run}`;
   const email = `shared-${tag}-${run}@example.com`;
-  await db!.insert(users).values({ openId, email, name: tag });
+  await db!.insert(users).values({
+    openId,
+    email,
+    name: tag,
+    emailVerified: opts.verified === false ? 0 : 1,
+  });
   const [row] = await db!
     .select({ id: users.id })
     .from(users)
@@ -185,6 +190,21 @@ describe.skipIf(!runDbTests)("shared watchlists router (DB)", () => {
     // stored — so an owner can't use it to discover which emails are registered.
     const ghost = await owner.caller.inviteByEmail({ token, email: "ghost@example.com" });
     expect(ghost).toEqual({ invited: true });
+    const roster = await owner.caller.members({ token });
+    expect(roster.members).toHaveLength(0);
+  });
+
+  it("does not grant access to unverified accounts", async () => {
+    const owner = await seedUser("owner");
+    const unverified = await seedUser("unverified", { verified: false });
+    const token = await seedShare(owner.id);
+
+    await expect(
+      owner.caller.inviteByEmail({ token, email: unverified.email }),
+    ).resolves.toEqual({ invited: true });
+    await expect(
+      owner.caller.invite({ token, userId: unverified.id }),
+    ).resolves.toEqual({ invited: true });
     const roster = await owner.caller.members({ token });
     expect(roster.members).toHaveLength(0);
   });

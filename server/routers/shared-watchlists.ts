@@ -183,6 +183,11 @@ export const sharedWatchlistsRouter = router({
       if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Share expired" });
       }
+      // Only verified accounts may receive share access. Password login does
+      // not require verification, so an unverified row can belong to someone
+      // who pre-registered another person's address.
+      const [target] = await getUsersByIds([input.userId]);
+      if (!target?.emailVerified) return { invited: true } as const;
       try {
         await db.insert(sharedWatchlistMembers).values({ token: input.token, userId: input.userId, role: input.role }).onDuplicateKeyUpdate({ set: { role: input.role } });
       } catch (e) {
@@ -256,7 +261,9 @@ export const sharedWatchlistsRouter = router({
       if (target?.id === ctx.user.id) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "You already own this share" });
       }
-      if (target) {
+      // Verified email only: an unverified row may be a pre-registration of
+      // someone else's address. Stay non-enumerable either way.
+      if (target?.emailVerified) {
         // Invitations are viewer-only: the `editor` role has no enforced
         // capabilities, so offering it would imply powers that don't exist.
         await db

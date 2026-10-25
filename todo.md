@@ -8641,3 +8641,11 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Regenerated iOS/desktop icons from the 1024 master; updated web favicon/apple-touch/maskable icons.
 - [x] App name, PWA manifest, web/desktop titles, notification copy, share footers, server emails/webhooks, and desktop metadata now say OmniShop.
 - [x] Kept the package/bundle id (`com.app.stocktrackerpro`), slug, scheme, storage keys, and signing key unchanged so installs keep updating.
+
+## Phase 1158: review blockers — Docker, invite verification, and SSRF
+
+- [x] Docker: copy `patches/` before install, install dev deps for the build, set `NODE_ENV=production` after `pnpm build`, and exclude `.env`/`credentials/` from the build context.
+- [x] CI builds the production image (`docker/build-push-action`), and the Docker guard test checks the ordering and ignore entries.
+- [x] Share invites require `emailVerified` for both `invite` and `inviteByEmail`; unverified targets get the non-enumerable success shape and no membership.
+- [x] Two-hop scraping resolves parser hrefs only on the search origin (`sameOriginProductUrl`), with tests for relative, same-origin, cross-origin, and non-http links.
+- [x] Verified the image builds and serves `/api/health`; root, desktop, and DB suites pass.

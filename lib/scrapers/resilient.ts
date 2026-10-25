@@ -100,6 +100,28 @@ function breakerStoreIdOf(store: BreakerStateStore): number {
  * the parser needs a second hop (JS-rendered search pages). Returns the parsed
  * result plus the URL that was actually parsed.
  */
+/**
+ * Resolve a parser-extracted hop only when it stays on the search origin.
+ * The href comes from third-party HTML, so following it blindly lets a
+ * compromised result page point the server (and its unsandboxed browser) at
+ * internal addresses. Cross-origin hops are rejected; parsers that need one
+ * must declare it instead of trusting a scraped href.
+ */
+export function sameOriginProductUrl(
+  resolved: string | null,
+  searchUrl: string,
+): string | null {
+  if (!resolved) return null;
+  try {
+    const base = new URL(searchUrl);
+    const url = new URL(resolved, base);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.origin === base.origin ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchAndParse(
   parser: DistributorParser,
   model: string,
@@ -111,17 +133,10 @@ export async function fetchAndParse(
     return { result: null, url: searchUrl, outcome: first };
   }
   if (parser.resolveProductUrl) {
-    const resolved = parser.resolveProductUrl(first.html, model);
-    // Resolvers return the raw href, which is usually relative; fetch() and
-    // Playwright both reject relative URLs.
-    let productUrl = resolved;
-    if (resolved) {
-      try {
-        productUrl = new URL(resolved, searchUrl).toString();
-      } catch {
-        productUrl = resolved;
-      }
-    }
+    const productUrl = sameOriginProductUrl(
+      parser.resolveProductUrl(first.html, model),
+      searchUrl,
+    );
     if (productUrl) {
       const second = await resilientFetch({ parser, url: productUrl, state });
       if (second.status === "ok" && second.html) {

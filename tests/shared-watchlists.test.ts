@@ -289,7 +289,12 @@ describe("sharedWatchlists router", () => {
     mockedGetDb.mockResolvedValue(
       fakeDb({ sharedRows: [{ ownerId: 1, token: "tok123", expiresAt: null }] }) as never,
     );
-    mockedGetUserByEmail.mockResolvedValue({ id: 2, name: "Bob", email: "bob@example.com" } as never);
+    mockedGetUserByEmail.mockResolvedValue({
+      id: 2,
+      name: "Bob",
+      email: "bob@example.com",
+      emailVerified: 1,
+    } as never);
     const caller = appRouter.createCaller(createAuthedContext(1));
     await expect(
       caller.sharedWatchlists.inviteByEmail({ token: "tok123", email: "Bob@Example.com" }),

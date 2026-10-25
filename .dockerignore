@@ -1,4 +1,9 @@
 node_modules
+.env
+.env.*
+credentials
+coverage
+static.log
 dist
 dist-web
 .git
