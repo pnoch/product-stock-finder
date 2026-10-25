@@ -7,6 +7,7 @@ import { getApiBaseUrl } from "@/constants/oauth";
 import { getDeviceId } from "@/lib/device-id";
 import { getSettings } from "@/lib/storage";
 import { handleDeviceRevoked } from "@/lib/device-revoked";
+import { handleSessionExpired } from "@/lib/session-expired";
 import { getBackgroundAppState } from "@/lib/background-safe-timers";
 import { backgroundFetch } from "@/lib/background-fetch";
 import { DEVICE_REVOKED_ERR_MSG } from "@/shared/const";
@@ -61,23 +62,29 @@ export async function byoLlmHeaders(): Promise<Record<string, string>> {
   }
 }
 
+function isUnauthorizedError(error: Error): boolean {
+  const shape = (error as { data?: { code?: unknown } }).data;
+  return shape?.code === "UNAUTHORIZED";
+}
+
 /**
- * Detects the device-revoked error server-side and clears the local session
- * so the next UI refresh signs the user out.
+ * Detects auth failures server-side and clears the local session so the next
+ * UI refresh signs the user out. Device revocation has its own message and
+ * handler; a plain UNAUTHORIZED means the stored token is no longer valid.
  */
-const revokedDeviceLink: TRPCLink<AppRouter> = () => {
+const authFailureLink: TRPCLink<AppRouter> = () => {
   return ({ op, next }) => {
     return observable((observer) => {
       return next(op)
         .pipe(
           tap({
             error(result) {
-              if (
-                result instanceof Error &&
-                result.message.includes(DEVICE_REVOKED_ERR_MSG)
-              ) {
+              if (!(result instanceof Error)) return;
+              if (result.message.includes(DEVICE_REVOKED_ERR_MSG)) {
                 void handleDeviceRevoked();
+                return;
               }
+              if (isUnauthorizedError(result)) void handleSessionExpired();
             },
           }),
         )
@@ -113,7 +120,7 @@ export async function trpcHeaders(): Promise<Record<string, string>> {
 export function createTRPCClient() {
   return trpc.createClient({
     links: [
-      revokedDeviceLink,
+      authFailureLink,
       httpBatchLink({
         url: `${getApiBaseUrl()}/api/trpc`,
         // tRPC v11: transformer MUST be inside httpBatchLink, not at root

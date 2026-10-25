@@ -12,9 +12,13 @@ vi.mock("../server/devices", () => ({
 }));
 
 vi.mock("@/lib/_core/auth", () => ({
+  getUserInfo: vi.fn(async () => ({ id: 7 })),
   removeSessionToken: vi.fn(async () => {}),
   clearUserInfo: vi.fn(async () => {}),
 }));
+
+const rememberExpiredAccount = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("@/lib/expired-account", () => ({ rememberExpiredAccount }));
 
 vi.mock("@/lib/_core/api", () => ({
   logout: vi.fn(async () => {}),
@@ -186,6 +190,7 @@ describe("lib/device-revoked", () => {
     expect(mockedLogout).toHaveBeenCalledTimes(1);
     expect(mockedRemove).toHaveBeenCalledTimes(1);
     expect(mockedClear).toHaveBeenCalledTimes(1);
+    expect(rememberExpiredAccount).toHaveBeenCalledWith(7);
     expect(handler).toHaveBeenCalledTimes(1);
   });
 

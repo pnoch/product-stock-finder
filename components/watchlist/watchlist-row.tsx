@@ -12,6 +12,8 @@ type WatchlistRowProps = {
   dealScore?: DealScore;
   selected: boolean;
   findingPrices: boolean;
+  findingProgress?: { done: number; total: number };
+  hasIncompleteDiscovery?: boolean;
   hasAlert: boolean;
   isAcquired: boolean;
   tagDefinitions: Record<string, TagDefinition>;
@@ -32,6 +34,8 @@ export const WatchlistRow = memo(function WatchlistRow({
   dealScore,
   selected,
   findingPrices,
+  findingProgress,
+  hasIncompleteDiscovery,
   hasAlert,
   isAcquired,
   tagDefinitions,
@@ -65,6 +69,8 @@ export const WatchlistRow = memo(function WatchlistRow({
         onTagPress={onTagPress}
         onFindPrices={onFindPrices}
         findingPrices={findingPrices}
+        findingProgress={findingProgress}
+        hasIncompleteDiscovery={hasIncompleteDiscovery}
         tagDefinitions={tagDefinitions}
         onToggleAcquired={onToggleAcquired}
       />

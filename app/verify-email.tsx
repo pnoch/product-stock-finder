@@ -81,6 +81,10 @@ export default function VerifyEmailScreen() {
                 ...refreshed,
                 lastSignedIn: new Date(refreshed.lastSignedIn),
               };
+              const { reconcileExpiredAccount } = await import(
+                "@/lib/expired-account"
+              );
+              await reconcileExpiredAccount(user.id);
               publishAuthUser(user);
               await Auth.setUserInfo(user);
             }

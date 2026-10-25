@@ -22,6 +22,8 @@ export interface DiscoverOptions {
   fetchPrice?: FetchPrice;
   now?: number;
   onProgress?: (done: number, total: number) => void;
+  signal?: AbortSignal;
+  onResult?: (distributorId: string, listing: DistributorListing | null, failed: boolean) => Promise<void>;
 }
 
 // Searches every distributor for a model number and returns one listing per
@@ -37,49 +39,57 @@ export async function discoverListings(
     fetchPrice = resolvePrice,
     now = Date.now(),
     onProgress,
+    onResult,
+    signal,
   } = opts;
 
   const found: DistributorListing[] = [];
   let done = 0;
   const total = parserIds.length;
 
-  for (let i = 0; i < parserIds.length; i += CONCURRENCY) {
-    const batch = parserIds.slice(i, i + CONCURRENCY);
-    await Promise.all(
-      batch.map(async (distributorId) => {
-        try {
-          const result = await fetchPrice(distributorId, modelNumber);
-          // Stale snapshots would masquerade as fresh discoveries.
-          if (result?.snapshot && isFreshPriceSnapshot(result.snapshot, now)) {
-            const iso = new Date(now).toISOString();
-            found.push({
-              distributorId,
-              productId,
-              price: result.snapshot.price,
-              currency: result.snapshot.currency,
-              stockStatus: result.snapshot.stockStatus,
-              expectedDate: result.snapshot.expectedDate,
-              url: result.snapshot.url,
-              lastChecked: iso,
-              priceHistory: [
-                {
-                  date: iso,
-                  price: result.snapshot.price,
-                  currency: result.snapshot.currency,
-                  stockStatus: result.snapshot.stockStatus,
-                },
-              ],
-            });
-          }
-        } catch {
-          // Best-effort: skip failing distributors.
-        } finally {
-          done += 1;
-          onProgress?.(done, total);
+  let next = 0;
+  async function worker() {
+    while (!signal?.aborted && next < parserIds.length) {
+      const distributorId = parserIds[next++];
+      let listing: DistributorListing | null = null;
+      let failed = false;
+      try {
+        const result = await fetchPrice(distributorId, modelNumber);
+        if (signal?.aborted) return;
+        // Stale snapshots would masquerade as fresh discoveries.
+        if (result?.snapshot && isFreshPriceSnapshot(result.snapshot, now)) {
+          const iso = new Date(now).toISOString();
+          listing = {
+            distributorId,
+            productId,
+            price: result.snapshot.price,
+            currency: result.snapshot.currency,
+            stockStatus: result.snapshot.stockStatus,
+            expectedDate: result.snapshot.expectedDate,
+            url: result.snapshot.url,
+            lastChecked: iso,
+            priceHistory: [
+              {
+                date: iso,
+                price: result.snapshot.price,
+                currency: result.snapshot.currency,
+                stockStatus: result.snapshot.stockStatus,
+              },
+            ],
+          };
+          found.push(listing);
         }
-      }),
-    );
+      } catch {
+        failed = true;
+      }
+      if (signal?.aborted) return;
+      await onResult?.(distributorId, listing, failed);
+      if (signal?.aborted) return;
+      done += 1;
+      onProgress?.(done, total);
+    }
   }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
 
   return found;
 }

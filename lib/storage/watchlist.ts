@@ -205,6 +205,7 @@ export function createWatchlistStorage(ctx: StorageContext) {
   async function updateProductListings(
     productId: string,
     listings: DistributorListing[],
+    discovery?: Product["discovery"],
   ): Promise<void> {
     await enqueue(KEYS.WATCHLIST, async () => {
       const list = await getWatchlist();
@@ -222,7 +223,8 @@ export function createWatchlistStorage(ctx: StorageContext) {
         return {
           ...p,
           listings: [...listings, ...localOnly],
-          lastRefreshed: now,
+          ...(listings.length > 0 ? { lastRefreshed: now } : {}),
+          ...(discovery ? { discovery } : {}),
         };
       });
       await persistWatchlist(updated);

@@ -103,6 +103,10 @@ export interface Product {
   lastRefreshed?: string; // ISO date string — set when listings are refreshed
   isWatched: boolean;
   listings: DistributorListing[];
+  discovery?: {
+    modelNumber: string;
+    completedDistributorIds: string[];
+  };
   tags?: string[];
   /**
    * ISO timestamp of the last tag change. Tags can't use the product's overall

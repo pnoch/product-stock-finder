@@ -4,10 +4,15 @@ import {
   rediscoverProduct,
   rediscoverMissingListings,
   clearListingAttemptsForTests,
+  hasIncompleteDiscovery,
   DISCOVER_TIMEOUT_MS,
   MISSING_LISTINGS_PER_RUN,
 } from "../lib/manual-add";
 import type { DistributorListing } from "../lib/types";
+
+vi.mock("../lib/scrapers/registry", () => ({
+  getAllParserIds: () => ["d1", "d2", "d3"],
+}));
 
 function deps(overrides = {}) {
   return {
@@ -95,6 +100,60 @@ describe("rediscoverProduct", () => {
     vi.useRealTimers();
   });
 
+  it("persists each streamed result before the search finishes", async () => {
+    const storage = { updateProductListings: vi.fn(async () => {}) };
+    const hit = { distributorId: "d1" } as DistributorListing;
+    const discover = vi.fn(async (_model: string, opts: { onResult?: (id: string, listing: DistributorListing | null, failed: boolean) => Promise<void> }) => {
+      await opts.onResult?.("d1", hit, false);
+      await opts.onResult?.("d2", null, true);
+      return [hit];
+    });
+    await expect(
+      rediscoverProduct({ storage, discover, productId: "p", modelNumber: "M" }),
+    ).resolves.toEqual({ discovered: 1, timedOut: false });
+    expect(storage.updateProductListings).toHaveBeenNthCalledWith(1, "p", [hit], {
+      modelNumber: "M",
+      completedDistributorIds: ["d1"],
+    });
+    expect(storage.updateProductListings).toHaveBeenNthCalledWith(2, "p", [], {
+      modelNumber: "M",
+      completedDistributorIds: ["d1"],
+    });
+  });
+
+  it("keeps listings delivered before a timeout", async () => {
+    vi.useFakeTimers();
+    const storage = { updateProductListings: vi.fn(async () => {}) };
+    const hit = { distributorId: "d1" } as DistributorListing;
+    const discover = vi.fn(async (_model: string, opts: { onResult?: (id: string, listing: DistributorListing | null, failed: boolean) => Promise<void> }) => {
+      await opts.onResult?.("d1", hit, false);
+      return new Promise<DistributorListing[]>(() => {});
+    });
+    const p = rediscoverProduct({ storage, discover, productId: "p", modelNumber: "M" });
+    await vi.advanceTimersByTimeAsync(DISCOVER_TIMEOUT_MS + 100);
+    await expect(p).resolves.toEqual({ discovered: 1, timedOut: true });
+    expect(storage.updateProductListings).toHaveBeenCalledWith("p", [hit], {
+      modelNumber: "M",
+      completedDistributorIds: ["d1"],
+    });
+    vi.useRealTimers();
+  });
+
+  it("retries only distributors that have not completed", async () => {
+    const discover = vi.fn(async () => []);
+    await rediscoverProduct({
+      storage: { updateProductListings: vi.fn(async () => {}) },
+      discover,
+      productId: "p",
+      modelNumber: "M",
+      completedDistributorIds: ["d1"],
+    });
+    expect(discover).toHaveBeenCalledWith(
+      "M",
+      expect.objectContaining({ parserIds: ["d2", "d3"] }),
+    );
+  });
+
   it("records a miss so the background rotation skips it", async () => {
     clearListingAttemptsForTests();
     const discover = vi.fn(async () => []);
@@ -115,6 +174,31 @@ describe("rediscoverProduct", () => {
       now: Date.now() + 60_000,
     });
     expect(result.scanned).toBe(0);
+  });
+});
+
+describe("hasIncompleteDiscovery", () => {
+  it("is false when no discovery has run", () => {
+    expect(hasIncompleteDiscovery({})).toBe(false);
+  });
+
+  it("is true when some distributors remain", () => {
+    expect(
+      hasIncompleteDiscovery({
+        discovery: { modelNumber: "M", completedDistributorIds: ["d1"] },
+      }),
+    ).toBe(true);
+  });
+
+  it("is false once every distributor completed", () => {
+    expect(
+      hasIncompleteDiscovery({
+        discovery: {
+          modelNumber: "M",
+          completedDistributorIds: ["d1", "d2", "d3"],
+        },
+      }),
+    ).toBe(false);
   });
 });
 

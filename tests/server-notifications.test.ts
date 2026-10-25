@@ -4,6 +4,11 @@ vi.mock("../lib/trpc", () => ({
   createTRPCClient: vi.fn(),
 }));
 
+vi.mock("../lib/_core/auth", () => ({
+  getSessionToken: vi.fn(async () => "token"),
+  getUserInfo: vi.fn(async () => ({ id: 1 })),
+}));
+
 import { createTRPCClient } from "../lib/trpc";
 import {
   uploadNotificationConfig,

@@ -15,7 +15,10 @@ import {
   updateProductListings,
 } from "@/lib/storage";
 import { isAcquired } from "@/lib/acquired";
-import { rediscoverProduct } from "@/lib/manual-add";
+import {
+  hasIncompleteDiscovery as productHasIncompleteDiscovery,
+  rediscoverProduct,
+} from "@/lib/manual-add";
 import { discoverListings } from "@/lib/listing-discovery";
 import { computeAvailability } from "@/lib/availability";
 import { computePriceVsAverage } from "@/lib/price-average";
@@ -41,21 +44,31 @@ export function useProductDetailScreen() {
     : distributor;
   const { showToast } = useToast();
   const { settings, loading: settingsLoading, updateSetting } = useSettings();
-  const { product, isTracked, listings, loaded, lastUpdatedAt, refresh } =
+  const { product, isTracked, listings, loaded, lastUpdatedAt, refresh, reloadSeed } =
     useLiveProduct(id ?? "", { allowCatalog: true });
   const [findingPrices, setFindingPrices] = useState(false);
+  const [findingProgress, setFindingProgress] = useState<{ done: number; total: number } | null>(null);
   const productId = product?.id;
   const productModelNumber = product?.modelNumber;
+  const completedDistributorIds = product?.discovery?.completedDistributorIds;
+  const hasIncompleteDiscovery = useMemo(
+    () => (product ? productHasIncompleteDiscovery(product) : false),
+    [product],
+  );
 
   const handleFindPrices = useCallback(async () => {
     if (!productModelNumber || findingPrices) return;
     setFindingPrices(true);
+    setFindingProgress(null);
     try {
       const { discovered, timedOut } = await rediscoverProduct({
         storage: { updateProductListings },
         discover: discoverListings,
         productId: productId ?? "",
         modelNumber: productModelNumber,
+        completedDistributorIds,
+        onProgress: (done, total) => setFindingProgress({ done, total }),
+        onSaved: reloadSeed,
       });
       await refresh();
       if (discovered > 0) {
@@ -79,8 +92,9 @@ export function useProductDetailScreen() {
       showAlert("Couldn't find prices", "Please try again later.");
     } finally {
       setFindingPrices(false);
+      setFindingProgress(null);
     }
-  }, [productId, productModelNumber, findingPrices, refresh]);
+  }, [productId, productModelNumber, completedDistributorIds, findingPrices, refresh, reloadSeed]);
 
   const displayCurrency = settings.displayCurrency;
   const shippingRegion = settings.shippingRegion;
@@ -297,6 +311,8 @@ export function useProductDetailScreen() {
     lastUpdatedAt,
     refresh,
     findingPrices,
+    findingProgress,
+    hasIncompleteDiscovery,
     handleFindPrices,
     displayCurrency,
     effectiveCurrency,

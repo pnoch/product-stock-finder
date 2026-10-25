@@ -2,6 +2,10 @@ import { log } from "@shared/log";
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
 import { getApiBaseUrl } from "@/constants/oauth";
+import {
+  reconcileExpiredAccount,
+  rememberExpiredAccount,
+} from "@/lib/expired-account";
 import { Platform } from "react-native";
 
 type ApiUser = NonNullable<Awaited<ReturnType<typeof Api.getMe>>> & {
@@ -114,6 +118,9 @@ async function emailAuthRequest(
   }
   if (data.user) {
     const userInfo = toUserInfo(data.user, "email");
+    // Clear a previous account's local data before publishing the new user,
+    // which is what starts sync. Same-account reauth keeps the data.
+    await reconcileExpiredAccount(userInfo.id);
     await Auth.setUserInfo(userInfo);
     setUser(userInfo);
   }
@@ -223,6 +230,17 @@ export async function deleteAccount(
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "Delete account failed");
+  }
+  // The account is gone server-side, so its local rows are orphaned. Clear
+  // them before the next account signs in on this device. Remember the id
+  // first so a failed wipe is still reconciled on the next sign-in.
+  const cached = await Auth.getUserInfo();
+  if (cached?.id != null) await rememberExpiredAccount(cached.id);
+  try {
+    const { clearAccountData } = await import("@/lib/storage");
+    await clearAccountData();
+  } catch (err) {
+    log.error("[Auth] Local data clear after account deletion failed:", err);
   }
   await Auth.removeSessionToken();
   await Auth.clearUserInfo();

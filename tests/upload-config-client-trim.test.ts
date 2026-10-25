@@ -1,6 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("../lib/trpc", () => ({ createTRPCClient: vi.fn() }));
+vi.mock("../lib/_core/auth", () => ({
+  getSessionToken: vi.fn(async () => "token"),
+  getUserInfo: vi.fn(async () => ({ id: 1 })),
+}));
 vi.mock("../lib/notifications", () => ({
   scheduleServerEventNotification: vi.fn().mockResolvedValue(undefined),
 }));

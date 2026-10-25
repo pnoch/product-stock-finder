@@ -15,6 +15,11 @@ const state = vi.hoisted(() => ({
   pendingHealth: [] as Record<string, unknown>[],
 }));
 
+vi.mock("../lib/_core/auth", () => ({
+  getSessionToken: vi.fn(async () => "token"),
+  getUserInfo: vi.fn(async () => ({ id: 1 })),
+}));
+
 vi.mock("../lib/trpc", () => ({
   createTRPCClient: vi.fn(() => ({
     notifications: {

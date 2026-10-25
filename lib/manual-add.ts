@@ -2,8 +2,13 @@ import { withTimeoutReject } from "./with-timeout";
 import type { DistributorListing, Product } from "./types";
 import { isAutomaticProduct } from "./marketplace";
 import { isMarketplaceKey } from "../shared/marketplace-url";
+import { getAllParserIds } from "./scrapers/registry";
+import type { DiscoverOptions } from "./listing-discovery";
 
-export const DISCOVER_TIMEOUT_MS = 15_000;
+// A cold discovery sweeps every registered parser with concurrency 3, so the
+// first pass can exceed 15s when the server cache is empty. Warm searches
+// finish well inside this budget; the longer ceiling only affects cold starts.
+export const DISCOVER_TIMEOUT_MS = 30_000;
 
 export interface ManualAddInput {
   id: string;
@@ -19,18 +24,17 @@ export type ManualAddResult =
   | { status: "duplicate" }
   | { status: "created"; discovered: number; timedOut: boolean };
 
-export interface ManualAddStorage {
+export interface ManualAddStorage extends RediscoverStorage {
   addToWatchlist(product: Product): Promise<unknown>;
-  updateProductListings(id: string, listings: DistributorListing[]): Promise<unknown>;
 }
 
 export interface RediscoverStorage {
-  updateProductListings(id: string, listings: DistributorListing[]): Promise<unknown>;
+  updateProductListings(id: string, listings: DistributorListing[], discovery?: Product["discovery"]): Promise<unknown>;
 }
 
 export type DiscoverFn = (
   model: string,
-  opts: { productId: string; onProgress?: (done: number, total: number) => void },
+  opts: DiscoverOptions & { productId: string },
 ) => Promise<DistributorListing[]>;
 
 export async function manualAddProduct(deps: {
@@ -53,23 +57,8 @@ export async function manualAddProduct(deps: {
   // and storage dedupes — do NOT run discovery then, or the existing product's
   // listings and history get replaced with a fresh single-point array.
   if (!added) return { status: "duplicate" };
-  let listings: DistributorListing[];
-  let timedOut = false;
-  try {
-    listings = await withTimeoutReject(
-      discover(input.modelNumber, { productId: input.id, onProgress }),
-      timeoutMs,
-    );
-  } catch (e) {
-    if (e instanceof Error && e.message === "timeout") {
-      listings = [];
-      timedOut = true;
-    } else {
-      throw e;
-    }
-  }
-  if (listings.length > 0) await storage.updateProductListings(input.id, listings);
-  return { status: "created", discovered: listings.length, timedOut };
+  const result = await rediscoverProduct({ storage, discover, productId: input.id, modelNumber: input.modelNumber, onProgress, timeoutMs });
+  return { status: "created", ...result };
 }
 
 /** Products discovered per price-check run (each is a search across every distributor). */
@@ -97,6 +86,18 @@ export function clearListingAttemptsForTests(): void {
  */
 export function recordListingAttempt(productId: string, now = Date.now()): void {
   lastListingAttemptAt.set(productId, now);
+}
+
+/**
+ * True when a previous discovery covered some, but not all, distributors.
+ * The UI uses this to offer "Find more prices" instead of hiding the action
+ * once the first listing arrives.
+ */
+export function hasIncompleteDiscovery(
+  product: Pick<Product, "discovery">,
+): boolean {
+  const completed = product.discovery?.completedDistributorIds.length ?? 0;
+  return completed > 0 && completed < getAllParserIds().length;
 }
 
 export interface MissingListingsStorage extends RediscoverStorage {
@@ -162,28 +163,74 @@ export async function rediscoverProduct(deps: {
   modelNumber: string;
   onProgress?: (done: number, total: number) => void;
   timeoutMs?: number;
+  completedDistributorIds?: string[];
+  onSaved?: () => Promise<void>;
 }): Promise<{ discovered: number; timedOut: boolean }> {
-  const { storage, discover, productId, modelNumber, onProgress, timeoutMs = DISCOVER_TIMEOUT_MS } = deps;
+  const { storage, discover, productId, modelNumber, onProgress, onSaved, completedDistributorIds = [], timeoutMs = DISCOVER_TIMEOUT_MS } = deps;
   if (isMarketplaceKey(modelNumber)) return { discovered: 0, timedOut: false };
-  let listings: DistributorListing[];
+  const parserIds = getAllParserIds();
+  const completed = new Set(completedDistributorIds.filter((id) => parserIds.includes(id)));
+  const remaining = parserIds.filter((id) => !completed.has(id));
+  if (remaining.length === 0) return { discovered: 0, timedOut: false };
+  const controller = new AbortController();
+  const found = new Map<string, DistributorListing>();
+  let persistence = Promise.resolve();
+  let streamed = false;
   let timedOut = false;
+  onProgress?.(completed.size, parserIds.length);
   try {
-    listings = await withTimeoutReject(
-      discover(modelNumber, { productId, onProgress }),
+    const listings = await withTimeoutReject(
+      discover(modelNumber, {
+        productId,
+        parserIds: remaining,
+        signal: controller.signal,
+        onResult(distributorId, listing, failed) {
+          if (controller.signal.aborted) return Promise.resolve();
+          streamed = true;
+          if (!failed) completed.add(distributorId);
+          if (listing) found.set(distributorId, listing);
+          const checkpoint = { modelNumber, completedDistributorIds: [...completed] };
+          const completedCount = completed.size;
+          persistence = persistence.then(async () => {
+            // A checkpoint write is best-effort: losing one must not abort the
+            // remaining distributors or discard the listings already found.
+            try {
+              await storage.updateProductListings(productId, listing ? [listing] : [], checkpoint);
+              // Only a new listing changes what the screen renders; a miss just
+              // advances the checkpoint.
+              if (listing) await onSaved?.();
+            } catch {
+              // The next checkpoint or the final write retries the same data.
+            }
+            onProgress?.(completedCount, parserIds.length);
+          });
+          return persistence;
+        },
+        onProgress: (done, total) => {
+          // Streaming checkpoints already report progress; this covers a
+          // discover implementation that only reports completion counts.
+          if (!streamed) onProgress?.(done, total);
+        },
+      }),
       timeoutMs,
     );
+    if (!streamed && listings.length > 0) {
+      for (const listing of listings) found.set(listing.distributorId, listing);
+      await storage.updateProductListings(productId, listings);
+      await onSaved?.();
+    }
   } catch (e) {
     if (e instanceof Error && e.message === "timeout") {
-      listings = [];
       timedOut = true;
     } else {
       throw e;
     }
+  } finally {
+    controller.abort();
+    await persistence;
   }
-  if (listings.length > 0) {
-    await storage.updateProductListings(productId, listings);
-  } else {
+  if (found.size === 0) {
     recordListingAttempt(productId);
   }
-  return { discovered: listings.length, timedOut };
+  return { discovered: found.size, timedOut };
 }

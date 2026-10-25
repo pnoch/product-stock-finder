@@ -92,6 +92,43 @@ describe("discoverListings", () => {
     expect(listings.map((l) => l.distributorId)).toEqual(["fresh"]);
   });
 
+  it("streams each distributor result as it settles", async () => {
+    const onResult = vi.fn(async () => {});
+    const fetchPrice = vi.fn(async (d: string, _m: string) => {
+      if (d === "boom") throw new Error("network");
+      return d === "hit" ? snapshotResult() : null;
+    });
+    await discoverListings("MODEL", {
+      parserIds: ["hit", "miss", "boom"],
+      fetchPrice,
+      now: NOW,
+      onResult,
+    });
+    expect(onResult).toHaveBeenCalledWith(
+      "hit",
+      expect.objectContaining({ distributorId: "hit" }),
+      false,
+    );
+    expect(onResult).toHaveBeenCalledWith("miss", null, false);
+    expect(onResult).toHaveBeenCalledWith("boom", null, true);
+  });
+
+  it("stops starting new distributors after the signal aborts", async () => {
+    const controller = new AbortController();
+    const fetchPrice = vi.fn(async (d: string, _m: string) => {
+      if (d === "first") controller.abort();
+      return snapshotResult();
+    });
+    await discoverListings("MODEL", {
+      parserIds: ["first", "second", "third", "fourth", "fifth", "sixth"],
+      fetchPrice,
+      now: NOW,
+      signal: controller.signal,
+    });
+    // The abort lands before the remaining workers start their first fetch.
+    expect(fetchPrice).toHaveBeenCalledTimes(1);
+  });
+
   it("swallows fetch errors per distributor", async () => {
     const fetchPrice = vi.fn(async (d: string, _m: string) => {
       if (d === "boom") throw new Error("network");

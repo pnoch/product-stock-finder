@@ -68,6 +68,8 @@ export default function OAuthCallback() {
           lastSignedIn: new Date(),
           emailVerified: rawUser.emailVerified === true,
         };
+        const { reconcileExpiredAccount } = await import("@/lib/expired-account");
+        await reconcileExpiredAccount(normalized.id);
         await setSessionToken(sessionToken);
         await setUserInfo(normalized);
         // Notify the shared auth state so the root layout starts sync/backfill/
