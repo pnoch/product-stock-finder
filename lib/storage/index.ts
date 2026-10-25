@@ -193,6 +193,7 @@ export function createStorage(
       QUARANTINE_INDEX_KEY,
     ]);
     ctx.setClearing(false);
+    await clearExpiredAccount();
   }
 
   // Removing a product must also remove everything scoped to it: an alert,
