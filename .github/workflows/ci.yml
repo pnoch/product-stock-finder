@@ -32,6 +32,24 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Fail on new production advisories. The node-forge GHSA is ignored in
+      # package.json (pnpm.auditConfig.ignoreGhsas) because it has no patched
+      # release; the fix is applied via pnpm patch and guarded by
+      # tests/node-forge-patch.test.ts. Parse the advisory list rather than the
+      # summary: pnpm keeps the ignored finding in `metadata` but removes it
+      # from `advisories`, and the text summary is misleading.
+      - name: Audit production dependencies
+        run: |
+          pnpm audit --prod --json > audit.json || true
+          node -e '
+            const audit = require("./audit.json");
+            const advisories = Object.keys(audit.advisories ?? {});
+            if (advisories.length > 0) {
+              console.error(`${advisories.length} production advisor${advisories.length === 1 ? "y" : "ies"}`);
+              process.exit(1);
+            }
+            console.log("No production advisories.");
+          '
       - run: pnpm check
       - run: pnpm check:desktop
       - run: pnpm lint
