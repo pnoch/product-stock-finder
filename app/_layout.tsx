@@ -20,14 +20,10 @@ import { ThemeProvider } from "@/lib/theme-provider";
 import { SettingsProvider } from "@/lib/settings-provider";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { WebViewFetchHost } from "@/components/webview-fetch-host";
-import { seedWatchlistProducts } from "@/lib/launch-seed";
-import { defaultStorage } from "@/lib/storage";
 import { notificationRouteFor } from "@/lib/notification-routing";
 import { setupWebNotifications } from "@/lib/web-notifications";
 import { ConciergeScreen } from "@/components/onboarding/concierge-screen";
 import { registerServiceWorker } from "@/lib/web-push";
-import { PRODUCT_CATALOG } from "@shared/catalog";
-import { SAMPLE_LISTINGS, freshenSampleListings } from "@/lib/sample-data";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -89,16 +85,6 @@ export default function RootLayout() {
     return () => {
       stopWebNotifications();
     };
-  }, []);
-
-  // Seed sample products into the watchlist on first launch (single read, batched)
-  useEffect(() => {
-    seedWatchlistProducts({
-      storage: defaultStorage,
-      catalog: PRODUCT_CATALOG,
-      sampleListings: SAMPLE_LISTINGS,
-      freshen: freshenSampleListings,
-    }).catch((err) => log.error("Seeding failed:", err));
   }, []);
 
   // Create clients once and reuse them

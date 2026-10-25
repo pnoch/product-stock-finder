@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { PRODUCT_CATALOG } from "@shared/catalog";
-import { SAMPLE_LISTINGS, freshenSampleListings } from "../../../lib/sample-data";
 import { maybeSendDigest } from "../../../lib/price-digest";
 import { isAutomaticProduct } from "../../../lib/marketplace";
 import { setupSync, registerSyncSetup, type SyncSetup } from "../../../lib/sync";
@@ -82,9 +80,6 @@ export function useAppBootstrap({
   useEffect(() => {
     void runLaunchSequence({
       storage,
-      catalog: PRODUCT_CATALOG,
-      sampleListings: SAMPLE_LISTINGS,
-      freshen: freshenSampleListings,
       startPoller: startPricePoller,
       getApiBaseUrl,
       loadFx: loadFxRates,

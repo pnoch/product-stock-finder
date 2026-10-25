@@ -8628,3 +8628,9 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Browser scraping degrades to headless when the X display is gone; `scripts/start-production.sh` guards Xvfb; production image on Node 22.
 - [x] Fixed stale DB suites blocking CI (non-enumerable invites, server-generated event ids).
 - [x] Verified: 4141 root tests, 110 DB tests, CI green; `pnpm check` / `pnpm lint` clean.
+
+## Phase 1156: no auto-seeding
+
+- [x] Removed the demo seed from the mobile (`app/_layout.tsx`) and desktop (`desktop/src/lib/launch.ts`) launch paths; deleted `lib/launch-seed.ts` and its tests.
+- [x] A fresh install now starts with an empty watchlist; `lib/sample-data.ts` still supplies CRS804/CRS326 preview listings when those products are added.
+- [x] Updated AGENTS.md, `tests/pro-features.test.ts` rationale, and the changelog.

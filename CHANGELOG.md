@@ -4,6 +4,15 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json` and `desktop/src-tauri/Cargo.toml`.
 
+## [Unreleased]
+
+### Changed
+
+- Fresh installs start with an empty watchlist. The demo seed
+  (`lib/launch-seed.ts`) is removed from the mobile and desktop launch paths;
+  `lib/sample-data.ts` still supplies preview/detail listings for CRS804/CRS326
+  when a user adds them.
+
 ## [5.28.2] - 2026-10-25
 
 ### Security

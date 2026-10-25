@@ -35,9 +35,9 @@ describe("pro features", () => {
     expect(isProFeature("not_a_feature")).toBe(false);
   });
 
-  // Without a billing provider the SEED_IDS (7) exceed FREE_WATCHLIST_LIMIT (5),
-  // so enforcing the limit would block every new install before it could add
-  // anything. Enforcement must therefore be off until a provider can sell Pro.
+  // Without a billing provider, enforcing the free watchlist limit would block
+  // every new install before it could add anything. Enforcement must therefore
+  // be off until a provider can sell Pro.
   it("does not enforce free limits when no provider is registered", () => {
     setEntitlementProvider(null);
     expect(shouldEnforceFreeLimits()).toBe(false);

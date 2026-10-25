@@ -1,15 +1,8 @@
-import type { DistributorListing, Product } from "../../../lib/types";
 import type { Storage } from "../../../lib/storage";
 import { log } from "@shared/log";
-import { seedWatchlistProducts } from "../../../lib/launch-seed";
-
-export type SeedCatalogProduct = Omit<Product, "addedAt" | "isWatched" | "listings">;
 
 export interface LaunchDeps {
   storage: Storage;
-  catalog: SeedCatalogProduct[];
-  sampleListings: Record<string, DistributorListing[]>;
-  freshen: (listings: DistributorListing[]) => DistributorListing[];
   startPoller: (intervalMinutes: number, apiBaseUrl: string) => Promise<void>;
   getApiBaseUrl: () => string;
   loadFx: (storage: Storage) => Promise<void>;
@@ -26,17 +19,12 @@ export interface LaunchDeps {
 export async function runLaunchSequence(deps: LaunchDeps): Promise<void> {
   const {
     storage,
-    catalog,
-    sampleListings,
-    freshen,
     startPoller,
     getApiBaseUrl,
     loadFx,
     maybeRefreshFx,
     checkPricesOnce,
   } = deps;
-
-  await seedWatchlistProducts({ storage, catalog, sampleListings, freshen });
 
   try {
     const settings = await storage.getSettings();
