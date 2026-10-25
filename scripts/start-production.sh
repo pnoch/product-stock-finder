@@ -20,4 +20,13 @@ else
   echo "Xvfb did not create :99; starting in headless browser mode" >&2
 fi
 
+# Apply committed migrations before serving. A schema change that was only
+# generated locally would otherwise reach production missing its columns.
+if [ -n "${DATABASE_URL:-}" ]; then
+  echo "Applying database migrations..."
+  pnpm db:migrate
+else
+  echo "DATABASE_URL unset; skipping migrations" >&2
+fi
+
 exec node dist/index.js

@@ -21,6 +21,16 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
   install, dev dependencies are installed for `pnpm build`, and
   `NODE_ENV=production` is set only after the build. `.env`/`credentials/` are
   excluded from the build context, and CI now builds the image.
+- Re-discovery preserves a listing's stored price history instead of replacing
+  it with the single fresh point.
+- Sync drops malformed pulled listings and skips an unappliable row instead of
+  wedging the cursor for every later pull.
+- Desktop JSON import merges the backup into local data (the native path used
+  to replace every collection) and stamps sync metadata for the imported rows.
+- Desktop basket alerts, digests, and server notification uploads ignore
+  acquired products, matching mobile and desktop Stats.
+- Production starts by applying committed migrations; CI applies them and fails
+  on schema drift instead of generating a migration on the fly.
 
 ### Changed
 

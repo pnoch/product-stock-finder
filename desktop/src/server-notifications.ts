@@ -10,6 +10,7 @@ import {
   MAX_UPLOAD_STOCK_WATCHES,
 } from "../../shared/const";
 import { isMarketplaceKey } from "../../shared/marketplace-url";
+import { isAcquired } from "../../lib/acquired";
 
 const TIMEOUT_MS = 4000;
 
@@ -150,13 +151,24 @@ async function runSyncDesktopNotifications(): Promise<void> {
     // rediscovered products also get server-side notifications (mobile does the
     // same).
     const watchlist = await storage.getWatchlist();
-    const manualIds = new Set(watchlist.filter((p) => p.marketplace || isMarketplaceKey(p.modelNumber)).map((p) => p.id));
+    // Acquired products are bought; marketplace products are polled locally.
+    // Neither should have server-side alerts or watches (mirrors mobile).
+    const skippedIds = new Set(
+      watchlist
+        .filter(
+          (p) =>
+            isAcquired(p) ||
+            p.marketplace ||
+            isMarketplaceKey(p.modelNumber),
+        )
+        .map((p) => p.id),
+    );
     const modelByProductId = new Map(
       watchlist.map((p) => [p.id, p.modelNumber] as const),
     );
     const activeAlerts = settings.priceAlerts
       ? alerts
-          .filter((a) => a.isActive && !a.triggeredAt && !manualIds.has(a.productId))
+          .filter((a) => a.isActive && !a.triggeredAt && !skippedIds.has(a.productId))
           .map((a) => ({
             id: a.id,
             productId: a.productId,
@@ -170,7 +182,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
       : [];
     const activeAlertIds = new Set(activeAlerts.map((a) => a.id));
     const stockWatches = settings.stockAlerts
-      ? (await storage.getStockWatches()).filter((w) => !manualIds.has(w.productId)).map((w) => ({
+      ? (await storage.getStockWatches()).filter((w) => !skippedIds.has(w.productId)).map((w) => ({
           id: w.id,
           productId: w.productId,
           modelNumber: modelByProductId.get(w.productId),
@@ -181,7 +193,7 @@ async function runSyncDesktopNotifications(): Promise<void> {
         }))
       : [];
     const dateReminders = (await storage.getBackOrderReminders())
-      .filter((r) => r.reminderType === "date" && !manualIds.has(r.productId))
+      .filter((r) => r.reminderType === "date" && !skippedIds.has(r.productId))
       .map((r) => ({
         id: r.id,
         productId: r.productId,

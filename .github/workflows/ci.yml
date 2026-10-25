@@ -62,7 +62,12 @@ jobs:
       # Every DB-gated test file (discovered from the filesystem by
       # scripts/test-db.mjs, so a new one is picked up automatically) — a
       # hand-maintained list had silently stopped covering five suites.
-      - run: pnpm db:push
+      # Apply the committed migrations (not generate-on-the-fly): a schema
+      # change without a committed SQL file must fail here, not in production.
+      - run: pnpm db:check-migrations
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/psf_test
+      - run: pnpm db:migrate
         env:
           DATABASE_URL: mysql://root:root@127.0.0.1:3306/psf_test
       - run: pnpm test:db

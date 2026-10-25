@@ -7,7 +7,8 @@ if (!connectionString) {
 
 export default defineConfig({
   schema: "./drizzle/schema.ts",
-  out: "./drizzle",
+  // Overridable so the migration-drift check can generate into a scratch dir.
+  out: process.env.DRIZZLE_OUT ?? "./drizzle",
   dialect: "mysql",
   dbCredentials: {
     url: connectionString,

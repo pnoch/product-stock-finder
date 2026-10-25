@@ -104,4 +104,23 @@ describe("evaluateBasketAlert", () => {
         .recordNotificationEvent,
     ).not.toHaveBeenCalled();
   });
+  it("ignores acquired products in the basket total", async () => {
+    const acquired = {
+      ...product(60),
+      acquiredAt: "2026-01-02T00:00:00.000Z",
+    };
+    const active = { ...product(10), id: "b" };
+    const { storage } = makeStorage(
+      {
+        notificationsEnabled: true,
+        basketAlertThreshold: 50,
+        displayCurrency: "USD",
+      },
+      [acquired, active],
+    );
+    const notify = vi.fn().mockResolvedValue(true);
+    await expect(evaluateBasketAlert(storage, notify)).resolves.toBe(true);
+    expect(notify).toHaveBeenCalled();
+  });
+
 });

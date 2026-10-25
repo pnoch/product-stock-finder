@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { maybeSendDigest } from "../../../lib/price-digest";
 import { isAutomaticProduct } from "../../../lib/marketplace";
+import { activeProducts } from "../../../lib/acquired";
 import { setupSync, registerSyncSetup, type SyncSetup } from "../../../lib/sync";
 import { setupWebNotifications } from "../../../lib/web-notifications";
 import { loadFxRates, maybeRefreshFxRates } from "../../../lib/fx";
@@ -135,7 +136,9 @@ export function useAppBootstrap({
         const prevDigest = await storage.getPriceDigestSnapshot();
         const nextDigest = await maybeSendDigest(
           prevDigest,
-          (await storage.getWatchlist()).filter(isAutomaticProduct),
+          activeProducts(await storage.getWatchlist()).filter(
+            isAutomaticProduct,
+          ),
           settings,
           await storage.getAlerts(),
           async (title, body) => {

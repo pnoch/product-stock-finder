@@ -88,7 +88,7 @@ If you touched `server/` or `shared/`, run the DB suite too (Docker):
 
 ```bash
 docker run -d --name psf-mysql -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=psf_test -p 3306:3306 mysql:8.4
-DATABASE_URL=mysql://root:root@127.0.0.1:3306/psf_test pnpm db:push
+DATABASE_URL=mysql://root:root@127.0.0.1:3306/psf_test pnpm db:migrate
 RUN_DB_TESTS=1 TEST_DATABASE_URL=mysql://root:root@127.0.0.1:3306/psf_test pnpm test:db
 ```
 
@@ -201,6 +201,11 @@ The image installs Chromium + Xvfb and starts the server via
 headed-ness, so headless returns 403 for Winncom/B&H (see Phase 1106). Ensure
 the Railway service is connected to the GitHub repo (not a bare image) so the
 Dockerfile is built on deploy.
+
+`DATABASE_URL` must be set; `scripts/start-production.sh` applies the committed
+migrations (`pnpm db:migrate`) before the server starts. Use `pnpm db:push` only
+while changing the schema, and commit the generated SQL — CI's
+`pnpm db:check-migrations` fails on drift.
 
 ---
 

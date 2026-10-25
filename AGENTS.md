@@ -40,7 +40,9 @@ pnpm verify       # full local gate: check + lint + test + check:desktop + deskt
 pnpm build:apk    # Android release APK via Gradle (android/app/build/outputs/apk/release/app-release.apk)
 pnpm build:android-js  # Expo Android JS bundle (Metro resolution gate; no Android SDK needed)
 pnpm test:rust    # cargo test for desktop/src-tauri
-pnpm db:push      # drizzle-kit generate && migrate (requires DATABASE_URL)
+pnpm db:push      # drizzle-kit generate && migrate (schema changes; commit the SQL)
+pnpm db:migrate   # apply committed migrations (used by CI and production start)
+pnpm db:check-migrations  # fail if the schema has uncommitted migration drift
 pnpm build        # esbuild bundle server to dist/
 pnpm start        # production node server
 pnpm android      # expo start --android

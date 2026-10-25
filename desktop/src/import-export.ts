@@ -68,66 +68,52 @@ export async function exportWatchlistAsJson(): Promise<string> {
   return "Export cancelled";
 }
 
+async function applyImportedContent(content: string): Promise<string> {
+  const backup = parseBackup(content);
+  if (!backup) return "Invalid backup file";
+  // Merge, never replace: the Tauri path used to call a Rust command that
+  // rewrote every collection wholesale, silently deleting local-only products,
+  // alerts, and reminders. Both platforms now use the same merge.
+  const current = await readCurrentBackupInput();
+  const result = applyBackup(backup, current);
+  // Stamp each collection's sync meta right after its save so imported data
+  // reaches the server on the next sync (mirrors the Settings import path).
+  const now = Date.now();
+  await storage.saveWatchlist(result.watchlist);
+  for (const id of result.touchedIds.watchlist) {
+    await storage.setItemSyncMeta("watchlist", id, now);
+  }
+  await storage.saveAlerts(result.alerts);
+  for (const id of result.touchedIds.alerts) {
+    await storage.setItemSyncMeta("alerts", id, now);
+  }
+  await storage.saveBackOrderReminders(result.reminders);
+  for (const id of result.touchedIds.reminders) {
+    await storage.setItemSyncMeta("reminders", id, now);
+  }
+  await storage.saveStockWatches(result.stockWatches);
+  for (const id of result.touchedIds.stockWatches) {
+    await storage.setItemSyncMeta("reminders", id, now);
+  }
+  if (result.settingsApplied) await storage.saveSettings(result.settings);
+  return `Imported ${result.counts.watchlistAdded} new product${
+    result.counts.watchlistAdded === 1 ? "" : "s"
+  }`;
+}
+
 export async function importWatchlistFromJson(): Promise<string> {
   if (!isTauri()) {
     const content = await pickTextFile();
     if (content === null) return "Import cancelled";
-    const backup = parseBackup(content);
-    if (!backup) return "Invalid backup file";
-    const current = await readCurrentBackupInput();
-    const result = applyBackup(backup, current);
-    await storage.saveWatchlist(result.watchlist);
-    await storage.saveAlerts(result.alerts);
-    await storage.saveBackOrderReminders(result.reminders);
-    await storage.saveStockWatches(result.stockWatches);
-    if (result.settingsApplied) await storage.saveSettings(result.settings);
-    return `Imported ${result.counts.watchlistAdded} new product${
-      result.counts.watchlistAdded === 1 ? "" : "s"
-    }`;
+    return applyImportedContent(content);
   }
 
   const filePath = await open({
     filters: [{ name: "JSON", extensions: ["json"] }],
     multiple: false,
   });
+  if (!filePath) return "Import cancelled";
 
-  if (filePath) {
-    const bytes = await readFile(filePath as string);
-    const content = new TextDecoder().decode(bytes);
-    const result = await invoke<string>("import_watchlist", {
-      content,
-      format: "json",
-    });
-    // Re-hydrate the renderer store from the imported Rust files. Without this
-    // the UI kept its pre-import localStorage copy and the next write mirrored
-    // that stale copy back over the import.
-    try {
-      const { invoke: inv } = await import("@tauri-apps/api/core");
-      const [watchlist, alerts, reminders, settings, watches] = await Promise.all([
-        inv<unknown>("read_watchlist"),
-        inv<unknown>("read_value_for_key", { key: "price_alerts" }),
-        inv<unknown>("read_value_for_key", { key: "back_order_reminders" }),
-        inv<unknown>("read_value_for_key", { key: "app_settings" }),
-        // The Rust import writes back_in_stock_watches too; omitting it left the
-        // renderer's pre-import watches in place, and the next renderer write
-        // mirrored that stale copy back over the import.
-        inv<unknown>("read_value_for_key", { key: "back_in_stock_watches" }),
-      ]);
-      if (watchlist) {
-        await storage.saveWatchlist(
-          (Array.isArray(watchlist) ? watchlist : []) as never,
-        );
-      }
-      if (alerts) await storage.saveAlerts((alerts ?? []) as never);
-      if (reminders) {
-        await storage.saveBackOrderReminders((reminders ?? []) as never);
-      }
-      if (watches) await storage.saveStockWatches((watches ?? []) as never);
-      if (settings) await storage.saveSettings(settings as never);
-    } catch {
-      // best effort — the Rust files are the source of truth for the poller
-    }
-    return result;
-  }
-  return "Import cancelled";
+  const bytes = await readFile(filePath as string);
+  return applyImportedContent(new TextDecoder().decode(bytes));
 }

@@ -16,7 +16,8 @@ describe("CI workflow", () => {
       "pnpm test",
       "pnpm --dir desktop test",
       "pnpm build:desktop",
-      "pnpm db:push",
+      "pnpm db:migrate",
+      "pnpm db:check-migrations",
       "pnpm test:db",
       "pnpm build",
       "pnpm build:android-js",
@@ -24,6 +25,11 @@ describe("CI workflow", () => {
     ]) {
       expect(src, `missing CI step: ${step}`).toContain(step);
     }
+  });
+
+  it("builds the production image", async () => {
+    const src = await readFile(".github/workflows/ci.yml", "utf8");
+    expect(src).toContain("docker/build-push-action");
   });
 
   it("compiles and lints the Rust backend", async () => {

@@ -23,6 +23,8 @@
     "verify": "pnpm check && pnpm lint && pnpm test:coverage && pnpm check:desktop && pnpm --dir desktop test && pnpm check:rust && pnpm test:rust && pnpm build:android-js && pnpm build:desktop",
     "smoke:web": "tsx scripts/smoke-web.ts",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:check-migrations": "node scripts/check-migration-drift.mjs",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "qr": "node scripts/generate_qr.mjs",

@@ -100,20 +100,26 @@ async function doSync(
       if (currentSyncGeneration() !== gate) return;
       const key = `${item.collection}:${item.id}`;
       const local = meta.items[item.collection]?.[item.id];
-      if (item.deletedAt !== null) {
-        if (!local || item.updatedAt > local.updatedAt) {
-          await removeLocalItem(storage, item.collection, item.id);
-          await storage.clearItemSyncMeta(item.collection, item.id);
+      // One unappliable row must not block the cursor for every later pull.
+      try {
+        if (item.deletedAt !== null) {
+          if (!local || item.updatedAt > local.updatedAt) {
+            await removeLocalItem(storage, item.collection, item.id);
+            await storage.clearItemSyncMeta(item.collection, item.id);
+            storage.notifyLocal(item.collection, item.id);
+            applied.add(key);
+          }
+        } else if (!local || item.updatedAt > local.updatedAt) {
+          await applyLocalItem(storage, item.collection, item.data);
+          await storage.setItemSyncMeta(item.collection, item.id, item.updatedAt);
+          // The apply primitives intentionally do not notify (they would mark
+          // the item dirty again); notify UI observers only so open screens
+          // refresh.
           storage.notifyLocal(item.collection, item.id);
           applied.add(key);
         }
-      } else if (!local || item.updatedAt > local.updatedAt) {
-        await applyLocalItem(storage, item.collection, item.data);
-        await storage.setItemSyncMeta(item.collection, item.id, item.updatedAt);
-        // The apply primitives intentionally do not notify (they would mark the
-        // item dirty again); notify UI observers only so open screens refresh.
-        storage.notifyLocal(item.collection, item.id);
-        applied.add(key);
+      } catch (error) {
+        log.error(`[Sync] skipped unappliable item ${key}`, error);
       }
     }
   } finally {

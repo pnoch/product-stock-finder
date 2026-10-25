@@ -2,6 +2,8 @@ import type { DistributorListing, Product } from "../types";
 import type { StorageContext } from "./context";
 import { MAX_HISTORY_PER_LISTING, maxHistoryPerProduct } from "./adapter";
 import { updateMarketplacePrice } from "../marketplace";
+import { mergePriceHistory } from "../price-history";
+import { PRICE_HISTORY_DAYS } from "@shared/const";
 
 export function createWatchlistStorage(ctx: StorageContext) {
   const { adapter, KEYS, notify, enqueue, readList } = ctx;
@@ -217,12 +219,30 @@ export function createWatchlistStorage(ctx: StorageContext) {
         // is in flight, and a wholesale write would drop it (then push the
         // stale array with a fresh LWW stamp).
         const incomingIds = new Set(listings.map((l) => l.distributorId));
+        const existing = new Map(
+          (p.listings ?? []).map((l) => [l.distributorId, l] as const),
+        );
         const localOnly = (p.listings ?? []).filter(
           (l) => !incomingIds.has(l.distributorId),
         );
+        // A refresh carries one fresh point per distributor. Replacing the
+        // whole listing discarded the stored history; merge it instead (same
+        // policy as sync) so re-discovery cannot rewind the chart.
+        const merged = listings.map((incoming) => {
+          const local = existing.get(incoming.distributorId);
+          if (!local) return incoming;
+          return {
+            ...incoming,
+            priceHistory: mergePriceHistory(
+              local.priceHistory ?? [],
+              incoming.priceHistory ?? [],
+              PRICE_HISTORY_DAYS,
+            ),
+          };
+        });
         return {
           ...p,
-          listings: [...listings, ...localOnly],
+          listings: [...merged, ...localOnly],
           ...(listings.length > 0 ? { lastRefreshed: now } : {}),
           ...(discovery ? { discovery } : {}),
         };

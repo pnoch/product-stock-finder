@@ -8649,3 +8649,12 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Share invites require `emailVerified` for both `invite` and `inviteByEmail`; unverified targets get the non-enumerable success shape and no membership.
 - [x] Two-hop scraping resolves parser hrefs only on the search origin (`sameOriginProductUrl`), with tests for relative, same-origin, cross-origin, and non-http links.
 - [x] Verified the image builds and serves `/api/health`; root, desktop, and DB suites pass.
+
+## Phase 1159: review blockers — data integrity, desktop import, and deploy migrations
+
+- [x] `updateProductListings` merges same-distributor price history (with a storage test) instead of replacing it.
+- [x] Sync sanitizes malformed listings and skips an unappliable row without blocking the cursor (tests for both).
+- [x] Desktop JSON import uses the shared `applyBackup` merge on both web and Tauri, stamps sync meta, and no longer calls the wholesale Rust import.
+- [x] Desktop basket alerts, digests, and server uploads filter acquired products (tested).
+- [x] Added `db:migrate` + `db:check-migrations`; CI applies committed migrations and fails on drift; the production start script migrates before serving.
+- [x] Verified the rebuilt image applies migrations and serves `/api/health`; root, desktop, and DB suites pass.

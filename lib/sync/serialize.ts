@@ -113,10 +113,18 @@ export function sanitizePulledItem(
     // `tagsUpdatedAt`, which the tag-LWW merge needs. Validate the core shape
     // and the listings array instead, preserving every other field verbatim.
     if (typeof record.name !== "string" || !record.name.trim()) return null;
-    if (record.listings !== undefined && !Array.isArray(record.listings)) {
-      return null;
-    }
-    return data;
+    if (record.listings === undefined) return data;
+    if (!Array.isArray(record.listings)) return null;
+    // A malformed array (`[null]`) used to pass this check and then throw in
+    // the apply merge, which wedged the whole pull cursor. Drop unusable
+    // entries instead of rejecting the product.
+    const listings = record.listings.filter(
+      (l): l is Record<string, unknown> =>
+        !!l &&
+        typeof l === "object" &&
+        typeof (l as { distributorId?: unknown }).distributorId === "string",
+    );
+    return { ...record, listings };
   }
   if (collection === "alerts") {
     if (typeof record.targetPrice !== "number" || !Number.isFinite(record.targetPrice)) {

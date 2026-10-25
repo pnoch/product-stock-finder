@@ -994,7 +994,15 @@ describe("desktop chart guard", () => {
   // renderer's rehydrate must read them all, or the imported collection stays
   // stale in localStorage and the next renderer write mirrors it back over the
   // import.
-  it("keeps the native import keys in sync with the renderer rehydrate", async () => {
+  it("merges native imports instead of using the wholesale Rust import", async () => {
+    const importer = await readFile("desktop/src/import-export.ts", "utf8");
+    expect(importer).toContain("applyBackup(");
+    expect(importer).toContain("parseBackup(");
+    // The Rust command replaces every collection; the renderer must not call it.
+    expect(importer).not.toContain('"import_watchlist"');
+  });
+
+  it("keeps the Rust import writing every mirrored collection", async () => {
     const rust = await readFile("desktop/src-tauri/src/lib.rs", "utf8");
     const start = rust.indexOf("fn import_watchlist");
     expect(start).toBeGreaterThan(-1);
@@ -1007,17 +1015,6 @@ describe("desktop chart guard", () => {
       "back_in_stock_watches",
     ]) {
       expect(importBlock, `rust import writes ${key}`).toContain(`"${key}"`);
-    }
-    const importer = await readFile("desktop/src/import-export.ts", "utf8");
-    // The watchlist is rehydrated through its own command.
-    expect(importer).toContain('"read_watchlist"');
-    for (const key of [
-      "price_alerts",
-      "back_order_reminders",
-      "app_settings",
-      "back_in_stock_watches",
-    ]) {
-      expect(importer, `rehydrate reads ${key}`).toContain(`"${key}"`);
     }
   });
 

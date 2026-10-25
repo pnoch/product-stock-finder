@@ -1376,4 +1376,61 @@ describe("syncNow", () => {
       vi.useRealTimers();
     }
   });
+  it("drops malformed listings instead of wedging the pull", async () => {
+    const storage = makeStorage();
+    const pulled = makeProduct("p1");
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull: async () => ({
+        lastSyncedAt: 1000,
+        items: [
+          {
+            collection: "watchlist",
+            id: "p1",
+            data: { ...pulled, listings: [null] } as never,
+            updatedAt: 1000,
+            deletedAt: null,
+          },
+        ],
+      }),
+      push: async () => ({ accepted: 0, stamped: [] }),
+      now: () => 2000,
+    });
+    const [stored] = await storage.getWatchlist();
+    expect(stored!.listings).toEqual([]);
+    expect((await storage.getSyncMeta()).lastSyncedAt).toBe(1000);
+  });
+
+  it("skips an unappliable item and still advances the cursor", async () => {
+    const storage = makeStorage();
+    const original = storage.setItemSyncMeta.bind(storage);
+    let calls = 0;
+    storage.setItemSyncMeta = async (collection, id, updatedAt) => {
+      calls += 1;
+      if (calls === 1) throw new Error("disk full");
+      return original(collection, id, updatedAt);
+    };
+    await syncNow({
+      storage,
+      isSignedIn: () => true,
+      pull: async () => ({
+        lastSyncedAt: 3000,
+        items: ["a", "b"].map((id) => ({
+          collection: "watchlist" as const,
+          id,
+          data: makeProduct(id),
+          updatedAt: 3000,
+          deletedAt: null,
+        })),
+      }),
+      push: async () => ({ accepted: 0, stamped: [] }),
+      now: () => 4000,
+    });
+    expect(
+      (await storage.getWatchlist()).map((p) => p.id).sort(),
+    ).toEqual(["a", "b"]);
+    expect((await storage.getSyncMeta()).lastSyncedAt).toBe(3000);
+  });
+
 });

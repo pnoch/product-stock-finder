@@ -43,7 +43,7 @@ app runs without a configured backend it degrades gracefully to local-only mode.
 Drizzle schema in `drizzle/schema.ts` — 15 tables: users, watchlistItems, priceAlerts,
 backOrderReminders, appSettings, priceCache, priceHistory, priceInsights, productImages,
 deviceNotificationConfigs, notificationEvents, notificationEventDeliveries, devicePushTokens,
-deviceLabels, revokedDevices. Migrations in `drizzle/migrations/`; apply with `pnpm db:push`.
+deviceLabels, revokedDevices. Migrations live in `drizzle/`; apply committed ones with `pnpm db:migrate` (use `pnpm db:push` only when changing the schema).
 
 ## Environment
 

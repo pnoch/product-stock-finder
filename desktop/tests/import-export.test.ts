@@ -4,6 +4,7 @@ import { importWatchlistFromJson } from "../src/import-export";
 const state = vi.hoisted(() => ({
   savedWatches: [] as unknown[],
   savedWatchlist: [] as unknown[],
+  content: "",
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -12,29 +13,27 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 }));
 
 vi.mock("@tauri-apps/plugin-fs", () => ({
-  readFile: vi.fn(async () => new TextEncoder().encode("{}")),
+  readFile: vi.fn(async () => new TextEncoder().encode(state.content)),
   writeFile: vi.fn(async () => {}),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri,
-  invoke: vi.fn(async (cmd: string, args?: Record<string, unknown>) => {
-    if (cmd === "import_watchlist") return "Imported";
+  invoke: vi.fn(async (cmd: string) => {
     if (cmd === "export_watchlist") return "{}";
-    if (cmd === "read_watchlist") return [{ id: "p1" }];
-    if (cmd === "read_value_for_key") {
-      const key = (args as { key: string }).key;
-      if (key === "price_alerts") return [];
-      if (key === "back_order_reminders") return [];
-      if (key === "back_in_stock_watches") return [{ id: "w1" }];
-      if (key === "app_settings") return { theme: "auto" };
-    }
     return null;
   }),
 }));
 
 vi.mock("../src/storage", () => ({
   storage: {
+    getWatchlist: vi.fn(async () => [
+      { id: "p1", name: "Local only" },
+    ]),
+    getAlerts: vi.fn(async () => []),
+    getBackOrderReminders: vi.fn(async () => []),
+    getStockWatches: vi.fn(async () => []),
+    getSettings: vi.fn(async () => ({ theme: "auto" })),
     saveWatchlist: vi.fn(async (v: unknown) => {
       state.savedWatchlist.push(v);
     }),
@@ -44,24 +43,43 @@ vi.mock("../src/storage", () => ({
       state.savedWatches.push(v);
     }),
     saveSettings: vi.fn(async () => {}),
+    setItemSyncMeta: vi.fn(async () => {}),
   },
 }));
 
-// QA round 302: the native import's renderer rehydrate read four keys, but the
-// Rust import also writes `back_in_stock_watches` — so imported restock watches
-// never reached localStorage and the next renderer write mirrored the stale
-// pre-import watches back over the import.
-describe("importWatchlistFromJson", () => {
+function backupWith(products: unknown[]): string {
+  return JSON.stringify({
+    format: "product-stock-finder-backup",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    watchlist: products,
+    alerts: [],
+    reminders: [],
+    stockWatches: [],
+  });
+}
+
+// The Tauri path used to delegate to a Rust command that replaced every
+// collection wholesale, deleting local-only products while the browser path
+// merged. Both platforms now merge.
+describe("importWatchlistFromJson (Tauri)", () => {
   beforeEach(() => {
     state.savedWatches = [];
     state.savedWatchlist = [];
     (globalThis as unknown as { isTauri?: boolean }).isTauri = true;
   });
 
-  it("rehydrates restock watches alongside the other collections", async () => {
+  it("merges the backup with local data instead of replacing it", async () => {
+    state.content = backupWith([{ id: "p2", name: "Imported" }]);
     const message = await importWatchlistFromJson();
-    expect(message).toBe("Imported");
-    expect(state.savedWatchlist).toEqual([[{ id: "p1" }]]);
-    expect(state.savedWatches).toEqual([[{ id: "w1" }]]);
+    expect(message).toBe("Imported 1 new product");
+    const saved = state.savedWatchlist[0] as { id: string }[];
+    expect(saved.map((p) => p.id).sort()).toEqual(["p1", "p2"]);
+  });
+
+  it("rejects an invalid backup without saving", async () => {
+    state.content = "{}";
+    await expect(importWatchlistFromJson()).resolves.toBe("Invalid backup file");
+    expect(state.savedWatchlist).toHaveLength(0);
   });
 });
