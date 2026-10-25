@@ -13,6 +13,11 @@ for _ in $(seq 1 50); do
   sleep 0.1
 done
 
-export DISPLAY=:99
-export PSF_BROWSER_HEADED=1
+if [ -S /tmp/.X11-unix/X99 ]; then
+  export DISPLAY=:99
+  export PSF_BROWSER_HEADED=1
+else
+  echo "Xvfb did not create :99; starting in headless browser mode" >&2
+fi
+
 exec node dist/index.js

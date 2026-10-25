@@ -16,8 +16,10 @@ describe("production Docker runtime", () => {
   it("starts under a virtual display with headed scraping enabled", async () => {
     const script = await readFile("scripts/start-production.sh", "utf8");
     expect(script).toContain("Xvfb :99");
+    expect(script).toContain("[ -S /tmp/.X11-unix/X99 ]");
     expect(script).toContain("export DISPLAY=:99");
     expect(script).toContain("export PSF_BROWSER_HEADED=1");
+    expect(script).toContain("starting in headless browser mode");
     expect(script).toContain("node dist/index.js");
   });
 });

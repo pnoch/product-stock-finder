@@ -4,6 +4,7 @@ import { join } from "path";
 import { USER_AGENTS } from "./utils";
 import { BrowserBlockedError } from "./resilient";
 import { DISTRIBUTORS } from "@shared/distributors";
+import { log } from "@shared/log";
 
 const VIEWPORTS = [
   { width: 1920, height: 1080 },
@@ -104,18 +105,44 @@ const LAUNCH_ARGS = [
   "--disable-features=IsolateOrigins,site-per-process",
 ];
 
+function isMissingDisplayError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /missing x server|\$DISPLAY|connected to the x|cannot open display|no display|X11|xcb/i.test(message);
+}
+
 // Prefer the host's real Chrome (its TLS/JA4 and version shape pass more
 // anti-bot gates than bundled Chromium); fall back when Chrome isn't installed.
-// Headed mode is an explicit opt-in: Cloudflare's gate keys on headed-ness, so
-// production sets PSF_BROWSER_HEADED=1 and runs under a virtual display
-// (Xvfb). Default stays headless so dev machines never pop windows.
-export async function launchBrowser(): Promise<Browser> {
-  const headless = process.env.PSF_BROWSER_HEADED !== "1";
+async function launchWith(headless: boolean): Promise<Browser> {
   const opts = { headless, args: LAUNCH_ARGS };
   try {
     return await chromium.launch({ ...opts, channel: "chrome" });
   } catch {
     return await chromium.launch(opts);
+  }
+}
+
+let warnedMissingDisplay = false;
+
+// Headed mode is an explicit opt-in: Cloudflare's gate keys on headed-ness, so
+// production sets PSF_BROWSER_HEADED=1 and runs under a virtual display
+// (Xvfb). Default stays headless so dev machines never pop windows. If headed
+// is requested but the display is gone (Xvfb died, stale DISPLAY), degrade to
+// headless with a warning instead of failing every browser-backed scrape.
+export async function launchBrowser(): Promise<Browser> {
+  if (process.env.PSF_BROWSER_HEADED !== "1") return launchWith(true);
+  try {
+    return await launchWith(false);
+  } catch (error) {
+    if (!isMissingDisplayError(error)) throw error;
+    if (!warnedMissingDisplay) {
+      warnedMissingDisplay = true;
+      log.warn(
+        "[browser] PSF_BROWSER_HEADED=1 but no usable X display " +
+          `(${process.env.DISPLAY ?? "DISPLAY unset"}); falling back to headless. ` +
+          "Run under Xvfb (scripts/start-production.sh) for Cloudflare-gated distributors.",
+      );
+    }
+    return launchWith(true);
   }
 }
 

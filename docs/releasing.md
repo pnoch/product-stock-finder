@@ -218,4 +218,5 @@ Dockerfile is built on deploy.
 - **`tauri build` fails to decode the pubkey** → `plugins.updater.pubkey` is still the placeholder; set the real minisign public key.
 - **App Links don't open the app** → `EXPO_PUBLIC_WEB_URL` not set at bundle time, or `ANDROID_SHA256_CERT_FINGERPRINTS` missing/mismatched.
 - **Android remote push silent** → no FCM credentials (step 0).
+- **Browser-backed scrapes blocked / eBay search empty** → `PSF_BROWSER_HEADED=1` is set but the X display is gone. The server logs `[browser] ... falling back to headless` and keeps running headless; restart under `xvfb-run -a` (or `scripts/start-production.sh`) for Cloudflare-gated distributors.
 - **Release APK rejected by Play** → built with the debug key; ensure `credentials/keystore.properties` exists before `expo prebuild`.
