@@ -1,6 +1,6 @@
 # Release Runbook
 
-How to cut and ship Product Stock Finder. Two build targets share one version
+How to cut and ship OmniShop. Two build targets share one version
 number: **mobile/web** (Expo) and **desktop** (Tauri). `tests/version-lockstep.test.ts`
 enforces that `package.json`, `app.config.ts`, `desktop/package.json`,
 `desktop/src-tauri/tauri.conf.json`, `Cargo.toml` and `Cargo.lock` agree, so bump

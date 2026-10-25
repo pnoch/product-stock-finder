@@ -8634,3 +8634,10 @@ Two more real bugs found by fuzzing the CSV round-trip (30k random strings):
 - [x] Removed the demo seed from the mobile (`app/_layout.tsx`) and desktop (`desktop/src/lib/launch.ts`) launch paths; deleted `lib/launch-seed.ts` and its tests.
 - [x] A fresh install now starts with an empty watchlist; `lib/sample-data.ts` still supplies CRS804/CRS326 preview listings when those products are added.
 - [x] Updated AGENTS.md, `tests/pro-features.test.ts` rationale, and the changelog.
+
+## Phase 1157: OmniShop rebrand
+
+- [x] New launcher icons (mdpi–xxxhdpi), adaptive foreground/background, Android 13+ monochrome, and 512 Play icon from the OmniShop pack.
+- [x] Regenerated iOS/desktop icons from the 1024 master; updated web favicon/apple-touch/maskable icons.
+- [x] App name, PWA manifest, web/desktop titles, notification copy, share footers, server emails/webhooks, and desktop metadata now say OmniShop.
+- [x] Kept the package/bundle id (`com.app.stocktrackerpro`), slug, scheme, storage keys, and signing key unchanged so installs keep updating.

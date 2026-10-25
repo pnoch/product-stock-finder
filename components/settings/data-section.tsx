@@ -130,7 +130,7 @@ export function DataSection() {
       if (!backup) {
         showAlert(
           "Invalid Backup",
-          "That file is not a valid Product Stock Finder backup.",
+          "That file is not a valid OmniShop backup.",
         );
         return;
       }

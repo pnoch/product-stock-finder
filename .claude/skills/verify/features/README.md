@@ -1,4 +1,4 @@
-# Product Stock Finder — feature map
+# OmniShop — feature map
 
 The maintained verification source. Each file describes one user-facing feature:
 what it is, how to reach it, how to drive it with `scripts/drive.sh`, and the

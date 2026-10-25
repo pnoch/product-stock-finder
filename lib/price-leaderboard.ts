@@ -118,5 +118,5 @@ export function buildDropShareText(
     const abs = `\u2212${formatPrice(d.dropAbs, d.currency)}`;
     return `${i + 1}. ${d.productName} (${d.distributorName}) \u2014 ${formatPrice(d.previousPrice, d.currency)} \u2192 ${formatPrice(d.currentPrice, d.currency)} (${pct}, ${abs})`;
   });
-  return `\ud83d\udcc9 Price Drops (${windowLabel}, by ${sortLabel})\n${lines.join("\n")}\n\nvia Product Stock Finder`;
+  return `\ud83d\udcc9 Price Drops (${windowLabel}, by ${sortLabel})\n${lines.join("\n")}\n\nvia OmniShop`;
 }

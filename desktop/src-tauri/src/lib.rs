@@ -2271,7 +2271,7 @@ fn update_tray_badge(app: tauri::AppHandle) -> Result<String, String> {
         };
         let _ = tray.set_title(Some(&badge_text));
         let tooltip = format!(
-            "Product Stock Finder — {} alert{}",
+            "OmniShop — {} alert{}",
             total,
             if total == 1 { "" } else { "s" }
         );

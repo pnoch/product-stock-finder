@@ -41,7 +41,7 @@ describe("buildShareText", () => {
     const bhIdx = priceLines.findIndex((l) => l.includes("B&H"));
     expect(mikrotikIdx).toBeGreaterThanOrEqual(0);
     expect(bhIdx).toBeGreaterThan(mikrotikIdx);
-    expect(text).toContain("Prices in USD · via Product Stock Finder");
+    expect(text).toContain("Prices in USD · via OmniShop");
   });
 
   it("truncates to five rows", () => {
@@ -62,7 +62,7 @@ describe("buildShareText", () => {
       ],
     });
     expect(text).toContain("All out of stock");
-    expect(text).toContain("via Product Stock Finder");
+    expect(text).toContain("via OmniShop");
   });
 
   it("skips listings without a convertible currency", () => {
@@ -83,7 +83,7 @@ describe("buildShareText", () => {
     expect(lines[0]).toBe(
       "MikroTik CRS804 (CRS804-4DDQ-hRM) — price comparison",
     );
-    expect(text).toContain("Prices in USD · via Product Stock Finder");
+    expect(text).toContain("Prices in USD · via OmniShop");
   });
 
   it("appends the best listing URL when present", () => {

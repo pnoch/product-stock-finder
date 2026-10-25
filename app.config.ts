@@ -57,7 +57,7 @@ export function getIosAssociatedDomains(webHost?: string): string[] {
 const bundleId = "com.app.stocktrackerpro";
 
 const env = {
-  appName: "Product Stock Finder",
+  appName: "OmniShop",
   appSlug: "product-stock-finder",
   scheme: "productstockfinder",
   iosBundleId: bundleId,
@@ -89,12 +89,12 @@ const config: ExpoConfig = {
       // Shown in the iOS permission prompt. Without it the OS rejects the
       // notification request on a release build.
       NSUserNotificationsUsageDescription:
-        "Product Stock Finder alerts you the moment a watched part is back in stock or drops below your target price, anywhere in the world.",
+        "OmniShop alerts you the moment a watched part is back in stock or drops below your target price, anywhere in the world.",
     },
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
+      backgroundColor: "#071046",
       foregroundImage: "./assets/images/android-icon-foreground.png",
       backgroundImage: "./assets/images/android-icon-background.png",
       monochromeImage: "./assets/images/android-icon-monochrome.png",

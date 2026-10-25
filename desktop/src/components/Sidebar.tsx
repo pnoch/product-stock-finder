@@ -69,7 +69,7 @@ export function Sidebar() {
       <div className="flex items-center gap-2 px-4 h-16 shrink-0 border-b border-gray-200 dark:border-gray-700">
         <BarChart3 className="w-6 h-6 text-brand-600 shrink-0" />
         <span className="hidden lg:block font-semibold text-sm truncate">
-          Product Stock Finder
+          OmniShop
         </span>
       </div>
       <nav className="flex-1 py-3 space-y-0.5 px-1.5">

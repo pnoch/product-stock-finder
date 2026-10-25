@@ -210,7 +210,7 @@ async function sendPasswordResetEmail(email: string, token: string): Promise<voi
   const link = base ? `${base}/reset-password?token=${encodeURIComponent(token)}` : "";
   await sendEmail({
     to: email,
-    subject: "Reset your Product Stock Finder password",
+    subject: "Reset your OmniShop password",
     text:
       `We received a request to reset your password.\n\n` +
       (link
@@ -1082,7 +1082,7 @@ export function registerOAuthRoutes(app: Express) {
           : "";
         await sendEmail({
           to: email,
-          subject: "Verify your Product Stock Finder email",
+          subject: "Verify your OmniShop email",
           text:
             `Confirm your email address.\n\n` +
             (link

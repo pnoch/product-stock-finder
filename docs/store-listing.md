@@ -1,4 +1,4 @@
-# Store Listing — Product Stock Finder
+# Store Listing — OmniShop
 
 Copy for App Store Connect and Google Play Console. Keep this in sync with
 `app.config.ts` (name, bundle id, version) and `eas.json` (submit profiles).
@@ -7,7 +7,7 @@ Copy for App Store Connect and Google Play Console. Keep this in sync with
 
 | Field | Value |
 | --- | --- |
-| App name | Product Stock Finder |
+| App name | OmniShop |
 | iOS bundle id | `com.app.stocktrackerpro` |
 | Android package | `com.app.stocktrackerpro` |
 | Version | `5.17.0` (EAS `appVersionSource: remote` manages build numbers) |
@@ -20,7 +20,7 @@ Copy for App Store Connect and Google Play Console. Keep this in sync with
 
 ## Full description
 
-> Product Stock Finder tracks product availability and prices across 33 global
+> OmniShop tracks product availability and prices across 33 global
 > electronics distributors, with a focus on MikroTik and Ubiquiti networking
 > gear.
 >

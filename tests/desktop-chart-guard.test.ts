@@ -792,12 +792,12 @@ describe("desktop chart guard", () => {
     expect(text).toContain("Try Again");
   });
 
-  // QA round 206: mobile's Home header shows "Product Stock Finder" /
+  // QA round 206: mobile's Home header shows "OmniShop" /
   // "Find it anywhere. Landed to your door."; desktop's said "Dashboard".
   // (Round 255 repositioned the tagline to "Find it anywhere. Landed to your door.")
   it("matches mobile's Home header on desktop", async () => {
     const text = await readFile("desktop/src/pages/Home.tsx", "utf8");
-    expect(text).toContain("Product Stock Finder");
+    expect(text).toContain("OmniShop");
     expect(text).toContain("Find it anywhere. Landed to your door.");
     expect(text).not.toContain(">Dashboard</h1>");
   });

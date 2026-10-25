@@ -56,7 +56,7 @@ describe("buildWatchlistShareText", () => {
     expect(text).toContain("Biggest drops (30d):");
     expect(text).toContain("-18%");
     expect(text).toContain("Stock health:");
-    expect(text.trimEnd().endsWith("via Product Stock Finder")).toBe(true);
+    expect(text.trimEnd().endsWith("via OmniShop")).toBe(true);
   });
 
   it("omits sections when data is missing", () => {
@@ -96,6 +96,6 @@ describe("buildWatchlistShareText", () => {
   it("renders minimal output for an empty watchlist", () => {
     const text = buildWatchlistShareText({ watchlist: [], displayCurrency: "USD", days: 30, now: NOW });
     expect(text).toContain("My Watchlist — 0 products");
-    expect(text.trimEnd().endsWith("via Product Stock Finder")).toBe(true);
+    expect(text.trimEnd().endsWith("via OmniShop")).toBe(true);
   });
 });

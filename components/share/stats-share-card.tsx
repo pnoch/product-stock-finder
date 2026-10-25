@@ -44,7 +44,7 @@ export const StatsShareCard = forwardRef<
         }}
       >
         <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>
-          Product Stock Finder
+          OmniShop
         </Text>
       </View>
       <View style={{ padding: 18 }}>
@@ -114,7 +114,7 @@ export const StatsShareCard = forwardRef<
           </Text>
         )}
         <Text style={{ color: colors.muted, fontSize: 10, marginTop: 10 }}>
-          via Product Stock Finder
+          via OmniShop
         </Text>
       </View>
     </View>

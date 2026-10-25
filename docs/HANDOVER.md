@@ -1,4 +1,4 @@
-# Handover — Product Stock Finder
+# Handover — OmniShop
 
 **Date:** 2026-09-13 (continued — Phases 202-205, see §7)
 **Branch:** `main` @ `c1e0478` (`v5.16.0` tagged) in sync with `origin/main`

@@ -485,7 +485,7 @@ describe("buildDropShareText", () => {
     const text = buildDropShareText(drops, "7d", "pct");
     expect(text).toContain("Price Drops (7d, by %)");
     expect(text).toContain("1. Widget (Store A)");
-    expect(text).toContain("via Product Stock Finder");
+    expect(text).toContain("via OmniShop");
   });
 
   it("truncates to 10 drops", () => {

@@ -126,7 +126,7 @@ export function buildShareText(input: PriceShareInput): string {
     );
   }
 
-  lines.push("", `Prices in ${displayCurrency} · via Product Stock Finder`);
+  lines.push("", `Prices in ${displayCurrency} · via OmniShop`);
   if (bestUrl) lines.push(bestUrl);
   return lines.join("\n");
 }

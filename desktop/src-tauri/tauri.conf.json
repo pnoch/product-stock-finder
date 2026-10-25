@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
-  "productName": "Product Stock Finder",
+  "productName": "OmniShop",
   "version": "5.28.2",
   "identifier": "com.app.stocktrackerpro",
   "build": {
@@ -13,7 +13,7 @@
     "withGlobalTauri": false,
     "windows": [
       {
-        "title": "Product Stock Finder",
+        "title": "OmniShop",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
@@ -35,11 +35,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "publisher": "Product Stock Finder",
-    "copyright": "Copyright \u00a9 2026 Product Stock Finder",
+    "publisher": "OmniShop",
+    "copyright": "Copyright \u00a9 2026 OmniShop",
     "category": "Utility",
     "shortDescription": "Track product availability and prices across distributors",
-    "longDescription": "Product Stock Finder tracks product availability and prices across 25 global electronics distributors. Maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history."
+    "longDescription": "OmniShop tracks product availability and prices across 25 global electronics distributors. Maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history."
   },
   "plugins": {
     "updater": {

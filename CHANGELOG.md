@@ -8,6 +8,9 @@ Notable changes to Product Stock Finder. The version is kept in lockstep across
 
 ### Changed
 
+- Rebranded the app to **OmniShop** with a new icon, adaptive icon, monochrome
+  notification icon, splash art, and matching web/desktop icons. The package /
+  bundle id, slug, scheme, storage keys, and signing key are unchanged.
 - Fresh installs start with an empty watchlist. The demo seed
   (`lib/launch-seed.ts`) is removed from the mobile and desktop launch paths;
   `lib/sample-data.ts` still supplies preview/detail listings for CRS804/CRS326

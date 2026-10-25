@@ -12,7 +12,7 @@ describe("withPwaHead", () => {
   it("injects the manifest link and iOS/theme meta before </head>", () => {
     const out = withPwaHead(html);
     expect(out).toContain('<link rel="manifest" href="/manifest.json" />');
-    expect(out).toContain('<meta name="theme-color" content="#0F52BA" />');
+    expect(out).toContain('<meta name="theme-color" content="#071046" />');
     expect(out).toContain('rel="apple-touch-icon"');
     expect(out).toContain('name="apple-mobile-web-app-capable"');
     expect(out.indexOf('<link rel="manifest"')).toBeLessThan(
@@ -32,8 +32,8 @@ describe("PWA manifest", () => {
   );
 
   it("is installable (name, start_url, standalone, id, scope)", () => {
-    expect(manifest.name).toBe("Product Stock Finder");
-    expect(manifest.short_name).toBe("Stock Finder");
+    expect(manifest.name).toBe("OmniShop");
+    expect(manifest.short_name).toBe("OmniShop");
     expect(manifest.start_url).toBe("/");
     expect(manifest.scope).toBe("/");
     expect(manifest.display).toBe("standalone");

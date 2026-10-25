@@ -177,7 +177,7 @@ export function AboutSection({ onDataCleared }: { onDataCleared?: () => void } =
         <SettingRow
           icon="info.circle.fill"
           label="Version"
-          description="Product Stock Finder"
+          description="OmniShop"
           right={
             <Text style={{ color: colors.muted, fontSize: 14 }}>
               {Constants.expoConfig?.version ?? "dev"}
@@ -294,7 +294,7 @@ export function AboutSection({ onDataCleared }: { onDataCleared?: () => void } =
 
       <View style={{ alignItems: "center", marginTop: 32 }}>
         <Text style={{ color: colors.muted, fontSize: 12 }}>
-          Product Stock Finder · v{Constants.expoConfig?.version ?? "dev"}
+          OmniShop · v{Constants.expoConfig?.version ?? "dev"}
         </Text>
         <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
           Find it anywhere. Landed to your door.

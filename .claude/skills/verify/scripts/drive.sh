@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives the Product Stock Finder Android app in a running emulator.
+# Drives the OmniShop Android app in a running emulator.
 #
 #   drive.sh doctor                 # is the instance worth driving?
 #   drive.sh launch                 # install + start the app, wait for Home

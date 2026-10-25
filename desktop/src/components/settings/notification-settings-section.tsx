@@ -30,7 +30,7 @@ export function NotificationSettingsSection({
     const { sendDesktopNotification } = await import("../../notifications");
     const shown = await sendDesktopNotification(
       "Notifications working",
-      "Product Stock Finder will alert you here.",
+      "OmniShop will alert you here.",
     );
     setTestNotifMessage(
       shown ? "Test notification sent" : "Notification permission not granted",

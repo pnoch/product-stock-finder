@@ -73,7 +73,7 @@ export function buildWebhookText(opts: {
 }): string {
   const lines = [opts.title, opts.body].filter((l) => l.trim().length > 0);
   if (opts.productUrl) lines.push(opts.productUrl);
-  lines.push("Manage alerts in Product Stock Finder settings.");
+  lines.push("Manage alerts in OmniShop settings.");
   return lines.join("\n");
 }
 
@@ -115,7 +115,7 @@ export async function sendTestWebhook(
   const ok = await postWebhook(
     target.provider,
     target.url,
-    "Test alert from Product Stock Finder - your webhook is configured correctly.",
+    "Test alert from OmniShop - your webhook is configured correctly.",
   );
   return ok
     ? { ok: true }

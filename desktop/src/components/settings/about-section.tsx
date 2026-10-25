@@ -30,7 +30,7 @@ export function AboutSection({
           <div>
             <p className="text-sm font-medium">Version</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Product Stock Finder
+              OmniShop
             </p>
           </div>
           <span className="text-sm text-gray-500 dark:text-gray-400">

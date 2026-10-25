@@ -1,13 +1,13 @@
 {
   "id": "/",
-  "name": "Product Stock Finder",
-  "short_name": "Stock Finder",
+  "name": "OmniShop",
+  "short_name": "OmniShop",
   "description": "Track product availability and prices across global electronics distributors.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0F52BA",
-  "theme_color": "#0F52BA",
+  "background_color": "#071046",
+  "theme_color": "#071046",
   "icons": [
     {
       "src": "/icon-192.png",

@@ -1,12 +1,12 @@
-# AGENTS.md — Product Stock Finder
+# AGENTS.md — OmniShop
 
 Guidance for AI coding agents working in this repository. Read this before touching any code.
 
 ## Project Overview
 
-**Product Stock Finder** (formerly "Stock Tracker Pro") is an Expo/React Native mobile + web app for tracking product availability and prices across 33 global electronics distributors (28 have registered parsers — health dashboard/classifyFetchStatus shows live status; MikroTik/Ubiquiti focus). Users maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history across distributors.
+**OmniShop** (formerly "Product Stock Finder" and "Stock Tracker Pro") is an Expo/React Native mobile + web app for tracking product availability and prices across 33 global electronics distributors (28 have registered parsers — health dashboard/classifyFetchStatus shows live status; MikroTik/Ubiquiti focus). Users maintain a watchlist, set price alerts, schedule back-order reminders, watch for restocks, and compare price history across distributors.
 
-- **App name in UI:** "Product Stock Finder" (see git log — was renamed from "Stock Tracker Pro"; do not revert)
+- **App name in UI:** "OmniShop" (rebranded from "Product Stock Finder"; the package/bundle id, slug, scheme, storage keys, and signing key are unchanged)
 - **Bundle ID:** `com.app.stocktrackerpro`
 - **Platform targets:** iOS, Android, Web (Expo web)
 - **State:** Local-first with optional backend sync. AsyncStorage is the source of truth when signed out; when signed in, `lib/sync.ts` syncs watchlist/alerts/reminders/settings with the server (last-write-wins + tombstones, server-authoritative timestamps). Live scraping runs through `lib/scrapers/` (plain HTTP → headless browser escalation with circuit breakers). The backend (Express + tRPC + Drizzle) is fully integrated — see server routers below. A fresh install starts with an **empty watchlist**; nothing is auto-seeded. `lib/sample-data.ts` still provides preview/detail listings for CRS804/CRS326 when a user adds them.

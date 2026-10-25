@@ -70,6 +70,6 @@ export function buildWatchlistShareText(input: WatchlistShareInput): string {
     );
   }
 
-  lines.push("", "via Product Stock Finder");
+  lines.push("", "via OmniShop");
   return lines.join("\n");
 }

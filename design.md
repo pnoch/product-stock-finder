@@ -1,4 +1,4 @@
-# Product Stock Finder — Design Document
+# OmniShop — Design Document
 
 ## App Overview
 
@@ -6,7 +6,7 @@ A professional mobile app for tracking product availability and prices across 33
 
 ## Brand Identity
 
-- **App Name:** Product Stock Finder
+- **App Name:** OmniShop
 - **Tagline:** "Never miss a deal. Never miss a restock."
 - **Primary Color:** #0F52BA (Sapphire Blue) — professional, trustworthy
 - **Accent Color:** #00C896 (Emerald Green) — in-stock status, positive signals

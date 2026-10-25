@@ -10,7 +10,7 @@ export function HeaderBar() {
   return (
     <div className="h-14 shrink-0 hidden lg:flex items-center px-6 border-b border-gray-200/60 dark:border-gray-700/60 bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm sticky top-0 z-10">
       <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-        Product Stock Finder
+        OmniShop
       </span>
       <div className="ml-auto flex items-center gap-3">
         <ConnectionBadge

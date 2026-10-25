@@ -132,7 +132,7 @@ export function DataSettingsSection() {
       }
       const backup = parseBackup(contents);
       if (!backup) {
-        setImportExportMessage("That file is not a valid Product Stock Finder backup.");
+        setImportExportMessage("That file is not a valid OmniShop backup.");
         return;
       }
       const [watchlist, alerts, reminders, stockWatches, settings] = await Promise.all([

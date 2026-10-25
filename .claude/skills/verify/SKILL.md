@@ -1,9 +1,9 @@
 ---
 name: verify
-description: Drive the Product Stock Finder Android app in a running emulator to prove user-facing behavior. Use when a change touches mobile UI, search, watchlist, alerts, or marketplace flows and you need real-device evidence, not just unit tests.
+description: Drive the OmniShop Android app in a running emulator to prove user-facing behavior. Use when a change touches mobile UI, search, watchlist, alerts, or marketplace flows and you need real-device evidence, not just unit tests.
 ---
 
-# Verify Product Stock Finder (Android emulator)
+# Verify OmniShop (Android emulator)
 
 Proves user-facing behavior by driving the installed app on an Android emulator
 and capturing screenshots. Unit tests cover logic; this covers the real app.

@@ -52,7 +52,7 @@ export function Home() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Product Stock Finder</h1>
+          <h1 className="text-2xl font-bold">OmniShop</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Find it anywhere. Landed to your door.</p>
         </div>
         <div className="flex items-center gap-2">

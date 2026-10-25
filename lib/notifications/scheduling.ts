@@ -195,7 +195,7 @@ export async function sendTestNotification(): Promise<boolean> {
     const { displayWebNotification } = await import("../web-notifications");
     return displayWebNotification(
       "Notifications Working!",
-      "Product Stock Finder will alert you when prices drop or items come back in stock.",
+      "OmniShop will alert you when prices drop or items come back in stock.",
     );
   }
   const granted = await requestNotificationPermissions();
@@ -204,7 +204,7 @@ export async function sendTestNotification(): Promise<boolean> {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: "Notifications Working!",
-        body: "Product Stock Finder will alert you when prices drop or items come back in stock.",
+        body: "OmniShop will alert you when prices drop or items come back in stock.",
         data: { type: "test" },
         sound: "default",
       },

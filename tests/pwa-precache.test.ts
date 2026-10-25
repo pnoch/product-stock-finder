@@ -7,7 +7,7 @@ describe("PWA precache", () => {
     const p = path.resolve("public/manifest.json");
     expect(fs.existsSync(p)).toBe(true);
     const json = JSON.parse(fs.readFileSync(p, "utf-8"));
-    expect(json.name).toBe("Product Stock Finder");
+    expect(json.name).toBe("OmniShop");
     expect(json.short_name).toBeTruthy();
     expect(json.start_url).toBe("/");
     expect(json.display).toBe("standalone");
