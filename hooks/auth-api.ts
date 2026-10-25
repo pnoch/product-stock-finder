@@ -2,7 +2,10 @@ import { log } from "@shared/log";
 import * as Api from "@/lib/_core/api";
 import * as Auth from "@/lib/_core/auth";
 import { getApiBaseUrl } from "@/constants/oauth";
-import { reconcileExpiredAccount } from "@/lib/expired-account";
+import {
+  reconcileExpiredAccount,
+  rememberExpiredAccount,
+} from "@/lib/expired-account";
 import { Platform } from "react-native";
 
 type ApiUser = NonNullable<Awaited<ReturnType<typeof Api.getMe>>> & {
@@ -229,7 +232,10 @@ export async function deleteAccount(
     throw new Error(data.error || "Delete account failed");
   }
   // The account is gone server-side, so its local rows are orphaned. Clear
-  // them before the next account signs in on this device.
+  // them before the next account signs in on this device. Remember the id
+  // first so a failed wipe is still reconciled on the next sign-in.
+  const cached = await Auth.getUserInfo();
+  if (cached?.id != null) await rememberExpiredAccount(cached.id);
   try {
     const { clearAccountData } = await import("@/lib/storage");
     await clearAccountData();
