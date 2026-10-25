@@ -1,0 +1,40 @@
+name: Native foundation
+
+on:
+  push:
+    paths:
+      - "native/**"
+      - ".github/workflows/native.yml"
+  pull_request:
+    paths:
+      - "native/**"
+      - ".github/workflows/native.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-and-jvm:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+      - name: Verify shared rules, SQLite and presentation
+        run: ./gradlew :core:jvmTest :connectors:jvmTest :data:jvmTest :app:jvmTest :data:verifyCommonMainOmniShopDatabaseMigration --console=plain
+      - name: Compile desktop and build Android preview
+        run: ./gradlew :desktopApp:classes :androidApp:assembleDebug --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: omnishop-native-debug-apk
+          path: native/androidApp/build/outputs/apk/debug/androidApp-debug.apk

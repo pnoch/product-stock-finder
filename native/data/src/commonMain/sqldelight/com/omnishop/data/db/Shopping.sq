@@ -1,0 +1,159 @@
+CREATE TABLE saved_product (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL CHECK (length(trim(title)) > 0),
+    source_url TEXT,
+    saved_at INTEGER NOT NULL
+);
+
+CREATE INDEX saved_product_saved_at ON saved_product(saved_at, id);
+
+CREATE TABLE listing (
+    id TEXT NOT NULL PRIMARY KEY,
+    product_id TEXT NOT NULL REFERENCES saved_product(id) ON DELETE CASCADE,
+    source_label TEXT NOT NULL CHECK (length(trim(source_label)) > 0),
+    price_minor INTEGER NOT NULL CHECK (price_minor >= 0),
+    currency_code TEXT NOT NULL,
+    currency_scale INTEGER NOT NULL CHECK (currency_scale BETWEEN 0 AND 4),
+    shipping_minor INTEGER CHECK (shipping_minor >= 0),
+    taxes_minor INTEGER CHECK (taxes_minor >= 0),
+    fees_minor INTEGER CHECK (fees_minor >= 0),
+    discount_minor INTEGER NOT NULL CHECK (discount_minor >= 0)
+);
+
+CREATE INDEX listing_product_id ON listing(product_id, id);
+
+CREATE TABLE price_observation (
+    listing_id TEXT NOT NULL REFERENCES listing(id) ON DELETE CASCADE,
+    observed_at INTEGER NOT NULL,
+    price_minor INTEGER NOT NULL CHECK (price_minor >= 0),
+    currency_code TEXT NOT NULL,
+    currency_scale INTEGER NOT NULL CHECK (currency_scale BETWEEN 0 AND 4),
+    source TEXT NOT NULL,
+    PRIMARY KEY (listing_id, observed_at)
+);
+
+CREATE TABLE preference (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+CREATE TABLE purchase_order (
+    id TEXT NOT NULL PRIMARY KEY,
+    merchant TEXT NOT NULL CHECK (length(trim(merchant)) > 0),
+    created_at INTEGER NOT NULL
+);
+
+CREATE INDEX purchase_order_created_at ON purchase_order(created_at, id);
+
+CREATE TABLE order_item (
+    id TEXT NOT NULL PRIMARY KEY,
+    order_id TEXT NOT NULL REFERENCES purchase_order(id) ON DELETE CASCADE,
+    title TEXT NOT NULL CHECK (length(trim(title)) > 0),
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    UNIQUE (id, order_id)
+);
+
+CREATE INDEX order_item_order_id ON order_item(order_id);
+
+CREATE TABLE shipment (
+    id TEXT NOT NULL PRIMARY KEY,
+    order_id TEXT NOT NULL REFERENCES purchase_order(id) ON DELETE CASCADE,
+    tracking_number TEXT NOT NULL,
+    carrier_label TEXT NOT NULL,
+    status TEXT NOT NULL,
+    UNIQUE (id, order_id)
+);
+
+CREATE INDEX shipment_order_id ON shipment(order_id);
+
+CREATE TABLE shipment_item (
+    shipment_id TEXT NOT NULL,
+    order_id TEXT NOT NULL,
+    order_item_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    PRIMARY KEY (shipment_id, order_item_id),
+    FOREIGN KEY (shipment_id, order_id) REFERENCES shipment(id, order_id) ON DELETE CASCADE,
+    FOREIGN KEY (order_item_id, order_id) REFERENCES order_item(id, order_id) ON DELETE CASCADE
+);
+
+CREATE INDEX shipment_item_order_id ON shipment_item(order_id);
+
+CREATE TABLE tracking_event (
+    shipment_id TEXT NOT NULL REFERENCES shipment(id) ON DELETE CASCADE,
+    source TEXT NOT NULL,
+    source_event_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    description TEXT NOT NULL,
+    method TEXT NOT NULL CHECK (method IN ('MANUAL', 'PROVIDER')),
+    imported_at INTEGER NOT NULL,
+    occurred_at INTEGER,
+    original_timestamp TEXT,
+    original_timezone TEXT,
+    PRIMARY KEY (shipment_id, source, source_event_id)
+);
+
+CREATE INDEX tracking_event_timeline ON tracking_event(shipment_id, imported_at, source_event_id);
+
+saveProduct:
+INSERT INTO saved_product VALUES (?, ?, ?, ?);
+
+savePreference:
+INSERT OR REPLACE INTO preference VALUES (?, ?);
+
+findPreference:
+SELECT value FROM preference WHERE key = ?;
+
+listProducts:
+SELECT * FROM saved_product ORDER BY saved_at DESC, id LIMIT :page_size OFFSET :page_offset;
+
+insertListing:
+INSERT INTO listing VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+insertObservation:
+INSERT INTO price_observation VALUES (?, ?, ?, ?, ?, ?);
+
+offersForProducts:
+SELECT * FROM listing WHERE product_id IN :product_ids ORDER BY product_id, id;
+
+insertOrder:
+INSERT INTO purchase_order VALUES (?, ?, ?);
+
+insertOrderItem:
+INSERT INTO order_item VALUES (?, ?, ?, ?);
+
+listOrders:
+SELECT * FROM purchase_order ORDER BY created_at DESC, id LIMIT :page_size OFFSET :page_offset;
+
+findOrder:
+SELECT * FROM purchase_order WHERE id = ?;
+
+orderItems:
+SELECT * FROM order_item WHERE order_id = ? ORDER BY id;
+
+insertShipment:
+INSERT INTO shipment VALUES (?, ?, ?, ?, ?);
+
+insertAllocation:
+INSERT INTO shipment_item VALUES (?, ?, ?, ?);
+
+orderShipments:
+SELECT * FROM shipment WHERE order_id = ? ORDER BY id;
+
+orderAllocations:
+SELECT * FROM shipment_item WHERE order_id = ? ORDER BY shipment_id, order_item_id;
+
+findShipment:
+SELECT * FROM shipment WHERE id = ?;
+
+updateShipmentStatus:
+UPDATE shipment SET status = ? WHERE id = ?;
+
+insertEvent:
+INSERT OR IGNORE INTO tracking_event VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+findEvent:
+SELECT * FROM tracking_event WHERE shipment_id = ? AND source = ? AND source_event_id = ?;
+
+shipmentEvents:
+SELECT * FROM tracking_event WHERE shipment_id = ?
+ORDER BY coalesce(occurred_at, imported_at), imported_at, source_event_id;

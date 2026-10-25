@@ -12,6 +12,7 @@ android
 ios
 .expo
 desktop/src-tauri/target
+native
 docs
 references
 *.md
