@@ -87,7 +87,8 @@ describe.skipIf(!runDbTests)("notification health events (DB)", () => {
 
     const pending = await pullPendingEvents("dev-h", userId);
     expect(pending.map((e) => e.type)).toEqual(["health", "health"]);
-    expect(pending.map((e) => e.id)).toEqual(["h1", "h1-recovery"]);
+    // Event ids are generated server-side, so identify the rows by title.
+    expect(pending.map((e) => e.title)).toEqual(["T-h1", "T-h1-recovery"]);
     // Once pulled they are marked delivered.
     expect(await pullPendingEvents("dev-h", userId)).toEqual([]);
   });

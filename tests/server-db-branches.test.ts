@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   deviceNotificationConfigs,
+  sharedWatchlistMembers,
   sharedWatchlists,
   trendingProducts,
   users,
@@ -111,7 +112,7 @@ describe.skipIf(!runDbTests)("DB-only branches", () => {
     expect(row!.quietHours).toBeNull();
   });
 
-  it("inviting an unknown user reports NOT_FOUND, not a 500", async () => {
+  it("inviting an unknown user is non-enumerable and stores nothing", async () => {
     const db = await getDb();
     await db!.insert(users).values({ openId: "owner-invite" });
     const [owner] = await db!
@@ -127,7 +128,12 @@ describe.skipIf(!runDbTests)("DB-only branches", () => {
     const caller = appRouter.createCaller(context(owner!.id));
     await expect(
       caller.sharedWatchlists.invite({ token: "tok-invite", userId: 99999999 }),
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    ).resolves.toEqual({ invited: true });
+    const members = await db!
+      .select({ userId: sharedWatchlistMembers.userId })
+      .from(sharedWatchlistMembers)
+      .where(eq(sharedWatchlistMembers.token, "tok-invite"));
+    expect(members).toHaveLength(0);
   });
 
   it("a zero-row trending refresh keeps the existing rows", async () => {

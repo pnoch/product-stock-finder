@@ -141,7 +141,7 @@ describe.skipIf(!runDbTests)("shared watchlists router (DB)", () => {
     expect(memberView.members.some((m) => m.name === "memberb")).toBe(true);
   });
 
-  it("invite rejects unknown tokens, non-owners, and unknown user ids", async () => {
+  it("invite rejects unknown tokens and non-owners, and hides unknown user ids", async () => {
     const owner = await seedUser("owner");
     const outsider = await seedUser("outsider");
     const target = await seedUser("target");
@@ -154,10 +154,13 @@ describe.skipIf(!runDbTests)("shared watchlists router (DB)", () => {
     await expect(outsider.caller.invite({ token, userId: target.id })).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
-    // Unknown user id -> FK error mapped to NOT_FOUND, not INTERNAL_SERVER_ERROR.
-    await expect(owner.caller.invite({ token, userId: 2_000_000_000 })).rejects.toMatchObject({
-      code: "NOT_FOUND",
+    // Unknown user id -> the same success shape as a real invite, and nothing
+    // is stored, so an owner cannot enumerate user ids by probing.
+    await expect(owner.caller.invite({ token, userId: 2_000_000_000 })).resolves.toEqual({
+      invited: true,
     });
+    const roster = await owner.caller.members({ token });
+    expect(roster.members).toHaveLength(0);
   });
 
   it("inviteByEmail rejects non-owners and expired shares, and is non-enumerable", async () => {
@@ -181,7 +184,7 @@ describe.skipIf(!runDbTests)("shared watchlists router (DB)", () => {
     // Unknown account: the same success shape as a real invite, but nothing is
     // stored — so an owner can't use it to discover which emails are registered.
     const ghost = await owner.caller.inviteByEmail({ token, email: "ghost@example.com" });
-    expect(ghost).toMatchObject({ invited: true, name: "ghost@example.com" });
+    expect(ghost).toEqual({ invited: true });
     const roster = await owner.caller.members({ token });
     expect(roster.members).toHaveLength(0);
   });
