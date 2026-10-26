@@ -4,8 +4,8 @@ import UIKit
 import UniformTypeIdentifiers
 
 final class DocumentPickerBackupFiles: NSObject, UIDocumentPickerDelegate {
-    private var pendingSave: ((Bool) -> Void)?
-    private var pendingOpen: ((KotlinByteArray?) -> Void)?
+    private var pendingSave: ((String?) -> KotlinUnit)?
+    private var pendingOpen: ((KotlinByteArray?) -> KotlinUnit)?
 
     func makeCallbacks() -> IosBackupCallbacks {
         IosBackupCallbacks(
@@ -14,11 +14,12 @@ final class DocumentPickerBackupFiles: NSObject, UIDocumentPickerDelegate {
                 do {
                     try bytes.toData().write(to: url, options: .atomic)
                 } catch {
-                    result(false)
-                    return
+                    result("Could not write the backup file")
+                    return KotlinUnit()
                 }
                 self.pendingSave = result
                 self.present(UIDocumentPickerViewController(forExporting: [url], asCopy: true))
+                return KotlinUnit()
             },
             open: { result in
                 self.pendingOpen = result
@@ -26,6 +27,7 @@ final class DocumentPickerBackupFiles: NSObject, UIDocumentPickerDelegate {
                     forOpeningContentTypes: [UTType.data],
                     asCopy: true
                 ))
+                return KotlinUnit()
             }
         )
     }
@@ -33,19 +35,19 @@ final class DocumentPickerBackupFiles: NSObject, UIDocumentPickerDelegate {
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         if let save = pendingSave {
             pendingSave = nil
-            save(true)
+            _ = save(nil)
             return
         }
         guard let open = pendingOpen, let url = urls.first else { return }
         pendingOpen = nil
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-        open(KotlinByteArray.from((try? Data(contentsOf: url)) ?? Data()))
+        _ = open(KotlinByteArray.from((try? Data(contentsOf: url)) ?? Data()))
     }
 
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-        pendingSave?(false)
-        pendingOpen?(nil)
+        _ = pendingSave?("Backup cancelled")
+        _ = pendingOpen?(nil)
         pendingSave = nil
         pendingOpen = nil
     }

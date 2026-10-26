@@ -44,14 +44,15 @@ class CallbackSecretStore(private val callbacks: IosSecretCallbacks) : SecretSto
 }
 
 class IosBackupCallbacks(
-    val save: (String, ByteArray, (Boolean) -> Unit) -> Unit,
+    /** Null means success; a non-null string is a user-facing failure reason. */
+    val save: (String, ByteArray, (String?) -> Unit) -> Unit,
     val open: ((ByteArray?) -> Unit) -> Unit,
 )
 
 class CallbackBackupFiles(private val callbacks: IosBackupCallbacks) : BackupFiles {
     override suspend fun save(defaultName: String, bytes: ByteArray): Boolean =
         suspendCancellableCoroutine { continuation ->
-            callbacks.save(defaultName, bytes) { continuation.resume(it) }
+            callbacks.save(defaultName, bytes) { error -> continuation.resume(error == null) }
         }
 
     override suspend fun open(): ByteArray? =
