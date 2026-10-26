@@ -141,11 +141,16 @@ Linux packaged executable:
 | --- | --- |
 | Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/restart/Thai; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated) |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb) and backup uses a native file dialog (unit-tested) |
-| Windows/macOS | Shared JVM code exists; OS-native packaging and integration unverified |
+| Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
 | iOS | KMP arm64/simulator targets declared; no Xcode host yet; not built or run on this Linux host |
 
-`.github/workflows/native.yml` defines an Android/JVM gate and APK artifact.
-It has not been run remotely until these changes are committed/pushed.
+`.github/workflows/native.yml` gates Android/JVM tests and the debug APK.
+`.github/workflows/native-desktop.yml` runs JVM tests and
+`:desktopApp:createDistributable` on Ubuntu, macOS, and Windows, uploading each
+app image. Both are green on the current branch. These are development
+artifacts: they are not code-signed, notarized, or release-ready installers.
+The desktop installer version is `1.0.0` because macOS rejects a leading zero;
+the application version remains `0.1.0`.
 
 ## Reproduce Android smoke evidence
 

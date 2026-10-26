@@ -175,6 +175,9 @@ foundation plan.
   password-encrypted snapshot and re-encrypt it with the restoring device key.
   Android E2E proves address save/read across a restart; Linux desktop startup
   does not exercise the keyring (no Secret Service under Xvfb).
-- No real carrier, iOS Keychain adapter, iOS host, or Windows/macOS native
-  platform validation is claimed. See `native/README.md` for follow-on gates.
+- Desktop packaging now passes in CI on macOS, Windows, and Linux. These are
+  unsigned app images; no interactive UI run or installer signing on macOS/
+  Windows is claimed.
+- No real carrier, iOS Keychain adapter, or iOS host is claimed. See
+  `native/README.md` for follow-on gates.
 - Work is on `native/omnishop-foundation`; no commit/push was requested.
