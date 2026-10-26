@@ -218,6 +218,11 @@ foundation plan.
   remain follow-on work. Deadline reminders, signing and peer sync also remain.
 - Android smoke still covers the existing purchase/delivery/return flow; receipt
   file-picker interaction is unit-tested only.
+- A release-signed native APK (existing keystore, CN=Product Stock Finder,
+  package `.nativepreview`, version 1/0.1.0) was installed after removing the
+  debug build and passed the same emulator smoke. A Linux `.deb` (unsigned,
+  installer 1.0.0) was also produced. iOS and Windows/macOS signing,
+  notarization and store upload remain blocked on external credentials.
 - Work is on `native/omnishop-foundation`. The returns/refunds increment is
   verified locally; consult the native Actions workflows for remote
   iOS/Windows/macOS validation of the current revision.

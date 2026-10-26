@@ -15,6 +15,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--serial", required=True)
     parser.add_argument("--reset", action="store_true", help="Clear only the native preview's app data")
+    parser.add_argument("--uninstall", action="store_true", help="Uninstall first (required when switching signing keys)")
+    parser.add_argument("--apk", type=Path, default=ROOT / "androidApp/build/outputs/apk/debug/androidApp-debug.apk")
     parser.add_argument("--evidence", type=Path, default=Path("/tmp/opencode/omnishop-native-evidence"))
     args = parser.parse_args()
     args.evidence.mkdir(parents=True, exist_ok=True)
@@ -86,7 +88,12 @@ def main():
     def launch():
         adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.omnishop.android.MainActivity")
 
-    adb("install", "-r", str(ROOT / "androidApp/build/outputs/apk/debug/androidApp-debug.apk"))
+    if args.uninstall:
+        subprocess.run(
+            ["adb", "-s", args.serial, "uninstall", PACKAGE],
+            capture_output=True, text=True,
+        )
+    adb("install", "-r", str(args.apk))
     if args.reset:
         adb("shell", "pm", "clear", PACKAGE)
     launch()

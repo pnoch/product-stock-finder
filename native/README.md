@@ -168,9 +168,33 @@ iOS (requires macOS and Xcode):
 `.xcodeproj` is gitignored; `project.yml` and Swift sources are the inputs.
 
 APK: `androidApp/build/outputs/apk/debug/androidApp-debug.apk`.
-Preview application ID: `com.app.stocktrackerpro.nativepreview`. This separate,
-debug-signed package installs alongside the old app; it is not a signed release
-update and does not import the old application's data.
+Preview application ID: `com.app.stocktrackerpro.nativepreview`. This separate
+package installs alongside the old app and does not read or import its data.
+
+## Release signing
+
+The Android release build was signed and smoke-tested locally. The existing
+release keystore is reused (`credentials/release.keystore`, configured by the
+gitignored `credentials/keystore.properties`); do not commit either file. The
+signing certificate DN is `CN=Product Stock Finder` even though the package is
+the separate native preview.
+
+```bash
+./gradlew :androidApp:assembleRelease
+apksigner sign --ks ../credentials/release.keystore   --ks-key-alias <alias> --ks-pass pass:<password>   --key-pass pass:<password>   --out /tmp/omnishop-native-0.1.0-signed.apk   androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk
+apksigner verify --print-certs /tmp/omnishop-native-0.1.0-signed.apk
+```
+
+The verified release artifact was installed after uninstalling the debug build
+(different signing key) and passed the same emulator smoke via
+`--apk <signed-apk>`. Release artifacts are generated/distributed outside git
+and are not part of the source commit.
+
+`./gradlew :desktopApp:packageDistributionForCurrentOS` produces a Linux `.deb`
+(installer version 1.0.0) as an unsigned development build. CI still produces
+unsigned Windows/macOS app images. No Windows/macOS code signing,
+notarization, or App Store/Play upload is configured. iOS has no signing team,
+export options, or device build.
 
 Linux packaged executable:
 `desktopApp/build/compose/binaries/main/app/OmniShop/bin/OmniShop`.
@@ -179,7 +203,7 @@ Linux packaged executable:
 
 | Platform | Current evidence |
 | --- | --- |
-| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). The carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URL generation and receipt attachment/list/save/delete are unit-tested; the receipt file picker is not automated |
+| Android | Debug and release-signed APKs built; the release build was exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades. Signature `CN=Product Stock Finder`, package `.nativepreview`, versionCode 1 / versionName 0.1.0. Encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). Carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URLs and receipts are unit-tested; receipt file picker is not automated |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb) and backup uses a native file dialog (unit-tested) |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
 | iOS | XcodeGen host builds and launches in a simulator on macOS CI; Compose UI renders, SQLite opens, CryptoKit backs backup/address encryption, Keychain stores the device key, and the document picker is wired. No device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
@@ -353,7 +377,7 @@ and it does not provide key escrow. Keep the password out of the backup file.
 2. Verify the Thailand Post adapter against a real account/tracking number, then
    add bounded retry/token caching and a carrier status-code mapping review.
 3. Exercise iOS/desktop sensitive-field, backup file-picker, CSV-import and
-   carrier-refresh interactions, then complete signing/notarization and device
-   distribution.
+   carrier-refresh interactions, then add iOS/desktop signing/notarization and
+   store distribution.
 4. Expand offers/variants, order editing and pagination.
 5. Native sharing/background tasks and encrypted peer synchronization.

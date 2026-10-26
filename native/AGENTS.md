@@ -17,6 +17,10 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   Linux cannot prove iOS, Windows, or macOS packaging.
 - The preview package is separate from the old app. Do not replace the shared
   release APK/page with this development preview without a user request.
+- Release signing uses the existing gitignored keystore/properties; never commit
+  keys, signed APKs, `.deb`/installer artifacts, or generated distribution files.
+  The native preview remains `com.app.stocktrackerpro.nativepreview`; do not
+  change the package id or signing key without an explicit migration decision.
 - Never commit a local database containing user records, local.properties,
   signing keys, build output, or Gradle caches. SQLDelight `databases/*.db`
   files are empty schema snapshots, not exported user databases; retain the
