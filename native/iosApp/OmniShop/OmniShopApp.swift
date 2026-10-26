@@ -6,7 +6,7 @@ import OmniShopShared
 struct OmniShopIOSApp: App {
     var body: some Scene {
         WindowGroup {
-            ComposeView().ignoresSafeArea()
+            ComposeView()
         }
     }
 }
