@@ -108,7 +108,9 @@ Compatibility references checked during implementation:
 - <https://github.com/sqldelight/sqldelight/releases/tag/2.4.1>
 
 The Android AAR metadata requires SDK 37. AGP 9.3.1 requires Gradle 9.5.0;
-Gradle 9.4.1/SDK 36 are insufficient for this combination.
+Gradle 9.4.1/SDK 36 are insufficient for this combination. The Kotlin/Native
+toolchain archive is pinned in the verification metadata; Apple targets link
+only on macOS.
 
 ## Build and run
 
@@ -142,9 +144,10 @@ Linux packaged executable:
 | Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/restart/Thai; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated) |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb) and backup uses a native file dialog (unit-tested) |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
-| iOS | KMP arm64/simulator targets declared; no Xcode host yet; not built or run on this Linux host |
+| iOS | `:app:linkDebugFrameworkIosSimulatorArm64` succeeds on a macOS CI runner; the shared static framework is not yet hosted in an Xcode app, and the Keychain adapter/file picker are not implemented |
 
-`.github/workflows/native.yml` gates Android/JVM tests and the debug APK.
+`.github/workflows/native.yml` gates Android/JVM tests, the debug APK, and the
+iOS simulator framework link.
 `.github/workflows/native-desktop.yml` runs JVM tests and
 `:desktopApp:createDistributable` on Ubuntu, macOS, and Windows, uploading each
 app image. Both are green on the current branch. These are development

@@ -178,6 +178,9 @@ foundation plan.
 - Desktop packaging now passes in CI on macOS, Windows, and Linux. These are
   unsigned app images; no interactive UI run or installer signing on macOS/
   Windows is claimed.
+- The shared Compose app links as an iOS simulator framework on macOS CI,
+  proving the shared Kotlin/Compose code compiles for iOS. There is still no
+  Xcode host, iOS Keychain adapter, iOS file picker, or runnable iOS app.
 - No real carrier, iOS Keychain adapter, or iOS host is claimed. See
   `native/README.md` for follow-on gates.
 - Work is on `native/omnishop-foundation`; no commit/push was requested.
