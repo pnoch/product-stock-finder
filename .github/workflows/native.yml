@@ -129,6 +129,17 @@ jobs:
           sleep 8
           xcrun simctl io "$UDID" screenshot /tmp/omnishop-ios.png
           xcrun simctl spawn "$UDID" launchctl list | grep -q "com.omnishop.ios"
+      - name: Show iOS runtime logs
+        if: failure()
+        run: |
+          UDID=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for xs in d.values() for x in xs if x["name"].startswith("iPhone")))')
+          echo "--- crash reports ---"
+          find "$HOME/Library/Logs/DiagnosticReports" -name 'OmniShop*' -mmin -15 -print -exec cat {} \; 2>/dev/null | tail -160 || true
+          echo "--- simulator log ---"
+          xcrun simctl spawn "$UDID" log show --last 4m --style compact --predicate 'process == "OmniShop"' 2>/dev/null | tail -160 || true
+          echo "--- app bundle ---"
+          APP=$(xcrun simctl get_app_container "$UDID" com.omnishop.ios app 2>/dev/null || true)
+          [ -n "$APP" ] && find "$APP" -maxdepth 3 -type f | head -80 || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
