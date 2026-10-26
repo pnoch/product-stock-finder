@@ -25,6 +25,9 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "OmniShop"
             packageVersion = "0.1.0"
+            macOS {
+                bundleID = "com.omnishop.desktop"
+            }
         }
     }
 }

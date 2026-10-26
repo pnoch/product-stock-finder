@@ -60,6 +60,10 @@ jobs:
         run: ./gradlew :core:jvmTest :connectors:jvmTest :data:jvmTest :app:jvmTest --console=plain
       - name: Package the desktop app
         run: ./gradlew :desktopApp:createDistributable --console=plain
+      - name: Show packaging logs on failure
+        if: failure()
+        run: |
+          find desktopApp/build/compose/logs -type f -print -exec cat {} \; || true
       - uses: actions/upload-artifact@v4
         with:
           name: omnishop-desktop-${{ runner.os }}
