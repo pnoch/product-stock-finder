@@ -26,6 +26,7 @@ targets:
           - "$(inherited)"
           - "-framework"
           - "OmniShopShared"
+          - "-lsqlite3"
     preBuildScripts:
       - name: Build shared OmniShop framework
         basedOnDependencyAnalysis: false
