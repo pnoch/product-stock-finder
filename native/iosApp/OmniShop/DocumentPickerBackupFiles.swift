@@ -15,11 +15,10 @@ final class DocumentPickerBackupFiles: NSObject, UIDocumentPickerDelegate {
                     try bytes.toData().write(to: url, options: .atomic)
                 } catch {
                     result("Could not write the backup file")
-                    return KotlinUnit()
+                    return
                 }
                 self.pendingSave = result
                 self.present(UIDocumentPickerViewController(forExporting: [url], asCopy: true))
-                return KotlinUnit()
             },
             open: { result in
                 self.pendingOpen = result
@@ -27,7 +26,6 @@ final class DocumentPickerBackupFiles: NSObject, UIDocumentPickerDelegate {
                     forOpeningContentTypes: [UTType.data],
                     asCopy: true
                 ))
-                return KotlinUnit()
             }
         )
     }
