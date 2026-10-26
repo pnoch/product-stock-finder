@@ -5,6 +5,8 @@ import com.omnishop.core.ShipmentStatus
 import com.omnishop.core.ReturnStatus
 import com.omnishop.core.Currency
 import com.omnishop.core.Money
+import com.omnishop.carriers.CarrierEvent
+import com.omnishop.core.ObservationMethod
 import com.omnishop.data.ShoppingStore
 import com.omnishop.data.inMemory
 import kotlinx.coroutines.Dispatchers
@@ -98,6 +100,30 @@ class ShopPresenterTest {
             presenter.attachShipment("TRACK", "Manual", listOf(order.items.single().id to 2))
             assertNotNull(presenter.state.value.error)
             assertTrue(store.getOrder(order.id)!!.shipments.isEmpty())
+        }
+    }
+
+    @Test fun recordsProviderTrackingEventsOnceAndRejectsAnotherOrdersShipment() = runBlocking {
+        ShoppingStore.inMemory().use { store ->
+            var id = 0
+            val presenter = ShopPresenter(store, { "id-${++id}" }, { 100L }, Dispatchers.Unconfined)
+            presenter.createOrder("Shop", listOf(DraftItem("Tablet", 1)))
+            val order = presenter.state.value.selectedOrder!!
+            presenter.attachShipment("ED852942182TH", "Thailand Post", listOf(order.items.single().id to 1), "thailandpost")
+            val shipment = presenter.state.value.selectedOrder!!.shipments.single()
+            assertEquals("thailandpost", shipment.carrierId)
+            val event = CarrierEvent("event-1", ShipmentStatus.IN_TRANSIT, "อยู่ระหว่างการขนส่ง",
+                1_563_534_746_000L, "19/07/2562 18:12:26+07:00", "+07:00")
+            presenter.recordCarrierEvents(shipment.id, "thailandpost", listOf(event))
+            val saved = presenter.state.value.events.getValue(shipment.id).single()
+            assertEquals(ObservationMethod.PROVIDER, saved.method)
+            assertEquals(1_563_534_746_000L, saved.occurredAtEpochMillis)
+            presenter.recordCarrierEvents(shipment.id, "thailandpost", listOf(event))
+            assertEquals(1, presenter.state.value.events.getValue(shipment.id).size)
+
+            presenter.createOrder("Other", listOf(DraftItem("Phone", 1)))
+            presenter.recordCarrierEvents(shipment.id, "thailandpost", listOf(event))
+            assertTrue(presenter.state.value.error != null)
         }
     }
 

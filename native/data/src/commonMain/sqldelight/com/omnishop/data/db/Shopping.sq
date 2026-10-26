@@ -61,6 +61,7 @@ CREATE TABLE shipment (
     tracking_number TEXT NOT NULL,
     carrier_label TEXT NOT NULL,
     status TEXT NOT NULL,
+    carrier_id TEXT,
     UNIQUE (id, order_id)
 );
 
@@ -131,7 +132,7 @@ orderItems:
 SELECT * FROM order_item WHERE order_id = ? ORDER BY id;
 
 insertShipment:
-INSERT INTO shipment VALUES (?, ?, ?, ?, ?);
+INSERT INTO shipment VALUES (?, ?, ?, ?, ?, ?);
 
 insertAllocation:
 INSERT INTO shipment_item VALUES (?, ?, ?, ?);

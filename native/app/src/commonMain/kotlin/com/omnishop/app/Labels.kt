@@ -17,6 +17,9 @@ enum class Label {
     RETURNS, MANAGE_RETURNS, RETURN_MANUAL_NOTICE, RECORD_RETURN, RETURN_REASON, RETURN_QUANTITY,
     NO_RETURNS, NO_RETURNABLE_UNITS, UPDATE_RETURN, REFUND_AMOUNT, RECORDED_REFUND,
     RETURN_TRACKING, RETURN_NOTES,
+    CARRIER_CONNECTION, THAILAND_POST_API_KEY, API_KEY_HINT, API_KEY_SAVED, API_KEY_CLEARED,
+    API_KEY_CLEAR, CONFIGURED, NOT_CONFIGURED, REFRESH_TRACKING, CARRIER_NOT_CONFIGURED,
+    TRACKING_UPDATED, CARRIER_EVENT, CARRIER_MODE, MANUAL_CARRIER, CARRIER_TRACKING, PACKAGE_DETAILS,
 }
 
 private val english = mapOf(
@@ -59,6 +62,14 @@ private val english = mapOf(
     Label.UPDATE_RETURN to "Update return", Label.REFUND_AMOUNT to "Refund amount",
     Label.RECORDED_REFUND to "Recorded refund", Label.RETURN_TRACKING to "Return tracking number (optional)",
     Label.RETURN_NOTES to "Return / refund notes (optional)",
+    Label.CARRIER_CONNECTION to "Carrier connections", Label.THAILAND_POST_API_KEY to "Thailand Post API key",
+    Label.API_KEY_HINT to "Stored only in the device's secure store. Requests go directly to Thailand Post; no OmniShop server is involved.",
+    Label.API_KEY_SAVED to "API key saved.", Label.API_KEY_CLEARED to "API key removed.",
+    Label.API_KEY_CLEAR to "Remove key", Label.CONFIGURED to "Configured", Label.NOT_CONFIGURED to "Not configured",
+    Label.REFRESH_TRACKING to "Refresh tracking", Label.CARRIER_NOT_CONFIGURED to "Add a Thailand Post API key in Profile first.",
+    Label.TRACKING_UPDATED to "Tracking refreshed.", Label.CARRIER_EVENT to "carrier event",
+    Label.CARRIER_MODE to "Carrier connection", Label.MANUAL_CARRIER to "Manual",
+    Label.CARRIER_TRACKING to "Carrier tracking — refresh for updates", Label.PACKAGE_DETAILS to "Package details",
 )
 
 private val thai = mapOf(
@@ -101,6 +112,14 @@ private val thai = mapOf(
     Label.UPDATE_RETURN to "อัปเดตการคืนสินค้า", Label.REFUND_AMOUNT to "จำนวนเงินคืน",
     Label.RECORDED_REFUND to "เงินคืนที่บันทึกไว้", Label.RETURN_TRACKING to "หมายเลขติดตามพัสดุคืน (ไม่จำเป็น)",
     Label.RETURN_NOTES to "หมายเหตุการคืนสินค้า / เงิน (ไม่จำเป็น)",
+    Label.CARRIER_CONNECTION to "การเชื่อมต่อผู้ขนส่ง", Label.THAILAND_POST_API_KEY to "คีย์ API ไปรษณีย์ไทย",
+    Label.API_KEY_HINT to "เก็บไว้ในระบบจัดเก็บความปลอดภัยของอุปกรณ์เท่านั้น คำขอจะส่งตรงไปยังไปรษณีย์ไทย ไม่ผ่านเซิร์ฟเวอร์ OmniShop",
+    Label.API_KEY_SAVED to "บันทึกคีย์ API แล้ว", Label.API_KEY_CLEARED to "ลบคีย์ API แล้ว",
+    Label.API_KEY_CLEAR to "ลบคีย์", Label.CONFIGURED to "ตั้งค่าแล้ว", Label.NOT_CONFIGURED to "ยังไม่ได้ตั้งค่า",
+    Label.REFRESH_TRACKING to "อัปเดตการติดตาม", Label.CARRIER_NOT_CONFIGURED to "กรุณาเพิ่มคีย์ API ไปรษณีย์ไทยในโปรไฟล์ก่อน",
+    Label.TRACKING_UPDATED to "อัปเดตการติดตามแล้ว", Label.CARRIER_EVENT to "เหตุการณ์จากผู้ขนส่ง",
+    Label.CARRIER_MODE to "การเชื่อมต่อผู้ขนส่ง", Label.MANUAL_CARRIER to "ด้วยตนเอง",
+    Label.CARRIER_TRACKING to "ติดตามผ่านผู้ขนส่ง — กดอัปเดตเพื่อรับข้อมูลล่าสุด", Label.PACKAGE_DETAILS to "รายละเอียดพัสดุ",
 )
 
 fun AppLanguage.text(label: Label): String = (if (this == AppLanguage.THAI) thai else english).getValue(label)

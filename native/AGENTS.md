@@ -10,6 +10,8 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   merge product variants, orders, or tracking observations.
 - New installs start empty. Fixtures belong in test source sets only.
 - Do not mark a connector live without actual authorized requests and provenance.
+  Thailand Post is implemented but live access is unverified; the only proof is
+  MockEngine tests plus the UI's unconfigured gate.
 - Preserve original event descriptions/timestamps and manual/provider attribution.
 - Run the native tests and compile affected platforms before claiming success.
   Linux cannot prove iOS, Windows, or macOS packaging.
@@ -38,4 +40,11 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   repository writes and backup restore. Rejected requests release reserved units.
   Use long sums, preserve refund currency, and never imply a manual record sends
   a merchant request or transfers money. Database schema 2 and backup payload
-  schema 2 add returns; the authenticated backup envelope is still version 1.
+  schema 2 add returns; database schema 3 adds `shipment.carrier_id` and backup
+  payload schema 3 carries it. The authenticated backup envelope is still
+  version 1.
+- Carrier credentials live in `CarrierSettings`/`SecretStore`; never persist or
+  log API tokens. Carrier HTTP belongs in `carriers`, with the adapter receiving
+  the key explicitly. Preserve raw descriptions/timestamps and mark provider
+  provenance; do not fabricate events or claim live verification. Carrier
+  locations are currently appended to the description, not a separate column.

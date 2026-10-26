@@ -16,7 +16,15 @@ not the complete Phase 1 release from the master product brief.
   each item; the user can split quantities across packages, and over-allocation
   is rejected by the domain and database.
 - SQLDelight/SQLite transactions, foreign keys, indexes, bounded list queries,
-  empty version-1/version-2 schema snapshots, and migration verification.
+  empty version-1/2/3 schema snapshots, and migration verification.
+- A first real carrier connector for Thailand Post. The user supplies an API
+  key, stored only in the platform SecretStore; the app requests a token and
+  tracking data directly from Thailand Post. Events preserve the raw carrier
+  description, timestamp and timezone, use provider provenance, and are
+  deduplicated. A package records its selected carrier id. Mock-HTTP tests cover
+  auth, successful mapping, Buddhist-era timestamps, unauthorized/rate-limited/
+  missing/malformed responses and network failures. **No live request has been
+  verified without a real API key.**
 - Manual per-item return records with reasons, return tracking numbers, notes,
   all eight refund/return states, and exact minor-unit refund amounts. Received
   refund states require a positive amount; rejected requests release their
@@ -48,8 +56,9 @@ unknown in the entry UI; it does not claim a cheapest delivered-price winner.
 
 ## Not implemented yet
 
-Real carrier/API requests, marketplace account connections, receipt/email import,
-automatic metadata extraction, automatic product matching, automated returns/refunds,
+Other carrier adapters, live verification against Thailand Post with a real
+account, marketplace account connections, receipt/email import, automatic
+metadata extraction, automatic product matching, automated returns/refunds,
 cart/checkout, local notifications/background scheduling, peer sync, iOS
 background tasks/share extensions, signing/notarization, and additional
 sensitive fields are subsequent milestones.
@@ -79,6 +88,7 @@ proof are still required before the scale acceptance criteria can be claimed.
 | `core` | Platform-independent values, cost rules, shipment progress, return policies, capabilities |
 | `data` | SQLDelight queries, transactions, domain mapping, platform database drivers |
 | `connectors` | Validated bookmark URLs and source-owned external search URL builders |
+| `carriers` | Carrier contracts, Thailand Post auth/tracking, timestamp and status normalization |
 | `app` | Shared Compose UI, bilingual labels and suspendable presentation actions |
 | `androidApp` | Android launcher, external browser handoff, local SQLite composition |
 | `desktopApp` | JVM window, OS data-directory selection and packaged runtime |
@@ -99,7 +109,7 @@ SQLite, including a file close/reopen, rollback, and late tracking-event import.
 | Android Gradle Plugin | 9.3.1, using the new Android KMP plugin |
 | Android SDK | compile 37, target 36, minimum 26 |
 | SQLDelight | 2.4.1 |
-| Ktor HTTP URL utilities | 3.6.0; no HTTP client/API calls yet |
+| Ktor client | 3.6.0 with CIO (JVM), OkHttp (Android) and Darwin (iOS) engines |
 
 Library/plugin versions live in `gradle/libs.versions.toml`. Gradle dependency
 verification checksums are in `gradle/verification-metadata.xml`; normal builds
@@ -123,7 +133,7 @@ only on macOS.
 Run commands from `native/`, using `gradlew.bat` on Windows.
 
 ```bash
-./gradlew :core:jvmTest :connectors:jvmTest :data:jvmTest :app:jvmTest
+./gradlew :core:jvmTest :connectors:jvmTest :carriers:jvmTest :data:jvmTest :app:jvmTest
 ./gradlew :data:verifyCommonMainOmniShopDatabaseMigration
 ./gradlew :desktopApp:run
 ./gradlew :desktopApp:createDistributable
@@ -152,7 +162,7 @@ Linux packaged executable:
 
 | Platform | Current evidence |
 | --- | --- |
-| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/restart/Thai, plus an in-place database upgrade; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated) |
+| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). The carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb) and backup uses a native file dialog (unit-tested) |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
 | iOS | XcodeGen host builds and launches in a simulator on macOS CI; Compose UI renders, SQLite opens, CryptoKit backs backup/address encryption, Keychain stores the device key, and the document picker is wired. No device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
@@ -207,12 +217,13 @@ complete desktop interaction scenario.
 - Linux development: `$XDG_DATA_HOME/omnishop-native/omnishop.db`, falling back
   to `~/.local/share/omnishop-native/omnishop.db`.
 
-`data/src/commonMain/sqldelight/databases/1.db` and `2.db` are empty generated
-schema snapshots, with no test or user records. `1.sqm` upgrades a version-1
-native database to version 2 by adding `order_return`; it does not recreate or
-clear existing tables. A file-backed migration test preserves products/orders,
-and an Android in-place APK upgrade preserved the existing order and encrypted
-address before the clean smoke scenario was run.
+`data/src/commonMain/sqldelight/databases/1.db`, `2.db` and `3.db` are empty
+generated schema snapshots, with no test or user records. `1.sqm` adds
+`order_return` (version 2); `2.sqm` adds `shipment.carrier_id` (version 3).
+Neither recreates or clears existing tables. File-backed migration tests
+preserve version-1 products/orders and version-2 shipments, and Android
+in-place APK upgrades preserved existing records and the encrypted address
+before the clean smoke scenario.
 
 For future revisions, add SQLDelight numbered migrations and verify against the
 prior snapshot. Never replace an existing database to make a test pass. No
@@ -238,6 +249,37 @@ merchant, submit a claim, or initiate a payment.
   original paid total, calculate FX differences, or infer a full refund.
 - Return deadlines/reminders, proof attachments, separate refund transactions,
   and merchant/carrier return integrations are not implemented yet.
+
+## Carrier tracking (Thailand Post)
+
+Profile → Carrier connections takes a Thailand Post API key. It is written to
+the platform SecretStore (Android Keystore, desktop OS credential store, iOS
+Keychain) and is never stored in SQLite or included in backups. Tracking
+requests go directly from the device to
+`trackapi.thailandpost.co.th`; there is no OmniShop token broker or server.
+
+When adding a package, choose **Thailand Post API** to store the carrier id.
+The shipment card then offers **Refresh tracking**. Without a saved key the UI
+states that a key is required and sends no request. With a key, the adapter
+requests a token, posts the barcode, maps events, and saves them with
+`source=thailandpost` and provider provenance. Duplicate provider events are
+ignored by the existing event key. Raw descriptions, Buddhist-era timestamps and
+timezone offsets are retained; the timestamp parser converts them to UTC only
+when the offset is present.
+
+Current limits:
+
+- Status normalization is a documented keyword heuristic, not an official
+  carrier code table. Unknown descriptions stay `UNKNOWN`.
+- The carrier's location is appended to the preserved description rather than
+  stored in a dedicated location column.
+- Each refresh authenticates again; there is no token/rate-limit cache, retry
+  queue, background polling, estimated-delivery fetch or multi-item tracking
+  request.
+- Only Thailand Post is implemented. Live access requires a valid API key and
+  has not been verified in this environment; MockEngine tests are not a
+  substitute for that verification.
+- Return-carrier tracking is not connected to the returns module.
 
 ## iOS host notes
 
@@ -279,10 +321,10 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Verify Thailand Post API access/credential suitability, then implement a real
-   adapter with preserved raw events and provenance.
-2. Exercise iOS/desktop sensitive-field and backup file-picker interactions,
-   then complete signing/notarization and device distribution.
+1. Verify the Thailand Post adapter against a real account/tracking number, then
+   add bounded retry/token caching and a carrier status-code mapping review.
+2. Exercise iOS/desktop sensitive-field, backup file-picker and carrier-refresh
+   interactions, then complete signing/notarization and device distribution.
 3. Expand offers/variants, order editing, pagination and receipt import.
 4. Add encrypted credentials/receipt attachments using the same device key.
 5. Native sharing/background tasks and encrypted peer synchronization.

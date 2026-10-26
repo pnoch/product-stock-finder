@@ -1,6 +1,7 @@
 package com.omnishop.app
 
 import com.omnishop.core.*
+import com.omnishop.carriers.CarrierEvent
 import com.omnishop.connectors.validatedBookmarkUrl
 import com.omnishop.data.*
 import kotlinx.coroutines.CancellationException
@@ -67,16 +68,34 @@ class ShopPresenter(
 
     suspend fun selectOrder(id: String?) = perform { selectedOrderId = id }
 
-    suspend fun attachShipment(tracking: String, carrier: String, allocations: List<Pair<String, Int>>) = perform {
+    suspend fun attachShipment(
+        tracking: String,
+        carrier: String,
+        allocations: List<Pair<String, Int>>,
+        carrierId: String? = null,
+    ) = perform {
         val order = requireNotNull(selectedOrderId?.let(store::getOrder)) { "Select an order first" }
         val positive = allocations.filter { it.second > 0 }
         require(positive.isNotEmpty()) { "Allocate at least one unit to this package" }
         store.attachShipment(
             order.id,
-            Shipment(newId(), positive.map { ShipmentAllocation(it.first, it.second) }),
+            Shipment(newId(), positive.map { ShipmentAllocation(it.first, it.second) }, carrierId = carrierId),
             tracking.trim(),
             carrier.trim(),
+            carrierId,
         )
+    }
+
+    suspend fun recordCarrierEvents(shipmentId: String, carrierId: String, events: List<CarrierEvent>) = perform {
+        val order = requireNotNull(selectedOrderId?.let(store::getOrder)) { "Select an order first" }
+        require(order.shipments.any { it.id == shipmentId }) { "Shipment does not belong to this order" }
+        events.sortedBy { it.occurredAtEpochMillis ?: Long.MAX_VALUE }.forEach {
+            store.recordEvent(TrackingEvent(
+                shipmentId, carrierId, it.sourceEventId, it.status, it.description,
+                ObservationMethod.PROVIDER, now(), it.occurredAtEpochMillis,
+                it.originalTimestamp, it.originalTimezone,
+            ))
+        }
     }
 
     suspend fun recordManualEvent(shipmentId: String, status: ShipmentStatus, description: String) = perform {

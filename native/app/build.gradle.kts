@@ -26,6 +26,7 @@ kotlin {
             implementation(project(":core"))
             implementation(project(":data"))
             implementation(project(":connectors"))
+            api(project(":carriers"))
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)

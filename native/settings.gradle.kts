@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "OmniShopNative"
-include(":core", ":data", ":connectors", ":app", ":desktopApp", ":androidApp")
+include(":core", ":data", ":connectors", ":carriers", ":app", ":desktopApp", ":androidApp")

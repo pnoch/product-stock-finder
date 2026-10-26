@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class BackupSnapshot(
-    val schemaVersion: Int = 2,
+    val schemaVersion: Int = 3,
     val products: List<BackupProduct> = emptyList(),
     val listings: List<BackupListing> = emptyList(),
     val observations: List<BackupObservation> = emptyList(),
@@ -32,7 +32,7 @@ data class BackupSnapshot(
 @Serializable data class BackupOrderItem(val id: String, val orderId: String, val title: String, val quantity: Int)
 @Serializable data class BackupShipment(
     val id: String, val orderId: String, val trackingNumber: String,
-    val carrierLabel: String, val status: String,
+    val carrierLabel: String, val status: String, val carrierId: String? = null,
 )
 @Serializable data class BackupAllocation(
     val shipmentId: String, val orderId: String, val orderItemId: String, val quantity: Int,

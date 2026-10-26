@@ -19,7 +19,8 @@ class EncryptedBackupTest {
         store.saveProduct(SavedProduct("p1", "Tablet", "https://example.com/tablet", 100))
         store.saveOffer(Offer("l1", "p1", "Seller A", CostEstimate(Money(800010, Currency.THB))), 110)
         store.createOrder(PurchaseOrder("o1", "Shop", listOf(OrderItem("i1", "Tablet", 2))), 120)
-        store.attachShipment("o1", Shipment("s1", listOf(ShipmentAllocation("i1", 1))), "TRACK1", "Manual")
+        store.attachShipment("o1", Shipment("s1", listOf(ShipmentAllocation("i1", 1)), carrierId = "thailandpost"),
+            "TRACK1", "Thailand Post", "thailandpost")
         store.recordEvent(TrackingEvent("s1", "manual", "e1", ShipmentStatus.DELIVERED,
             "Received", ObservationMethod.MANUAL, 130))
         store.setPreference("language", "THAI")
@@ -33,6 +34,7 @@ class EncryptedBackupTest {
                 val counts = service(target).restore(backup, password)
                 assertEquals(BackupCounts(products = 1, offers = 1, orders = 1, shipments = 1, events = 1), counts)
                 assertEquals(source.snapshot(), target.snapshot())
+                assertEquals("thailandpost", target.getOrder("o1")!!.shipments.single().carrierId)
             }
         }
     }

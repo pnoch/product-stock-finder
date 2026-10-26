@@ -52,8 +52,11 @@ class BackupService(
             items.forEach { if (!seen.add(id(it))) fail("Duplicate $label id") }
         }
 
-        if (snapshot.schemaVersion !in 1..2) fail("Unsupported backup schema")
+        if (snapshot.schemaVersion !in 1..3) fail("Unsupported backup schema")
         if (snapshot.schemaVersion == 1 && snapshot.returns.isNotEmpty()) fail("Returns require backup schema 2")
+        if (snapshot.schemaVersion < 3 && snapshot.shipments.any { it.carrierId != null }) {
+            fail("Carrier ids require backup schema 3")
+        }
         unique(snapshot.products, { it.id }, "product")
         unique(snapshot.listings, { it.id }, "listing")
         unique(snapshot.orders, { it.id }, "order")
@@ -94,6 +97,7 @@ class BackupService(
         }
         snapshot.shipments.forEach {
             if (it.id.isBlank() || it.orderId !in orderIds || it.trackingNumber.isBlank() || it.carrierLabel.isBlank()) fail("Invalid shipment")
+            if (it.carrierId != null && (it.carrierId.isBlank() || it.carrierId.length > 64)) fail("Invalid carrier id")
             status(it.status)
         }
         snapshot.allocations.forEach {
@@ -123,7 +127,7 @@ class BackupService(
             val shipments = snapshot.shipments.filter { it.orderId == order.id }.map { shipment ->
                 val allocations = snapshot.allocations.filter { it.shipmentId == shipment.id }
                 if (allocations.isEmpty() || allocations.any { it.orderId != order.id }) fail("Invalid shipment allocation")
-                Shipment(shipment.id, allocations.map { ShipmentAllocation(it.orderItemId, it.quantity) }, status(shipment.status))
+                Shipment(shipment.id, allocations.map { ShipmentAllocation(it.orderItemId, it.quantity) }, status(shipment.status), shipment.carrierId)
             }
             val purchase = PurchaseOrder(order.id, order.merchant, items, shipments)
             validateOrderReturns(purchase, returnsByOrder[order.id].orEmpty())

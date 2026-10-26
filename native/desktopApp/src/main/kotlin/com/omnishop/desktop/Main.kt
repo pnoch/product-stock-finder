@@ -6,7 +6,9 @@ import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.unit.dp
 import com.omnishop.app.OmniShopApp
 import com.omnishop.app.ShopPresenter
+import com.omnishop.carriers.ThailandPostAdapter
 import com.omnishop.data.BackupService
+import com.omnishop.data.CarrierSettings
 import com.omnishop.data.OrderPrivateService
 import com.omnishop.data.security.JcaBackupCrypto
 import com.omnishop.connectors.validatedBookmarkUrl
@@ -30,13 +32,18 @@ fun main() {
     ShoppingStore.open(File(root, "omnishop.db")).use { store ->
         val presenter = ShopPresenter(store, { UUID.randomUUID().toString() }, System::currentTimeMillis)
         val crypto = JcaBackupCrypto()
-        val privateService = OrderPrivateService(store, KeyringSecretStore(), crypto)
+        val secrets = KeyringSecretStore()
+        val privateService = OrderPrivateService(store, secrets, crypto)
+        val carrierSettings = CarrierSettings(secrets)
         val backup = BackupService(store, crypto, privateService)
         application {
             Window(onCloseRequest = ::exitApplication, title = "OmniShop Native Preview",
                 state = rememberWindowState(width = 1100.dp, height = 780.dp),
                 icon = painterResource(Res.drawable.omnishop)) {
-                OmniShopApp(presenter, backup, privateService, DesktopBackupFiles()) {
+                OmniShopApp(
+                    presenter, backup, privateService, carrierSettings,
+                    listOf(ThailandPostAdapter()), DesktopBackupFiles(),
+                ) {
                     Desktop.getDesktop().browse(URI(validatedBookmarkUrl(it)))
                 }
             }

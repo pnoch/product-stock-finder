@@ -24,10 +24,12 @@ data class Shipment(
     val id: String,
     val allocations: List<ShipmentAllocation>,
     val status: ShipmentStatus = ShipmentStatus.UNKNOWN,
+    val carrierId: String? = null,
 ) {
     init {
         require(id.isNotBlank() && allocations.isNotEmpty())
         require(allocations.map { it.orderItemId }.distinct().size == allocations.size)
+        require(carrierId == null || (carrierId.isNotBlank() && carrierId.length <= 64))
     }
 }
 

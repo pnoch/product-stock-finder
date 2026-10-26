@@ -79,17 +79,17 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
         val shipments = queries.orderShipments(id).executeAsList().map {
             Shipment(it.id, allocations[it.id].orEmpty().map { allocation ->
                 ShipmentAllocation(allocation.order_item_id, allocation.quantity.toInt())
-            }, ShipmentStatus.valueOf(it.status))
+            }, ShipmentStatus.valueOf(it.status), it.carrier_id)
         }
         return PurchaseOrder(row.id, row.merchant, items, shipments)
     }
 
-    fun attachShipment(orderId: String, shipment: Shipment, trackingNumber: String, carrierLabel: String) {
+    fun attachShipment(orderId: String, shipment: Shipment, trackingNumber: String, carrierLabel: String, carrierId: String? = null) {
         require(trackingNumber.isNotBlank() && carrierLabel.isNotBlank())
         database.transaction {
             val order = requireNotNull(getOrder(orderId)) { "Order not found" }
             order.copy(shipments = order.shipments + shipment)
-            queries.insertShipment(shipment.id, orderId, trackingNumber, carrierLabel, shipment.status.name)
+            queries.insertShipment(shipment.id, orderId, trackingNumber, carrierLabel, shipment.status.name, carrierId)
             shipment.allocations.forEach {
                 queries.insertAllocation(shipment.id, orderId, it.orderItemId, it.quantity.toLong())
             }
@@ -190,7 +190,7 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
                 BackupOrderItem(it.id, it.order_id, it.title, it.quantity.toInt())
             },
             shipments = queries.allShipments().executeAsList().map {
-                BackupShipment(it.id, it.order_id, it.tracking_number, it.carrier_label, it.status)
+                BackupShipment(it.id, it.order_id, it.tracking_number, it.carrier_label, it.status, it.carrier_id)
             },
             allocations = queries.allAllocations().executeAsList().map {
                 BackupAllocation(it.shipment_id, it.order_id, it.order_item_id, it.quantity.toInt())
@@ -243,7 +243,7 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
                 it.currencyCode, it.currencyScale?.toLong(), it.notes)
         }
         snapshot.shipments.forEach {
-            queries.insertShipment(it.id, it.orderId, it.trackingNumber, it.carrierLabel, it.status)
+            queries.insertShipment(it.id, it.orderId, it.trackingNumber, it.carrierLabel, it.status, it.carrierId)
         }
         snapshot.allocations.forEach {
             queries.insertAllocation(it.shipmentId, it.orderId, it.orderItemId, it.quantity.toLong())

@@ -9,9 +9,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.omnishop.carriers.CarrierAdapter
+import com.omnishop.carriers.CarrierCredentials
+import com.omnishop.carriers.CarrierResult
+import com.omnishop.core.ObservationMethod
 import com.omnishop.core.PurchaseOrder
 import com.omnishop.core.Shipment
 import com.omnishop.core.ShipmentStatus
+import com.omnishop.data.CarrierSettings
 import com.omnishop.data.OrderPrivateService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,7 +24,13 @@ import kotlinx.coroutines.withContext
 import kotlin.time.Instant
 
 @Composable
-internal fun OrdersScreen(state: ShopSnapshot, presenter: ShopPresenter, privateService: OrderPrivateService) {
+internal fun OrdersScreen(
+    state: ShopSnapshot,
+    presenter: ShopPresenter,
+    privateService: OrderPrivateService,
+    carrierSettings: CarrierSettings,
+    carriers: List<CarrierAdapter>,
+) {
     val scope = rememberCoroutineScope()
     val language = state.language
     val order = state.selectedOrder
@@ -44,9 +55,11 @@ internal fun OrdersScreen(state: ShopSnapshot, presenter: ShopPresenter, private
                 order.items.forEach { Text("${it.title} × ${it.quantity}") }
             }
             item(key = "address-${order.id}") { ShippingAddressCard(order.id, privateService, language) }
-            item(key = "attach-${order.id}") { AttachShipmentForm(state, presenter, order) }
+            item(key = "attach-${order.id}") { AttachShipmentForm(state, presenter, order, carriers) }
             if (order.shipments.isEmpty()) item { Text(language.text(Label.NO_SHIPMENTS)) }
-            items(order.shipments, key = { it.id }) { shipment -> ShipmentCard(shipment, state, presenter, order) }
+            items(order.shipments, key = { it.id }) { shipment ->
+                ShipmentCard(shipment, state, presenter, order, carrierSettings, carriers)
+            }
             item(key = "returns-heading-${order.id}") { Text(language.text(Label.RETURNS), style = MaterialTheme.typography.headlineSmall) }
             item(key = "return-request-${order.id}") { ReturnRequestButton(order, state, presenter) }
             if (state.returns.isEmpty()) item { Text(language.text(Label.NO_RETURNS)) }
@@ -56,11 +69,17 @@ internal fun OrdersScreen(state: ShopSnapshot, presenter: ShopPresenter, private
 }
 
 @Composable
-private fun AttachShipmentForm(state: ShopSnapshot, presenter: ShopPresenter, order: PurchaseOrder) {
+private fun AttachShipmentForm(
+    state: ShopSnapshot,
+    presenter: ShopPresenter,
+    order: PurchaseOrder,
+    carriers: List<CarrierAdapter>,
+) {
     val language = state.language
     val scope = rememberCoroutineScope()
     var tracking by remember(order.id) { mutableStateOf("") }
     var carrier by remember(order.id) { mutableStateOf("") }
+    var carrierMode by remember(order.id) { mutableStateOf<String?>(null) }
     val allocated = order.shipments.flatMap { it.allocations }
         .groupBy { it.orderItemId }
         .mapValues { (_, values) -> values.sumOf { it.quantity } }
@@ -78,9 +97,26 @@ private fun AttachShipmentForm(state: ShopSnapshot, presenter: ShopPresenter, or
     val valid = tracking.isNotBlank() && carrier.isNotBlank() && allocations.isNotEmpty() &&
         allocations.all { (id, quantity) -> quantity <= (remaining[id] ?: 0) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(language.text(Label.MANUAL_TRACKING), style = MaterialTheme.typography.titleSmall)
+        Text(language.text(Label.PACKAGE_DETAILS), style = MaterialTheme.typography.titleSmall)
+        if (carrierMode == null) {
+            Text(language.text(Label.MANUAL_TRACKING), style = MaterialTheme.typography.bodySmall)
+        }
         OutlinedTextField(tracking, { tracking = it }, label = { Text(language.text(Label.TRACKING_NUMBER)) }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(carrier, { carrier = it }, label = { Text(language.text(Label.CARRIER)) }, modifier = Modifier.fillMaxWidth())
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = carrierMode == null,
+                onClick = { carrierMode = null },
+                label = { Text(language.text(Label.MANUAL_CARRIER)) },
+            )
+            carriers.forEach { adapter ->
+                FilterChip(
+                    selected = carrierMode == adapter.id,
+                    onClick = { carrierMode = adapter.id; carrier = adapter.displayName },
+                    label = { Text("${adapter.displayName} API") },
+                )
+            }
+        }
         if (remaining.values.all { it <= 0 }) {
             Text(language.text(Label.ALL_ALLOCATED))
         } else {
@@ -100,10 +136,11 @@ private fun AttachShipmentForm(state: ShopSnapshot, presenter: ShopPresenter, or
         }
         Button(enabled = valid && !state.busy, onClick = {
             scope.launch {
-                presenter.attachShipment(tracking, carrier, allocations)
+                presenter.attachShipment(tracking, carrier, allocations, carrierMode)
                 if (presenter.state.value.error == null) {
                     tracking = ""
                     carrier = ""
+                    carrierMode = null
                     quantities = order.items.associate { it.id to "" }.toMutableMap()
                 }
             }
@@ -113,10 +150,19 @@ private fun AttachShipmentForm(state: ShopSnapshot, presenter: ShopPresenter, or
 
 
 @Composable
-private fun ShipmentCard(shipment: Shipment, state: ShopSnapshot, presenter: ShopPresenter, order: PurchaseOrder) {
+private fun ShipmentCard(
+    shipment: Shipment,
+    state: ShopSnapshot,
+    presenter: ShopPresenter,
+    order: PurchaseOrder,
+    carrierSettings: CarrierSettings,
+    carriers: List<CarrierAdapter>,
+) {
     val scope = rememberCoroutineScope()
     val language = state.language
     val label = state.shipmentLabels[shipment.id]
+    val adapter = carriers.firstOrNull { it.id == shipment.carrierId }
+    var message by remember(shipment.id) { mutableStateOf<String?>(null) }
     var description by remember(shipment.id) { mutableStateOf("") }
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -125,11 +171,43 @@ private fun ShipmentCard(shipment: Shipment, state: ShopSnapshot, presenter: Sho
                 val title = order.items.firstOrNull { it.id == allocation.orderItemId }?.title ?: allocation.orderItemId
                 Text("$title × ${allocation.quantity}")
             }
-            Text(when (shipment.status) {
-                ShipmentStatus.DELIVERED -> language.text(Label.DELIVERED)
-                ShipmentStatus.IN_TRANSIT -> language.text(Label.IN_TRANSIT)
+            Text(when {
+                shipment.status == ShipmentStatus.DELIVERED -> language.text(Label.DELIVERED)
+                shipment.status == ShipmentStatus.IN_TRANSIT -> language.text(Label.IN_TRANSIT)
+                adapter != null -> language.text(Label.CARRIER_TRACKING)
                 else -> language.text(Label.MANUAL_TRACKING)
             })
+            if (adapter != null) {
+                OutlinedButton(enabled = !state.busy && label != null, onClick = {
+                    scope.launch {
+                        message = null
+                        val trackingNumber = label?.trackingNumber
+                        if (trackingNumber == null) {
+                            message = language.text(Label.CARRIER_NOT_CONFIGURED)
+                            return@launch
+                        }
+                        val key = runCatching {
+                            withContext(Dispatchers.Default) {
+                                if (adapter.id == CarrierSettings.THAILAND_POST) carrierSettings.thailandPostApiKey() else null
+                            }
+                        }.getOrNull()
+                        if (key == null) {
+                            message = language.text(Label.CARRIER_NOT_CONFIGURED)
+                            return@launch
+                        }
+                        when (val result = adapter.track(trackingNumber, CarrierCredentials(key))) {
+                            is CarrierResult.Success -> {
+                                presenter.recordCarrierEvents(shipment.id, adapter.id, result.tracking.events)
+                                if (presenter.state.value.error == null) {
+                                    message = language.text(Label.TRACKING_UPDATED)
+                                }
+                            }
+                            is CarrierResult.Failure -> message = result.failure.message
+                        }
+                    }
+                }) { Text("${language.text(Label.REFRESH_TRACKING)} · ${adapter.displayName}") }
+            }
+            message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             OutlinedTextField(description, { description = it }, label = { Text(language.text(Label.EVENT_DESCRIPTION)) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(ShipmentStatus.IN_TRANSIT to Label.IN_TRANSIT, ShipmentStatus.DELIVERED to Label.DELIVERED).forEach { (status, text) ->
@@ -146,8 +224,12 @@ private fun ShipmentCard(shipment: Shipment, state: ShopSnapshot, presenter: Sho
             events.forEach { event ->
                 HorizontalDivider()
                 Text(event.description)
-                Text("${language.text(Label.MANUAL_EVENT)} · ${Instant.fromEpochMilliseconds(event.importedAtEpochMillis)}",
-                    style = MaterialTheme.typography.bodySmall)
+                val provider = event.method == ObservationMethod.PROVIDER
+                val sourceLabel = if (provider) "${adapter?.displayName ?: "Carrier"} ${language.text(Label.CARRIER_EVENT)}"
+                    else language.text(Label.MANUAL_EVENT)
+                val whenText = event.originalTimestamp?.let { "$it ${event.originalTimezone.orEmpty()}" }
+                    ?: Instant.fromEpochMilliseconds(event.occurredAtEpochMillis ?: event.importedAtEpochMillis)
+                Text("$sourceLabel · $whenText", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

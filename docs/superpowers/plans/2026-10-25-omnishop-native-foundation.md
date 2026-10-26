@@ -159,7 +159,7 @@ foundation plan.
 
 ## Execution record
 
-- Native tests: 60 passed, zero failures/errors across core, connectors, data,
+- Native tests: 72 passed, zero failures/errors across core, connectors, carriers, data,
   and presentation. SQLite migration verification passed.
 - Android debug APK built. The emulator smoke exercises saved offers, split
   delivery, force-stop/restart, Thai selection and a second restart.
@@ -198,9 +198,14 @@ foundation plan.
   stores the device key, and the document picker is wired. No device signing,
   App Store build, background tasks, share extension, or iOS UI automation
   beyond launch/screenshot is claimed.
-- No live carrier or merchant return/refund integration is claimed. Deadline
-  reminders, payment-ledger reconciliation, proof attachments, signing and
-  peer sync remain follow-on work; see `native/README.md`.
+- A Thailand Post adapter, secure API-key settings, carrier id persistence and
+  order-screen refresh are implemented. MockHTTP tests cover auth, mapping,
+  Buddhist-era timestamps, errors and network failure; the Android smoke covers
+  the unconfigured-key gate. No live Thailand Post request is claimed. Other
+  carriers, token/rate-limit caching, location columns and return-carrier
+  tracking remain follow-on work.
+- Deadline reminders, payment-ledger reconciliation, proof attachments, signing
+  and peer sync remain follow-on work; see `native/README.md`.
 - Work is on `native/omnishop-foundation`. The returns/refunds increment is
   verified locally; consult the native Actions workflows for remote
   iOS/Windows/macOS validation of the current revision.
