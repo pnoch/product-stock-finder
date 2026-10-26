@@ -138,18 +138,9 @@ jobs:
           RENDERED=0
           for _ in $(seq 1 20); do
             xcrun simctl io "$UDID" screenshot /tmp/omnishop-ios.png >/dev/null 2>&1
-            RATIO=$(python3 - <<'PY'
-from PIL import Image
-im = Image.open('/tmp/omnishop-ios.png').convert('RGB')
-w, h = im.size
-crop = im.crop((0, int(h * 0.2), w, int(h * 0.85)))
-pixels = list(crop.getdata())
-non_white = sum(1 for r, g, b in pixels if not (r > 245 and g > 245 and b > 245))
-print(non_white / len(pixels))
-PY
-)
+            RATIO=$(python3 -c "from PIL import Image; im=Image.open('/tmp/omnishop-ios.png').convert('RGB'); w,h=im.size; crop=im.crop((0,int(h*0.2),w,int(h*0.85))); pixels=list(crop.getdata()); print(sum(1 for r,g,b in pixels if not (r>245 and g>245 and b>245))/len(pixels))")
             echo "rendered pixel ratio: $RATIO"
-            if python3 -c "import sys; sys.exit(0 if float('$RATIO') > 0.02 else 1)"; then
+            if awk "BEGIN{exit !($RATIO > 0.02)}"; then
               RENDERED=1
               break
             fi
