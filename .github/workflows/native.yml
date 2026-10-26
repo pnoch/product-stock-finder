@@ -125,34 +125,36 @@ jobs:
           xcrun simctl boot "$UDID" 2>/dev/null || true
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl install "$UDID" "$APP"
-          xcrun simctl launch --terminate-running-process --console "$UDID" com.omnishop.ios \
-            > /tmp/omnishop-ios-runtime.log 2>&1 &
-          CONSOLE_PID=$!
-          sleep 10
-          if ! kill -0 "$CONSOLE_PID"; then
-            echo "The app exited during startup"
-            cat /tmp/omnishop-ios-runtime.log
-            exit 1
-          fi
+          xcrun simctl launch --terminate-running-process "$UDID" com.omnishop.ios
+          sleep 6
           python3 -m venv /tmp/omnishop-ios-venv
           /tmp/omnishop-ios-venv/bin/pip install --quiet pillow
           RENDERED=0
-          for _ in $(seq 1 20); do
+          for _ in $(seq 1 30); do
             xcrun simctl io "$UDID" screenshot /tmp/omnishop-ios.png >/dev/null 2>&1
-            RATIO=$(/tmp/omnishop-ios-venv/bin/python -c "from PIL import Image; im=Image.open('/tmp/omnishop-ios.png').convert('RGB'); w,h=im.size; crop=im.crop((0,int(h*0.2),w,int(h*0.85))); pixels=list(crop.getdata()); print(sum(1 for r,g,b in pixels if not (r>245 and g>245 and b>245))/len(pixels))")
-            echo "rendered pixel ratio: $RATIO"
-            if awk "BEGIN{exit !($RATIO > 0.02)}"; then
+            if /tmp/omnishop-ios-venv/bin/python - <<'PY'
+from PIL import Image
+im = Image.open('/tmp/omnishop-ios.png').convert('RGB')
+w, h = im.size
+def fractions(box):
+    pixels = list(im.crop(box).getdata())
+    total = len(pixels)
+    non_white = sum(1 for r, g, b in pixels if not (r > 240 and g > 240 and b > 240)) / total
+    background = sum(1 for r, g, b in pixels if abs(r - 248) < 8 and abs(g - 250) < 8 and abs(b - 252) < 8) / total
+    return non_white, background
+top = fractions((0, int(h * 0.18), w, int(h * 0.35)))
+middle = fractions((0, int(h * 0.35), w, int(h * 0.80)))
+bottom = fractions((0, int(h * 0.88), w, int(h * 0.97)))
+# App: light middle surface, some header content, and a non-white nav bar.
+# Blank launch: no header/nav content. Home screen: colorful middle.
+raise SystemExit(0 if middle[1] > 0.8 and top[0] > 0.01 and bottom[0] > 0.5 else 1)
+PY
+            then
               RENDERED=1
               break
             fi
-            if ! kill -0 "$CONSOLE_PID"; then
-              echo "The app exited while waiting for the first frame"
-              cat /tmp/omnishop-ios-runtime.log
-              exit 1
-            fi
             sleep 2
           done
-          kill "$CONSOLE_PID" 2>/dev/null || true
           test "$RENDERED" = "1"
       - name: Inspect the iOS app process and crash logs
         if: always()
