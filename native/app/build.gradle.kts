@@ -14,8 +14,12 @@ kotlin {
         withHostTest {}
     }
     jvm()
-    iosArm64()
-    iosSimulatorArm64()
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        target.binaries.framework {
+            baseName = "OmniShopShared"
+            isStatic = true
+        }
+    }
     jvmToolchain(21)
     sourceSets {
         commonMain.dependencies {
