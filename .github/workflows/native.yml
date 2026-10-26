@@ -132,23 +132,7 @@ jobs:
           RENDERED=0
           for _ in $(seq 1 30); do
             xcrun simctl io "$UDID" screenshot /tmp/omnishop-ios.png >/dev/null 2>&1
-            if /tmp/omnishop-ios-venv/bin/python - <<'PY'
-from PIL import Image
-im = Image.open('/tmp/omnishop-ios.png').convert('RGB')
-w, h = im.size
-def fractions(box):
-    pixels = list(im.crop(box).getdata())
-    total = len(pixels)
-    non_white = sum(1 for r, g, b in pixels if not (r > 240 and g > 240 and b > 240)) / total
-    background = sum(1 for r, g, b in pixels if abs(r - 248) < 8 and abs(g - 250) < 8 and abs(b - 252) < 8) / total
-    return non_white, background
-top = fractions((0, int(h * 0.18), w, int(h * 0.35)))
-middle = fractions((0, int(h * 0.35), w, int(h * 0.80)))
-bottom = fractions((0, int(h * 0.88), w, int(h * 0.97)))
-# App: light middle surface, some header content, and a non-white nav bar.
-# Blank launch: no header/nav content. Home screen: colorful middle.
-raise SystemExit(0 if middle[1] > 0.8 and top[0] > 0.01 and bottom[0] > 0.5 else 1)
-PY
+            if /tmp/omnishop-ios-venv/bin/python scripts/ios-frame-check.py /tmp/omnishop-ios.png; then
             then
               RENDERED=1
               break
