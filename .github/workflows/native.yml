@@ -106,6 +106,7 @@ jobs:
         run: cd iosApp && xcodegen generate
       - name: Build the iOS app for the simulator
         run: |
+          set -o pipefail
           xcodebuild -project iosApp/OmniShop.xcodeproj -scheme OmniShop \
             -sdk iphonesimulator -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
@@ -119,6 +120,7 @@ jobs:
           set -euo pipefail
           APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*Build/Products/Debug-iphonesimulator/OmniShop.app' | head -1)
           test -d "$APP"
+          find "$APP" -maxdepth 2 -type f | head -20
           UDID=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for xs in d.values() for x in xs if x["name"].startswith("iPhone")))')
           xcrun simctl boot "$UDID" 2>/dev/null || true
           xcrun simctl bootstatus "$UDID" -b
