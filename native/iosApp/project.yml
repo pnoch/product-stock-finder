@@ -1,0 +1,41 @@
+name: OmniShop
+options:
+  bundleIdPrefix: com.omnishop
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+targets:
+  OmniShop:
+    type: application
+    platform: iOS
+    sources:
+      - path: OmniShop
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.omnishop.ios
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: OmniShop
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)/../app/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-framework"
+          - "OmniShopShared"
+    preBuildScripts:
+      - name: Build shared OmniShop framework
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/.."
+          ./gradlew :app:embedAndSignAppleFrameworkForXcode
+schemes:
+  OmniShop:
+    build:
+      targets:
+        OmniShop: all
+    run:
+      config: Debug

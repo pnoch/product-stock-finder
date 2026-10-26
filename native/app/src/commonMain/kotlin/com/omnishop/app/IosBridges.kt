@@ -8,7 +8,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 /** Simple Swift-facing crypto closures; avoids exporting Kotlin interfaces to Swift. */
 class IosCryptoCallbacks(
     val random: (Int) -> ByteArray,
-    val derive: (CharArray, ByteArray, Int) -> ByteArray?,
+    val derive: (String, ByteArray, Int) -> ByteArray?,
     val seal: (ByteArray, ByteArray, ByteArray, ByteArray) -> ByteArray?,
     val open: (ByteArray, ByteArray, ByteArray, ByteArray) -> ByteArray?,
 )
@@ -16,7 +16,7 @@ class IosCryptoCallbacks(
 class CallbackBackupCrypto(private val callbacks: IosCryptoCallbacks) : BackupCrypto {
     override fun randomBytes(size: Int): ByteArray = callbacks.random(size)
     override fun deriveKey(password: CharArray, salt: ByteArray, iterations: Int): ByteArray =
-        callbacks.derive(password, salt, iterations) ?: error("Key derivation is unavailable")
+        callbacks.derive(password.concatToString(), salt, iterations) ?: error("Key derivation is unavailable")
     override fun seal(
         key: ByteArray,
         nonce: ByteArray,
