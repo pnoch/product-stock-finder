@@ -110,7 +110,7 @@ jobs:
           xcodebuild -project iosApp/OmniShop.xcodeproj -scheme OmniShop \
             -sdk iphonesimulator -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO build \
+            CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build \
             | tee /tmp/omnishop-ios-build.log | tail -80
       - name: Show Xcode build errors
         if: failure()
