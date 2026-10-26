@@ -45,8 +45,9 @@ unknown in the entry UI; it does not claim a cheapest delivered-price winner.
 
 Real carrier/API requests, marketplace account connections, receipt/email import,
 automatic metadata extraction, automatic product matching, returns/refunds,
-cart/checkout, local notifications/background scheduling, peer sync, the iOS
-Keychain adapter, and additional sensitive fields are subsequent milestones.
+cart/checkout, local notifications/background scheduling, peer sync, iOS
+background tasks/share extensions, signing/notarization, and additional
+sensitive fields are subsequent milestones.
 
 The development SQLite database is not encrypted as a whole. The shipping
 address is stored only as authenticated ciphertext; credentials and receipt
@@ -129,6 +130,11 @@ Android requires `ANDROID_HOME` or an uncommitted `local.properties` containing
 Android SDK Manager. No server environment variables or provider credentials are
 needed to build or use the local flow.
 
+iOS (requires macOS and Xcode):
+`brew install xcodegen`, then `cd iosApp && xcodegen generate`, open
+`iosApp/OmniShop.xcodeproj`, and run the `OmniShop` scheme. The generated
+`.xcodeproj` is gitignored; `project.yml` and Swift sources are the inputs.
+
 APK: `androidApp/build/outputs/apk/debug/androidApp-debug.apk`.
 Preview application ID: `com.app.stocktrackerpro.nativepreview`. This separate,
 debug-signed package installs alongside the old app; it is not a signed release
@@ -144,10 +150,11 @@ Linux packaged executable:
 | Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/restart/Thai; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated) |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb) and backup uses a native file dialog (unit-tested) |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
-| iOS | `:app:linkDebugFrameworkIosSimulatorArm64` succeeds on a macOS CI runner; the shared static framework is not yet hosted in an Xcode app, and the Keychain adapter/file picker are not implemented |
+| iOS | XcodeGen host builds and launches in a simulator on macOS CI; Compose UI renders, SQLite opens, CryptoKit backs backup/address encryption, Keychain stores the device key, and the document picker is wired. No device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
 
-`.github/workflows/native.yml` gates Android/JVM tests, the debug APK, and the
-iOS simulator framework link.
+`.github/workflows/native.yml` gates Android/JVM tests, the debug APK, the iOS
+simulator framework link, and an iOS simulator build/launch with a rendered-frame
+check.
 `.github/workflows/native-desktop.yml` runs JVM tests and
 `:desktopApp:createDistributable` on Ubuntu, macOS, and Windows, uploading each
 app image. Both are green on the current branch. These are development
@@ -197,6 +204,22 @@ snapshot. It contains no test or user records. For a future schema revision,
 add SQLDelight numbered migrations and verify them against the prior snapshot;
 never replace an existing user's database to make a test pass. No compatibility
 with legacy Expo/Tauri data or old backup formats is required.
+
+## iOS host notes
+
+The SwiftUI host supplies platform adapters through simple Kotlin callback
+classes, so Swift does not implement Kotlin suspend interfaces:
+
+- `IosCrypto.swift` — CryptoKit AES-GCM plus CommonCrypto PBKDF2-HMAC-SHA256.
+- `KeychainSecrets.swift` — Keychain generic-password storage for the device key.
+- `DocumentPickerBackupFiles.swift` — export/import of encrypted backups.
+- `Info.plist` — includes `CADisableMinimumFrameDurationOnPhone`; Compose aborts
+  at startup without it.
+- `ComposeView` does not ignore the safe area; the header sits below the status
+  bar and the navigation bar above the home indicator.
+
+The simulator launch is a runtime proof, not an App Store/device build. The
+project has no signing team, entitlements, background modes, or share extension.
 
 ## Backup format and security notes
 
