@@ -134,8 +134,34 @@ jobs:
             cat /tmp/omnishop-ios-runtime.log
             exit 1
           fi
-          xcrun simctl io "$UDID" screenshot /tmp/omnishop-ios.png
+          python3 -m pip install --user --quiet pillow
+          RENDERED=0
+          for _ in $(seq 1 20); do
+            xcrun simctl io "$UDID" screenshot /tmp/omnishop-ios.png >/dev/null 2>&1
+            RATIO=$(python3 - <<'PY'
+from PIL import Image
+im = Image.open('/tmp/omnishop-ios.png').convert('RGB')
+w, h = im.size
+crop = im.crop((0, int(h * 0.2), w, int(h * 0.85)))
+pixels = list(crop.getdata())
+non_white = sum(1 for r, g, b in pixels if not (r > 245 and g > 245 and b > 245))
+print(non_white / len(pixels))
+PY
+)
+            echo "rendered pixel ratio: $RATIO"
+            if python3 -c "import sys; sys.exit(0 if float('$RATIO') > 0.02 else 1)"; then
+              RENDERED=1
+              break
+            fi
+            if ! kill -0 "$CONSOLE_PID"; then
+              echo "The app exited while waiting for the first frame"
+              cat /tmp/omnishop-ios-runtime.log
+              exit 1
+            fi
+            sleep 2
+          done
           kill "$CONSOLE_PID" 2>/dev/null || true
+          test "$RENDERED" = "1"
       - name: Inspect the iOS app process and crash logs
         if: always()
         run: |
