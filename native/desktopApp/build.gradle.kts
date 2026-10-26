@@ -24,7 +24,7 @@ compose.desktop {
             modules("java.sql")
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "OmniShop"
-            packageVersion = "0.1.0"
+            packageVersion = "1.0.0"
             macOS {
                 bundleID = "com.omnishop.desktop"
             }
