@@ -1,15 +1,18 @@
 package com.omnishop.app
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.omnishop.carriers.CarrierAdapter
+import com.omnishop.carriers.CarrierLinks
 import com.omnishop.carriers.CarrierCredentials
 import com.omnishop.carriers.CarrierResult
 import com.omnishop.core.ObservationMethod
@@ -30,6 +33,7 @@ internal fun OrdersScreen(
     privateService: OrderPrivateService,
     carrierSettings: CarrierSettings,
     carriers: List<CarrierAdapter>,
+    openUrl: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val language = state.language
@@ -58,7 +62,7 @@ internal fun OrdersScreen(
             item(key = "attach-${order.id}") { AttachShipmentForm(state, presenter, order, carriers) }
             if (order.shipments.isEmpty()) item { Text(language.text(Label.NO_SHIPMENTS)) }
             items(order.shipments, key = { it.id }) { shipment ->
-                ShipmentCard(shipment, state, presenter, order, carrierSettings, carriers)
+                ShipmentCard(shipment, state, presenter, order, carrierSettings, carriers, openUrl)
             }
             item(key = "returns-heading-${order.id}") { Text(language.text(Label.RETURNS), style = MaterialTheme.typography.headlineSmall) }
             item(key = "return-request-${order.id}") { ReturnRequestButton(order, state, presenter) }
@@ -80,6 +84,7 @@ private fun AttachShipmentForm(
     var tracking by remember(order.id) { mutableStateOf("") }
     var carrier by remember(order.id) { mutableStateOf("") }
     var carrierMode by remember(order.id) { mutableStateOf<String?>(null) }
+    val linkCarriers = CarrierLinks.all.filter { link -> carriers.none { it.id == link.id } }
     val allocated = order.shipments.flatMap { it.allocations }
         .groupBy { it.orderItemId }
         .mapValues { (_, values) -> values.sumOf { it.quantity } }
@@ -103,7 +108,7 @@ private fun AttachShipmentForm(
         }
         OutlinedTextField(tracking, { tracking = it }, label = { Text(language.text(Label.TRACKING_NUMBER)) }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(carrier, { carrier = it }, label = { Text(language.text(Label.CARRIER)) }, modifier = Modifier.fillMaxWidth())
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = carrierMode == null,
                 onClick = { carrierMode = null },
@@ -114,6 +119,13 @@ private fun AttachShipmentForm(
                     selected = carrierMode == adapter.id,
                     onClick = { carrierMode = adapter.id; carrier = adapter.displayName },
                     label = { Text("${adapter.displayName} API") },
+                )
+            }
+            linkCarriers.forEach { link ->
+                FilterChip(
+                    selected = carrierMode == link.id,
+                    onClick = { carrierMode = link.id; carrier = link.displayName },
+                    label = { Text(link.displayName) },
                 )
             }
         }
@@ -157,11 +169,13 @@ private fun ShipmentCard(
     order: PurchaseOrder,
     carrierSettings: CarrierSettings,
     carriers: List<CarrierAdapter>,
+    openUrl: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val language = state.language
     val label = state.shipmentLabels[shipment.id]
     val adapter = carriers.firstOrNull { it.id == shipment.carrierId }
+    val link = CarrierLinks.byId(shipment.carrierId)
     var message by remember(shipment.id) { mutableStateOf<String?>(null) }
     var description by remember(shipment.id) { mutableStateOf("") }
     OutlinedCard(Modifier.fillMaxWidth()) {
@@ -175,6 +189,7 @@ private fun ShipmentCard(
                 shipment.status == ShipmentStatus.DELIVERED -> language.text(Label.DELIVERED)
                 shipment.status == ShipmentStatus.IN_TRANSIT -> language.text(Label.IN_TRANSIT)
                 adapter != null -> language.text(Label.CARRIER_TRACKING)
+                link != null -> language.text(Label.CARRIER_LINK)
                 else -> language.text(Label.MANUAL_TRACKING)
             })
             if (adapter != null) {
@@ -206,6 +221,20 @@ private fun ShipmentCard(
                         }
                     }
                 }) { Text("${language.text(Label.REFRESH_TRACKING)} · ${adapter.displayName}") }
+            }
+            if (adapter == null && link != null) {
+                val trackingNumber = label?.trackingNumber
+                val url = trackingNumber?.let { CarrierLinks.trackingUrl(link.id, it) }
+                OutlinedButton(enabled = url != null, onClick = { url?.let(openUrl) }) {
+                    Text(
+                        if (link.viaLookup) language.text(Label.OPEN_TRACKING_LOOKUP)
+                        else "${language.text(Label.TRACK_ON_CARRIER)} ${link.displayName}",
+                    )
+                }
+                if (trackingNumber != null && url == null) {
+                    Text(language.text(Label.TRACKING_LINK_UNAVAILABLE), style = MaterialTheme.typography.bodySmall)
+                }
+                Text(language.text(Label.LINK_ONLY_CARRIER), style = MaterialTheme.typography.bodySmall)
             }
             message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             OutlinedTextField(description, { description = it }, label = { Text(language.text(Label.EVENT_DESCRIPTION)) }, modifier = Modifier.fillMaxWidth())

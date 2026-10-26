@@ -20,6 +20,7 @@ enum class Label {
     CARRIER_CONNECTION, THAILAND_POST_API_KEY, API_KEY_HINT, API_KEY_SAVED, API_KEY_CLEARED,
     API_KEY_CLEAR, CONFIGURED, NOT_CONFIGURED, REFRESH_TRACKING, CARRIER_NOT_CONFIGURED,
     TRACKING_UPDATED, CARRIER_EVENT, CARRIER_MODE, MANUAL_CARRIER, CARRIER_TRACKING, PACKAGE_DETAILS,
+    CARRIER_LINK, TRACK_ON_CARRIER, OPEN_TRACKING_LOOKUP, LINK_ONLY_CARRIER, TRACKING_LINK_UNAVAILABLE,
 }
 
 private val english = mapOf(
@@ -70,6 +71,10 @@ private val english = mapOf(
     Label.TRACKING_UPDATED to "Tracking refreshed.", Label.CARRIER_EVENT to "carrier event",
     Label.CARRIER_MODE to "Carrier connection", Label.MANUAL_CARRIER to "Manual",
     Label.CARRIER_TRACKING to "Carrier tracking — refresh for updates", Label.PACKAGE_DETAILS to "Package details",
+    Label.CARRIER_LINK to "Carrier link — opens the tracking page",
+    Label.TRACK_ON_CARRIER to "Track on", Label.OPEN_TRACKING_LOOKUP to "Open 17TRACK lookup",
+    Label.LINK_ONLY_CARRIER to "Link-only — no carrier API connected. Opens an external tracking page.",
+    Label.TRACKING_LINK_UNAVAILABLE to "This tracking number cannot open the carrier page.",
 )
 
 private val thai = mapOf(
@@ -120,6 +125,10 @@ private val thai = mapOf(
     Label.TRACKING_UPDATED to "อัปเดตการติดตามแล้ว", Label.CARRIER_EVENT to "เหตุการณ์จากผู้ขนส่ง",
     Label.CARRIER_MODE to "การเชื่อมต่อผู้ขนส่ง", Label.MANUAL_CARRIER to "ด้วยตนเอง",
     Label.CARRIER_TRACKING to "ติดตามผ่านผู้ขนส่ง — กดอัปเดตเพื่อรับข้อมูลล่าสุด", Label.PACKAGE_DETAILS to "รายละเอียดพัสดุ",
+    Label.CARRIER_LINK to "ลิงก์ผู้ขนส่ง — เปิดหน้าติดตามพัสดุ",
+    Label.TRACK_ON_CARRIER to "ติดตามที่", Label.OPEN_TRACKING_LOOKUP to "เปิดการค้นหาบน 17TRACK",
+    Label.LINK_ONLY_CARRIER to "ลิงก์เท่านั้น — ยังไม่ได้เชื่อมต่อ API ของผู้ขนส่ง ระบบจะเปิดหน้าติดตามภายนอก",
+    Label.TRACKING_LINK_UNAVAILABLE to "หมายเลขติดตามนี้ไม่สามารถเปิดหน้าผู้ขนส่งได้",
 )
 
 fun AppLanguage.text(label: Label): String = (if (this == AppLanguage.THAI) thai else english).getValue(label)

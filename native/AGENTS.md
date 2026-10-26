@@ -48,3 +48,8 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   the key explicitly. Preserve raw descriptions/timestamps and mark provider
   provenance; do not fabricate events or claim live verification. Carrier
   locations are currently appended to the description, not a separate column.
+- Link-only carriers (`CarrierLinks`) must stay labeled link-only. SPX/LEX use
+  a clearly identified 17TRACK lookup, not a carrier API; KEX/Flash/J&T/Ninja Van
+  open their own tracking pages. Never generate events from a link or imply it is
+  live tracking. The user must confirm the carrier; marketplace names are not
+  proof of the last-mile carrier.

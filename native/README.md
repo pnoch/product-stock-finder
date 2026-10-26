@@ -25,6 +25,11 @@ not the complete Phase 1 release from the master product brief.
   auth, successful mapping, Buddhist-era timestamps, unauthorized/rate-limited/
   missing/malformed responses and network failures. **No live request has been
   verified without a real API key.**
+- Link-only choices for **SPX Express, LEX (Lazada), KEX/Kerry, Flash Express,
+  J&T Express and Ninja Van**. KEX/Flash/J&T/Ninja Van open the carrier's own
+  tracking page with the number; SPX and LEX open a clearly labeled 17TRACK
+  lookup because they have no stable public deep link. These store the carrier
+  id but make no API request and are never presented as live tracking.
 - Manual per-item return records with reasons, return tracking numbers, notes,
   all eight refund/return states, and exact minor-unit refund amounts. Received
   refund states require a positive amount; rejected requests release their
@@ -162,7 +167,7 @@ Linux packaged executable:
 
 | Platform | Current evidence |
 | --- | --- |
-| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). The carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live |
+| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). The carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URL generation is unit-tested, not opened in the smoke |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb) and backup uses a native file dialog (unit-tested) |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
 | iOS | XcodeGen host builds and launches in a simulator on macOS CI; Compose UI renders, SQLite opens, CryptoKit backs backup/address encryption, Keychain stores the device key, and the document picker is wired. No device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
@@ -267,6 +272,14 @@ ignored by the existing event key. Raw descriptions, Buddhist-era timestamps and
 timezone offsets are retained; the timestamp parser converts them to UTC only
 when the offset is present.
 
+For carriers without an authorized API, choose the link-only chip. **SPX
+Express** and **LEX (Lazada)** open a 17TRACK lookup; **KEX/Kerry**, **Flash**,
+**J&T** and **Ninja Van** open their own tracking pages. These choices persist
+the carrier id and tracking number but do not fetch or invent events. The
+marketplace/seller may assign a different carrier than the store name suggests,
+so the user must confirm the carrier rather than infer it from “Shopee” or
+“Lazada”.
+
 Current limits:
 
 - Status normalization is a documented keyword heuristic, not an official
@@ -276,9 +289,10 @@ Current limits:
 - Each refresh authenticates again; there is no token/rate-limit cache, retry
   queue, background polling, estimated-delivery fetch or multi-item tracking
   request.
-- Only Thailand Post is implemented. Live access requires a valid API key and
-  has not been verified in this environment; MockEngine tests are not a
-  substitute for that verification.
+- Only Thailand Post has an API adapter. SPX, LEX, KEX, Flash, J&T and Ninja Van
+  are link-only; 17TRACK is a third-party lookup for SPX/LEX, not the carrier's
+  API. Live Thailand Post access requires a valid API key and has not been
+  verified in this environment; MockEngine tests are not a substitute.
 - Return-carrier tracking is not connected to the returns module.
 
 ## iOS host notes

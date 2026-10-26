@@ -159,7 +159,7 @@ foundation plan.
 
 ## Execution record
 
-- Native tests: 72 passed, zero failures/errors across core, connectors, carriers, data,
+- Native tests: 76 passed, zero failures/errors across core, connectors, carriers, data,
   and presentation. SQLite migration verification passed.
 - Android debug APK built. The emulator smoke exercises saved offers, split
   delivery, force-stop/restart, Thai selection and a second restart.
@@ -201,8 +201,10 @@ foundation plan.
 - A Thailand Post adapter, secure API-key settings, carrier id persistence and
   order-screen refresh are implemented. MockHTTP tests cover auth, mapping,
   Buddhist-era timestamps, errors and network failure; the Android smoke covers
-  the unconfigured-key gate. No live Thailand Post request is claimed. Other
-  carriers, token/rate-limit caching, location columns and return-carrier
+  the unconfigured-key gate. No live Thailand Post request is claimed. SPX, LEX,
+  KEX, Flash, J&T and Ninja Van are link-only choices (SPX/LEX via a labeled
+  17TRACK lookup); URL generation is unit-tested, not opened in the smoke. Other
+  carrier APIs, token/rate-limit caching, location columns and return-carrier
   tracking remain follow-on work.
 - Deadline reminders, payment-ledger reconciliation, proof attachments, signing
   and peer sync remain follow-on work; see `native/README.md`.
