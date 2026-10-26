@@ -3,6 +3,7 @@ package com.omnishop.app
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +23,9 @@ internal fun OrdersScreen(state: ShopSnapshot, presenter: ShopPresenter, private
     val scope = rememberCoroutineScope()
     val language = state.language
     val order = state.selectedOrder
-    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(order?.id) { listState.scrollToItem(0) }
+    LazyColumn(state = listState, contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (order == null) {
             if (state.orders.isEmpty()) item { Text(language.text(Label.NO_ORDERS)) }
             items(state.orders, key = { it.id }) { summary ->
@@ -33,6 +36,9 @@ internal fun OrdersScreen(state: ShopSnapshot, presenter: ShopPresenter, private
         } else {
             item {
                 TextButton(onClick = { scope.launch { presenter.selectOrder(null) } }) { Text(language.text(Label.BACK)) }
+                TextButton(onClick = { scope.launch { listState.animateScrollToItem(3 + maxOf(1, order.shipments.size)) } }) {
+                    Text(language.text(Label.MANAGE_RETURNS))
+                }
                 Text(order.merchant, style = MaterialTheme.typography.headlineSmall)
                 Text("${language.text(Label.DELIVERY_PROGRESS)}: ${language.progress(order.deliveryProgress)}")
                 order.items.forEach { Text("${it.title} × ${it.quantity}") }
@@ -41,6 +47,10 @@ internal fun OrdersScreen(state: ShopSnapshot, presenter: ShopPresenter, private
             item(key = "attach-${order.id}") { AttachShipmentForm(state, presenter, order) }
             if (order.shipments.isEmpty()) item { Text(language.text(Label.NO_SHIPMENTS)) }
             items(order.shipments, key = { it.id }) { shipment -> ShipmentCard(shipment, state, presenter, order) }
+            item(key = "returns-heading-${order.id}") { Text(language.text(Label.RETURNS), style = MaterialTheme.typography.headlineSmall) }
+            item(key = "return-request-${order.id}") { ReturnRequestButton(order, state, presenter) }
+            if (state.returns.isEmpty()) item { Text(language.text(Label.NO_RETURNS)) }
+            items(state.returns, key = { "return-${it.id}" }) { record -> ReturnRecordCard(record, order, state, presenter) }
         }
     }
 }

@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class BackupSnapshot(
-    val schemaVersion: Int = 1,
+    val schemaVersion: Int = 2,
     val products: List<BackupProduct> = emptyList(),
     val listings: List<BackupListing> = emptyList(),
     val observations: List<BackupObservation> = emptyList(),
@@ -15,6 +15,7 @@ data class BackupSnapshot(
     val events: List<BackupEvent> = emptyList(),
     val preferences: List<BackupPreference> = emptyList(),
     val privateFields: List<BackupPrivateField> = emptyList(),
+    val returns: List<BackupReturn> = emptyList(),
 )
 
 @Serializable data class BackupProduct(val id: String, val title: String, val sourceUrl: String?, val savedAt: Long)
@@ -43,7 +44,27 @@ data class BackupSnapshot(
 )
 @Serializable data class BackupPreference(val key: String, val value: String)
 @Serializable data class BackupPrivateField(val orderId: String, val field: String, val value: String)
+@Serializable data class BackupReturn(
+    val id: String, val orderId: String, val orderItemId: String, val quantity: Int,
+    val reason: String, val status: String, val requestedAt: Long, val returnTracking: String?,
+    val refundMinor: Long?, val currencyCode: String?, val currencyScale: Int?, val notes: String?,
+)
+
+internal fun BackupReturn.toRecord(): com.omnishop.core.ReturnRecord {
+    val refund = if (refundMinor == null) {
+        require(currencyCode == null && currencyScale == null) { "Refund currency without an amount" }
+        null
+    } else {
+        com.omnishop.core.Money(refundMinor, com.omnishop.core.Currency(
+            requireNotNull(currencyCode) { "Missing refund currency" },
+            requireNotNull(currencyScale) { "Missing refund scale" },
+        ))
+    }
+    return com.omnishop.core.ReturnRecord(id, orderId, orderItemId, quantity, reason,
+        com.omnishop.core.ReturnStatus.valueOf(status), requestedAt, returnTracking, refund, notes)
+}
 
 data class BackupCounts(
     val products: Int, val offers: Int, val orders: Int, val shipments: Int, val events: Int,
+    val returns: Int = 0,
 )

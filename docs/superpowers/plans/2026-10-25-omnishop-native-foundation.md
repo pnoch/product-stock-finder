@@ -159,7 +159,7 @@ foundation plan.
 
 ## Execution record
 
-- Native tests: 43 passed, zero failures/errors across core, connectors, data,
+- Native tests: 60 passed, zero failures/errors across core, connectors, data,
   and presentation. SQLite migration verification passed.
 - Android debug APK built. The emulator smoke exercises saved offers, split
   delivery, force-stop/restart, Thai selection and a second restart.
@@ -170,6 +170,18 @@ foundation plan.
 - The UI now creates orders with multiple line items and allocates quantities
   per item to split packages; the Android smoke and presenter tests cover
   partial delivery and over-allocation rejection.
+- Manual returns/refunds now have an order-detail workflow, eight localized
+  states, quantity reservation rules, return tracking, notes, and exact amounts.
+  A received-refund state requires a positive amount. Updates preserve an
+  existing currency; the UI does not submit claims or initiate payments.
+- SQLDelight migration `1.sqm` adds returns to native database version 2. The
+  version-1 snapshot is retained; a file-backed test and Android in-place APK
+  upgrade preserved existing records. Encrypted backup payload schema 2 adds
+  returns while accepting prior schema-1 native backups; the encryption
+  envelope remains version 1.
+- Android smoke covers a return and partial refund, English/Thai restart
+  persistence, and the encrypted address. Multi-order backup regression tests
+  cover return ownership, refund validation and atomic replacement.
 - Encrypted backup v1 and its restore path are implemented and tested (wrong
   password, tampering, truncation, invalid snapshot, rollback). Android and
   desktop have platform file pickers; the pickers themselves are not automated.
@@ -186,6 +198,9 @@ foundation plan.
   stores the device key, and the document picker is wired. No device signing,
   App Store build, background tasks, share extension, or iOS UI automation
   beyond launch/screenshot is claimed.
-- No real carrier, iOS Keychain adapter, or iOS host is claimed. See
-  `native/README.md` for follow-on gates.
-- Work is on `native/omnishop-foundation`; no commit/push was requested.
+- No live carrier or merchant return/refund integration is claimed. Deadline
+  reminders, payment-ledger reconciliation, proof attachments, signing and
+  peer sync remain follow-on work; see `native/README.md`.
+- Work is on `native/omnishop-foundation`. The returns/refunds increment is
+  verified locally; consult the native Actions workflows for remote
+  iOS/Windows/macOS validation of the current revision.

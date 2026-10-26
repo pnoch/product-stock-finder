@@ -46,6 +46,7 @@ def main():
         adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
 
     def type_into(label, value, replace=False):
+        reveal(label)
         tap(label)
         if replace:
             adb("shell", "input", "keyevent", "KEYCODE_MOVE_END")
@@ -57,8 +58,18 @@ def main():
 
     def scroll(down=True):
         start, end = (0.8, 0.3) if down else (0.3, 0.8)
-        adb("shell", "input", "swipe", str(width - 8), str(int(height * start)),
-            str(width - 8), str(int(height * end)), "400")
+        x = int(width * 0.96)
+        adb("shell", "input", "swipe", str(x), str(int(height * start)),
+            str(x), str(int(height * end)), "400")
+
+    def reveal(text, contains=False):
+        for _ in range(7):
+            for node in tree().iter("node"):
+                value = node.get("text", "")
+                if (text in value if contains else text == value):
+                    return
+            scroll()
+        raise AssertionError(f"Could not scroll to: {text}")
 
     def shot(name):
         (args.evidence / f"{name}.png").write_bytes(adb("exec-out", "screencap", "-p", binary=True))
@@ -104,15 +115,32 @@ def main():
     scroll()
     type_into("Quantity", "1", replace=True)
     scroll()
+    reveal("Add package")
     tap("Add package")
     scroll()
     type_into("Event description", "First package received")
     scroll()
+    reveal("Delivered")
     tap("Delivered")
     scroll(False)
     scroll(False)
     find("Delivery progress: Partially delivered")
     shot("04-partial-delivery")
+    tap("Manage returns & refunds")
+    tap("Record return request")
+    type_into("Return reason", "Damaged screen")
+    tap("Save")
+    reveal("Update return")
+    tap("Update return")
+    tap("Requested")
+    tap("Partially refunded")
+    type_into("Refund amount (THB)", "150.25")
+    type_into("Return tracking number (optional)", "RETURN-QA001")
+    type_into("Return / refund notes (optional)", "Balance pending")
+    tap("Save")
+    reveal("Recorded refund: 150.25 THB")
+    find("Partially refunded")
+    shot("04b-return-refund")
     adb("shell", "am", "force-stop", PACKAGE)
     launch()
     tap("Orders")
@@ -120,6 +148,10 @@ def main():
     find("Delivery progress: Partially delivered")
     find("123 Secret Road")
     shot("05-restart-persistence")
+    tap("Manage returns & refunds")
+    reveal("Recorded refund: 150.25 THB")
+    find("RETURN-QA001")
+    shot("05b-refund-restart")
     tap("Profile")
     tap("ไทย")
     find("โปรไฟล์")
@@ -130,8 +162,12 @@ def main():
     tap("QA Shop", contains=True)
     find("ความคืบหน้าการจัดส่ง: จัดส่งบางส่วนแล้ว")
     shot("07-thai-restart")
+    tap("จัดการการคืนสินค้าและคืนเงิน")
+    reveal("เงินคืนที่บันทึกไว้: 150.25 THB")
+    find("คืนเงินบางส่วนแล้ว")
+    shot("07b-thai-refund-restart")
     adb("shell", "am", "force-stop", PACKAGE)
-    print(f"Native local workflow, split delivery, restart and Thai persistence passed. Evidence: {args.evidence}")
+    print(f"Native shopping, split delivery, return/refund, restart and Thai persistence passed. Evidence: {args.evidence}")
 
 
 if __name__ == "__main__":

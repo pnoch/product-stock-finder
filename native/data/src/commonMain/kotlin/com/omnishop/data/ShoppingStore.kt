@@ -120,6 +120,40 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
             it.original_timestamp, it.original_timezone)
     }
 
+    fun createReturn(record: ReturnRecord) {
+        database.transaction {
+            val order = requireNotNull(getOrder(record.orderId)) { "Order not found" }
+            validateOrderReturns(order, returnsForOrder(record.orderId) + record)
+            queries.insertReturn(record.id, record.orderId, record.orderItemId, record.quantity.toLong(),
+                record.reason, record.status.name, record.requestedAtEpochMillis,
+                record.returnTrackingNumber, record.refund?.minorUnits,
+                record.refund?.currency?.code, record.refund?.currency?.scale?.toLong(), record.notes)
+        }
+    }
+
+    fun returnsForOrder(orderId: String): List<ReturnRecord> =
+        queries.returnsForOrder(orderId).executeAsList().map { it.toReturn() }
+
+    fun updateReturn(id: String, status: ReturnStatus, refund: Money?, tracking: String?, notes: String?) {
+        database.transaction {
+            val existing = requireNotNull(queries.findReturn(id).executeAsOneOrNull()) { "Return not found" }.toReturn()
+            val updated = existing.copy(status = status, refund = refund, returnTrackingNumber = tracking, notes = notes)
+            val order = requireNotNull(getOrder(existing.orderId)) { "Order not found" }
+            validateOrderReturns(order, returnsForOrder(order.id).map { if (it.id == id) updated else it })
+            queries.updateReturn(updated.status.name, updated.returnTrackingNumber, updated.refund?.minorUnits,
+                updated.refund?.currency?.code, updated.refund?.currency?.scale?.toLong(), updated.notes, id)
+        }
+    }
+
+    private fun com.omnishop.data.db.Order_return.toReturn(): ReturnRecord {
+        val currency = currency_code?.let { code -> currency_scale?.let { Currency(code, it.toInt()) } }
+        return ReturnRecord(
+            id, order_id, order_item_id, quantity.toInt(), reason,
+            ReturnStatus.valueOf(status), requested_at,
+            return_tracking, refund_minor?.let { amount -> requireNotNull(currency).let { Money(amount, it) } }, notes,
+        )
+    }
+
     fun upsertPrivate(row: PrivateRow) {
         queries.upsertPrivate(row.orderId, row.field, row.keyVersion.toLong(), row.nonce, row.ciphertext)
     }
@@ -169,6 +203,11 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
             preferences = queries.allPreferences().executeAsList().map {
                 BackupPreference(it.key, it.value_)
             },
+            returns = queries.allReturns().executeAsList().map {
+                BackupReturn(it.id, it.order_id, it.order_item_id, it.quantity.toInt(), it.reason,
+                    it.status, it.requested_at, it.return_tracking, it.refund_minor,
+                    it.currency_code, it.currency_scale?.toInt(), it.notes)
+            },
         )
     }
 
@@ -176,6 +215,7 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
         // Child tables first; the whole replace is one transaction so a failed
         // insert rolls the old database back intact.
         queries.deleteEvents()
+        queries.deleteAllReturns()
         queries.deleteAllPrivate()
         queries.deleteAllocations()
         queries.deleteShipments()
@@ -197,6 +237,11 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
         snapshot.orders.forEach { queries.insertOrder(it.id, it.merchant, it.createdAt) }
         privateRows.forEach(::upsertPrivate)
         snapshot.orderItems.forEach { queries.insertOrderItem(it.id, it.orderId, it.title, it.quantity.toLong()) }
+        snapshot.returns.forEach {
+            queries.insertReturn(it.id, it.orderId, it.orderItemId, it.quantity.toLong(), it.reason,
+                it.status, it.requestedAt, it.returnTracking, it.refundMinor,
+                it.currencyCode, it.currencyScale?.toLong(), it.notes)
+        }
         snapshot.shipments.forEach {
             queries.insertShipment(it.id, it.orderId, it.trackingNumber, it.carrierLabel, it.status)
         }
@@ -210,7 +255,7 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
         }
         snapshot.preferences.forEach { queries.savePreference(it.key, it.value) }
         BackupCounts(snapshot.products.size, snapshot.listings.size, snapshot.orders.size,
-            snapshot.shipments.size, snapshot.events.size)
+            snapshot.shipments.size, snapshot.events.size, snapshot.returns.size)
     }
 
     override fun close() = driver.close()

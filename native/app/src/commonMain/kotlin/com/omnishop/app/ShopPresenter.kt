@@ -21,6 +21,7 @@ data class ShopSnapshot(
     val selectedOrder: PurchaseOrder? = null,
     val events: Map<String, List<TrackingEvent>> = emptyMap(),
     val shipmentLabels: Map<String, ShipmentLabel> = emptyMap(),
+    val returns: List<ReturnRecord> = emptyList(),
     val language: AppLanguage = AppLanguage.ENGLISH,
     val busy: Boolean = false,
     val error: String? = null,
@@ -84,6 +85,19 @@ class ShopPresenter(
 
     suspend fun changeLanguage(language: AppLanguage) = perform { store.setPreference("language", language.name) }
 
+    suspend fun createReturn(orderItemId: String, quantity: Int, reason: String) = perform {
+        val order = requireNotNull(selectedOrderId?.let(store::getOrder)) { "Select an order first" }
+        store.createReturn(ReturnRecord(newId(), order.id, orderItemId, quantity, reason.trim(), ReturnStatus.REQUESTED, now()))
+    }
+
+    suspend fun updateReturn(returnId: String, status: ReturnStatus, refundAmount: String, tracking: String, notes: String) = perform {
+        val orderId = requireNotNull(selectedOrderId) { "Select an order first" }
+        val record = requireNotNull(store.returnsForOrder(orderId).firstOrNull { it.id == returnId }) { "Return does not belong to this order" }
+        val currency = record.refund?.currency ?: Currency.THB
+        val refund = refundAmount.trim().takeIf { it.isNotEmpty() }?.let { parseNonNegativeMoney(it, currency) }
+        store.updateReturn(returnId, status, refund, tracking.trim().takeIf { it.isNotEmpty() }, notes.trim().takeIf { it.isNotEmpty() })
+    }
+
     private suspend fun perform(block: () -> Unit) = withContext(dispatcher) {
         mutex.withLock {
             mutableState.value = mutableState.value.copy(busy = true, error = null)
@@ -99,6 +113,7 @@ class ShopPresenter(
                     selectedOrder = order,
                     events = ids.associateWith(store::events),
                     shipmentLabels = ids.mapNotNull { id -> store.shipmentLabel(id)?.let { id to it } }.toMap(),
+                    returns = order?.let { store.returnsForOrder(it.id) }.orEmpty(),
                     language = AppLanguage.entries.firstOrNull { it.name == store.preference("language") } ?: AppLanguage.ENGLISH,
                 )
             } catch (cancelled: CancellationException) {

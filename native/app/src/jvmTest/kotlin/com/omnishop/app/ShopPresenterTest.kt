@@ -2,6 +2,9 @@ package com.omnishop.app
 
 import com.omnishop.core.DeliveryProgress
 import com.omnishop.core.ShipmentStatus
+import com.omnishop.core.ReturnStatus
+import com.omnishop.core.Currency
+import com.omnishop.core.Money
 import com.omnishop.data.ShoppingStore
 import com.omnishop.data.inMemory
 import kotlinx.coroutines.Dispatchers
@@ -9,6 +12,44 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.*
 
 class ShopPresenterTest {
+    @Test fun recordsAReturnAndPartialRefundOnTheSelectedOrder() = runBlocking {
+        ShoppingStore.inMemory().use { store ->
+            var id = 0
+            val presenter = ShopPresenter(store, { "id-${++id}" }, { 100L }, Dispatchers.Unconfined)
+            presenter.createOrder("Shop", listOf(DraftItem("Tablet", 2)))
+            presenter.createReturn(presenter.state.value.selectedOrder!!.items.single().id, 1, "Damaged screen")
+            val record = presenter.state.value.returns.single()
+            assertEquals(ReturnStatus.REQUESTED, record.status)
+            presenter.updateReturn(record.id, ReturnStatus.PARTIALLY_REFUNDED, "150.25", "RETURN-1", "Balance pending")
+            assertNull(presenter.state.value.error)
+            val updated = presenter.state.value.returns.single()
+            assertEquals(Money(15025, Currency.THB), updated.refund)
+            assertEquals("RETURN-1", updated.returnTrackingNumber)
+            presenter.selectOrder(null)
+            assertTrue(presenter.state.value.returns.isEmpty())
+            presenter.selectOrder(record.orderId)
+            assertEquals(updated, presenter.state.value.returns.single())
+        }
+    }
+
+    @Test fun preventsReturnUpdatesThroughAnotherSelectedOrderAndPreservesCurrency() = runBlocking {
+        ShoppingStore.inMemory().use { store ->
+            var id = 0
+            val presenter = ShopPresenter(store, { "id-${++id}" }, { 100L }, Dispatchers.Unconfined)
+            presenter.createOrder("Shop", listOf(DraftItem("Tablet", 1)))
+            val order = presenter.state.value.selectedOrder!!
+            presenter.createReturn(order.items.single().id, 1, "Damaged")
+            val record = presenter.state.value.returns.single()
+            store.updateReturn(record.id, ReturnStatus.PARTIALLY_REFUNDED, Money(1200, Currency.USD), null, null)
+            presenter.updateReturn(record.id, ReturnStatus.REFUNDED, "20.25", "", "")
+            assertEquals(Money(2025, Currency.USD), presenter.state.value.returns.single().refund)
+            presenter.createOrder("Other shop", listOf(DraftItem("Phone", 1)))
+            presenter.updateReturn(record.id, ReturnStatus.REFUNDED, "999.99", "", "")
+            assertNotNull(presenter.state.value.error)
+            assertEquals(Money(2025, Currency.USD), store.returnsForOrder(order.id).single().refund)
+        }
+    }
+
     @Test fun localWorkflowCreatesAnOrderAndSplitShipmentWithoutAnAccount() = runBlocking {
         ShoppingStore.inMemory().use { store ->
             var nextId = 0

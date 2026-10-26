@@ -16,7 +16,11 @@ not the complete Phase 1 release from the master product brief.
   each item; the user can split quantities across packages, and over-allocation
   is rejected by the domain and database.
 - SQLDelight/SQLite transactions, foreign keys, indexes, bounded list queries,
-  an empty version-1 schema snapshot, and migration verification.
+  empty version-1/version-2 schema snapshots, and migration verification.
+- Manual per-item return records with reasons, return tracking numbers, notes,
+  all eight refund/return states, and exact minor-unit refund amounts. Received
+  refund states require a positive amount; rejected requests release their
+  reserved units. Return records are included in encrypted backups.
 - Password-protected encrypted backup/restore (AES-256-GCM, PBKDF2-HMAC-SHA256
   with 600,000 iterations and a random salt). Restore validates every record and
   replaces the database in one transaction; wrong passwords, tampering and
@@ -45,7 +49,7 @@ unknown in the entry UI; it does not claim a cheapest delivered-price winner.
 ## Not implemented yet
 
 Real carrier/API requests, marketplace account connections, receipt/email import,
-automatic metadata extraction, automatic product matching, returns/refunds,
+automatic metadata extraction, automatic product matching, automated returns/refunds,
 cart/checkout, local notifications/background scheduling, peer sync, iOS
 background tasks/share extensions, signing/notarization, and additional
 sensitive fields are subsequent milestones.
@@ -72,7 +76,7 @@ proof are still required before the scale acceptance criteria can be claimed.
 
 | Module | Responsibility |
 | --- | --- |
-| `core` | Platform-independent values, cost rules, shipment progress, capabilities |
+| `core` | Platform-independent values, cost rules, shipment progress, return policies, capabilities |
 | `data` | SQLDelight queries, transactions, domain mapping, platform database drivers |
 | `connectors` | Validated bookmark URLs and source-owned external search URL builders |
 | `app` | Shared Compose UI, bilingual labels and suspendable presentation actions |
@@ -148,7 +152,7 @@ Linux packaged executable:
 
 | Platform | Current evidence |
 | --- | --- |
-| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/restart/Thai; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated) |
+| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/restart/Thai, plus an in-place database upgrade; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated) |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb) and backup uses a native file dialog (unit-tested) |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
 | iOS | XcodeGen host builds and launches in a simulator on macOS CI; Compose UI renders, SQLite opens, CryptoKit backs backup/address encryption, Keychain stores the device key, and the document picker is wired. No device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
@@ -158,8 +162,9 @@ simulator framework link, and an iOS simulator build/launch with a rendered-fram
 check.
 `.github/workflows/native-desktop.yml` runs JVM tests and
 `:desktopApp:createDistributable` on Ubuntu, macOS, and Windows, uploading each
-app image. Both are green on the current branch. These are development
-artifacts: they are not code-signed, notarized, or release-ready installers.
+app image. They validate committed/pushed changes; check the Actions results
+for the current revision's remote status. These are development artifacts:
+they are not code-signed, notarized, or release-ready installers.
 The desktop installer version is `1.0.0` because macOS rejects a leading zero;
 the application version remains `0.1.0`.
 
@@ -175,8 +180,10 @@ python3 scripts/smoke-android.py --serial emulator-5580 --reset
 ```
 
 The script installs the APK, saves a product with two manually entered offers,
-creates an order for two units, delivers one package, force-stops/reopens the
-app, changes to Thai and repeats the restart assertion. It captures screenshots under `/tmp/opencode/omnishop-native-evidence/` and
+creates an order for two units, delivers one package, records a return and a
+partial refund, force-stops/reopens the app, changes to Thai and repeats the
+delivery/refund assertions. It captures screenshots under
+`/tmp/opencode/omnishop-native-evidence/` and
 stops the preview at the end. Backup/restore is covered by JVM tests, not by
 this script (the Android document picker is a system UI).
 It neither starts nor connects to the old API server.
@@ -200,11 +207,37 @@ complete desktop interaction scenario.
 - Linux development: `$XDG_DATA_HOME/omnishop-native/omnishop.db`, falling back
   to `~/.local/share/omnishop-native/omnishop.db`.
 
-`data/src/commonMain/sqldelight/databases/1.db` is an empty generated schema
-snapshot. It contains no test or user records. For a future schema revision,
-add SQLDelight numbered migrations and verify them against the prior snapshot;
-never replace an existing user's database to make a test pass. No compatibility
-with legacy Expo/Tauri data or old backup formats is required.
+`data/src/commonMain/sqldelight/databases/1.db` and `2.db` are empty generated
+schema snapshots, with no test or user records. `1.sqm` upgrades a version-1
+native database to version 2 by adding `order_return`; it does not recreate or
+clear existing tables. A file-backed migration test preserves products/orders,
+and an Android in-place APK upgrade preserved the existing order and encrypted
+address before the clean smoke scenario was run.
+
+For future revisions, add SQLDelight numbered migrations and verify against the
+prior snapshot. Never replace an existing database to make a test pass. No
+compatibility with legacy Expo/Tauri data or backup formats is required.
+
+## Returns and refunds
+
+Use **Orders → select order → Manage returns & refunds**. Record an item,
+quantity, and reason, then update its status, refund amount, return tracking
+number, and notes. These actions are local bookkeeping: they do not contact a
+merchant, submit a claim, or initiate a payment.
+
+- States: Requested, Approved, Item returned, Processing, Partially refunded,
+  Refunded, Rejected, Disputed (English/Thai).
+- The domain and transactional repository reject references to another order's
+  item, duplicate IDs, and cumulative active quantities above the purchased
+  quantity. Rejected requests stop reserving units; reactivating them must
+  still pass the cumulative check. Summation uses `Long` to prevent overflow.
+- A partially/fully received refund requires a positive recorded amount. New
+  entries use THB; editing an imported refund preserves its currency and scale.
+- Amounts represent the current recorded total for that return, not a ledger
+  of separate payments. The app does not yet reconcile refunds against an
+  original paid total, calculate FX differences, or infer a full refund.
+- Return deadlines/reminders, proof attachments, separate refund transactions,
+  and merchant/carrier return integrations are not implemented yet.
 
 ## iOS host notes
 
@@ -229,11 +262,17 @@ KDF cost, 16-byte salt, 12-byte nonce, creation time, and an AES-256-GCM
 ciphertext. The header is authenticated as AAD. The password is expanded with
 PBKDF2-HMAC-SHA256 to a 256-bit key; the key and password char array are zeroed
 after use. The JSON snapshot contains all products, offers, observations, orders,
-items, shipments, allocations, tracking events, preferences and decrypted
+items, shipments, allocations, tracking events, preferences, return/refund records and decrypted
 shipping addresses. Unknown JSON fields are rejected, and restore validates
 uniqueness, references, quantities, currencies and domain invariants before
 re-encrypting addresses with the local device key and replacing the database in
 one transaction. Plaintext addresses exist only transiently in memory.
+
+The encrypted envelope remains version 1. The JSON payload now uses schema 2
+for returns/refunds and still accepts earlier schema-1 native backups without
+returns. Invalid return ownership, quantities, currencies, and refund states
+are rejected before database replacement. A multi-order round-trip regression
+test covers the child-row insertion order and return ownership validation.
 
 This format is not a substitute for an attacker with the live unlocked device,
 and it does not provide key escrow. Keep the password out of the backup file.
@@ -242,7 +281,8 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 1. Verify Thailand Post API access/credential suitability, then implement a real
    adapter with preserved raw events and provenance.
-2. Add the iOS host, its Keychain adapter, and Windows/macOS packaging proof.
+2. Exercise iOS/desktop sensitive-field and backup file-picker interactions,
+   then complete signing/notarization and device distribution.
 3. Expand offers/variants, order editing, pagination and receipt import.
 4. Add encrypted credentials/receipt attachments using the same device key.
 5. Native sharing/background tasks and encrypted peer synchronization.

@@ -16,8 +16,9 @@ See `README.md` for the verified feature/platform matrix and exact commands.
 - The preview package is separate from the old app. Do not replace the shared
   release APK/page with this development preview without a user request.
 - Never commit a local database containing user records, local.properties,
-  signing keys, build output, or Gradle caches. The SQLDelight `databases/1.db`
-  file is an empty schema snapshot, not an exported user database.
+  signing keys, build output, or Gradle caches. SQLDelight `databases/*.db`
+  files are empty schema snapshots, not exported user databases; retain the
+  previous snapshot and add a numbered `.sqm` migration for schema changes.
 - The iOS host lives in `iosApp/` (XcodeGen `project.yml` + Swift). Do not commit
   the generated `.xcodeproj`. `Info.plist` must keep
   `CADisableMinimumFrameDurationOnPhone=true`; Swift supplies CryptoKit,
@@ -33,3 +34,8 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   uses a non-exportable Keystore key; desktop uses the OS credential store and
   fails closed when unavailable. Backups carry decrypted sensitive values only
   inside the password-encrypted snapshot and re-encrypt with the local key.
+- Return quantities and ownership use `validateOrderReturns` in `core` for both
+  repository writes and backup restore. Rejected requests release reserved units.
+  Use long sums, preserve refund currency, and never imply a manual record sends
+  a merchant request or transfers money. Database schema 2 and backup payload
+  schema 2 add returns; the authenticated backup envelope is still version 1.

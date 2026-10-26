@@ -1,0 +1,22 @@
+CREATE TABLE order_return (
+    id TEXT NOT NULL PRIMARY KEY,
+    order_id TEXT NOT NULL REFERENCES purchase_order(id) ON DELETE CASCADE,
+    order_item_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity BETWEEN 1 AND 2147483647),
+    reason TEXT NOT NULL CHECK (length(trim(reason)) > 0 AND length(reason) <= 500),
+    status TEXT NOT NULL CHECK (status IN ('REQUESTED', 'APPROVED', 'ITEM_RETURNED', 'PROCESSING', 'PARTIALLY_REFUNDED', 'REFUNDED', 'REJECTED', 'DISPUTED')),
+    requested_at INTEGER NOT NULL CHECK (requested_at >= 0),
+    return_tracking TEXT CHECK (return_tracking IS NULL OR (length(trim(return_tracking)) > 0 AND length(return_tracking) <= 256)),
+    refund_minor INTEGER CHECK (refund_minor IS NULL OR refund_minor >= 0),
+    currency_code TEXT,
+    currency_scale INTEGER CHECK (currency_scale IS NULL OR currency_scale BETWEEN 0 AND 4),
+    notes TEXT CHECK (notes IS NULL OR length(notes) <= 2000),
+    CHECK (status NOT IN ('PARTIALLY_REFUNDED', 'REFUNDED') OR (refund_minor IS NOT NULL AND refund_minor > 0)),
+    CHECK (
+        (refund_minor IS NULL AND currency_code IS NULL AND currency_scale IS NULL) OR
+        (refund_minor IS NOT NULL AND currency_code IS NOT NULL AND currency_scale IS NOT NULL)
+    ),
+    FOREIGN KEY (order_item_id, order_id) REFERENCES order_item(id, order_id) ON DELETE CASCADE
+);
+
+CREATE INDEX order_return_order_id ON order_return(order_id, requested_at);

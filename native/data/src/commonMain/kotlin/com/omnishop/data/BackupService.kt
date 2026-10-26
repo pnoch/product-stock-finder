@@ -32,7 +32,11 @@ class BackupService(
         } catch (failure: Exception) {
             throw BackupFormatException("Backup contents are invalid", failure)
         }
-        validate(snapshot)
+        try {
+            validate(snapshot)
+        } catch (failure: IllegalArgumentException) {
+            throw BackupFormatException("Backup contents are invalid", failure)
+        }
         // Re-encrypt private fields with this device's key; the backup is
         // password-encrypted, so plaintext never reaches disk outside it.
         val privateRows = privateService.encryptForRestore(
@@ -48,7 +52,8 @@ class BackupService(
             items.forEach { if (!seen.add(id(it))) fail("Duplicate $label id") }
         }
 
-        if (snapshot.schemaVersion != 1) fail("Unsupported backup schema")
+        if (snapshot.schemaVersion !in 1..2) fail("Unsupported backup schema")
+        if (snapshot.schemaVersion == 1 && snapshot.returns.isNotEmpty()) fail("Returns require backup schema 2")
         unique(snapshot.products, { it.id }, "product")
         unique(snapshot.listings, { it.id }, "listing")
         unique(snapshot.orders, { it.id }, "order")
@@ -106,6 +111,9 @@ class BackupService(
             if (it.orderId !in orderIds || it.field.isBlank() || it.field.length > 64 ||
                 it.value.isBlank() || it.value.length > OrderPrivateService.MAX_VALUE_LENGTH) fail("Invalid private field")
         }
+        unique(snapshot.returns, { it.id }, "return")
+        val returnsByOrder = snapshot.returns.map { it.toRecord() }.groupBy { it.orderId }
+        if (returnsByOrder.keys.any { it !in orderIds }) fail("Return references an unknown order")
 
         // Reuse domain invariants for the relationships that matter most.
         snapshot.orders.forEach { order ->
@@ -117,7 +125,8 @@ class BackupService(
                 if (allocations.isEmpty() || allocations.any { it.orderId != order.id }) fail("Invalid shipment allocation")
                 Shipment(shipment.id, allocations.map { ShipmentAllocation(it.orderItemId, it.quantity) }, status(shipment.status))
             }
-            PurchaseOrder(order.id, order.merchant, items, shipments)
+            val purchase = PurchaseOrder(order.id, order.merchant, items, shipments)
+            validateOrderReturns(purchase, returnsByOrder[order.id].orEmpty())
         }
     }
 
