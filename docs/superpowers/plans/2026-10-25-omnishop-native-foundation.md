@@ -159,7 +159,7 @@ foundation plan.
 
 ## Execution record
 
-- Native tests: 32 passed, zero failures/errors across core, connectors, data,
+- Native tests: 43 passed, zero failures/errors across core, connectors, data,
   and presentation. SQLite migration verification passed.
 - Android debug APK built. The emulator smoke exercises saved offers, split
   delivery, force-stop/restart, Thai selection and a second restart.
@@ -170,6 +170,11 @@ foundation plan.
 - Encrypted backup v1 and its restore path are implemented and tested (wrong
   password, tampering, truncation, invalid snapshot, rollback). Android and
   desktop have platform file pickers; the pickers themselves are not automated.
-- No real carrier, OS secure-storage adapter, iOS host, or Windows/macOS native
+- The shipping address is encrypted with a device data key stored in Android
+  Keystore or the desktop OS credential store. Backups carry it only inside the
+  password-encrypted snapshot and re-encrypt it with the restoring device key.
+  Android E2E proves address save/read across a restart; Linux desktop startup
+  does not exercise the keyring (no Secret Service under Xvfb).
+- No real carrier, iOS Keychain adapter, iOS host, or Windows/macOS native
   platform validation is claimed. See `native/README.md` for follow-on gates.
 - Work is on `native/omnishop-foundation`; no commit/push was requested.

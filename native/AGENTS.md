@@ -22,4 +22,9 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   `data/.../security/EncryptedBackup.kt`. Do not add an unauthenticated fallback,
   store the password, or change KDF/AEAD parameters without a version bump and
   tests for wrong password, tampering, truncation, and atomic restore rollback.
-  Keep the live database plaintext-labeled until OS secure storage exists.
+  Keep the live database plainly labeled: only the shipping address is encrypted.
+- Sensitive fields go through `OrderPrivateService` / `SecretStore`. Never add a
+  plaintext column, an in-memory-only key, or a file-based key fallback. Android
+  uses a non-exportable Keystore key; desktop uses the OS credential store and
+  fails closed when unavailable. Backups carry decrypted sensitive values only
+  inside the password-encrypted snapshot and re-encrypt with the local key.

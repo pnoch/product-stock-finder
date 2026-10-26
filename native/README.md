@@ -21,6 +21,12 @@ not the complete Phase 1 release from the master product brief.
   replaces the database in one transaction; wrong passwords, tampering and
   malformed files fail without changing local data. Desktop uses a native file
   dialog; Android uses the system document picker.
+- Encrypted shipping address per order. The field key is AES-256-GCM encrypted
+  with a random device data key stored in Android Keystore or the desktop OS
+  credential store, bound to the order id and field name as AAD. Backups carry
+  the address inside the password-encrypted file and re-encrypt it with the
+  restoring device's key; plaintext addresses never enter the SQLite file or the
+  backup file.
 - Source declarations and external searches for Facebook Marketplace, Shopee,
   Lazada, and eBay. Product links save as bookmarks without a network request.
 - English/Thai labels and persisted language selection. Manual price entry is
@@ -39,15 +45,20 @@ unknown in the entry UI; it does not claim a cheapest delivered-price winner.
 
 Real carrier/API requests, marketplace account connections, receipt/email import,
 automatic metadata extraction, automatic product matching, returns/refunds,
-cart/checkout, local notifications/background scheduling, peer sync, and OS
-secure-storage adapters are subsequent milestones.
+cart/checkout, local notifications/background scheduling, peer sync, the iOS
+Keychain adapter, and additional sensitive fields are subsequent milestones.
 
-The development SQLite database is not encrypted at rest; personal fields such as
-addresses, credentials and receipt attachments have no input/storage path yet.
-Adding those fields requires the approved OS secure-storage adapters, not
-plaintext fallback columns. Encrypted portable backups are implemented, but they
-protect exported files, not the live database. The backup password is never
-stored; losing it makes the file unreadable. The full Phase 1 release remains
+The development SQLite database is not encrypted as a whole. The shipping
+address is stored only as authenticated ciphertext; credentials and receipt
+attachments have no input/storage path yet and require the same device-key
+approach, not plaintext fallback columns. Encrypted portable backups protect
+exported files, not the live database. The backup password is never stored;
+losing it makes the file unreadable.
+
+On Linux desktop, the OS credential store needs a running Secret Service
+(gnome-keyring or KWallet). The app still starts without one, but address
+operations and backups containing addresses fail with a clear error rather than
+falling back to a plaintext key file. The full Phase 1 release remains
 blocked on OS secure storage, one genuinely supported live carrier, and platform
 validation.
 
@@ -128,8 +139,8 @@ Linux packaged executable:
 
 | Platform | Current evidence |
 | --- | --- |
-| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/restart/Thai; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated) |
-| JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; portable backup uses a native file dialog (crypto/restore unit-tested) |
+| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/restart/Thai; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated) |
+| JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb) and backup uses a native file dialog (unit-tested) |
 | Windows/macOS | Shared JVM code exists; OS-native packaging and integration unverified |
 | iOS | KMP arm64/simulator targets declared; no Xcode host yet; not built or run on this Linux host |
 
@@ -186,18 +197,20 @@ KDF cost, 16-byte salt, 12-byte nonce, creation time, and an AES-256-GCM
 ciphertext. The header is authenticated as AAD. The password is expanded with
 PBKDF2-HMAC-SHA256 to a 256-bit key; the key and password char array are zeroed
 after use. The JSON snapshot contains all products, offers, observations, orders,
-items, shipments, allocations, tracking events and preferences. Unknown JSON
-fields are rejected, and restore validates uniqueness, references, quantities,
-currencies and domain invariants before a single transactional replace.
+items, shipments, allocations, tracking events, preferences and decrypted
+shipping addresses. Unknown JSON fields are rejected, and restore validates
+uniqueness, references, quantities, currencies and domain invariants before
+re-encrypting addresses with the local device key and replacing the database in
+one transaction. Plaintext addresses exist only transiently in memory.
 
 This format is not a substitute for an attacker with the live unlocked device,
 and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. OS secure storage for marketplace credentials and sensitive delivery fields.
-2. Verify Thailand Post API access/credential suitability, then implement a real
+1. Verify Thailand Post API access/credential suitability, then implement a real
    adapter with preserved raw events and provenance.
-3. Add and validate the iOS host plus Windows/macOS packaging.
-4. Expand offers/variants, order editing, pagination and receipt import.
+2. Add the iOS host, its Keychain adapter, and Windows/macOS packaging proof.
+3. Expand offers/variants, order editing, pagination and receipt import.
+4. Add encrypted credentials/receipt attachments using the same device key.
 5. Native sharing/background tasks and encrypted peer synchronization.

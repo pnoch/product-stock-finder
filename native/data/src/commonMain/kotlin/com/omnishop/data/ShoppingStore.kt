@@ -120,6 +120,21 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
             it.original_timestamp, it.original_timezone)
     }
 
+    fun upsertPrivate(row: PrivateRow) {
+        queries.upsertPrivate(row.orderId, row.field, row.keyVersion.toLong(), row.nonce, row.ciphertext)
+    }
+
+    fun privateField(orderId: String, field: String): PrivateRow? =
+        queries.findPrivate(orderId, field).executeAsOneOrNull()?.let {
+            PrivateRow(it.order_id, it.field_, it.key_version.toInt(), it.nonce, it.ciphertext)
+        }
+
+    fun privateFields(): List<PrivateRow> = queries.allPrivate().executeAsList().map {
+        PrivateRow(it.order_id, it.field_, it.key_version.toInt(), it.nonce, it.ciphertext)
+    }
+
+    fun deletePrivate(orderId: String, field: String) = queries.deletePrivate(orderId, field)
+
     fun snapshot(): BackupSnapshot = database.transactionWithResult {
         BackupSnapshot(
             products = queries.allProducts().executeAsList().map {
@@ -157,10 +172,11 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
         )
     }
 
-    fun replaceAll(snapshot: BackupSnapshot): BackupCounts = database.transactionWithResult {
+    fun replaceAll(snapshot: BackupSnapshot, privateRows: List<PrivateRow> = emptyList()): BackupCounts = database.transactionWithResult {
         // Child tables first; the whole replace is one transaction so a failed
         // insert rolls the old database back intact.
         queries.deleteEvents()
+        queries.deleteAllPrivate()
         queries.deleteAllocations()
         queries.deleteShipments()
         queries.deleteOrderItems()
@@ -179,6 +195,7 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
                 it.currencyScale.toLong(), it.source)
         }
         snapshot.orders.forEach { queries.insertOrder(it.id, it.merchant, it.createdAt) }
+        privateRows.forEach(::upsertPrivate)
         snapshot.orderItems.forEach { queries.insertOrderItem(it.id, it.orderId, it.title, it.quantity.toLong()) }
         snapshot.shipments.forEach {
             queries.insertShipment(it.id, it.orderId, it.trackingNumber, it.carrierLabel, it.status)

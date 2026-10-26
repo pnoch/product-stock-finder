@@ -14,6 +14,7 @@ dependencies {
     implementation(project(":connectors"))
     implementation(compose.desktop.currentOs)
     implementation(libs.coroutines.swing)
+    implementation(libs.java.keyring)
 }
 
 compose.desktop {

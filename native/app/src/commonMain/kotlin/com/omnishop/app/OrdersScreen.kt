@@ -9,11 +9,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.omnishop.core.Shipment
 import com.omnishop.core.ShipmentStatus
+import com.omnishop.data.OrderPrivateService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.time.Instant
 
 @Composable
-internal fun OrdersScreen(state: ShopSnapshot, presenter: ShopPresenter) {
+internal fun OrdersScreen(state: ShopSnapshot, presenter: ShopPresenter, privateService: OrderPrivateService) {
     val scope = rememberCoroutineScope()
     val language = state.language
     val order = state.selectedOrder
@@ -32,6 +35,7 @@ internal fun OrdersScreen(state: ShopSnapshot, presenter: ShopPresenter) {
                 Text("${language.text(Label.DELIVERY_PROGRESS)}: ${language.progress(order.deliveryProgress)}")
                 order.items.forEach { Text("${it.title} × ${it.quantity}") }
             }
+            item(key = "address-${order.id}") { ShippingAddressCard(order.id, privateService, language) }
             item(key = "attach-${order.id}") { AttachShipmentForm(state, presenter) }
             if (order.shipments.isEmpty()) item { Text(language.text(Label.NO_SHIPMENTS)) }
             items(order.shipments, key = { it.id }) { shipment -> ShipmentCard(shipment, state, presenter) }
@@ -93,6 +97,36 @@ private fun ShipmentCard(shipment: Shipment, state: ShopSnapshot, presenter: Sho
                 Text("${language.text(Label.MANUAL_EVENT)} · ${Instant.fromEpochMilliseconds(event.importedAtEpochMillis)}",
                     style = MaterialTheme.typography.bodySmall)
             }
+        }
+    }
+}
+
+@Composable
+private fun ShippingAddressCard(orderId: String, service: OrderPrivateService, language: AppLanguage) {
+    val scope = rememberCoroutineScope()
+    var address by remember(orderId) { mutableStateOf("") }
+    var error by remember(orderId) { mutableStateOf<String?>(null) }
+    var saved by remember(orderId) { mutableStateOf(true) }
+    LaunchedEffect(orderId) {
+        runCatching { withContext(Dispatchers.Default) {
+            service.read(orderId, OrderPrivateService.SHIPPING_ADDRESS)
+        } }.onSuccess { address = it.orEmpty() }.onFailure { error = it.message }
+    }
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(language.text(Label.SHIPPING_ADDRESS), style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(address, { address = it; saved = false }, label = {
+                Text(language.text(Label.ADDRESS))
+            }, modifier = Modifier.fillMaxWidth())
+            Text(language.text(Label.ADDRESS_HINT), style = MaterialTheme.typography.bodySmall)
+            error?.let { Text("${language.text(Label.ADDRESS_UNAVAILABLE)} ${it.orEmpty()}", color = MaterialTheme.colorScheme.error) }
+            Button(enabled = !saved, onClick = {
+                scope.launch {
+                    runCatching { withContext(Dispatchers.Default) {
+                        service.save(orderId, OrderPrivateService.SHIPPING_ADDRESS, address)
+                    } }.onSuccess { saved = true; error = null }.onFailure { error = it.message }
+                }
+            }) { Text(language.text(Label.SAVE_ADDRESS)) }
         }
     }
 }

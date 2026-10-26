@@ -23,6 +23,7 @@ private val destinations = listOf(Label.DISCOVER, Label.SEARCH, Label.SAVED, Lab
 fun OmniShopApp(
     presenter: ShopPresenter,
     backup: com.omnishop.data.BackupService,
+    privateService: com.omnishop.data.OrderPrivateService,
     files: BackupFiles,
     openUrl: (String) -> Unit,
 ) {
@@ -67,7 +68,7 @@ fun OmniShopApp(
                                 Label.DISCOVER -> SourceScreen(language, open)
                                 Label.SEARCH -> SearchScreen(language, open)
                                 Label.SAVED -> SavedScreen(state, presenter, open) { tab = Label.ORDERS }
-                                Label.ORDERS -> OrdersScreen(state, presenter)
+                                Label.ORDERS -> OrdersScreen(state, presenter, privateService)
                                 Label.PROFILE -> Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                     Text(language.text(Label.LOCAL_FIRST))
                                     Text(language.text(Label.NATIVE_PREVIEW), style = MaterialTheme.typography.titleMedium)

@@ -7,6 +7,7 @@ import kotlinx.serialization.json.Json
 class BackupService(
     private val store: ShoppingStore,
     private val crypto: BackupCrypto,
+    private val privateService: OrderPrivateService,
 ) {
     private val json = Json {
         encodeDefaults = true
@@ -15,7 +16,12 @@ class BackupService(
     }
 
     fun export(password: CharArray, createdAtEpochMillis: Long): ByteArray {
-        val plaintext = json.encodeToString(BackupSnapshot.serializer(), store.snapshot()).encodeToByteArray()
+        val snapshot = store.snapshot().copy(
+            privateFields = privateService.exportAll().map {
+                BackupPrivateField(it.orderId, it.field, it.value)
+            },
+        )
+        val plaintext = json.encodeToString(BackupSnapshot.serializer(), snapshot).encodeToByteArray()
         return EncryptedBackup.encrypt(plaintext, password, createdAtEpochMillis, crypto)
     }
 
@@ -27,7 +33,12 @@ class BackupService(
             throw BackupFormatException("Backup contents are invalid", failure)
         }
         validate(snapshot)
-        return store.replaceAll(snapshot)
+        // Re-encrypt private fields with this device's key; the backup is
+        // password-encrypted, so plaintext never reaches disk outside it.
+        val privateRows = privateService.encryptForRestore(
+            snapshot.privateFields.map { PrivateValue(it.orderId, it.field, it.value) },
+        )
+        return store.replaceAll(snapshot, privateRows)
     }
 
     private fun validate(snapshot: BackupSnapshot) {
@@ -90,6 +101,11 @@ class BackupService(
             method(it.method)
         }
         snapshot.preferences.forEach { if (it.key.isBlank()) fail("Invalid preference") }
+        unique(snapshot.privateFields, { "${it.orderId}\u0000${it.field}" }, "private field")
+        snapshot.privateFields.forEach {
+            if (it.orderId !in orderIds || it.field.isBlank() || it.field.length > 64 ||
+                it.value.isBlank() || it.value.length > OrderPrivateService.MAX_VALUE_LENGTH) fail("Invalid private field")
+        }
 
         // Reuse domain invariants for the relationships that matter most.
         snapshot.orders.forEach { order ->

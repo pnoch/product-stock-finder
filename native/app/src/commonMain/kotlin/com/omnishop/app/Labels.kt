@@ -12,6 +12,7 @@ enum class Label {
     ADD_OFFER, PRICE_THB, SHIPPING_THB, UNKNOWN_SHIPPING, UNKNOWN_FEES, MANUAL_OFFER,
     BACKUP, BACKUP_NOTE, EXPORT_BACKUP, RESTORE_BACKUP, BACKUP_PASSWORD, BACKUP_PASSWORD_HINT,
     BACKUP_EXPORTED, BACKUP_RESTORED, BACKUP_REPLACE_WARNING, BACKUP_CANCELLED, BACKUP_FAILED, RESTORE,
+    SHIPPING_ADDRESS, ADDRESS, ADDRESS_HINT, SAVE_ADDRESS, ADDRESS_UNAVAILABLE,
 }
 
 private val english = mapOf(
@@ -42,6 +43,8 @@ private val english = mapOf(
     Label.BACKUP_EXPORTED to "Encrypted backup saved.", Label.BACKUP_RESTORED to "Backup restored.",
     Label.BACKUP_REPLACE_WARNING to "Restoring replaces all local products, offers, orders and tracking events on this device.",
     Label.BACKUP_CANCELLED to "Backup cancelled.", Label.BACKUP_FAILED to "Backup failed:", Label.RESTORE to "Restore",
+    Label.SHIPPING_ADDRESS to "Shipping address", Label.ADDRESS to "Address", Label.ADDRESS_HINT to "Encrypted at rest with the device key. Included in encrypted backups only.",
+    Label.SAVE_ADDRESS to "Save address", Label.ADDRESS_UNAVAILABLE to "Address encryption is unavailable on this device.",
 )
 
 private val thai = mapOf(
@@ -72,6 +75,8 @@ private val thai = mapOf(
     Label.BACKUP_EXPORTED to "บันทึกข้อมูลสำรองเข้ารหัสแล้ว", Label.BACKUP_RESTORED to "กู้คืนข้อมูลสำรองแล้ว",
     Label.BACKUP_REPLACE_WARNING to "การกู้คืนจะแทนที่สินค้า ข้อเสนอ คำสั่งซื้อ และเหตุการณ์ติดตามทั้งหมดบนอุปกรณ์นี้",
     Label.BACKUP_CANCELLED to "ยกเลิกการสำรองข้อมูล", Label.BACKUP_FAILED to "สำรองข้อมูลไม่สำเร็จ:", Label.RESTORE to "กู้คืน",
+    Label.SHIPPING_ADDRESS to "ที่อยู่จัดส่ง", Label.ADDRESS to "ที่อยู่", Label.ADDRESS_HINT to "เข้ารหัสไว้บนอุปกรณ์ด้วยคีย์ของอุปกรณ์ และรวมอยู่ในข้อมูลสำรองที่เข้ารหัสเท่านั้น",
+    Label.SAVE_ADDRESS to "บันทึกที่อยู่", Label.ADDRESS_UNAVAILABLE to "อุปกรณ์นี้ไม่สามารถเข้ารหัสที่อยู่ได้",
 )
 
 fun AppLanguage.text(label: Label): String = (if (this == AppLanguage.THAI) thai else english).getValue(label)

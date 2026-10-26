@@ -4,6 +4,7 @@ compose = "1.12.2"
 material3 = "1.9.0"
 sqldelight = "2.4.1"
 serialization = "1.12.0"
+java-keyring = "1.0.4"
 agp = "9.3.1"
 coroutines = "1.10.2"
 ktor = "3.6.0"
@@ -18,6 +19,7 @@ coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", ve
 coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "coroutines" }
 ktor-http = { module = "io.ktor:ktor-http", version.ref = "ktor" }
 serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+java-keyring = { module = "com.github.javakeyring:java-keyring", version.ref = "java-keyring" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose" }

@@ -214,3 +214,27 @@ DELETE FROM preference;
 
 insertEventStrict:
 INSERT INTO tracking_event VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+CREATE TABLE order_private (
+    order_id TEXT NOT NULL REFERENCES purchase_order(id) ON DELETE CASCADE,
+    field TEXT NOT NULL,
+    key_version INTEGER NOT NULL,
+    nonce BLOB NOT NULL,
+    ciphertext BLOB NOT NULL,
+    PRIMARY KEY (order_id, field)
+);
+
+upsertPrivate:
+INSERT OR REPLACE INTO order_private VALUES (?, ?, ?, ?, ?);
+
+findPrivate:
+SELECT * FROM order_private WHERE order_id = ? AND field = ?;
+
+allPrivate:
+SELECT * FROM order_private ORDER BY order_id, field;
+
+deletePrivate:
+DELETE FROM order_private WHERE order_id = ? AND field = ?;
+
+deleteAllPrivate:
+DELETE FROM order_private;

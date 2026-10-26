@@ -14,6 +14,7 @@ data class BackupSnapshot(
     val allocations: List<BackupAllocation> = emptyList(),
     val events: List<BackupEvent> = emptyList(),
     val preferences: List<BackupPreference> = emptyList(),
+    val privateFields: List<BackupPrivateField> = emptyList(),
 )
 
 @Serializable data class BackupProduct(val id: String, val title: String, val sourceUrl: String?, val savedAt: Long)
@@ -41,6 +42,7 @@ data class BackupSnapshot(
     val originalTimestamp: String?, val originalTimezone: String?,
 )
 @Serializable data class BackupPreference(val key: String, val value: String)
+@Serializable data class BackupPrivateField(val orderId: String, val field: String, val value: String)
 
 data class BackupCounts(
     val products: Int, val offers: Int, val orders: Int, val shipments: Int, val events: Int,
