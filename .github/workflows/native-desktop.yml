@@ -1,0 +1,66 @@
+name: Native desktop packaging
+
+on:
+  push:
+    paths:
+      - "native/**"
+      - ".github/workflows/native-desktop.yml"
+  pull_request:
+    paths:
+      - "native/**"
+      - ".github/workflows/native-desktop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: native
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android SDK 37 (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            for root in "$ANDROID_HOME" "$ANDROID_SDK_ROOT"; do
+              if [ -x "$root/cmdline-tools/latest/bin/sdkmanager" ]; then
+                SDKMANAGER="$root/cmdline-tools/latest/bin/sdkmanager"
+                break
+              fi
+            done
+          fi
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-37.0" "build-tools;37.0.0"
+      - name: Install Android SDK 37 (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $sdk = Get-ChildItem -Path "$env:ANDROID_HOME\cmdline-tools" -Recurse -Filter sdkmanager.bat |
+            Select-Object -First 1
+          if (-not $sdk) { throw "sdkmanager.bat not found under ANDROID_HOME" }
+          & $sdk.FullName --licenses
+          & $sdk.FullName "platforms;android-37.0" "build-tools;37.0.0"
+      - name: Test shared layers
+        run: ./gradlew :core:jvmTest :connectors:jvmTest :data:jvmTest :app:jvmTest --console=plain
+      - name: Package the desktop app
+        run: ./gradlew :desktopApp:createDistributable --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: omnishop-desktop-${{ runner.os }}
+          path: native/desktopApp/build/compose/binaries/main/app/**
