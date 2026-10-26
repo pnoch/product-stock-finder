@@ -159,7 +159,7 @@ foundation plan.
 
 ## Execution record
 
-- Native tests: 89 passed, zero failures/errors across core, connectors, carriers, data,
+- Native tests: 93 passed, zero failures/errors across core, connectors, carriers, data,
   and presentation. SQLite migration verification passed.
 - Android debug APK built. The emulator smoke exercises saved offers, split
   delivery, force-stop/restart, Thai selection and a second restart.
@@ -212,9 +212,12 @@ foundation plan.
   strict row validation and all-or-nothing insertion. Schema 4 (migration 3.sqm)
   and backup schema 4 cover the fields; tests cover parsing, duplicates,
   transaction rollback, migration and encrypted round-trip.
-- Deadline reminders, receipt/PDF import, payment-ledger reconciliation,
-  proof attachments, signing and peer sync remain follow-on work; see
-  `native/README.md`.
+- Receipt attachments use the existing encrypted private-field/device-key path
+  (8 MB cap), are included in encrypted backups, and support list/save-copy/
+  delete. PDF parsing, OCR, email import and payment-ledger reconciliation
+  remain follow-on work. Deadline reminders, signing and peer sync also remain.
+- Android smoke still covers the existing purchase/delivery/return flow; receipt
+  file-picker interaction is unit-tested only.
 - Work is on `native/omnishop-foundation`. The returns/refunds increment is
   verified locally; consult the native Actions workflows for remote
   iOS/Windows/macOS validation of the current revision.

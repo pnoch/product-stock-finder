@@ -24,6 +24,8 @@ enum class Label {
     IMPORT_ORDERS, IMPORT_CSV, IMPORT_PREVIEW, ORDERS_READY, IMPORT_DUPLICATES, IMPORT_ERRORS,
     MERCHANT_ORDER_ID, ITEM_SUBTOTAL, ORDER_TOTAL, PAYMENT_LABEL, PURCHASE_DATE, EDIT_FINANCIALS, FINANCIALS,
     SHIPPING_COST, TAX_COST, DISCOUNT_COST,
+    RECEIPTS, ADD_RECEIPT, RECEIPT_NAME, CHOOSE_FILE, NO_RECEIPTS, SAVE_COPY, DELETE, RECEIPT_SAVED,
+    RECEIPT_FILE_ERROR, RECEIPT_SAVE_FAILED, RECEIPT_DELETED, RECEIPT_CANCELLED,
     IMPORT_BUTTON, IMPORT_DONE, IMPORT_FAILED, CSV_COLUMNS_HINT, IMPORT_CANCELLED,
 }
 
@@ -90,6 +92,12 @@ private val english = mapOf(
     Label.PURCHASE_DATE to "Purchase date (YYYY-MM-DD)", Label.EDIT_FINANCIALS to "Edit financials",
     Label.FINANCIALS to "Order financials", Label.SHIPPING_COST to "Shipping",
     Label.TAX_COST to "Tax", Label.DISCOUNT_COST to "Discount",
+    Label.RECEIPTS to "Receipts & documents", Label.ADD_RECEIPT to "Add receipt",
+    Label.RECEIPT_NAME to "Receipt name", Label.CHOOSE_FILE to "Choose file",
+    Label.NO_RECEIPTS to "No receipts attached.", Label.SAVE_COPY to "Save copy",
+    Label.DELETE to "Delete", Label.RECEIPT_SAVED to "Receipt saved.",
+    Label.RECEIPT_FILE_ERROR to "Could not read that file.", Label.RECEIPT_SAVE_FAILED to "Receipt action failed:",
+    Label.RECEIPT_DELETED to "Receipt deleted.", Label.RECEIPT_CANCELLED to "No file selected.",
 )
 
 private val thai = mapOf(
@@ -155,6 +163,12 @@ private val thai = mapOf(
     Label.PURCHASE_DATE to "วันที่ซื้อ (YYYY-MM-DD)", Label.EDIT_FINANCIALS to "แก้ไขข้อมูลการเงิน",
     Label.FINANCIALS to "ข้อมูลการเงินของคำสั่งซื้อ", Label.SHIPPING_COST to "ค่าจัดส่ง",
     Label.TAX_COST to "ภาษี", Label.DISCOUNT_COST to "ส่วนลด",
+    Label.RECEIPTS to "ใบเสร็จและเอกสาร", Label.ADD_RECEIPT to "เพิ่มใบเสร็จ",
+    Label.RECEIPT_NAME to "ชื่อไฟล์ใบเสร็จ", Label.CHOOSE_FILE to "เลือกไฟล์",
+    Label.NO_RECEIPTS to "ยังไม่มีใบเสร็จที่แนบไว้", Label.SAVE_COPY to "บันทึกสำเนา",
+    Label.DELETE to "ลบ", Label.RECEIPT_SAVED to "บันทึกใบเสร็จแล้ว",
+    Label.RECEIPT_FILE_ERROR to "ไม่สามารถอ่านไฟล์นี้ได้", Label.RECEIPT_SAVE_FAILED to "ดำเนินการใบเสร็จไม่สำเร็จ:",
+    Label.RECEIPT_DELETED to "ลบใบเสร็จแล้ว", Label.RECEIPT_CANCELLED to "ยังไม่ได้เลือกไฟล์",
 )
 
 fun AppLanguage.text(label: Label): String = (if (this == AppLanguage.THAI) thai else english).getValue(label)

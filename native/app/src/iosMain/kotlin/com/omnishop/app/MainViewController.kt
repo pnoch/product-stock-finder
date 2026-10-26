@@ -4,6 +4,7 @@ import androidx.compose.ui.window.ComposeUIViewController
 import com.omnishop.carriers.ThailandPostAdapter
 import com.omnishop.data.BackupService
 import com.omnishop.data.CarrierSettings
+import com.omnishop.data.ReceiptService
 import com.omnishop.data.OrderPrivateService
 import com.omnishop.data.openIosStore
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -25,6 +26,7 @@ fun MainViewController(
     val files = CallbackBackupFiles(backupCallbacks)
     val privateService = OrderPrivateService(store, secrets, crypto)
     val carrierSettings = CarrierSettings(secrets)
+    val receiptService = ReceiptService(privateService, { NSUUID().UUIDString })
     val backup = BackupService(store, crypto, privateService)
     val presenter = ShopPresenter(
         store,
@@ -33,7 +35,7 @@ fun MainViewController(
     )
     return ComposeUIViewController {
         OmniShopApp(
-            presenter, backup, privateService, carrierSettings,
+            presenter, backup, privateService, receiptService, carrierSettings,
             listOf(ThailandPostAdapter()), files, openUrl,
         )
     }

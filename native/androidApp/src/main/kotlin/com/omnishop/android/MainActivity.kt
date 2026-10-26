@@ -10,6 +10,7 @@ import com.omnishop.app.ShopPresenter
 import com.omnishop.carriers.ThailandPostAdapter
 import com.omnishop.data.BackupService
 import com.omnishop.data.CarrierSettings
+import com.omnishop.data.ReceiptService
 import com.omnishop.data.OrderPrivateService
 import com.omnishop.data.security.JcaBackupCrypto
 import com.omnishop.data.ShoppingStore
@@ -27,11 +28,12 @@ class MainActivity : ComponentActivity() {
         val secrets = AndroidSecretStore(this)
         val privateService = OrderPrivateService(store, secrets, crypto)
         val carrierSettings = CarrierSettings(secrets)
+        val receiptService = ReceiptService(privateService, { UUID.randomUUID().toString() })
         val backup = BackupService(store, crypto, privateService)
         val backupFiles = AndroidBackupFiles(this)
         setContent {
             OmniShopApp(
-                presenter, backup, privateService, carrierSettings,
+                presenter, backup, privateService, receiptService, carrierSettings,
                 listOf(ThailandPostAdapter()), backupFiles,
             ) { url ->
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))

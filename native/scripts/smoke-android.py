@@ -63,13 +63,22 @@ def main():
             str(x), str(int(height * end)), "400")
 
     def reveal(text, contains=False):
-        for _ in range(7):
+        for _ in range(10):
             for node in tree().iter("node"):
                 value = node.get("text", "")
                 if (text in value if contains else text == value):
                     return
             scroll()
         raise AssertionError(f"Could not scroll to: {text}")
+
+    def reveal_up(text, contains=False):
+        for _ in range(10):
+            for node in tree().iter("node"):
+                value = node.get("text", "")
+                if (text in value if contains else text == value):
+                    return
+            scroll(False)
+        raise AssertionError(f"Could not scroll up to: {text}")
 
     def shot(name):
         (args.evidence / f"{name}.png").write_bytes(adb("exec-out", "screencap", "-p", binary=True))
@@ -127,11 +136,10 @@ def main():
     scroll()
     reveal("Delivered")
     tap("Delivered")
-    scroll(False)
-    scroll(False)
-    find("Delivery progress: Partially delivered")
+    reveal_up("Delivery progress: Partially delivered")
     shot("04-partial-delivery")
     tap("Manage returns & refunds")
+    reveal("Record return request")
     tap("Record return request")
     type_into("Return reason", "Damaged screen")
     tap("Save")
@@ -151,7 +159,7 @@ def main():
     tap("Orders")
     tap("QA Shop", contains=True)
     find("Delivery progress: Partially delivered")
-    find("123 Secret Road")
+    reveal("123 Secret Road")
     shot("05-restart-persistence")
     tap("Manage returns & refunds")
     reveal("Recorded refund: 150.25 THB")

@@ -48,6 +48,10 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   the key explicitly. Preserve raw descriptions/timestamps and mark provider
   provenance; do not fabricate events or claim live verification. Carrier
   locations are currently appended to the description, not a separate column.
+- Receipts are encrypted private fields (`ReceiptService`) under the order, not
+  a separate plaintext table. Keep the 8 MB receipt cap, the 12 MB private-field
+  cap, and backup inclusion. Never write receipt bytes to disk unencrypted or log
+  their names/contents. PDF/OCR/email parsing is not implemented.
 - Order money (`PurchaseOrder.currency`, item prices, shipping/tax/discount/total)
   must share one currency; the recorded total is independent of the computed
   total so a mismatch stays visible. Never store card data; only a payment-method

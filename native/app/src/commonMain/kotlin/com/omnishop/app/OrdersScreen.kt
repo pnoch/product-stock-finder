@@ -24,6 +24,7 @@ import com.omnishop.core.ShipmentStatus
 import com.omnishop.core.decimalString
 import com.omnishop.data.CarrierSettings
 import com.omnishop.data.OrderPrivateService
+import com.omnishop.data.ReceiptService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -36,6 +37,7 @@ internal fun OrdersScreen(
     privateService: OrderPrivateService,
     carrierSettings: CarrierSettings,
     carriers: List<CarrierAdapter>,
+    receiptService: ReceiptService,
     files: BackupFiles,
     openUrl: (String) -> Unit,
 ) {
@@ -73,15 +75,19 @@ internal fun OrdersScreen(
         } else {
             item {
                 TextButton(onClick = { scope.launch { presenter.selectOrder(null) } }) { Text(language.text(Label.BACK)) }
-                TextButton(onClick = { scope.launch { listState.animateScrollToItem(3 + maxOf(1, order.shipments.size)) } }) {
-                    Text(language.text(Label.MANAGE_RETURNS))
-                }
+                TextButton(onClick = {
+                    scope.launch {
+                        val count = listState.layoutInfo.totalItemsCount
+                        if (count > 0) listState.animateScrollToItem(count - 1)
+                    }
+                }) { Text(language.text(Label.MANAGE_RETURNS)) }
                 Text(order.merchant, style = MaterialTheme.typography.headlineSmall)
                 Text("${language.text(Label.DELIVERY_PROGRESS)}: ${language.progress(order.deliveryProgress)}")
                 order.items.forEach { Text("${it.title} × ${it.quantity}") }
             }
             item(key = "financials-${order.id}") { OrderFinancialsCard(order, state, presenter) }
             item(key = "address-${order.id}") { ShippingAddressCard(order.id, privateService, language) }
+            item(key = "receipts-${order.id}") { ReceiptsCard(order, state, receiptService, files) }
             item(key = "attach-${order.id}") { AttachShipmentForm(state, presenter, order, carriers) }
             if (order.shipments.isEmpty()) item { Text(language.text(Label.NO_SHIPMENTS)) }
             items(order.shipments, key = { it.id }) { shipment ->

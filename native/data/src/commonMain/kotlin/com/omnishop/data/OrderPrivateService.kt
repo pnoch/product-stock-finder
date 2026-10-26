@@ -84,7 +84,7 @@ class OrderPrivateService(
 
     companion object {
         const val SHIPPING_ADDRESS = "shipping_address"
-        const val MAX_VALUE_LENGTH = 4_000
+        const val MAX_VALUE_LENGTH = 12_000_000
         private const val DEK_KEY = "device.dek.v1"
         private const val KEY_BYTES = 32
         private const val NONCE_BYTES = 12

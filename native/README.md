@@ -41,6 +41,11 @@ not the complete Phase 1 release from the master product brief.
   all eight refund/return states, and exact minor-unit refund amounts. Received
   refund states require a positive amount; rejected requests release their
   reserved units. Return records are included in encrypted backups.
+- Encrypted receipt/document attachments per order. Choose a file (up to 8 MB),
+  keep a user-supplied name, save a copy, or delete it. Receipts are stored as
+  authenticated private fields under the order, so they use the same device key,
+  ciphertext and encrypted-backup path as the shipping address. No PDF parsing,
+  OCR, or email import is performed.
 - Password-protected encrypted backup/restore (AES-256-GCM, PBKDF2-HMAC-SHA256
   with 600,000 iterations and a random salt). Restore validates every record and
   replaces the database in one transaction; wrong passwords, tampering and
@@ -69,18 +74,18 @@ unknown in the entry UI; it does not claim a cheapest delivered-price winner.
 ## Not implemented yet
 
 Other carrier adapters, live verification against Thailand Post with a real
-account, marketplace account connections, email/PDF/receipt import (CSV is
-implemented), automatic metadata extraction, automatic product matching, automated returns/refunds,
+account, marketplace account connections, email/PDF parsing and OCR (manual
+receipt attachments are implemented), automatic metadata extraction, automatic
+product matching, automated returns/refunds,
 cart/checkout, local notifications/background scheduling, peer sync, iOS
 background tasks/share extensions, signing/notarization, and additional
 sensitive fields are subsequent milestones.
 
 The development SQLite database is not encrypted as a whole. The shipping
-address is stored only as authenticated ciphertext; credentials and receipt
-attachments have no input/storage path yet and require the same device-key
-approach, not plaintext fallback columns. Encrypted portable backups protect
-exported files, not the live database. The backup password is never stored;
-losing it makes the file unreadable.
+address and receipt contents are stored as authenticated ciphertext under the
+device key; carrier API keys use the platform SecretStore. Encrypted portable
+backups protect exported files, not the live database. The backup password is
+never stored; losing it makes the file unreadable.
 
 On Linux desktop, the OS credential store needs a running Secret Service
 (gnome-keyring or KWallet). The app still starts without one, but address
@@ -174,7 +179,7 @@ Linux packaged executable:
 
 | Platform | Current evidence |
 | --- | --- |
-| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). The carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URL generation is unit-tested, not opened in the smoke |
+| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). The carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URL generation and receipt attachment/list/save/delete are unit-tested; the receipt file picker is not automated |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb) and backup uses a native file dialog (unit-tested) |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
 | iOS | XcodeGen host builds and launches in a simulator on macOS CI; Compose UI renders, SQLite opens, CryptoKit backs backup/address encryption, Keychain stores the device key, and the document picker is wired. No device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
@@ -343,8 +348,8 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Add receipt/PDF import and encrypted receipt attachments through the device
-   key, then reconcile totals against original payments.
+1. Add PDF text extraction/OCR and email receipt import on top of the encrypted
+   attachments, then reconcile totals against original payments.
 2. Verify the Thailand Post adapter against a real account/tracking number, then
    add bounded retry/token caching and a carrier status-code mapping review.
 3. Exercise iOS/desktop sensitive-field, backup file-picker, CSV-import and

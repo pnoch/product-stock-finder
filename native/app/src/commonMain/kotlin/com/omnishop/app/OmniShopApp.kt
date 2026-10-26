@@ -24,6 +24,7 @@ fun OmniShopApp(
     presenter: ShopPresenter,
     backup: com.omnishop.data.BackupService,
     privateService: com.omnishop.data.OrderPrivateService,
+    receiptService: com.omnishop.data.ReceiptService,
     carrierSettings: com.omnishop.data.CarrierSettings,
     carriers: List<com.omnishop.carriers.CarrierAdapter>,
     files: BackupFiles,
@@ -70,7 +71,7 @@ fun OmniShopApp(
                                 Label.DISCOVER -> SourceScreen(language, open)
                                 Label.SEARCH -> SearchScreen(language, open)
                                 Label.SAVED -> SavedScreen(state, presenter, open) { tab = Label.ORDERS }
-                                Label.ORDERS -> OrdersScreen(state, presenter, privateService, carrierSettings, carriers, files, open)
+                                Label.ORDERS -> OrdersScreen(state, presenter, privateService, carrierSettings, carriers, receiptService, files, open)
                                 Label.PROFILE -> Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                     Text(language.text(Label.LOCAL_FIRST))
                                     Text(language.text(Label.NATIVE_PREVIEW), style = MaterialTheme.typography.titleMedium)
