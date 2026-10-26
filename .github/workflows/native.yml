@@ -26,10 +26,16 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
-      - name: Install Android SDK
-        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+      - name: Install Android SDK 37
+        run: |
+          # The runner ships cmdline-tools; setup-android's default `tools`
+          # package is obsolete and fails the install.
+          if ! command -v sdkmanager >/dev/null; then
+            export PATH="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:$PATH"
+          fi
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
       - name: Verify shared rules, SQLite and presentation
         run: ./gradlew :core:jvmTest :connectors:jvmTest :data:jvmTest :app:jvmTest :data:verifyCommonMainOmniShopDatabaseMigration --console=plain
       - name: Compile desktop and build Android preview
