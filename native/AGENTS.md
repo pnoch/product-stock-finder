@@ -18,3 +18,8 @@ See `README.md` for the verified feature/platform matrix and exact commands.
 - Never commit a local database containing user records, local.properties,
   signing keys, build output, or Gradle caches. The SQLDelight `databases/1.db`
   file is an empty schema snapshot, not an exported user database.
+- Encrypted backups use the v1 authenticated format in
+  `data/.../security/EncryptedBackup.kt`. Do not add an unauthenticated fallback,
+  store the password, or change KDF/AEAD parameters without a version bump and
+  tests for wrong password, tampering, truncation, and atomic restore rollback.
+  Keep the live database plaintext-labeled until OS secure storage exists.

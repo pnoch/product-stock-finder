@@ -20,7 +20,12 @@ import org.jetbrains.compose.resources.painterResource
 private val destinations = listOf(Label.DISCOVER, Label.SEARCH, Label.SAVED, Label.ORDERS, Label.PROFILE)
 
 @Composable
-fun OmniShopApp(presenter: ShopPresenter, openUrl: (String) -> Unit) {
+fun OmniShopApp(
+    presenter: ShopPresenter,
+    backup: com.omnishop.data.BackupService,
+    files: BackupFiles,
+    openUrl: (String) -> Unit,
+) {
     val state by presenter.state.collectAsState()
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf(Label.DISCOVER) }
@@ -77,6 +82,7 @@ fun OmniShopApp(presenter: ShopPresenter, openUrl: (String) -> Unit) {
                                             )
                                         }
                                     }
+                                    BackupPanel(language, backup, files) { scope.launch { presenter.refresh() } }
                                 }
                                 else -> Unit
                             }

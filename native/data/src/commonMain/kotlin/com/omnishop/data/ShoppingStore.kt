@@ -120,6 +120,82 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
             it.original_timestamp, it.original_timezone)
     }
 
+    fun snapshot(): BackupSnapshot = database.transactionWithResult {
+        BackupSnapshot(
+            products = queries.allProducts().executeAsList().map {
+                BackupProduct(it.id, it.title, it.source_url, it.saved_at)
+            },
+            listings = queries.allListings().executeAsList().map {
+                BackupListing(it.id, it.product_id, it.source_label, it.price_minor,
+                    it.currency_code, it.currency_scale.toInt(), it.shipping_minor,
+                    it.taxes_minor, it.fees_minor, it.discount_minor)
+            },
+            observations = queries.allObservations().executeAsList().map {
+                BackupObservation(it.listing_id, it.observed_at, it.price_minor,
+                    it.currency_code, it.currency_scale.toInt(), it.source)
+            },
+            orders = queries.allOrders().executeAsList().map {
+                BackupOrder(it.id, it.merchant, it.created_at)
+            },
+            orderItems = queries.allOrderItems().executeAsList().map {
+                BackupOrderItem(it.id, it.order_id, it.title, it.quantity.toInt())
+            },
+            shipments = queries.allShipments().executeAsList().map {
+                BackupShipment(it.id, it.order_id, it.tracking_number, it.carrier_label, it.status)
+            },
+            allocations = queries.allAllocations().executeAsList().map {
+                BackupAllocation(it.shipment_id, it.order_id, it.order_item_id, it.quantity.toInt())
+            },
+            events = queries.allEvents().executeAsList().map {
+                BackupEvent(it.shipment_id, it.source, it.source_event_id, it.status,
+                    it.description, it.method, it.imported_at, it.occurred_at,
+                    it.original_timestamp, it.original_timezone)
+            },
+            preferences = queries.allPreferences().executeAsList().map {
+                BackupPreference(it.key, it.value_)
+            },
+        )
+    }
+
+    fun replaceAll(snapshot: BackupSnapshot): BackupCounts = database.transactionWithResult {
+        // Child tables first; the whole replace is one transaction so a failed
+        // insert rolls the old database back intact.
+        queries.deleteEvents()
+        queries.deleteAllocations()
+        queries.deleteShipments()
+        queries.deleteOrderItems()
+        queries.deleteOrders()
+        queries.deleteObservations()
+        queries.deleteListings()
+        queries.deleteProducts()
+        queries.deletePreferences()
+        snapshot.products.forEach { queries.saveProduct(it.id, it.title, it.sourceUrl, it.savedAt) }
+        snapshot.listings.forEach {
+            queries.insertListing(it.id, it.productId, it.sourceLabel, it.priceMinor, it.currencyCode,
+                it.currencyScale.toLong(), it.shippingMinor, it.taxesMinor, it.feesMinor, it.discountMinor)
+        }
+        snapshot.observations.forEach {
+            queries.insertObservation(it.listingId, it.observedAt, it.priceMinor, it.currencyCode,
+                it.currencyScale.toLong(), it.source)
+        }
+        snapshot.orders.forEach { queries.insertOrder(it.id, it.merchant, it.createdAt) }
+        snapshot.orderItems.forEach { queries.insertOrderItem(it.id, it.orderId, it.title, it.quantity.toLong()) }
+        snapshot.shipments.forEach {
+            queries.insertShipment(it.id, it.orderId, it.trackingNumber, it.carrierLabel, it.status)
+        }
+        snapshot.allocations.forEach {
+            queries.insertAllocation(it.shipmentId, it.orderId, it.orderItemId, it.quantity.toLong())
+        }
+        snapshot.events.forEach {
+            queries.insertEventStrict(it.shipmentId, it.source, it.sourceEventId, it.status,
+                it.description, it.method, it.importedAt, it.occurredAt,
+                it.originalTimestamp, it.originalTimezone)
+        }
+        snapshot.preferences.forEach { queries.savePreference(it.key, it.value) }
+        BackupCounts(snapshot.products.size, snapshot.listings.size, snapshot.orders.size,
+            snapshot.shipments.size, snapshot.events.size)
+    }
+
     override fun close() = driver.close()
 
     private fun validatePage(limit: Int, offset: Int) {

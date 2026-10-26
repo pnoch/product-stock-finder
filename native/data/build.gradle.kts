@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.android.kmp)
 }
 
@@ -16,9 +17,13 @@ kotlin {
     jvmToolchain(21)
 
     sourceSets {
+        val jcaMain by creating { dependsOn(commonMain.get()) }
+        jvmMain.get().dependsOn(jcaMain)
+        androidMain.get().dependsOn(jcaMain)
         commonMain.dependencies {
             api(project(":core"))
             implementation(libs.sqldelight.runtime)
+            implementation(libs.serialization.json)
         }
         commonTest.dependencies { implementation(kotlin("test")) }
         jvmMain.dependencies { implementation(libs.sqldelight.sqlite) }

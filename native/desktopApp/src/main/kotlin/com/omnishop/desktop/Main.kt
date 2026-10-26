@@ -6,6 +6,8 @@ import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.unit.dp
 import com.omnishop.app.OmniShopApp
 import com.omnishop.app.ShopPresenter
+import com.omnishop.data.BackupService
+import com.omnishop.data.security.JcaBackupCrypto
 import com.omnishop.connectors.validatedBookmarkUrl
 import com.omnishop.data.ShoppingStore
 import com.omnishop.data.open
@@ -26,11 +28,14 @@ fun main() {
     check(root.isDirectory || root.mkdirs()) { "Cannot create OmniShop's data directory" }
     ShoppingStore.open(File(root, "omnishop.db")).use { store ->
         val presenter = ShopPresenter(store, { UUID.randomUUID().toString() }, System::currentTimeMillis)
+        val backup = BackupService(store, JcaBackupCrypto())
         application {
             Window(onCloseRequest = ::exitApplication, title = "OmniShop Native Preview",
                 state = rememberWindowState(width = 1100.dp, height = 780.dp),
                 icon = painterResource(Res.drawable.omnishop)) {
-                OmniShopApp(presenter) { Desktop.getDesktop().browse(URI(validatedBookmarkUrl(it))) }
+                OmniShopApp(presenter, backup, DesktopBackupFiles()) {
+                    Desktop.getDesktop().browse(URI(validatedBookmarkUrl(it)))
+                }
             }
         }
     }

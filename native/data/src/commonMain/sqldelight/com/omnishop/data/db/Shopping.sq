@@ -157,3 +157,60 @@ SELECT * FROM tracking_event WHERE shipment_id = ? AND source = ? AND source_eve
 shipmentEvents:
 SELECT * FROM tracking_event WHERE shipment_id = ?
 ORDER BY coalesce(occurred_at, imported_at), imported_at, source_event_id;
+
+allProducts:
+SELECT * FROM saved_product ORDER BY id;
+
+allListings:
+SELECT * FROM listing ORDER BY id;
+
+allObservations:
+SELECT * FROM price_observation ORDER BY listing_id, observed_at;
+
+allOrders:
+SELECT * FROM purchase_order ORDER BY id;
+
+allOrderItems:
+SELECT * FROM order_item ORDER BY id;
+
+allShipments:
+SELECT * FROM shipment ORDER BY id;
+
+allAllocations:
+SELECT * FROM shipment_item ORDER BY shipment_id, order_item_id;
+
+allEvents:
+SELECT * FROM tracking_event ORDER BY shipment_id, source, source_event_id;
+
+allPreferences:
+SELECT * FROM preference ORDER BY key;
+
+deleteEvents:
+DELETE FROM tracking_event;
+
+deleteAllocations:
+DELETE FROM shipment_item;
+
+deleteShipments:
+DELETE FROM shipment;
+
+deleteOrderItems:
+DELETE FROM order_item;
+
+deleteOrders:
+DELETE FROM purchase_order;
+
+deleteObservations:
+DELETE FROM price_observation;
+
+deleteListings:
+DELETE FROM listing;
+
+deleteProducts:
+DELETE FROM saved_product;
+
+deletePreferences:
+DELETE FROM preference;
+
+insertEventStrict:
+INSERT INTO tracking_event VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);

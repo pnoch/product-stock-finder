@@ -10,6 +10,8 @@ enum class Label {
     LANGUAGE, MANUAL_EVENT, NATIVE_PREVIEW, NO_LIVE_API, NO_EVENTS, NO_SHIPMENTS,
     ITEM, DELIVERY_PROGRESS, MORE, FREE_TO_START,
     ADD_OFFER, PRICE_THB, SHIPPING_THB, UNKNOWN_SHIPPING, UNKNOWN_FEES, MANUAL_OFFER,
+    BACKUP, BACKUP_NOTE, EXPORT_BACKUP, RESTORE_BACKUP, BACKUP_PASSWORD, BACKUP_PASSWORD_HINT,
+    BACKUP_EXPORTED, BACKUP_RESTORED, BACKUP_REPLACE_WARNING, BACKUP_CANCELLED, BACKUP_FAILED, RESTORE,
 }
 
 private val english = mapOf(
@@ -34,6 +36,12 @@ private val english = mapOf(
     Label.SHIPPING_THB to "Shipping (THB, blank = unknown)", Label.UNKNOWN_SHIPPING to "Shipping unknown",
     Label.UNKNOWN_FEES to "Taxes / payment fees unknown; no delivered-price winner claimed",
     Label.MANUAL_OFFER to "Manually entered offer",
+    Label.BACKUP to "Encrypted backup", Label.BACKUP_NOTE to "Exports products, offers, orders and tracking timeline. AES-256-GCM with a password-derived key.",
+    Label.EXPORT_BACKUP to "Export backup", Label.RESTORE_BACKUP to "Restore backup",
+    Label.BACKUP_PASSWORD to "Backup password", Label.BACKUP_PASSWORD_HINT to "At least 8 characters. The password is not stored; losing it makes the backup unreadable.",
+    Label.BACKUP_EXPORTED to "Encrypted backup saved.", Label.BACKUP_RESTORED to "Backup restored.",
+    Label.BACKUP_REPLACE_WARNING to "Restoring replaces all local products, offers, orders and tracking events on this device.",
+    Label.BACKUP_CANCELLED to "Backup cancelled.", Label.BACKUP_FAILED to "Backup failed:", Label.RESTORE to "Restore",
 )
 
 private val thai = mapOf(
@@ -58,6 +66,12 @@ private val thai = mapOf(
     Label.SHIPPING_THB to "ค่าจัดส่ง (THB, เว้นว่างหากไม่ทราบ)", Label.UNKNOWN_SHIPPING to "ไม่ทราบค่าจัดส่ง",
     Label.UNKNOWN_FEES to "ยังไม่ทราบภาษี / ค่าธรรมเนียม จึงยังระบุราคาสุทธิที่ถูกที่สุดไม่ได้",
     Label.MANUAL_OFFER to "ข้อเสนอที่บันทึกเอง",
+    Label.BACKUP to "สำรองข้อมูลเข้ารหัส", Label.BACKUP_NOTE to "ส่งออกสินค้า ข้อเสนอ คำสั่งซื้อ และไทม์ไลน์การติดตาม ด้วย AES-256-GCM และรหัสผ่าน",
+    Label.EXPORT_BACKUP to "ส่งออกข้อมูลสำรอง", Label.RESTORE_BACKUP to "กู้คืนข้อมูลสำรอง",
+    Label.BACKUP_PASSWORD to "รหัสผ่านสำหรับข้อมูลสำรอง", Label.BACKUP_PASSWORD_HINT to "อย่างน้อย 8 ตัวอักษร ระบบจะไม่เก็บรหัสผ่าน หากลืมจะเปิดข้อมูลสำรองไม่ได้",
+    Label.BACKUP_EXPORTED to "บันทึกข้อมูลสำรองเข้ารหัสแล้ว", Label.BACKUP_RESTORED to "กู้คืนข้อมูลสำรองแล้ว",
+    Label.BACKUP_REPLACE_WARNING to "การกู้คืนจะแทนที่สินค้า ข้อเสนอ คำสั่งซื้อ และเหตุการณ์ติดตามทั้งหมดบนอุปกรณ์นี้",
+    Label.BACKUP_CANCELLED to "ยกเลิกการสำรองข้อมูล", Label.BACKUP_FAILED to "สำรองข้อมูลไม่สำเร็จ:", Label.RESTORE to "กู้คืน",
 )
 
 fun AppLanguage.text(label: Label): String = (if (this == AppLanguage.THAI) thai else english).getValue(label)

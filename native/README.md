@@ -16,6 +16,11 @@ not the complete Phase 1 release from the master product brief.
   the core and SQLite schema support multiple items.
 - SQLDelight/SQLite transactions, foreign keys, indexes, bounded list queries,
   an empty version-1 schema snapshot, and migration verification.
+- Password-protected encrypted backup/restore (AES-256-GCM, PBKDF2-HMAC-SHA256
+  with 600,000 iterations and a random salt). Restore validates every record and
+  replaces the database in one transaction; wrong passwords, tampering and
+  malformed files fail without changing local data. Desktop uses a native file
+  dialog; Android uses the system document picker.
 - Source declarations and external searches for Facebook Marketplace, Shopee,
   Lazada, and eBay. Product links save as bookmarks without a network request.
 - English/Thai labels and persisted language selection. Manual price entry is
@@ -34,14 +39,17 @@ unknown in the entry UI; it does not claim a cheapest delivered-price winner.
 
 Real carrier/API requests, marketplace account connections, receipt/email import,
 automatic metadata extraction, automatic product matching, returns/refunds,
-cart/checkout, local notifications/background scheduling, peer sync, encrypted
-backup, and OS secure-storage adapters are subsequent milestones.
+cart/checkout, local notifications/background scheduling, peer sync, and OS
+secure-storage adapters are subsequent milestones.
 
-The development SQLite database is not encrypted. Addresses, credentials and
-receipt attachments have no input/storage path in this foundation. Adding those
-fields requires the approved security milestone, not plaintext fallback columns.
-The full Phase 1 release remains blocked on secure storage/encrypted backup,
-one genuinely supported live carrier, and platform validation.
+The development SQLite database is not encrypted at rest; personal fields such as
+addresses, credentials and receipt attachments have no input/storage path yet.
+Adding those fields requires the approved OS secure-storage adapters, not
+plaintext fallback columns. Encrypted portable backups are implemented, but they
+protect exported files, not the live database. The backup password is never
+stored; losing it makes the file unreadable. The full Phase 1 release remains
+blocked on OS secure storage, one genuinely supported live carrier, and platform
+validation.
 
 The current UI loads the first 100 products/orders. Repositories support bounded
 pagination; pagination controls, full-text search and large-dataset UI performance
@@ -120,8 +128,8 @@ Linux packaged executable:
 
 | Platform | Current evidence |
 | --- | --- |
-| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/restart/Thai |
-| JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb |
+| Android | APK built and exercised on `emulator-5580`: saved/compare/order/partial-delivery/restart/Thai; encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated) |
+| JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; portable backup uses a native file dialog (crypto/restore unit-tested) |
 | Windows/macOS | Shared JVM code exists; OS-native packaging and integration unverified |
 | iOS | KMP arm64/simulator targets declared; no Xcode host yet; not built or run on this Linux host |
 
@@ -141,8 +149,9 @@ python3 scripts/smoke-android.py --serial emulator-5580 --reset
 
 The script installs the APK, saves a product with two manually entered offers,
 creates an order for two units, delivers one package, force-stops/reopens the
-app, changes to Thai and repeats the restart assertion. It captures screenshots
-under `/tmp/opencode/omnishop-native-evidence/` and stops the preview at the end.
+app, changes to Thai and repeats the restart assertion. It captures screenshots under `/tmp/opencode/omnishop-native-evidence/` and
+stops the preview at the end. Backup/restore is covered by JVM tests, not by
+this script (the Android document picker is a system UI).
 It neither starts nor connects to the old API server.
 
 For packaged Linux startup (requires Xvfb, xwininfo, Python Pillow with XCB):
@@ -170,9 +179,23 @@ add SQLDelight numbered migrations and verify them against the prior snapshot;
 never replace an existing user's database to make a test pass. No compatibility
 with legacy Expo/Tauri data or old backup formats is required.
 
+## Backup format and security notes
+
+`EncryptedBackup` version 1 is a self-contained binary file: magic, version,
+KDF cost, 16-byte salt, 12-byte nonce, creation time, and an AES-256-GCM
+ciphertext. The header is authenticated as AAD. The password is expanded with
+PBKDF2-HMAC-SHA256 to a 256-bit key; the key and password char array are zeroed
+after use. The JSON snapshot contains all products, offers, observations, orders,
+items, shipments, allocations, tracking events and preferences. Unknown JSON
+fields are rejected, and restore validates uniqueness, references, quantities,
+currencies and domain invariants before a single transactional replace.
+
+This format is not a substitute for an attacker with the live unlocked device,
+and it does not provide key escrow. Keep the password out of the backup file.
+
 ## Next milestones
 
-1. Secure local key/credential storage and encrypted backup/restore.
+1. OS secure storage for marketplace credentials and sensitive delivery fields.
 2. Verify Thailand Post API access/credential suitability, then implement a real
    adapter with preserved raw events and provenance.
 3. Add and validate the iOS host plus Windows/macOS packaging.

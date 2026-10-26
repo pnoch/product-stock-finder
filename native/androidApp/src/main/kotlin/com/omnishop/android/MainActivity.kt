@@ -7,6 +7,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.omnishop.app.OmniShopApp
 import com.omnishop.app.ShopPresenter
+import com.omnishop.data.BackupService
+import com.omnishop.data.security.JcaBackupCrypto
 import com.omnishop.data.ShoppingStore
 import com.omnishop.data.openAndroid
 import java.util.UUID
@@ -18,8 +20,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         store = ShoppingStore.openAndroid(applicationContext)
         val presenter = ShopPresenter(store, { UUID.randomUUID().toString() }, System::currentTimeMillis)
+        val backup = BackupService(store, JcaBackupCrypto())
+        val backupFiles = AndroidBackupFiles(this)
         setContent {
-            OmniShopApp(presenter) { url -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+            OmniShopApp(presenter, backup, backupFiles) { url ->
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            }
         }
     }
 

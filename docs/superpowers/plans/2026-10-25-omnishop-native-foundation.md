@@ -167,6 +167,9 @@ foundation plan.
   isolated database. Its jlink configuration explicitly includes `java.sql`.
 - Normal builds pass with generated dependency verification enabled.
 - `pnpm check` and `pnpm lint` also passed for the existing application.
-- No real carrier, secure-storage/backup, iOS host, or Windows/macOS native
+- Encrypted backup v1 and its restore path are implemented and tested (wrong
+  password, tampering, truncation, invalid snapshot, rollback). Android and
+  desktop have platform file pickers; the pickers themselves are not automated.
+- No real carrier, OS secure-storage adapter, iOS host, or Windows/macOS native
   platform validation is claimed. See `native/README.md` for follow-on gates.
 - Work is on `native/omnishop-foundation`; no commit/push was requested.
