@@ -167,6 +167,9 @@ foundation plan.
   isolated database. Its jlink configuration explicitly includes `java.sql`.
 - Normal builds pass with generated dependency verification enabled.
 - `pnpm check` and `pnpm lint` also passed for the existing application.
+- The UI now creates orders with multiple line items and allocates quantities
+  per item to split packages; the Android smoke and presenter tests cover
+  partial delivery and over-allocation rejection.
 - Encrypted backup v1 and its restore path are implemented and tested (wrong
   password, tampering, truncation, invalid snapshot, rollback). Android and
   desktop have platform file pickers; the pickers themselves are not automated.

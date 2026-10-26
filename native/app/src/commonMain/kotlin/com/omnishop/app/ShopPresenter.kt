@@ -12,6 +12,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
+data class DraftItem(val title: String, val quantity: Int)
+
 data class ShopSnapshot(
     val products: List<SavedProduct> = emptyList(),
     val offers: Map<String, List<Offer>> = emptyMap(),
@@ -42,9 +44,16 @@ class ShopPresenter(
         store.saveProduct(SavedProduct(newId(), title.trim(), link, now()))
     }
 
-    suspend fun createOrder(product: SavedProduct, merchant: String, quantity: Int) = perform {
+    suspend fun createOrder(merchant: String, items: List<DraftItem>) = perform {
+        require(merchant.isNotBlank()) { "Enter a merchant" }
+        require(items.isNotEmpty() && items.all { it.title.isNotBlank() && it.quantity > 0 }) {
+            "Every item needs a title and a positive quantity"
+        }
         val orderId = newId()
-        store.createOrder(PurchaseOrder(orderId, merchant.trim(), listOf(OrderItem(newId(), product.title, quantity))), now())
+        store.createOrder(
+            PurchaseOrder(orderId, merchant.trim(), items.map { OrderItem(newId(), it.title.trim(), it.quantity) }),
+            now(),
+        )
         selectedOrderId = orderId
     }
 
@@ -57,10 +66,16 @@ class ShopPresenter(
 
     suspend fun selectOrder(id: String?) = perform { selectedOrderId = id }
 
-    suspend fun attachShipment(tracking: String, carrier: String, quantity: Int) = perform {
+    suspend fun attachShipment(tracking: String, carrier: String, allocations: List<Pair<String, Int>>) = perform {
         val order = requireNotNull(selectedOrderId?.let(store::getOrder)) { "Select an order first" }
-        val item = order.items.single()
-        store.attachShipment(order.id, Shipment(newId(), listOf(ShipmentAllocation(item.id, quantity))), tracking.trim(), carrier.trim())
+        val positive = allocations.filter { it.second > 0 }
+        require(positive.isNotEmpty()) { "Allocate at least one unit to this package" }
+        store.attachShipment(
+            order.id,
+            Shipment(newId(), positive.map { ShipmentAllocation(it.first, it.second) }),
+            tracking.trim(),
+            carrier.trim(),
+        )
     }
 
     suspend fun recordManualEvent(shipmentId: String, status: ShipmentStatus, description: String) = perform {

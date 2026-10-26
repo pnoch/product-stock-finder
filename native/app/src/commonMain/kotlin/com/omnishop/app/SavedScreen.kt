@@ -3,6 +3,11 @@ package com.omnishop.app
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -59,21 +64,52 @@ internal fun SavedScreen(state: ShopSnapshot, presenter: ShopPresenter, open: (S
     }
     purchasing?.let { product ->
         var merchant by remember(product.id) { mutableStateOf("") }
-        var quantity by remember(product.id) { mutableStateOf("1") }
+        var rows by remember(product.id) { mutableStateOf(listOf(OrderDraft(product.title, "1"))) }
+        val valid = merchant.isNotBlank() && rows.isNotEmpty() && rows.all {
+            it.title.isNotBlank() && (it.quantity.toIntOrNull() ?: 0) > 0
+        }
         AlertDialog(
             onDismissRequest = { purchasing = null },
             title = { Text(language.text(Label.CREATE_ORDER)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(product.title)
-                    OutlinedTextField(merchant, { merchant = it }, label = { Text(language.text(Label.MERCHANT)) })
-                    OutlinedTextField(quantity, { quantity = it }, label = { Text(language.text(Label.QUANTITY)) })
+                Column(
+                    Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(merchant, { merchant = it }, label = { Text(language.text(Label.MERCHANT)) }, modifier = Modifier.fillMaxWidth())
+                    rows.forEachIndexed { index, row ->
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                row.title,
+                                { value -> rows = rows.toMutableList().also { it[index] = row.copy(title = value) } },
+                                label = { Text(language.text(Label.ITEM_TITLE)) },
+                                modifier = Modifier.weight(1f),
+                            )
+                            OutlinedTextField(
+                                row.quantity,
+                                { value -> rows = rows.toMutableList().also { it[index] = row.copy(quantity = value) } },
+                                label = { Text(language.text(Label.QUANTITY)) },
+                                modifier = Modifier.width(92.dp),
+                            )
+                            if (rows.size > 1) {
+                                TextButton(onClick = { rows = rows.filterIndexed { i, _ -> i != index } }) {
+                                    Text("×")
+                                }
+                            }
+                        }
+                    }
+                    TextButton(onClick = { rows = rows + OrderDraft("", "1") }) {
+                        Text(language.text(Label.ADD_ITEM))
+                    }
                 }
             },
             confirmButton = {
-                TextButton(enabled = merchant.isNotBlank() && (quantity.toIntOrNull() ?: 0) > 0 && !state.busy, onClick = {
+                TextButton(enabled = valid && !state.busy, onClick = {
                     scope.launch {
-                        presenter.createOrder(product, merchant, quantity.toInt())
+                        presenter.createOrder(
+                            merchant,
+                            rows.map { DraftItem(it.title.trim(), it.quantity.toIntOrNull() ?: 0) },
+                        )
                         if (presenter.state.value.error == null) { purchasing = null; showOrders() }
                     }
                 }) { Text(language.text(Label.SAVE)) }
@@ -110,3 +146,5 @@ private fun OfferDialog(product: SavedProduct, state: ShopSnapshot, presenter: S
         dismissButton = { TextButton(onClick = close) { Text(language.text(Label.CANCEL)) } },
     )
 }
+
+private data class OrderDraft(val title: String, val quantity: String)

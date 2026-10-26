@@ -10,10 +10,11 @@ not the complete Phase 1 release from the master product brief.
 - Canonical saved products with separate manually entered offers and initial
   price observations. Comparable offers are explicitly attached by the user;
   no fuzzy matching or automatic metadata extraction is claimed.
-- Local manual purchase records, order items, split-package allocations,
-  tracking numbers/carrier labels, manual event timelines, and derived partial
-  delivery. The initial UI creates one order item with a chosen quantity;
-  the core and SQLite schema support multiple items.
+- Local manual purchase records with multiple line items, per-item package
+  allocations, tracking numbers/carrier labels, manual event timelines, and
+  derived partial delivery. A package defaults to the remaining quantity of
+  each item; the user can split quantities across packages, and over-allocation
+  is rejected by the domain and database.
 - SQLDelight/SQLite transactions, foreign keys, indexes, bounded list queries,
   an empty version-1 schema snapshot, and migration verification.
 - Password-protected encrypted backup/restore (AES-256-GCM, PBKDF2-HMAC-SHA256

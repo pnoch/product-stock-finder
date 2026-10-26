@@ -102,6 +102,8 @@ def main():
     type_into("Tracking number", "QA001")
     type_into("Carrier label", "Manual carrier")
     scroll()
+    type_into("Quantity", "1", replace=True)
+    scroll()
     tap("Add package")
     scroll()
     type_into("Event description", "First package received")

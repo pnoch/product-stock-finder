@@ -17,13 +17,46 @@ class ShopPresenterTest {
             presenter.refresh()
             assertTrue(presenter.state.value.products.isEmpty())
             presenter.saveProduct("Tablet", "https://example.com/tablet")
-            presenter.createOrder(presenter.state.value.products.single(), "Local seller", 2)
-            presenter.attachShipment("TRACK-1", "Manual carrier", 1)
+            presenter.createOrder("Local seller", listOf(DraftItem("Tablet", 2)))
+            val order = presenter.state.value.selectedOrder!!
+            presenter.attachShipment("TRACK-1", "Manual carrier", listOf(order.items.single().id to 1))
             val shipment = presenter.state.value.selectedOrder!!.shipments.single()
             presenter.recordManualEvent(shipment.id, ShipmentStatus.DELIVERED, "Received first package")
             assertEquals(DeliveryProgress.PARTIALLY_DELIVERED, presenter.state.value.selectedOrder!!.deliveryProgress)
             assertEquals("Received first package", presenter.state.value.events[shipment.id]!!.single().description)
             assertNull(presenter.state.value.error)
+        }
+    }
+
+    @Test fun multipleItemsCanShipSeparatelyAndRemainPartiallyDelivered() = runBlocking {
+        ShoppingStore.inMemory().use { store ->
+            var id = 0
+            val presenter = ShopPresenter(store, { "id-${++id}" }, { 100L }, Dispatchers.Unconfined)
+            presenter.createOrder("Shop", listOf(DraftItem("Tablet", 1), DraftItem("Phone", 1)))
+            val order = presenter.state.value.selectedOrder!!
+            val tablet = order.items.first { it.title == "Tablet" }
+            val phone = order.items.first { it.title == "Phone" }
+
+            presenter.attachShipment("TAB-1", "Manual", listOf(tablet.id to 1))
+            val packageOne = presenter.state.value.selectedOrder!!.shipments.single()
+            presenter.recordManualEvent(packageOne.id, ShipmentStatus.DELIVERED, "Tablet arrived")
+            assertEquals(DeliveryProgress.PARTIALLY_DELIVERED, presenter.state.value.selectedOrder!!.deliveryProgress)
+
+            presenter.attachShipment("PHONE-1", "Manual", listOf(phone.id to 1))
+            assertEquals(2, presenter.state.value.selectedOrder!!.shipments.size)
+            assertEquals(1L, presenter.state.value.selectedOrder!!.deliveredUnits)
+        }
+    }
+
+    @Test fun overAllocatingAPackageIsRejectedWithoutWritingAShipment() = runBlocking {
+        ShoppingStore.inMemory().use { store ->
+            var id = 0
+            val presenter = ShopPresenter(store, { "id-${++id}" }, { 100L }, Dispatchers.Unconfined)
+            presenter.createOrder("Shop", listOf(DraftItem("Tablet", 1)))
+            val order = presenter.state.value.selectedOrder!!
+            presenter.attachShipment("TRACK", "Manual", listOf(order.items.single().id to 2))
+            assertNotNull(presenter.state.value.error)
+            assertTrue(store.getOrder(order.id)!!.shipments.isEmpty())
         }
     }
 

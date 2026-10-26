@@ -5,8 +5,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.omnishop.core.PurchaseOrder
 import com.omnishop.core.Shipment
 import com.omnishop.core.ShipmentStatus
 import com.omnishop.data.OrderPrivateService
@@ -36,36 +38,72 @@ internal fun OrdersScreen(state: ShopSnapshot, presenter: ShopPresenter, private
                 order.items.forEach { Text("${it.title} × ${it.quantity}") }
             }
             item(key = "address-${order.id}") { ShippingAddressCard(order.id, privateService, language) }
-            item(key = "attach-${order.id}") { AttachShipmentForm(state, presenter) }
+            item(key = "attach-${order.id}") { AttachShipmentForm(state, presenter, order) }
             if (order.shipments.isEmpty()) item { Text(language.text(Label.NO_SHIPMENTS)) }
-            items(order.shipments, key = { it.id }) { shipment -> ShipmentCard(shipment, state, presenter) }
+            items(order.shipments, key = { it.id }) { shipment -> ShipmentCard(shipment, state, presenter, order) }
         }
     }
 }
 
 @Composable
-private fun AttachShipmentForm(state: ShopSnapshot, presenter: ShopPresenter) {
+private fun AttachShipmentForm(state: ShopSnapshot, presenter: ShopPresenter, order: PurchaseOrder) {
     val language = state.language
     val scope = rememberCoroutineScope()
-    var tracking by remember(state.selectedOrder?.id) { mutableStateOf("") }
-    var carrier by remember(state.selectedOrder?.id) { mutableStateOf("") }
-    var quantity by remember(state.selectedOrder?.id) { mutableStateOf("1") }
+    var tracking by remember(order.id) { mutableStateOf("") }
+    var carrier by remember(order.id) { mutableStateOf("") }
+    val allocated = order.shipments.flatMap { it.allocations }
+        .groupBy { it.orderItemId }
+        .mapValues { (_, values) -> values.sumOf { it.quantity } }
+    val remaining = order.items.associate { it.id to it.quantity - (allocated[it.id] ?: 0) }
+    var quantities by remember(order.id, order.shipments.size) {
+        mutableStateOf(
+            order.items.associate {
+                it.id to (remaining[it.id]?.takeIf { left -> left > 0 }?.toString() ?: "")
+            }.toMutableMap(),
+        )
+    }
+    val allocations = quantities.mapNotNull { (id, value) ->
+        value.toIntOrNull()?.takeIf { it > 0 }?.let { id to it }
+    }
+    val valid = tracking.isNotBlank() && carrier.isNotBlank() && allocations.isNotEmpty() &&
+        allocations.all { (id, quantity) -> quantity <= (remaining[id] ?: 0) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(language.text(Label.MANUAL_TRACKING), style = MaterialTheme.typography.titleSmall)
         OutlinedTextField(tracking, { tracking = it }, label = { Text(language.text(Label.TRACKING_NUMBER)) }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(carrier, { carrier = it }, label = { Text(language.text(Label.CARRIER)) }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(quantity, { quantity = it }, label = { Text(language.text(Label.QUANTITY)) }, modifier = Modifier.fillMaxWidth())
-        Button(enabled = tracking.isNotBlank() && carrier.isNotBlank() && (quantity.toIntOrNull() ?: 0) > 0 && !state.busy, onClick = {
+        if (remaining.values.all { it <= 0 }) {
+            Text(language.text(Label.ALL_ALLOCATED))
+        } else {
+            order.items.forEach { item ->
+                val left = remaining[item.id] ?: 0
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${item.title} · ${language.text(Label.REMAINING)} $left", modifier = Modifier.weight(1f))
+                    OutlinedTextField(
+                        quantities[item.id].orEmpty(),
+                        { value -> quantities = quantities.toMutableMap().also { it[item.id] = value } },
+                        label = { Text(language.text(Label.QUANTITY)) },
+                        modifier = Modifier.width(92.dp),
+                        enabled = left > 0,
+                    )
+                }
+            }
+        }
+        Button(enabled = valid && !state.busy, onClick = {
             scope.launch {
-                presenter.attachShipment(tracking, carrier, quantity.toInt())
-                if (presenter.state.value.error == null) { tracking = ""; carrier = "" }
+                presenter.attachShipment(tracking, carrier, allocations)
+                if (presenter.state.value.error == null) {
+                    tracking = ""
+                    carrier = ""
+                    quantities = order.items.associate { it.id to "" }.toMutableMap()
+                }
             }
         }) { Text(language.text(Label.ATTACH_SHIPMENT)) }
     }
 }
 
+
 @Composable
-private fun ShipmentCard(shipment: Shipment, state: ShopSnapshot, presenter: ShopPresenter) {
+private fun ShipmentCard(shipment: Shipment, state: ShopSnapshot, presenter: ShopPresenter, order: PurchaseOrder) {
     val scope = rememberCoroutineScope()
     val language = state.language
     val label = state.shipmentLabels[shipment.id]
@@ -73,6 +111,10 @@ private fun ShipmentCard(shipment: Shipment, state: ShopSnapshot, presenter: Sho
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("${label?.carrierLabel.orEmpty()} · ${label?.trackingNumber.orEmpty()}", style = MaterialTheme.typography.titleMedium)
+            shipment.allocations.forEach { allocation ->
+                val title = order.items.firstOrNull { it.id == allocation.orderItemId }?.title ?: allocation.orderItemId
+                Text("$title × ${allocation.quantity}")
+            }
             Text(when (shipment.status) {
                 ShipmentStatus.DELIVERED -> language.text(Label.DELIVERED)
                 ShipmentStatus.IN_TRANSIT -> language.text(Label.IN_TRANSIT)
