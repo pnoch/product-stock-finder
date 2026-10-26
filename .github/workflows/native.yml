@@ -114,3 +114,21 @@ jobs:
       - name: Show Xcode build errors
         if: failure()
         run: grep -nE "error:|fatal error:|The following build commands failed" /tmp/omnishop-ios-build.log | tail -40 || true
+      - name: Launch the app in a simulator
+        run: |
+          set -euo pipefail
+          APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*Build/Products/Debug-iphonesimulator/OmniShop.app' | head -1)
+          test -d "$APP"
+          UDID=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for xs in d.values() for x in xs if x["name"].startswith("iPhone")))')
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch --terminate-running-process "$UDID" com.omnishop.ios
+          sleep 8
+          xcrun simctl io "$UDID" screenshot /tmp/omnishop-ios.png
+          xcrun simctl spawn "$UDID" launchctl list | grep -q "com.omnishop.ios"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: omnishop-ios-simulator
+          path: /tmp/omnishop-ios.png
