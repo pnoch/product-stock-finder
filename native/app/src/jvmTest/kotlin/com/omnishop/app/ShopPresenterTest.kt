@@ -127,6 +127,50 @@ class ShopPresenterTest {
         }
     }
 
+    @Test fun previewsAndImportsCsvOrdersWhileSkippingDuplicates() = runBlocking {
+        ShoppingStore.inMemory().use { store ->
+            var id = 0
+            val presenter = ShopPresenter(store, { "id-${++id}" }, { 100L }, Dispatchers.Unconfined)
+            presenter.createOrder("Shop", listOf(DraftItem("Existing", 1)), "M1")
+            val csv = """
+                merchant,order_id,currency,item_title,quantity,unit_price,total
+                Shop,M1,THB,Existing,1,10.00,10.00
+                Shop,M2,THB,Imported,2,20.00,40.00
+            """.trimIndent().encodeToByteArray()
+            val preview = presenter.previewOrderCsv(csv)
+            assertTrue(preview.errors.isEmpty())
+            assertEquals(1, preview.duplicates)
+            assertEquals(1, preview.orders.size)
+            assertEquals(1, presenter.importOrders(preview.orders))
+            assertNotNull(store.findOrderByMerchantId("Shop", "M2"))
+            val again = presenter.previewOrderCsv(csv)
+            assertEquals(2, again.duplicates)
+            assertTrue(again.orders.isEmpty())
+            assertEquals(0, presenter.importOrders(again.orders))
+        }
+    }
+
+    @Test fun updatesItemPricesAndOrderFinancialsTogether() = runBlocking {
+        ShoppingStore.inMemory().use { store ->
+            var id = 0
+            val presenter = ShopPresenter(store, { "id-${++id}" }, { 100L }, Dispatchers.Unconfined)
+            presenter.createOrder("Shop", listOf(DraftItem("Tablet", 2)), "M1")
+            val order = presenter.state.value.selectedOrder!!
+            presenter.updateOrderDetails(
+                order.id,
+                mapOf(order.items.single().id to "100.00"),
+                shipping = "10.00", tax = "7.00", discount = "5.00", total = "212.00",
+                merchantOrderId = "M1", purchasedAt = "2026-10-01", paymentLabel = "Visa",
+            )
+            assertNull(presenter.state.value.error)
+            val updated = presenter.state.value.selectedOrder!!
+            assertEquals(Money(20_000, Currency.THB), updated.itemSubtotal)
+            assertEquals(Money(21_200, Currency.THB), updated.totalPaid)
+            assertEquals("Visa", updated.paymentMethodLabel)
+            assertTrue(updated.purchasedAtEpochMillis != null)
+        }
+    }
+
     @Test fun invalidLinkCannotCreateAPartialSavedProduct() = runBlocking {
         ShoppingStore.inMemory().use { store ->
             val presenter = ShopPresenter(store, { "id" }, { 100L }, Dispatchers.Unconfined)

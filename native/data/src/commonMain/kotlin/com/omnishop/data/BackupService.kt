@@ -52,10 +52,18 @@ class BackupService(
             items.forEach { if (!seen.add(id(it))) fail("Duplicate $label id") }
         }
 
-        if (snapshot.schemaVersion !in 1..3) fail("Unsupported backup schema")
+        if (snapshot.schemaVersion !in 1..4) fail("Unsupported backup schema")
         if (snapshot.schemaVersion == 1 && snapshot.returns.isNotEmpty()) fail("Returns require backup schema 2")
         if (snapshot.schemaVersion < 3 && snapshot.shipments.any { it.carrierId != null }) {
             fail("Carrier ids require backup schema 3")
+        }
+        if (snapshot.schemaVersion < 4) {
+            val hasFinancials = snapshot.orders.any {
+                it.currencyCode != null || it.currencyScale != null || it.shippingMinor != null ||
+                    it.taxMinor != null || it.discountMinor != null || it.totalMinor != null ||
+                    it.merchantOrderId != null || it.purchasedAt != null || it.paymentMethodLabel != null
+            } || snapshot.orderItems.any { it.unitPriceMinor != null }
+            if (hasFinancials) fail("Order financials require backup schema 4")
         }
         unique(snapshot.products, { it.id }, "product")
         unique(snapshot.listings, { it.id }, "listing")
@@ -91,9 +99,20 @@ class BackupService(
         }
         snapshot.orders.forEach {
             if (it.id.isBlank() || it.merchant.isBlank() || it.createdAt < 0) fail("Invalid order")
+            if (it.merchantOrderId != null && (it.merchantOrderId.isBlank() || it.merchantOrderId.length > 128)) {
+                fail("Invalid merchant order id")
+            }
+            if (it.purchasedAt != null && it.purchasedAt < 0) fail("Invalid purchase date")
+            if (it.paymentMethodLabel != null && it.paymentMethodLabel.length > 64) fail("Invalid payment label")
+            if ((it.currencyCode == null) != (it.currencyScale == null)) fail("Incomplete order currency")
+            if (it.currencyCode != null) currency(it.currencyCode, requireNotNull(it.currencyScale))
+            if (it.currencyCode == null && listOfNotNull(it.shippingMinor, it.taxMinor, it.discountMinor, it.totalMinor).isNotEmpty()) {
+                fail("Order money requires a currency")
+            }
         }
         snapshot.orderItems.forEach {
             if (it.id.isBlank() || it.orderId !in orderIds || it.title.isBlank() || it.quantity <= 0) fail("Invalid order item")
+            if (it.unitPriceMinor != null && it.unitPriceMinor < 0) fail("Invalid item price")
         }
         snapshot.shipments.forEach {
             if (it.id.isBlank() || it.orderId !in orderIds || it.trackingNumber.isBlank() || it.carrierLabel.isBlank()) fail("Invalid shipment")
@@ -121,15 +140,25 @@ class BackupService(
 
         // Reuse domain invariants for the relationships that matter most.
         snapshot.orders.forEach { order ->
-            val items = snapshot.orderItems.filter { it.orderId == order.id }
-                .map { OrderItem(it.id, it.title, it.quantity) }
+            val orderCurrency = order.currencyCode?.let { currency(it, requireNotNull(order.currencyScale)) }
+            fun money(minor: Long?): Money? = if (minor != null && orderCurrency != null) Money(minor, orderCurrency) else null
+            if (orderCurrency == null && snapshot.orderItems.any { it.orderId == order.id && it.unitPriceMinor != null }) {
+                fail("Item prices require an order currency")
+            }
+            val items = snapshot.orderItems.filter { it.orderId == order.id }.map {
+                OrderItem(it.id, it.title, it.quantity, money(it.unitPriceMinor))
+            }
             if (items.isEmpty()) fail("Order has no items")
             val shipments = snapshot.shipments.filter { it.orderId == order.id }.map { shipment ->
                 val allocations = snapshot.allocations.filter { it.shipmentId == shipment.id }
                 if (allocations.isEmpty() || allocations.any { it.orderId != order.id }) fail("Invalid shipment allocation")
                 Shipment(shipment.id, allocations.map { ShipmentAllocation(it.orderItemId, it.quantity) }, status(shipment.status), shipment.carrierId)
             }
-            val purchase = PurchaseOrder(order.id, order.merchant, items, shipments)
+            val purchase = PurchaseOrder(
+                order.id, order.merchant, items, shipments, orderCurrency,
+                money(order.shippingMinor), money(order.taxMinor), money(order.discountMinor), money(order.totalMinor),
+                order.merchantOrderId, order.purchasedAt, order.paymentMethodLabel,
+            )
             validateOrderReturns(purchase, returnsByOrder[order.id].orEmpty())
         }
     }

@@ -12,8 +12,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlin.time.Instant
 
-data class DraftItem(val title: String, val quantity: Int)
+data class DraftItem(val title: String, val quantity: Int, val unitPrice: String = "")
+
+data class OrderImportPreview(
+    val orders: List<PurchaseOrder>,
+    val errors: List<String>,
+    val duplicates: Int,
+)
 
 data class ShopSnapshot(
     val products: List<SavedProduct> = emptyList(),
@@ -46,17 +53,101 @@ class ShopPresenter(
         store.saveProduct(SavedProduct(newId(), title.trim(), link, now()))
     }
 
-    suspend fun createOrder(merchant: String, items: List<DraftItem>) = perform {
+    suspend fun createOrder(
+        merchant: String,
+        items: List<DraftItem>,
+        merchantOrderId: String? = null,
+    ) = perform {
         require(merchant.isNotBlank()) { "Enter a merchant" }
         require(items.isNotEmpty() && items.all { it.title.isNotBlank() && it.quantity > 0 }) {
             "Every item needs a title and a positive quantity"
         }
+        val currency = Currency.THB
+        val orderItems = items.map {
+            val price = it.unitPrice.trim().takeIf { value -> value.isNotEmpty() }
+                ?.let { value -> parseNonNegativeMoney(value, currency) }
+            OrderItem(newId(), it.title.trim(), it.quantity, price)
+        }
         val orderId = newId()
         store.createOrder(
-            PurchaseOrder(orderId, merchant.trim(), items.map { OrderItem(newId(), it.title.trim(), it.quantity) }),
+            PurchaseOrder(
+                orderId, merchant.trim(), orderItems,
+                currency = if (orderItems.any { it.unitPrice != null }) currency else null,
+                merchantOrderId = merchantOrderId?.trim()?.takeIf { it.isNotEmpty() },
+            ),
             now(),
         )
         selectedOrderId = orderId
+    }
+
+    suspend fun updateOrderItemPrice(orderId: String, itemId: String, price: String) = perform {
+        val order = requireNotNull(store.getOrder(orderId)) { "Order not found" }
+        val currency = order.currency ?: Currency.THB
+        val amount = price.trim().takeIf { it.isNotEmpty() }?.let { parseNonNegativeMoney(it, currency) }
+        store.updateOrderItemPrice(orderId, itemId, amount)
+    }
+
+    suspend fun updateOrderDetails(
+        orderId: String,
+        itemPrices: Map<String, String>,
+        shipping: String,
+        tax: String,
+        discount: String,
+        total: String,
+        merchantOrderId: String,
+        purchasedAt: String,
+        paymentLabel: String,
+    ) = perform {
+        val order = requireNotNull(store.getOrder(orderId)) { "Order not found" }
+        val currency = order.currency ?: Currency.THB
+        fun amount(value: String): Money? =
+            value.trim().takeIf { it.isNotEmpty() }?.let { parseNonNegativeMoney(it, currency) }
+        val purchased = purchasedAt.trim().takeIf { it.isNotEmpty() }?.let {
+            require(Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(it)) { "Purchase date must be YYYY-MM-DD" }
+            Instant.parse("${it}T00:00:00Z").toEpochMilliseconds()
+        }
+        val items = order.items.map { item ->
+            val raw = itemPrices[item.id] ?: return@map item
+            item.copy(unitPrice = raw.trim().takeIf { it.isNotEmpty() }?.let { parseNonNegativeMoney(it, currency) })
+        }
+        val hasMoney = listOf(shipping, tax, discount, total).any { it.isNotBlank() } || items.any { it.unitPrice != null }
+        store.updateOrder(order.copy(
+            items = items,
+            currency = if (hasMoney) currency else order.currency,
+            shipping = amount(shipping), tax = amount(tax), discount = amount(discount), totalPaid = amount(total),
+            merchantOrderId = merchantOrderId.trim().takeIf { it.isNotEmpty() },
+            purchasedAtEpochMillis = purchased,
+            paymentMethodLabel = paymentLabel.trim().takeIf { it.isNotEmpty() },
+        ))
+    }
+
+    suspend fun updateOrderFinancials(
+        orderId: String,
+        shipping: String,
+        tax: String,
+        discount: String,
+        total: String,
+        merchantOrderId: String,
+        purchasedAt: String,
+        paymentLabel: String,
+    ) = perform {
+        val order = requireNotNull(store.getOrder(orderId)) { "Order not found" }
+        val currency = order.currency ?: Currency.THB
+        fun amount(value: String): Money? =
+            value.trim().takeIf { it.isNotEmpty() }?.let { parseNonNegativeMoney(it, currency) }
+        val purchased = purchasedAt.trim().takeIf { it.isNotEmpty() }?.let {
+            require(Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(it)) { "Purchase date must be YYYY-MM-DD" }
+            Instant.parse("${it}T00:00:00Z").toEpochMilliseconds()
+        }
+        val hasMoney = listOf(shipping, tax, discount, total).any { it.isNotBlank() }
+        store.updateOrderFinancials(
+            orderId,
+            if (hasMoney) currency else order.currency,
+            amount(shipping), amount(tax), amount(discount), amount(total),
+            merchantOrderId.trim().takeIf { it.isNotEmpty() },
+            purchased,
+            paymentLabel.trim().takeIf { it.isNotEmpty() },
+        )
     }
 
     suspend fun addOffer(productId: String, source: String, amount: String, shipping: String) = perform {
@@ -103,6 +194,32 @@ class ShopPresenter(
     }
 
     suspend fun changeLanguage(language: AppLanguage) = perform { store.setPreference("language", language.name) }
+
+    suspend fun previewOrderCsv(bytes: ByteArray): OrderImportPreview = withContext(dispatcher) {
+        val parsed = OrderCsvImporter(newId).parse(bytes)
+        val duplicates = parsed.orders.count {
+            it.merchantOrderId?.let { id -> store.findOrderByMerchantId(it.merchant, id) } != null
+        }
+        OrderImportPreview(
+            orders = parsed.orders.filter {
+                it.merchantOrderId?.let { id -> store.findOrderByMerchantId(it.merchant, id) } == null
+            },
+            errors = parsed.errors,
+            duplicates = duplicates,
+        )
+    }
+
+    suspend fun importOrders(orders: List<PurchaseOrder>): Int {
+        var imported = 0
+        perform {
+            val fresh = orders.filter {
+                it.merchantOrderId?.let { id -> store.findOrderByMerchantId(it.merchant, id) } == null
+            }
+            store.createOrders(fresh, now())
+            imported = fresh.size
+        }
+        return if (state.value.error == null) imported else 0
+    }
 
     suspend fun createReturn(orderItemId: String, quantity: Int, reason: String) = perform {
         val order = requireNotNull(selectedOrderId?.let(store::getOrder)) { "Select an order first" }

@@ -1,0 +1,10 @@
+ALTER TABLE order_item ADD COLUMN unit_price_minor INTEGER;
+ALTER TABLE purchase_order ADD COLUMN currency_code TEXT;
+ALTER TABLE purchase_order ADD COLUMN currency_scale INTEGER;
+ALTER TABLE purchase_order ADD COLUMN shipping_minor INTEGER;
+ALTER TABLE purchase_order ADD COLUMN tax_minor INTEGER;
+ALTER TABLE purchase_order ADD COLUMN discount_minor INTEGER;
+ALTER TABLE purchase_order ADD COLUMN total_minor INTEGER;
+ALTER TABLE purchase_order ADD COLUMN merchant_order_id TEXT;
+ALTER TABLE purchase_order ADD COLUMN purchased_at INTEGER;
+ALTER TABLE purchase_order ADD COLUMN payment_method_label TEXT;

@@ -7,10 +7,16 @@ enum class ShipmentStatus {
     CANCELLED, UNKNOWN,
 }
 
-data class OrderItem(val id: String, val title: String, val quantity: Int) {
+data class OrderItem(
+    val id: String,
+    val title: String,
+    val quantity: Int,
+    val unitPrice: Money? = null,
+) {
     init {
         require(id.isNotBlank() && title.isNotBlank())
         require(quantity > 0)
+        require(unitPrice == null || unitPrice.minorUnits >= 0)
     }
 }
 
@@ -40,6 +46,14 @@ data class PurchaseOrder(
     val merchant: String,
     val items: List<OrderItem>,
     val shipments: List<Shipment> = emptyList(),
+    val currency: Currency? = null,
+    val shipping: Money? = null,
+    val tax: Money? = null,
+    val discount: Money? = null,
+    val totalPaid: Money? = null,
+    val merchantOrderId: String? = null,
+    val purchasedAtEpochMillis: Long? = null,
+    val paymentMethodLabel: String? = null,
 ) {
     init {
         require(id.isNotBlank() && merchant.isNotBlank() && items.isNotEmpty())
@@ -51,7 +65,31 @@ data class PurchaseOrder(
             val item = requireNotNull(itemById[itemId]) { "Shipment references an unknown order item" }
             require(assigned.sumOf { it.quantity.toLong() } <= item.quantity) { "Shipment quantity exceeds order quantity" }
         }
+        val monies = listOfNotNull(shipping, tax, discount, totalPaid) + items.mapNotNull { it.unitPrice }
+        if (monies.isNotEmpty()) require(currency != null) { "Order currency is required when money is present" }
+        monies.forEach { require(it.currency == currency && it.minorUnits >= 0) { "Order money must share a non-negative currency" } }
+        require(merchantOrderId == null || (merchantOrderId.isNotBlank() && merchantOrderId.length <= 128))
+        require(purchasedAtEpochMillis == null || purchasedAtEpochMillis >= 0)
+        require(paymentMethodLabel == null || paymentMethodLabel.length <= 64)
     }
+
+    val itemSubtotal: Money?
+        get() {
+            val orderCurrency = currency ?: return null
+            if (items.any { it.unitPrice == null }) return null
+            return items.fold(Money(0, orderCurrency)) { total, item ->
+                total + (item.unitPrice!! * item.quantity)
+            }
+        }
+
+    val computedTotal: Money?
+        get() {
+            val subtotal = itemSubtotal ?: return null
+            val knownShipping = shipping ?: return null
+            val knownTax = tax ?: return null
+            val knownDiscount = discount ?: return null
+            return subtotal + knownShipping + knownTax - knownDiscount
+        }
 
     val deliveredUnits: Long get() = shipments.filter { it.status == ShipmentStatus.DELIVERED }
         .sumOf { shipment -> shipment.allocations.sumOf { it.quantity.toLong() } }

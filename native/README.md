@@ -10,13 +10,20 @@ not the complete Phase 1 release from the master product brief.
 - Canonical saved products with separate manually entered offers and initial
   price observations. Comparable offers are explicitly attached by the user;
   no fuzzy matching or automatic metadata extraction is claimed.
-- Local manual purchase records with multiple line items, per-item package
-  allocations, tracking numbers/carrier labels, manual event timelines, and
-  derived partial delivery. A package defaults to the remaining quantity of
-  each item; the user can split quantities across packages, and over-allocation
-  is rejected by the domain and database.
+- Local manual purchase records with multiple line items, optional per-item
+  prices, order currency, shipping, tax, discount, recorded total, merchant
+  order ID, purchase date and payment-method label (never card data). The UI
+  shows item subtotal and recorded total separately, so an unreconciled total is
+  visible rather than silently “corrected”. Per-item package allocations,
+  tracking numbers/carrier labels, manual event timelines, and derived partial
+  delivery are included. Over-allocation is rejected by the domain and database.
+- CSV order import with a review-before-import dialog. Required columns are
+  `merchant`, `order_id`, `currency`, `item_title` and `quantity`; optional
+  columns cover dates, scale, item prices and order totals. Conflicting
+  order-level values are rejected, duplicates are reported and skipped by
+  merchant order ID, and a failed multi-order insert rolls back the batch.
 - SQLDelight/SQLite transactions, foreign keys, indexes, bounded list queries,
-  empty version-1/2/3 schema snapshots, and migration verification.
+  empty version-1/2/3/4 schema snapshots, and migration verification.
 - A first real carrier connector for Thailand Post. The user supplies an API
   key, stored only in the platform SecretStore; the app requests a token and
   tracking data directly from Thailand Post. Events preserve the raw carrier
@@ -62,8 +69,8 @@ unknown in the entry UI; it does not claim a cheapest delivered-price winner.
 ## Not implemented yet
 
 Other carrier adapters, live verification against Thailand Post with a real
-account, marketplace account connections, receipt/email import, automatic
-metadata extraction, automatic product matching, automated returns/refunds,
+account, marketplace account connections, email/PDF/receipt import (CSV is
+implemented), automatic metadata extraction, automatic product matching, automated returns/refunds,
 cart/checkout, local notifications/background scheduling, peer sync, iOS
 background tasks/share extensions, signing/notarization, and additional
 sensitive fields are subsequent milestones.
@@ -222,13 +229,14 @@ complete desktop interaction scenario.
 - Linux development: `$XDG_DATA_HOME/omnishop-native/omnishop.db`, falling back
   to `~/.local/share/omnishop-native/omnishop.db`.
 
-`data/src/commonMain/sqldelight/databases/1.db`, `2.db` and `3.db` are empty
-generated schema snapshots, with no test or user records. `1.sqm` adds
-`order_return` (version 2); `2.sqm` adds `shipment.carrier_id` (version 3).
-Neither recreates or clears existing tables. File-backed migration tests
-preserve version-1 products/orders and version-2 shipments, and Android
-in-place APK upgrades preserved existing records and the encrypted address
-before the clean smoke scenario.
+`data/src/commonMain/sqldelight/databases/1.db` … `4.db` are empty generated
+schema snapshots, with no test or user records. `1.sqm` adds `order_return`
+(version 2); `2.sqm` adds `shipment.carrier_id` (version 3); `3.sqm` adds order
+financial columns and `order_item.unit_price_minor` (version 4). None recreates
+or clears existing tables. File-backed migration tests preserve version-1
+products/orders, version-2 shipments and version-3 orders; Android in-place APK
+upgrades preserved existing records and the encrypted address before the clean
+smoke scenario.
 
 For future revisions, add SQLDelight numbered migrations and verify against the
 prior snapshot. Never replace an existing database to make a test pass. No
@@ -335,10 +343,12 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Verify the Thailand Post adapter against a real account/tracking number, then
+1. Add receipt/PDF import and encrypted receipt attachments through the device
+   key, then reconcile totals against original payments.
+2. Verify the Thailand Post adapter against a real account/tracking number, then
    add bounded retry/token caching and a carrier status-code mapping review.
-2. Exercise iOS/desktop sensitive-field, backup file-picker and carrier-refresh
-   interactions, then complete signing/notarization and device distribution.
-3. Expand offers/variants, order editing, pagination and receipt import.
-4. Add encrypted credentials/receipt attachments using the same device key.
+3. Exercise iOS/desktop sensitive-field, backup file-picker, CSV-import and
+   carrier-refresh interactions, then complete signing/notarization and device
+   distribution.
+4. Expand offers/variants, order editing and pagination.
 5. Native sharing/background tasks and encrypted peer synchronization.

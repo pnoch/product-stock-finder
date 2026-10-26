@@ -64,7 +64,8 @@ internal fun SavedScreen(state: ShopSnapshot, presenter: ShopPresenter, open: (S
     }
     purchasing?.let { product ->
         var merchant by remember(product.id) { mutableStateOf("") }
-        var rows by remember(product.id) { mutableStateOf(listOf(OrderDraft(product.title, "1"))) }
+        var merchantOrderId by remember(product.id) { mutableStateOf("") }
+        var rows by remember(product.id) { mutableStateOf(listOf(OrderDraft(product.title, "1", ""))) }
         val valid = merchant.isNotBlank() && rows.isNotEmpty() && rows.all {
             it.title.isNotBlank() && (it.quantity.toIntOrNull() ?: 0) > 0
         }
@@ -77,6 +78,7 @@ internal fun SavedScreen(state: ShopSnapshot, presenter: ShopPresenter, open: (S
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     OutlinedTextField(merchant, { merchant = it }, label = { Text(language.text(Label.MERCHANT)) }, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(merchantOrderId, { merchantOrderId = it }, label = { Text(language.text(Label.MERCHANT_ORDER_ID)) }, modifier = Modifier.fillMaxWidth())
                     rows.forEachIndexed { index, row ->
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
@@ -89,7 +91,13 @@ internal fun SavedScreen(state: ShopSnapshot, presenter: ShopPresenter, open: (S
                                 row.quantity,
                                 { value -> rows = rows.toMutableList().also { it[index] = row.copy(quantity = value) } },
                                 label = { Text(language.text(Label.QUANTITY)) },
-                                modifier = Modifier.width(92.dp),
+                                modifier = Modifier.width(76.dp),
+                            )
+                            OutlinedTextField(
+                                row.unitPrice,
+                                { value -> rows = rows.toMutableList().also { it[index] = row.copy(unitPrice = value) } },
+                                label = { Text(language.text(Label.PRICE_THB)) },
+                                modifier = Modifier.width(112.dp),
                             )
                             if (rows.size > 1) {
                                 TextButton(onClick = { rows = rows.filterIndexed { i, _ -> i != index } }) {
@@ -98,7 +106,7 @@ internal fun SavedScreen(state: ShopSnapshot, presenter: ShopPresenter, open: (S
                             }
                         }
                     }
-                    TextButton(onClick = { rows = rows + OrderDraft("", "1") }) {
+                    TextButton(onClick = { rows = rows + OrderDraft("", "1", "") }) {
                         Text(language.text(Label.ADD_ITEM))
                     }
                 }
@@ -108,7 +116,8 @@ internal fun SavedScreen(state: ShopSnapshot, presenter: ShopPresenter, open: (S
                     scope.launch {
                         presenter.createOrder(
                             merchant,
-                            rows.map { DraftItem(it.title.trim(), it.quantity.toIntOrNull() ?: 0) },
+                            rows.map { DraftItem(it.title.trim(), it.quantity.toIntOrNull() ?: 0, it.unitPrice) },
+                            merchantOrderId,
                         )
                         if (presenter.state.value.error == null) { purchasing = null; showOrders() }
                     }
@@ -147,4 +156,4 @@ private fun OfferDialog(product: SavedProduct, state: ShopSnapshot, presenter: S
     )
 }
 
-private data class OrderDraft(val title: String, val quantity: String)
+private data class OrderDraft(val title: String, val quantity: String, val unitPrice: String)

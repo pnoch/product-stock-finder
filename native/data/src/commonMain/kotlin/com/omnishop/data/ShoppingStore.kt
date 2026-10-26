@@ -58,10 +58,24 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
     }
 
     fun createOrder(order: PurchaseOrder, createdAtEpochMillis: Long) {
-        require(order.shipments.isEmpty()) { "Attach shipments after creating the order" }
+        createOrders(listOf(order), createdAtEpochMillis)
+    }
+
+    fun createOrders(orders: List<PurchaseOrder>, createdAtEpochMillis: Long) {
+        require(orders.all { it.shipments.isEmpty() }) { "Attach shipments after creating orders" }
         database.transaction {
-            queries.insertOrder(order.id, order.merchant, createdAtEpochMillis)
-            order.items.forEach { queries.insertOrderItem(it.id, order.id, it.title, it.quantity.toLong()) }
+            orders.forEach { order ->
+                queries.insertOrder(
+                    order.id, order.merchant, createdAtEpochMillis,
+                    order.currency?.code, order.currency?.scale?.toLong(),
+                    order.shipping?.minorUnits, order.tax?.minorUnits, order.discount?.minorUnits,
+                    order.totalPaid?.minorUnits, order.merchantOrderId,
+                    order.purchasedAtEpochMillis, order.paymentMethodLabel,
+                )
+                order.items.forEach {
+                    queries.insertOrderItem(it.id, order.id, it.title, it.quantity.toLong(), it.unitPrice?.minorUnits)
+                }
+            }
         }
     }
 
@@ -74,14 +88,77 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
 
     fun getOrder(id: String): PurchaseOrder? {
         val row = queries.findOrder(id).executeAsOneOrNull() ?: return null
-        val items = queries.orderItems(id).executeAsList().map { OrderItem(it.id, it.title, it.quantity.toInt()) }
+        val currency = row.currency_code?.let { code -> row.currency_scale?.let { Currency(code, it.toInt()) } }
+        fun money(minor: Long?): Money? = if (minor != null && currency != null) Money(minor, currency) else null
+        val items = queries.orderItems(id).executeAsList().map {
+            OrderItem(it.id, it.title, it.quantity.toInt(), it.unit_price_minor?.let { price -> currency?.let { c -> Money(price, c) } })
+        }
         val allocations = queries.orderAllocations(id).executeAsList().groupBy { it.shipment_id }
         val shipments = queries.orderShipments(id).executeAsList().map {
             Shipment(it.id, allocations[it.id].orEmpty().map { allocation ->
                 ShipmentAllocation(allocation.order_item_id, allocation.quantity.toInt())
             }, ShipmentStatus.valueOf(it.status), it.carrier_id)
         }
-        return PurchaseOrder(row.id, row.merchant, items, shipments)
+        return PurchaseOrder(
+            row.id, row.merchant, items, shipments, currency,
+            money(row.shipping_minor), money(row.tax_minor), money(row.discount_minor), money(row.total_minor),
+            row.merchant_order_id, row.purchased_at, row.payment_method_label,
+        )
+    }
+
+    fun findOrderByMerchantId(merchant: String, merchantOrderId: String): PurchaseOrder? =
+        queries.findOrderByMerchantId(merchant, merchantOrderId).executeAsOneOrNull()?.let { getOrder(it.id) }
+
+    fun updateOrderFinancials(
+        orderId: String,
+        currency: Currency?,
+        shipping: Money?,
+        tax: Money?,
+        discount: Money?,
+        totalPaid: Money?,
+        merchantOrderId: String?,
+        purchasedAtEpochMillis: Long?,
+        paymentMethodLabel: String?,
+    ) {
+        database.transaction {
+            val current = requireNotNull(getOrder(orderId)) { "Order not found" }
+            val updated = current.copy(
+                currency = currency, shipping = shipping, tax = tax, discount = discount,
+                totalPaid = totalPaid, merchantOrderId = merchantOrderId,
+                purchasedAtEpochMillis = purchasedAtEpochMillis, paymentMethodLabel = paymentMethodLabel,
+            )
+            queries.updateOrderFinancials(
+                updated.currency?.code, updated.currency?.scale?.toLong(),
+                updated.shipping?.minorUnits, updated.tax?.minorUnits, updated.discount?.minorUnits,
+                updated.totalPaid?.minorUnits, updated.merchantOrderId,
+                updated.purchasedAtEpochMillis, updated.paymentMethodLabel, orderId,
+            )
+        }
+    }
+
+    fun updateOrder(updated: PurchaseOrder) {
+        database.transaction {
+            val current = requireNotNull(getOrder(updated.id)) { "Order not found" }
+            require(current.items.map { it.id }.toSet() == updated.items.map { it.id }.toSet()) {
+                "Order items cannot be replaced by a financial update"
+            }
+            queries.updateOrderFinancials(
+                updated.currency?.code, updated.currency?.scale?.toLong(),
+                updated.shipping?.minorUnits, updated.tax?.minorUnits, updated.discount?.minorUnits,
+                updated.totalPaid?.minorUnits, updated.merchantOrderId,
+                updated.purchasedAtEpochMillis, updated.paymentMethodLabel, updated.id,
+            )
+            updated.items.forEach { queries.updateOrderItemPrice(it.unitPrice?.minorUnits, it.id) }
+        }
+    }
+
+    fun updateOrderItemPrice(orderId: String, itemId: String, unitPrice: Money?) {
+        database.transaction {
+            val current = requireNotNull(getOrder(orderId)) { "Order not found" }
+            require(current.items.any { it.id == itemId }) { "Order item not found" }
+            current.copy(items = current.items.map { if (it.id == itemId) it.copy(unitPrice = unitPrice) else it })
+            queries.updateOrderItemPrice(unitPrice?.minorUnits, itemId)
+        }
     }
 
     fun attachShipment(orderId: String, shipment: Shipment, trackingNumber: String, carrierLabel: String, carrierId: String? = null) {
@@ -184,10 +261,12 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
                     it.currency_code, it.currency_scale.toInt(), it.source)
             },
             orders = queries.allOrders().executeAsList().map {
-                BackupOrder(it.id, it.merchant, it.created_at)
+                BackupOrder(it.id, it.merchant, it.created_at, it.currency_code, it.currency_scale?.toInt(),
+                    it.shipping_minor, it.tax_minor, it.discount_minor, it.total_minor,
+                    it.merchant_order_id, it.purchased_at, it.payment_method_label)
             },
             orderItems = queries.allOrderItems().executeAsList().map {
-                BackupOrderItem(it.id, it.order_id, it.title, it.quantity.toInt())
+                BackupOrderItem(it.id, it.order_id, it.title, it.quantity.toInt(), it.unit_price_minor)
             },
             shipments = queries.allShipments().executeAsList().map {
                 BackupShipment(it.id, it.order_id, it.tracking_number, it.carrier_label, it.status, it.carrier_id)
@@ -234,9 +313,15 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
             queries.insertObservation(it.listingId, it.observedAt, it.priceMinor, it.currencyCode,
                 it.currencyScale.toLong(), it.source)
         }
-        snapshot.orders.forEach { queries.insertOrder(it.id, it.merchant, it.createdAt) }
+        snapshot.orders.forEach {
+            queries.insertOrder(it.id, it.merchant, it.createdAt, it.currencyCode, it.currencyScale?.toLong(),
+                it.shippingMinor, it.taxMinor, it.discountMinor, it.totalMinor,
+                it.merchantOrderId, it.purchasedAt, it.paymentMethodLabel)
+        }
         privateRows.forEach(::upsertPrivate)
-        snapshot.orderItems.forEach { queries.insertOrderItem(it.id, it.orderId, it.title, it.quantity.toLong()) }
+        snapshot.orderItems.forEach {
+            queries.insertOrderItem(it.id, it.orderId, it.title, it.quantity.toLong(), it.unitPriceMinor)
+        }
         snapshot.returns.forEach {
             queries.insertReturn(it.id, it.orderId, it.orderItemId, it.quantity.toLong(), it.reason,
                 it.status, it.requestedAt, it.returnTracking, it.refundMinor,

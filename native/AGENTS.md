@@ -48,6 +48,12 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   the key explicitly. Preserve raw descriptions/timestamps and mark provider
   provenance; do not fabricate events or claim live verification. Carrier
   locations are currently appended to the description, not a separate column.
+- Order money (`PurchaseOrder.currency`, item prices, shipping/tax/discount/total)
+  must share one currency; the recorded total is independent of the computed
+  total so a mismatch stays visible. Never store card data; only a payment-method
+  label. CSV import validates every row and inserts the batch transactionally;
+  duplicate merchant order IDs are reported and skipped, never silently merged.
+  Database/backup schema 4 adds financial fields.
 - Link-only carriers (`CarrierLinks`) must stay labeled link-only. SPX/LEX use
   a clearly identified 17TRACK lookup, not a carrier API; KEX/Flash/J&T/Ninja Van
   open their own tracking pages. Never generate events from a link or imply it is

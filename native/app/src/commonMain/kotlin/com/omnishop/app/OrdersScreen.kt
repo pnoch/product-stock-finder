@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,10 +16,12 @@ import com.omnishop.carriers.CarrierAdapter
 import com.omnishop.carriers.CarrierLinks
 import com.omnishop.carriers.CarrierCredentials
 import com.omnishop.carriers.CarrierResult
+import com.omnishop.core.Money
 import com.omnishop.core.ObservationMethod
 import com.omnishop.core.PurchaseOrder
 import com.omnishop.core.Shipment
 import com.omnishop.core.ShipmentStatus
+import com.omnishop.core.decimalString
 import com.omnishop.data.CarrierSettings
 import com.omnishop.data.OrderPrivateService
 import kotlinx.coroutines.Dispatchers
@@ -33,15 +36,34 @@ internal fun OrdersScreen(
     privateService: OrderPrivateService,
     carrierSettings: CarrierSettings,
     carriers: List<CarrierAdapter>,
+    files: BackupFiles,
     openUrl: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val language = state.language
     val order = state.selectedOrder
+    var csvPreview by remember { mutableStateOf<OrderImportPreview?>(null) }
+    var importMessage by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     LaunchedEffect(order?.id) { listState.scrollToItem(0) }
     LazyColumn(state = listState, contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (order == null) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(enabled = !state.busy, onClick = {
+                        scope.launch {
+                            val bytes = runCatching { files.open() }.getOrNull()
+                            if (bytes == null) {
+                                importMessage = language.text(Label.IMPORT_CANCELLED)
+                            } else {
+                                importMessage = null
+                                csvPreview = withContext(Dispatchers.Default) { presenter.previewOrderCsv(bytes) }
+                            }
+                        }
+                    }) { Text(language.text(Label.IMPORT_ORDERS)) }
+                    importMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                }
+            }
             if (state.orders.isEmpty()) item { Text(language.text(Label.NO_ORDERS)) }
             items(state.orders, key = { it.id }) { summary ->
                 OutlinedButton(onClick = { scope.launch { presenter.selectOrder(summary.id) } }, modifier = Modifier.fillMaxWidth()) {
@@ -58,6 +80,7 @@ internal fun OrdersScreen(
                 Text("${language.text(Label.DELIVERY_PROGRESS)}: ${language.progress(order.deliveryProgress)}")
                 order.items.forEach { Text("${it.title} × ${it.quantity}") }
             }
+            item(key = "financials-${order.id}") { OrderFinancialsCard(order, state, presenter) }
             item(key = "address-${order.id}") { ShippingAddressCard(order.id, privateService, language) }
             item(key = "attach-${order.id}") { AttachShipmentForm(state, presenter, order, carriers) }
             if (order.shipments.isEmpty()) item { Text(language.text(Label.NO_SHIPMENTS)) }
@@ -70,6 +93,140 @@ internal fun OrdersScreen(
             items(state.returns, key = { "return-${it.id}" }) { record -> ReturnRecordCard(record, order, state, presenter) }
         }
     }
+    csvPreview?.let { preview ->
+        OrderImportDialog(preview, state, language, presenter) { count ->
+            if (count != null) {
+                importMessage = if (presenter.state.value.error == null) {
+                    "${language.text(Label.IMPORT_DONE)} $count"
+                } else {
+                    "${language.text(Label.IMPORT_FAILED)}: ${presenter.state.value.error}"
+                }
+            }
+            csvPreview = null
+        }
+    }
+}
+
+@Composable
+private fun OrderImportDialog(
+    preview: OrderImportPreview,
+    state: ShopSnapshot,
+    language: AppLanguage,
+    presenter: ShopPresenter,
+    onDone: (Int?) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    AlertDialog(
+        onDismissRequest = { if (!state.busy) onDone(null) },
+        title = { Text(language.text(Label.IMPORT_PREVIEW)) },
+        text = {
+            Column(
+                Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("${preview.orders.size} ${language.text(Label.ORDERS_READY)}")
+                if (preview.duplicates > 0) Text("${preview.duplicates} ${language.text(Label.IMPORT_DUPLICATES)}")
+                if (preview.errors.isNotEmpty()) {
+                    Text(language.text(Label.IMPORT_ERRORS), color = MaterialTheme.colorScheme.error)
+                    preview.errors.take(8).forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
+                }
+                Text(language.text(Label.CSV_COLUMNS_HINT), style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = preview.errors.isEmpty() && preview.orders.isNotEmpty() && !state.busy,
+                onClick = {
+                    scope.launch {
+                        val count = presenter.importOrders(preview.orders)
+                        onDone(count)
+                    }
+                },
+            ) { Text(language.text(Label.IMPORT_BUTTON)) }
+        },
+        dismissButton = {
+            TextButton(enabled = !state.busy, onClick = { onDone(null) }) { Text(language.text(Label.CANCEL)) }
+        },
+    )
+}
+
+@Composable
+private fun OrderFinancialsCard(order: PurchaseOrder, state: ShopSnapshot, presenter: ShopPresenter) {
+    val language = state.language
+    var editing by remember(order.id) { mutableStateOf(false) }
+    fun show(value: Money?): String = value?.let { "${it.decimalString()} ${it.currency.code}" } ?: "—"
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(language.text(Label.FINANCIALS), style = MaterialTheme.typography.titleMedium)
+            Text("${language.text(Label.ITEM_SUBTOTAL)}: ${show(order.itemSubtotal)}")
+            Text("${language.text(Label.SHIPPING_COST)}: ${show(order.shipping)}")
+            Text("${language.text(Label.TAX_COST)}: ${show(order.tax)}")
+            Text("${language.text(Label.DISCOUNT_COST)}: ${show(order.discount)}")
+            Text("${language.text(Label.ORDER_TOTAL)}: ${show(order.totalPaid)}")
+            order.merchantOrderId?.let { Text("${language.text(Label.MERCHANT_ORDER_ID)}: $it") }
+            order.purchasedAtEpochMillis?.let {
+                Text("${language.text(Label.PURCHASE_DATE)}: ${Instant.fromEpochMilliseconds(it).toString().take(10)}")
+            }
+            order.paymentMethodLabel?.let { Text("${language.text(Label.PAYMENT_LABEL)}: $it") }
+            TextButton(enabled = !state.busy, onClick = { editing = true }) { Text(language.text(Label.EDIT_FINANCIALS)) }
+        }
+    }
+    if (editing) OrderFinancialsDialog(order, state, presenter) { editing = false }
+}
+
+@Composable
+private fun OrderFinancialsDialog(order: PurchaseOrder, state: ShopSnapshot, presenter: ShopPresenter, close: () -> Unit) {
+    val language = state.language
+    val scope = rememberCoroutineScope()
+    val currency = order.currency ?: com.omnishop.core.Currency.THB
+    var prices by remember(order.id) {
+        mutableStateOf(order.items.associate { it.id to (it.unitPrice?.decimalString() ?: "") })
+    }
+    var shipping by remember(order.id) { mutableStateOf(order.shipping?.decimalString() ?: "") }
+    var tax by remember(order.id) { mutableStateOf(order.tax?.decimalString() ?: "") }
+    var discount by remember(order.id) { mutableStateOf(order.discount?.decimalString() ?: "") }
+    var total by remember(order.id) { mutableStateOf(order.totalPaid?.decimalString() ?: "") }
+    var merchantOrderId by remember(order.id) { mutableStateOf(order.merchantOrderId ?: "") }
+    var purchasedAt by remember(order.id) {
+        mutableStateOf(order.purchasedAtEpochMillis?.let { Instant.fromEpochMilliseconds(it).toString().take(10) } ?: "")
+    }
+    var paymentLabel by remember(order.id) { mutableStateOf(order.paymentMethodLabel ?: "") }
+    AlertDialog(
+        onDismissRequest = { if (!state.busy) close() },
+        title = { Text(language.text(Label.EDIT_FINANCIALS)) },
+        text = {
+            Column(
+                Modifier.heightIn(max = 500.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                order.items.forEach { item ->
+                    OutlinedTextField(
+                        prices[item.id].orEmpty(),
+                        { value -> prices = prices + (item.id to value) },
+                        label = { Text("${item.title} (${currency.code})") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                OutlinedTextField(shipping, { shipping = it }, label = { Text("${language.text(Label.SHIPPING_COST)} (${currency.code})") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(tax, { tax = it }, label = { Text("${language.text(Label.TAX_COST)} (${currency.code})") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(discount, { discount = it }, label = { Text("${language.text(Label.DISCOUNT_COST)} (${currency.code})") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(total, { total = it }, label = { Text("${language.text(Label.ORDER_TOTAL)} (${currency.code})") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(merchantOrderId, { merchantOrderId = it }, label = { Text(language.text(Label.MERCHANT_ORDER_ID)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(purchasedAt, { purchasedAt = it }, label = { Text(language.text(Label.PURCHASE_DATE)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(paymentLabel, { paymentLabel = it }, label = { Text(language.text(Label.PAYMENT_LABEL)) }, modifier = Modifier.fillMaxWidth())
+                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = !state.busy, onClick = {
+                scope.launch {
+                    presenter.updateOrderDetails(order.id, prices, shipping, tax, discount, total, merchantOrderId, purchasedAt, paymentLabel)
+                    if (presenter.state.value.error == null) close()
+                }
+            }) { Text(language.text(Label.SAVE)) }
+        },
+        dismissButton = { TextButton(enabled = !state.busy, onClick = close) { Text(language.text(Label.CANCEL)) } },
+    )
 }
 
 @Composable

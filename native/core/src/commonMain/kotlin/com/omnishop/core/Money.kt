@@ -21,6 +21,14 @@ data class Money(val minorUnits: Long, val currency: Currency) {
         return copy(minorUnits = minorUnits + b)
     }
 
+    operator fun times(quantity: Int): Money {
+        require(quantity >= 0) { "Quantity cannot be negative" }
+        if (quantity == 0 || minorUnits == 0L) return copy(minorUnits = 0)
+        val product = minorUnits * quantity
+        require(product / quantity == minorUnits) { "Money multiplication overflow" }
+        return copy(minorUnits = product)
+    }
+
     operator fun minus(other: Money): Money {
         require(currency == other.currency) { "Convert currencies explicitly before subtracting" }
         val b = other.minorUnits

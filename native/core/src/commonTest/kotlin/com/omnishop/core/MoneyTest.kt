@@ -57,6 +57,13 @@ class MoneyTest {
         }
     }
 
+    @Test fun multipliesByQuantityWithOverflowChecks() {
+        assertEquals(Money(30, Currency.THB), Money(10, Currency.THB) * 3)
+        assertEquals(Money(0, Currency.THB), Money(10, Currency.THB) * 0)
+        assertFailsWith<IllegalArgumentException> { Money(Long.MAX_VALUE, Currency.THB) * 2 }
+        assertFailsWith<IllegalArgumentException> { Money(10, Currency.THB) * -1 }
+    }
+
     @Test fun parsesAndFormatsAmountsWithoutFloatingPointRounding() {
         assertEquals(101L, parseNonNegativeMoney("1.01", Currency.THB).minorUnits)
         assertEquals("0.10", parseNonNegativeMoney("0.1", Currency.THB).decimalString())

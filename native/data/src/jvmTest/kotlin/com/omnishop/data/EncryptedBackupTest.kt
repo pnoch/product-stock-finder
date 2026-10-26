@@ -18,7 +18,13 @@ class EncryptedBackupTest {
     private fun populated(store: ShoppingStore) {
         store.saveProduct(SavedProduct("p1", "Tablet", "https://example.com/tablet", 100))
         store.saveOffer(Offer("l1", "p1", "Seller A", CostEstimate(Money(800010, Currency.THB))), 110)
-        store.createOrder(PurchaseOrder("o1", "Shop", listOf(OrderItem("i1", "Tablet", 2))), 120)
+        store.createOrder(PurchaseOrder(
+            "o1", "Shop", listOf(OrderItem("i1", "Tablet", 2, Money(500, Currency.THB))),
+            currency = Currency.THB, shipping = Money(100, Currency.THB),
+            tax = Money(50, Currency.THB), discount = Money(20, Currency.THB),
+            totalPaid = Money(1_130, Currency.THB), merchantOrderId = "MERCHANT-1",
+            purchasedAtEpochMillis = 90, paymentMethodLabel = "Visa",
+        ), 120)
         store.attachShipment("o1", Shipment("s1", listOf(ShipmentAllocation("i1", 1)), carrierId = "thailandpost"),
             "TRACK1", "Thailand Post", "thailandpost")
         store.recordEvent(TrackingEvent("s1", "manual", "e1", ShipmentStatus.DELIVERED,
@@ -35,6 +41,11 @@ class EncryptedBackupTest {
                 assertEquals(BackupCounts(products = 1, offers = 1, orders = 1, shipments = 1, events = 1), counts)
                 assertEquals(source.snapshot(), target.snapshot())
                 assertEquals("thailandpost", target.getOrder("o1")!!.shipments.single().carrierId)
+                val restored = target.getOrder("o1")!!
+                assertEquals(Money(1_000, Currency.THB), restored.itemSubtotal)
+                assertEquals(Money(1_130, Currency.THB), restored.totalPaid)
+                assertEquals("MERCHANT-1", restored.merchantOrderId)
+                assertEquals("Visa", restored.paymentMethodLabel)
             }
         }
     }

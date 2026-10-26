@@ -40,7 +40,16 @@ CREATE TABLE preference (
 CREATE TABLE purchase_order (
     id TEXT NOT NULL PRIMARY KEY,
     merchant TEXT NOT NULL CHECK (length(trim(merchant)) > 0),
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    currency_code TEXT,
+    currency_scale INTEGER,
+    shipping_minor INTEGER,
+    tax_minor INTEGER,
+    discount_minor INTEGER,
+    total_minor INTEGER,
+    merchant_order_id TEXT,
+    purchased_at INTEGER,
+    payment_method_label TEXT
 );
 
 CREATE INDEX purchase_order_created_at ON purchase_order(created_at, id);
@@ -50,6 +59,7 @@ CREATE TABLE order_item (
     order_id TEXT NOT NULL REFERENCES purchase_order(id) ON DELETE CASCADE,
     title TEXT NOT NULL CHECK (length(trim(title)) > 0),
     quantity INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price_minor INTEGER,
     UNIQUE (id, order_id)
 );
 
@@ -117,16 +127,28 @@ offersForProducts:
 SELECT * FROM listing WHERE product_id IN :product_ids ORDER BY product_id, id;
 
 insertOrder:
-INSERT INTO purchase_order VALUES (?, ?, ?);
+INSERT INTO purchase_order VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 insertOrderItem:
-INSERT INTO order_item VALUES (?, ?, ?, ?);
+INSERT INTO order_item VALUES (?, ?, ?, ?, ?);
 
 listOrders:
 SELECT * FROM purchase_order ORDER BY created_at DESC, id LIMIT :page_size OFFSET :page_offset;
 
 findOrder:
 SELECT * FROM purchase_order WHERE id = ?;
+
+findOrderByMerchantId:
+SELECT * FROM purchase_order WHERE merchant = ? AND merchant_order_id = ? LIMIT 1;
+
+updateOrderFinancials:
+UPDATE purchase_order
+SET currency_code = ?, currency_scale = ?, shipping_minor = ?, tax_minor = ?, discount_minor = ?,
+    total_minor = ?, merchant_order_id = ?, purchased_at = ?, payment_method_label = ?
+WHERE id = ?;
+
+updateOrderItemPrice:
+UPDATE order_item SET unit_price_minor = ? WHERE id = ?;
 
 orderItems:
 SELECT * FROM order_item WHERE order_id = ? ORDER BY id;

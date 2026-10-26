@@ -159,7 +159,7 @@ foundation plan.
 
 ## Execution record
 
-- Native tests: 76 passed, zero failures/errors across core, connectors, carriers, data,
+- Native tests: 89 passed, zero failures/errors across core, connectors, carriers, data,
   and presentation. SQLite migration verification passed.
 - Android debug APK built. The emulator smoke exercises saved offers, split
   delivery, force-stop/restart, Thai selection and a second restart.
@@ -206,8 +206,15 @@ foundation plan.
   17TRACK lookup); URL generation is unit-tested, not opened in the smoke. Other
   carrier APIs, token/rate-limit caching, location columns and return-carrier
   tracking remain follow-on work.
-- Deadline reminders, payment-ledger reconciliation, proof attachments, signing
-  and peer sync remain follow-on work; see `native/README.md`.
+- Orders now carry optional per-item prices and order-level financials with one
+  currency, merchant order ID, purchase date and payment label; item subtotal and
+  recorded total are separate. CSV import has a preview, duplicate skipping,
+  strict row validation and all-or-nothing insertion. Schema 4 (migration 3.sqm)
+  and backup schema 4 cover the fields; tests cover parsing, duplicates,
+  transaction rollback, migration and encrypted round-trip.
+- Deadline reminders, receipt/PDF import, payment-ledger reconciliation,
+  proof attachments, signing and peer sync remain follow-on work; see
+  `native/README.md`.
 - Work is on `native/omnishop-foundation`. The returns/refunds increment is
   verified locally; consult the native Actions workflows for remote
   iOS/Windows/macOS validation of the current revision.

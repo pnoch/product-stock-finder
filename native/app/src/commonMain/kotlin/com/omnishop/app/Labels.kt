@@ -21,6 +21,10 @@ enum class Label {
     API_KEY_CLEAR, CONFIGURED, NOT_CONFIGURED, REFRESH_TRACKING, CARRIER_NOT_CONFIGURED,
     TRACKING_UPDATED, CARRIER_EVENT, CARRIER_MODE, MANUAL_CARRIER, CARRIER_TRACKING, PACKAGE_DETAILS,
     CARRIER_LINK, TRACK_ON_CARRIER, OPEN_TRACKING_LOOKUP, LINK_ONLY_CARRIER, TRACKING_LINK_UNAVAILABLE,
+    IMPORT_ORDERS, IMPORT_CSV, IMPORT_PREVIEW, ORDERS_READY, IMPORT_DUPLICATES, IMPORT_ERRORS,
+    MERCHANT_ORDER_ID, ITEM_SUBTOTAL, ORDER_TOTAL, PAYMENT_LABEL, PURCHASE_DATE, EDIT_FINANCIALS, FINANCIALS,
+    SHIPPING_COST, TAX_COST, DISCOUNT_COST,
+    IMPORT_BUTTON, IMPORT_DONE, IMPORT_FAILED, CSV_COLUMNS_HINT, IMPORT_CANCELLED,
 }
 
 private val english = mapOf(
@@ -75,6 +79,17 @@ private val english = mapOf(
     Label.TRACK_ON_CARRIER to "Track on", Label.OPEN_TRACKING_LOOKUP to "Open 17TRACK lookup",
     Label.LINK_ONLY_CARRIER to "Link-only — no carrier API connected. Opens an external tracking page.",
     Label.TRACKING_LINK_UNAVAILABLE to "This tracking number cannot open the carrier page.",
+    Label.IMPORT_ORDERS to "Import orders (CSV)", Label.IMPORT_CSV to "Import orders",
+    Label.IMPORT_PREVIEW to "Review import", Label.ORDERS_READY to "orders ready to import",
+    Label.IMPORT_DUPLICATES to "duplicates will be skipped", Label.IMPORT_ERRORS to "Fix these errors before importing:",
+    Label.IMPORT_BUTTON to "Import them", Label.IMPORT_DONE to "Orders imported:",
+    Label.IMPORT_FAILED to "Import failed", Label.IMPORT_CANCELLED to "Import cancelled.",
+    Label.CSV_COLUMNS_HINT to "Required columns: merchant, order_id, currency, item_title, quantity. Optional: purchased_at (YYYY-MM-DD), currency_scale, unit_price, shipping, tax, discount, total, payment_label.",
+    Label.MERCHANT_ORDER_ID to "Merchant order ID (optional)", Label.ITEM_SUBTOTAL to "Item subtotal",
+    Label.ORDER_TOTAL to "Total paid", Label.PAYMENT_LABEL to "Payment method label (not card data)",
+    Label.PURCHASE_DATE to "Purchase date (YYYY-MM-DD)", Label.EDIT_FINANCIALS to "Edit financials",
+    Label.FINANCIALS to "Order financials", Label.SHIPPING_COST to "Shipping",
+    Label.TAX_COST to "Tax", Label.DISCOUNT_COST to "Discount",
 )
 
 private val thai = mapOf(
@@ -129,6 +144,17 @@ private val thai = mapOf(
     Label.TRACK_ON_CARRIER to "ติดตามที่", Label.OPEN_TRACKING_LOOKUP to "เปิดการค้นหาบน 17TRACK",
     Label.LINK_ONLY_CARRIER to "ลิงก์เท่านั้น — ยังไม่ได้เชื่อมต่อ API ของผู้ขนส่ง ระบบจะเปิดหน้าติดตามภายนอก",
     Label.TRACKING_LINK_UNAVAILABLE to "หมายเลขติดตามนี้ไม่สามารถเปิดหน้าผู้ขนส่งได้",
+    Label.IMPORT_ORDERS to "นำเข้าคำสั่งซื้อ (CSV)", Label.IMPORT_CSV to "นำเข้าคำสั่งซื้อ",
+    Label.IMPORT_PREVIEW to "ตรวจสอบการนำเข้า", Label.ORDERS_READY to "คำสั่งซื้อพร้อมนำเข้า",
+    Label.IMPORT_DUPLICATES to "รายการซ้ำจะถูกข้าม", Label.IMPORT_ERRORS to "แก้ไขข้อผิดพลาดก่อนนำเข้า:",
+    Label.IMPORT_BUTTON to "นำเข้า", Label.IMPORT_DONE to "นำเข้าคำสั่งซื้อแล้ว:",
+    Label.IMPORT_FAILED to "นำเข้าไม่สำเร็จ", Label.IMPORT_CANCELLED to "ยกเลิกการนำเข้า",
+    Label.CSV_COLUMNS_HINT to "คอลัมน์ที่ต้องมี: merchant, order_id, currency, item_title, quantity และไม่บังคับ: purchased_at (YYYY-MM-DD), currency_scale, unit_price, shipping, tax, discount, total, payment_label",
+    Label.MERCHANT_ORDER_ID to "หมายเลขคำสั่งซื้อของร้าน (ไม่จำเป็น)", Label.ITEM_SUBTOTAL to "ยอดสินค้า",
+    Label.ORDER_TOTAL to "ยอดชำระทั้งหมด", Label.PAYMENT_LABEL to "ชื่อวิธีชำระเงิน (ไม่ใช่ข้อมูลบัตร)",
+    Label.PURCHASE_DATE to "วันที่ซื้อ (YYYY-MM-DD)", Label.EDIT_FINANCIALS to "แก้ไขข้อมูลการเงิน",
+    Label.FINANCIALS to "ข้อมูลการเงินของคำสั่งซื้อ", Label.SHIPPING_COST to "ค่าจัดส่ง",
+    Label.TAX_COST to "ภาษี", Label.DISCOUNT_COST to "ส่วนลด",
 )
 
 fun AppLanguage.text(label: Label): String = (if (this == AppLanguage.THAI) thai else english).getValue(label)
