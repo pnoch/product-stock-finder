@@ -17,9 +17,6 @@ kotlin {
     jvmToolchain(21)
 
     sourceSets {
-        val jcaMain by creating { dependsOn(commonMain.get()) }
-        jvmMain.get().dependsOn(jcaMain)
-        androidMain.get().dependsOn(jcaMain)
         commonMain.dependencies {
             api(project(":core"))
             implementation(libs.sqldelight.runtime)
