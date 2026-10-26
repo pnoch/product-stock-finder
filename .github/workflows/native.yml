@@ -134,11 +134,12 @@ jobs:
             cat /tmp/omnishop-ios-runtime.log
             exit 1
           fi
-          python3 -m pip install --user --quiet pillow
+          python3 -m venv /tmp/omnishop-ios-venv
+          /tmp/omnishop-ios-venv/bin/pip install --quiet pillow
           RENDERED=0
           for _ in $(seq 1 20); do
             xcrun simctl io "$UDID" screenshot /tmp/omnishop-ios.png >/dev/null 2>&1
-            RATIO=$(python3 -c "from PIL import Image; im=Image.open('/tmp/omnishop-ios.png').convert('RGB'); w,h=im.size; crop=im.crop((0,int(h*0.2),w,int(h*0.85))); pixels=list(crop.getdata()); print(sum(1 for r,g,b in pixels if not (r>245 and g>245 and b>245))/len(pixels))")
+            RATIO=$(/tmp/omnishop-ios-venv/bin/python -c "from PIL import Image; im=Image.open('/tmp/omnishop-ios.png').convert('RGB'); w,h=im.size; crop=im.crop((0,int(h*0.2),w,int(h*0.85))); pixels=list(crop.getdata()); print(sum(1 for r,g,b in pixels if not (r>245 and g>245 and b>245))/len(pixels))")
             echo "rendered pixel ratio: $RATIO"
             if awk "BEGIN{exit !($RATIO > 0.02)}"; then
               RENDERED=1
