@@ -31,7 +31,9 @@ class OrderPrivateService(
         require(row.keyVersion == keyVersion) { "Private field was encrypted with an unsupported key version" }
         val key = localKey()
         try {
-            return crypto.open(key, row.nonce, aad(orderId, field), row.ciphertext).decodeToString()
+            val plaintext = crypto.open(key, row.nonce, aad(orderId, field), row.ciphertext)
+                ?: throw com.omnishop.data.security.BackupAuthenticationException()
+            return plaintext.decodeToString()
         } finally {
             key.fill(0)
         }
@@ -44,8 +46,9 @@ class OrderPrivateService(
         try {
             return rows.map {
                 require(it.keyVersion == keyVersion) { "Unsupported private-field key version" }
-                PrivateValue(it.orderId, it.field,
-                    crypto.open(key, it.nonce, aad(it.orderId, it.field), it.ciphertext).decodeToString())
+                val plaintext = crypto.open(key, it.nonce, aad(it.orderId, it.field), it.ciphertext)
+                    ?: throw com.omnishop.data.security.BackupAuthenticationException()
+                PrivateValue(it.orderId, it.field, plaintext.decodeToString())
             }
         } finally {
             key.fill(0)

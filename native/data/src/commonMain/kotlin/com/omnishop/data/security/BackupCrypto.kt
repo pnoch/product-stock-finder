@@ -9,5 +9,6 @@ interface BackupCrypto {
     fun randomBytes(size: Int): ByteArray
     fun deriveKey(password: CharArray, salt: ByteArray, iterations: Int): ByteArray
     fun seal(key: ByteArray, nonce: ByteArray, aad: ByteArray, plaintext: ByteArray): ByteArray
-    fun open(key: ByteArray, nonce: ByteArray, aad: ByteArray, ciphertext: ByteArray): ByteArray
+    /** Returns null when authentication fails, so Swift can implement this without throwing. */
+    fun open(key: ByteArray, nonce: ByteArray, aad: ByteArray, ciphertext: ByteArray): ByteArray?
 }

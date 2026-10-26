@@ -7,6 +7,7 @@ import com.omnishop.data.openIosStore
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSDate
 import platform.Foundation.NSUUID
+import platform.Foundation.timeIntervalSince1970
 import platform.UIKit.UIViewController
 
 @OptIn(ExperimentalForeignApi::class)

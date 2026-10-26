@@ -62,7 +62,7 @@ object EncryptedBackup {
             val aad = MAGIC + byteArrayOf(version.toByte()) + header
             val key = crypto.deriveKey(password, salt, iterations)
             try {
-                return crypto.open(key, nonce, aad, ciphertext)
+                return crypto.open(key, nonce, aad, ciphertext) ?: throw BackupAuthenticationException()
             } finally {
                 key.fill(0)
             }

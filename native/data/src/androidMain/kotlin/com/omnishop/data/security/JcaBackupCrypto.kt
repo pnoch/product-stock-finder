@@ -31,16 +31,16 @@ class JcaBackupCrypto : BackupCrypto {
         return cipher.doFinal(plaintext)
     }
 
-    override fun open(key: ByteArray, nonce: ByteArray, aad: ByteArray, ciphertext: ByteArray): ByteArray {
+    override fun open(key: ByteArray, nonce: ByteArray, aad: ByteArray, ciphertext: ByteArray): ByteArray? {
         return try {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, nonce))
             cipher.updateAAD(aad)
             cipher.doFinal(ciphertext)
         } catch (failure: AEADBadTagException) {
-            throw BackupAuthenticationException(failure)
+            null
         } catch (failure: GeneralSecurityException) {
-            throw BackupAuthenticationException(failure)
+            null
         }
     }
 }
