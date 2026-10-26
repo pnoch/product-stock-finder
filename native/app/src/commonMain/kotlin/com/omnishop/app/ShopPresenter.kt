@@ -28,7 +28,7 @@ class ShopPresenter(
     private val store: ShoppingStore,
     private val newId: () -> String,
     private val now: () -> Long,
-    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
     private val mutex = Mutex()
     private val mutableState = MutableStateFlow(ShopSnapshot())
