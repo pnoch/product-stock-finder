@@ -17,6 +17,15 @@ data class SyncPeerInfo(
 data class SyncPairingCode(
     val code: String,
     val expiresAtEpochMillis: Long,
+    val secret: String? = null,
+)
+
+data class SyncDiscoveredPeer(
+    val deviceId: String,
+    val displayName: String,
+    val endpoint: String,
+    val fingerprint: String,
+    val pairingExpiresAtEpochMillis: Long,
 )
 
 sealed interface SyncResult {
@@ -28,8 +37,11 @@ interface SyncService : AutoCloseable {
     val unavailableReason: String? get() = null
     fun thisDevice(): SyncDeviceInfo
     fun peers(): List<SyncPeerInfo>
+    fun discoveredPeers(): List<SyncDiscoveredPeer> = emptyList()
     suspend fun createPairing(): SyncPairingCode
     suspend fun pair(code: String): SyncResult
+    suspend fun pairDiscovered(peerId: String, secret: String): SyncResult =
+        SyncResult.Failure("Nearby pairing is unavailable")
     suspend fun sync(peerId: String): SyncResult
     fun revoke(peerId: String)
     override fun close() = Unit

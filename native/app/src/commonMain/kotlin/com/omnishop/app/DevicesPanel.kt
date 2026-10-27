@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.omnishop.data.SyncDiscoveredPeer
 import com.omnishop.data.SyncPairingCode
 import com.omnishop.data.SyncResult
 import com.omnishop.data.SyncService
@@ -31,6 +32,9 @@ internal fun DevicesPanel(
     var joinCode by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
     var working by remember { mutableStateOf(false) }
+    var discovered by remember { mutableStateOf(emptyList<SyncDiscoveredPeer>()) }
+    var nearbyTarget by remember { mutableStateOf<SyncDiscoveredPeer?>(null) }
+    var nearbySecret by remember { mutableStateOf("") }
     val peers = remember(refresh) { service.peers() }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(language.text(Label.DEVICES), style = MaterialTheme.typography.titleMedium)
@@ -42,6 +46,7 @@ internal fun DevicesPanel(
         LaunchedEffect(Unit) {
             while (true) {
                 delay(2_000)
+                discovered = service.discoveredPeers()
                 refresh++
             }
         }
@@ -65,6 +70,13 @@ internal fun DevicesPanel(
                 contentDescription = "Pairing QR code",
                 modifier = Modifier.size(220.dp),
             )
+            code.secret?.let {
+                Text(
+                    "${language.text(Label.PAIRING_SECRET)}: $it",
+                    fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Text(
                 "${language.text(Label.PAIRING_CODE_HINT)} ${Instant.fromEpochMilliseconds(code.expiresAtEpochMillis)}",
                 style = MaterialTheme.typography.bodySmall,
@@ -126,6 +138,48 @@ internal fun DevicesPanel(
                     }
                 }
             }
+        }
+        Text(language.text(Label.NEARBY_DEVICES), style = MaterialTheme.typography.titleSmall)
+        if (discovered.isEmpty()) Text(language.text(Label.NO_NEARBY_DEVICES), style = MaterialTheme.typography.bodySmall)
+        discovered.forEach { peer ->
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(peer.displayName, style = MaterialTheme.typography.bodyLarge)
+                    Text(peer.endpoint, style = MaterialTheme.typography.bodySmall)
+                    TextButton(enabled = !working, onClick = {
+                        nearbyTarget = peer
+                        nearbySecret = ""
+                    }) { Text(language.text(Label.JOIN_NEARBY)) }
+                }
+            }
+        }
+        nearbyTarget?.let { peer ->
+            Text("${language.text(Label.JOIN_NEARBY)} · ${peer.displayName}", style = MaterialTheme.typography.bodyMedium)
+            OutlinedTextField(
+                nearbySecret,
+                { nearbySecret = it },
+                label = { Text(language.text(Label.PAIRING_SECRET)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(enabled = nearbySecret.isNotBlank() && !working, onClick = {
+                working = true
+                scope.launch {
+                    when (val result = service.pairDiscovered(peer.deviceId, nearbySecret.trim())) {
+                        is SyncResult.Success -> {
+                            message = language.text(Label.PAIRED) + (result.sas?.let { " SAS $it" } ?: "")
+                            nearbyTarget = null
+                            nearbySecret = ""
+                            refresh++
+                        }
+                        is SyncResult.Failure -> message = "${language.text(Label.PAIR_FAILED)} ${result.message}"
+                    }
+                    working = false
+                }
+            }) { Text(language.text(Label.JOIN_NEARBY)) }
+            TextButton(enabled = !working, onClick = {
+                nearbyTarget = null
+                nearbySecret = ""
+            }) { Text("Cancel") }
         }
         message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         if (working) LinearProgressIndicator(Modifier.fillMaxWidth())

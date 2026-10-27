@@ -31,7 +31,7 @@ enum class Label {
     SYNC_EXPORTED, SYNC_IMPORTED, SYNC_IMPORT_FAILED, SYNC_CANCELLED,
     DEVICES, THIS_DEVICE, PAIR_DEVICE, PAIRING_CODE, PAIRING_CODE_HINT, JOIN_WITH_CODE, SCAN_QR,
     PAIRED_DEVICES, NO_PEERS, SYNC_NOW, REVOKE, PAIRED, SYNC_DONE, SYNC_FAILED, PAIR_FAILED,
-    DEVICE_ID, LAST_SYNC, PEER_SYNC_NOTE, PAIR,
+    DEVICE_ID, LAST_SYNC, PEER_SYNC_NOTE, PAIR, NEARBY_DEVICES, NO_NEARBY_DEVICES, JOIN_NEARBY, PAIRING_SECRET,
     IMPORT_BUTTON, IMPORT_DONE, IMPORT_FAILED, CSV_COLUMNS_HINT, IMPORT_CANCELLED,
 }
 
@@ -119,6 +119,8 @@ private val english = mapOf(
     Label.PAIRED to "Device paired.", Label.SYNC_DONE to "Sync complete. Applied:",
     Label.SYNC_FAILED to "Sync failed:", Label.PAIR_FAILED to "Pairing failed:",
     Label.DEVICE_ID to "Device id", Label.LAST_SYNC to "Last sync",
+    Label.NEARBY_DEVICES to "Nearby devices", Label.NO_NEARBY_DEVICES to "No nearby pairing devices.",
+    Label.JOIN_NEARBY to "Join nearby", Label.PAIRING_SECRET to "Pairing secret",
     Label.PEER_SYNC_NOTE to "Direct TLS with pinned device certificates. No OmniShop server or account is involved.",
     Label.PAIR to "Pair",
 )
@@ -207,6 +209,8 @@ private val thai = mapOf(
     Label.PAIRED to "จับคู่อุปกรณ์แล้ว", Label.SYNC_DONE to "ซิงก์เสร็จ จำนวนที่นำมาใช้:",
     Label.SYNC_FAILED to "ซิงก์ไม่สำเร็จ:", Label.PAIR_FAILED to "จับคู่ไม่สำเร็จ:",
     Label.DEVICE_ID to "รหัสอุปกรณ์", Label.LAST_SYNC to "ซิงก์ล่าสุด",
+    Label.NEARBY_DEVICES to "อุปกรณ์ใกล้เคียง", Label.NO_NEARBY_DEVICES to "ไม่พบอุปกรณ์สำหรับจับคู่ใกล้เคียง",
+    Label.JOIN_NEARBY to "เข้าร่วมใกล้เคียง", Label.PAIRING_SECRET to "รหัสลับจับคู่",
     Label.PEER_SYNC_NOTE to "เชื่อมต่อ TLS โดยตรงด้วยใบรับรองอุปกรณ์ที่ปักหมุดไว้ ไม่มีเซิร์ฟเวอร์หรือบัญชี OmniShop",
     Label.PAIR to "จับคู่",
 )

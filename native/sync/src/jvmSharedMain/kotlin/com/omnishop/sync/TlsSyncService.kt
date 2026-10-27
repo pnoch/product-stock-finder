@@ -45,6 +45,8 @@ class TlsSyncService(
     private val secrets: SecretStore,
     private val crypto: BackupCrypto,
     receipts: ReceiptService? = null,
+    private val displayName: String = "Desktop",
+    enableDiscovery: Boolean = true,
     port: Int = DEFAULT_PORT,
     private val advertisedHost: String? = null,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
@@ -52,6 +54,7 @@ class TlsSyncService(
     private val identity = loadOrCreateIdentity()
     private val engine = SyncEngine(store, receipts)
     private val server: SSLServerSocket
+    private val discovery: MdnsDiscovery?
     private val serverThread: Thread
     private var pairingSecret: String? = null
     private var pairingExpiresAt: Long = 0
@@ -62,15 +65,24 @@ class TlsSyncService(
         server.needClientAuth = true
         server.soTimeout = 2_000
         server.reuseAddress = true
+        discovery = if (enableDiscovery) {
+            runCatching {
+                MdnsDiscovery(identity.deviceId, displayName, identity.fingerprint, server.localPort, now)
+            }.getOrNull()
+        } else {
+            null
+        }
         serverThread = thread(isDaemon = true, name = "omnishop-sync-server") { acceptLoop() }
     }
 
     override fun thisDevice(): SyncDeviceInfo =
-        SyncDeviceInfo(identity.deviceId, "Desktop", identity.fingerprint)
+        SyncDeviceInfo(identity.deviceId, displayName, identity.fingerprint)
 
     override fun peers(): List<SyncPeerInfo> = loadPeers().map {
         SyncPeerInfo(it.deviceId, it.displayName, it.endpoint, it.lastSyncAt, it.sas)
     }
+
+    override fun discoveredPeers(): List<SyncDiscoveredPeer> = discovery?.peers() ?: emptyList()
 
     override suspend fun createPairing(): SyncPairingCode {
         val secret = Base64.getUrlEncoder().withoutPadding().encodeToString(crypto.randomBytes(16))
@@ -84,7 +96,8 @@ class TlsSyncService(
         val code = Base64.getUrlEncoder().withoutPadding().encodeToString(
             json.encodeToString(PairingPayload.serializer(), payload).encodeToByteArray(),
         )
-        return SyncPairingCode(code, expires)
+        discovery?.advertise(expires)
+        return SyncPairingCode(code, expires, secret)
     }
 
     override suspend fun pair(code: String): SyncResult = runCatching {
@@ -98,7 +111,7 @@ class TlsSyncService(
         socket.use {
             send(it, WireMessage(
                 type = "pair", secret = payload.secret, deviceId = identity.deviceId,
-                name = "Desktop", fingerprint = identity.fingerprint,
+                name = displayName, fingerprint = identity.fingerprint,
             ))
             val response = receive(it)
             require(response.type == "paired") { response.message ?: "Pairing rejected" }
@@ -114,6 +127,21 @@ class TlsSyncService(
         }
         SyncResult.Success(applied = 0, sent = 0)
     }.getOrElse { SyncResult.Failure(it.message ?: "Pairing failed") }
+
+    override suspend fun pairDiscovered(peerId: String, secret: String): SyncResult {
+        val peer = discoveredPeers().firstOrNull { it.deviceId == peerId }
+            ?: return SyncResult.Failure("Nearby device not found")
+        val host = peer.endpoint.substringBeforeLast(':')
+        val port = peer.endpoint.substringAfterLast(':').toIntOrNull() ?: return SyncResult.Failure("Invalid device endpoint")
+        val payload = PairingPayload(
+            VERSION, peer.deviceId, peer.fingerprint, host, port,
+            secret.trim(), peer.pairingExpiresAtEpochMillis,
+        )
+        val code = Base64.getUrlEncoder().withoutPadding().encodeToString(
+            json.encodeToString(PairingPayload.serializer(), payload).encodeToByteArray(),
+        )
+        return pair(code)
+    }
 
     override suspend fun sync(peerId: String): SyncResult = runCatching {
         val peer = loadPeers().firstOrNull { it.deviceId == peerId }
@@ -137,6 +165,7 @@ class TlsSyncService(
 
     override fun close() {
         pairingSecret = null
+        discovery?.close()
         runCatching { server.close() }
         serverThread.join(1_000)
     }
@@ -174,8 +203,9 @@ class TlsSyncService(
                     "${socket.inetAddress.hostAddress}:0", clientFingerprint, now(), sas,
                 ))
                 pairingSecret = null
+                discovery?.stopAdvertising()
                 send(socket, WireMessage(
-                    type = "paired", deviceId = identity.deviceId, name = "Desktop",
+                    type = "paired", deviceId = identity.deviceId, name = displayName,
                     fingerprint = identity.fingerprint, sas = sas,
                 ))
             }

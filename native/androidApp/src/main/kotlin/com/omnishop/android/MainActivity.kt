@@ -2,6 +2,7 @@ package com.omnishop.android
 
 import android.content.Intent
 import android.net.Uri
+import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -26,6 +27,7 @@ import java.util.UUID
 class MainActivity : ComponentActivity() {
     private lateinit var store: ShoppingStore
     private lateinit var syncService: SyncService
+    private var multicastLock: WifiManager.MulticastLock? = null
     private var pendingScan: ((String) -> Unit)? = null
     private val scanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val code = result.data?.getStringExtra(ScanQrActivity.EXTRA_CODE)
@@ -41,6 +43,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val wifi = applicationContext.getSystemService(WIFI_SERVICE) as? WifiManager
+        multicastLock = wifi?.createMulticastLock("omnishop-mdns")?.apply {
+            setReferenceCounted(false)
+            acquire()
+        }
         store = ShoppingStore.openAndroid(applicationContext)
         val presenter = ShopPresenter(store, { UUID.randomUUID().toString() }, System::currentTimeMillis)
         val crypto = JcaBackupCrypto()
@@ -49,7 +56,7 @@ class MainActivity : ComponentActivity() {
         val carrierSettings = CarrierSettings(secrets)
         val receiptService = ReceiptService(privateService, store, { UUID.randomUUID().toString() })
         val syncPackages = SyncPackageService(store, crypto, receiptService)
-        syncService = runCatching { TlsSyncService(store, secrets, crypto, receiptService) }
+        syncService = runCatching { TlsSyncService(store, secrets, crypto, receiptService, displayName = "Android") }
             .getOrElse { UnavailableSyncService("Peer sync unavailable: ${it.message}") }
         val backup = BackupService(store, crypto, privateService)
         val backupFiles = AndroidBackupFiles(this)
@@ -69,6 +76,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        multicastLock?.release()
         syncService.close()
         store.close()
     }

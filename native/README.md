@@ -397,10 +397,10 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Finish peer sync: iOS transport, mDNS/Bonjour discovery, then Android↔desktop
-   runtime verification. QR pairing (display everywhere, Android scan), SAS
-   confirmation and encrypted receipt attachment sync are implemented and
-   JVM-tested.
+1. Finish peer sync: iOS transport, iOS Bonjour discovery, then Android↔desktop
+   runtime verification. QR pairing, SAS confirmation, JVM/Android mDNS discovery
+   with short-secret nearby pairing, and encrypted receipt attachment sync are
+   implemented; the mDNS/Android runtime path is not device-tested.
 2. Add PDF text extraction/OCR and email receipt import on top of the encrypted
    attachments, then reconcile totals against original payments.
 3. Verify the Thailand Post adapter against a real account/tracking number, then

@@ -5,9 +5,9 @@ Date: 2026-10-27
 Status: approved. Implementation is staged. The record engine for settings,
 watchlist, order aggregates and encrypted receipt attachments, a manual
 encrypted sync package, and a desktop + Android TLS peer transport with
-pairing/Devices UI, SAS confirmation and QR pairing (display everywhere, Android
-scan) are implemented. iOS transport, mDNS/Bonjour discovery and the Android
-runtime pairing proof remain open.
+pairing/Devices UI, SAS confirmation, QR pairing (display everywhere, Android
+scan) and JVM/Android mDNS discovery are implemented. iOS transport, iOS Bonjour
+discovery and the Android runtime pairing proof remain open.
 
 ## Goal
 
@@ -33,9 +33,9 @@ or conflict handling.
    self-signed identity, manual one-time pairing code, pinned TLS server/client,
    peer store, Devices UI and revocation. iOS uses an explicit unavailable
    service.
-5. **iOS transport, mDNS/Bonjour discovery, Android runtime pairing proof and
-   background sync (next).** QR pairing, SAS confirmation and encrypted receipt
-   attachment sync are implemented.
+5. **iOS transport, iOS Bonjour discovery, Android runtime pairing proof and
+   background sync (next).** QR pairing, SAS confirmation, JVM/Android mDNS
+   discovery and encrypted receipt attachment sync are implemented.
 
 The original first-milestone scope below is the target for the transport stage;
 it is not claimed as complete by the record engine alone.
@@ -266,13 +266,15 @@ device creates a new identity and requires re-pairing.
   code (5 minutes), pins the peer certificate, stores peers in SecretStore, syncs
   both ways, displays a six-digit SAS for both users to compare and supports
   revocation. The pairing code renders as a QR on all platforms; Android can scan
-  it, while iOS/desktop scanning and mDNS/Bonjour discovery remain open. Android
-  compiles and runs the same code; iOS uses `UnavailableSyncService`. An
-  Android↔desktop runtime pairing attempt on a dedicated AVD was blocked by
-  adb/emulator hangs, so the Android runtime proof remains open. Receipt
-  attachments sync through the same encrypted payload; there is no mDNS or
-  background sync yet.
-- Tests: 112 native tests pass, including sync LWW/tombstones/cursors, malformed
+  it, while iOS/desktop scanning remains open. Desktop and Android advertise a
+  pairing window over mDNS (`_omnishop._tcp.local.`) with only public identity,
+  endpoint and expiry; the joiner enters the short pairing secret shown by the
+  host. No secret is broadcast. iOS has no Bonjour discovery. Android compiles and
+  runs the same code; iOS uses `UnavailableSyncService`. An Android↔desktop runtime
+  pairing attempt on a dedicated AVD was blocked by adb/emulator hangs, so the
+  Android runtime proof remains open. Receipt attachments sync through the same
+  encrypted payload; there is no background sync yet.
+- Tests: 114 native tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.

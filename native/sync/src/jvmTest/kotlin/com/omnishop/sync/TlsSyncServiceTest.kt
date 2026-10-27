@@ -69,7 +69,7 @@ class TlsSyncServiceTest {
 
     @Test fun rejectsMalformedPairingCodes() = runBlocking {
         ShoppingStore.inMemory("a") { 300 }.use { store ->
-            val service = TlsSyncService(store, MemorySecrets(), JcaBackupCrypto(), port = 0) { 300 }
+            val service = TlsSyncService(store, MemorySecrets(), JcaBackupCrypto(), enableDiscovery = false, port = 0) { 300 }
             try {
                 assertIs<SyncResult.Failure>(service.pair("not-a-code"))
                 assertTrue(service.peers().isEmpty())

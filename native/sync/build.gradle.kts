@@ -24,6 +24,7 @@ kotlin {
             implementation(libs.serialization.json)
             implementation(libs.bouncycastle.prov)
             implementation(libs.bouncycastle.pkix)
+            implementation(libs.jmdns)
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
