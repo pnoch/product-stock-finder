@@ -3,8 +3,10 @@ package com.omnishop.android
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import com.omnishop.app.OmniShopApp
 import com.omnishop.app.ShopPresenter
 import com.omnishop.carriers.ThailandPostAdapter
@@ -24,6 +26,18 @@ import java.util.UUID
 class MainActivity : ComponentActivity() {
     private lateinit var store: ShoppingStore
     private lateinit var syncService: SyncService
+    private var pendingScan: ((String) -> Unit)? = null
+    private val scanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val code = result.data?.getStringExtra(ScanQrActivity.EXTRA_CODE)
+        if (result.resultCode == RESULT_OK && code != null) {
+            pendingScan?.invoke(code)
+        } else {
+            result.data?.getStringExtra(ScanQrActivity.EXTRA_ERROR)?.let {
+                Toast.makeText(this, it, Toast.LENGTH_LONG).show()
+            }
+        }
+        pendingScan = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,10 +53,14 @@ class MainActivity : ComponentActivity() {
             .getOrElse { UnavailableSyncService("Peer sync unavailable: ${it.message}") }
         val backup = BackupService(store, crypto, privateService)
         val backupFiles = AndroidBackupFiles(this)
+        val scanPairingCode: (((String) -> Unit) -> Unit) = { callback ->
+            pendingScan = callback
+            scanLauncher.launch(Intent(this, ScanQrActivity::class.java))
+        }
         setContent {
             OmniShopApp(
                 presenter, backup, privateService, receiptService, syncPackages, syncService, carrierSettings,
-                listOf(ThailandPostAdapter()), backupFiles,
+                listOf(ThailandPostAdapter()), backupFiles, scanPairingCode,
             ) { url ->
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
             }

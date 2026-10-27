@@ -1,5 +1,6 @@
 package com.omnishop.app
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -12,12 +13,17 @@ import androidx.compose.ui.unit.dp
 import com.omnishop.data.SyncPairingCode
 import com.omnishop.data.SyncResult
 import com.omnishop.data.SyncService
+import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Instant
 
 @Composable
-internal fun DevicesPanel(language: AppLanguage, service: SyncService) {
+internal fun DevicesPanel(
+    language: AppLanguage,
+    service: SyncService,
+    scanPairingCode: (((String) -> Unit) -> Unit)? = null,
+) {
     val scope = rememberCoroutineScope()
     val reason = service.unavailableReason
     var refresh by remember { mutableStateOf(0) }
@@ -54,6 +60,11 @@ internal fun DevicesPanel(language: AppLanguage, service: SyncService) {
             SelectionContainer {
                 Text(code.code, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
             }
+            Image(
+                rememberQrCodePainter(code.code),
+                contentDescription = "Pairing QR code",
+                modifier = Modifier.size(220.dp),
+            )
             Text(
                 "${language.text(Label.PAIRING_CODE_HINT)} ${Instant.fromEpochMilliseconds(code.expiresAtEpochMillis)}",
                 style = MaterialTheme.typography.bodySmall,
@@ -65,6 +76,11 @@ internal fun DevicesPanel(language: AppLanguage, service: SyncService) {
             label = { Text(language.text(Label.JOIN_WITH_CODE)) },
             modifier = Modifier.fillMaxWidth(),
         )
+        if (scanPairingCode != null) {
+            OutlinedButton(enabled = !working, onClick = {
+                scanPairingCode { scanned -> joinCode = scanned }
+            }) { Text(language.text(Label.SCAN_QR)) }
+        }
         Button(enabled = joinCode.isNotBlank() && !working, onClick = {
             working = true
             scope.launch {

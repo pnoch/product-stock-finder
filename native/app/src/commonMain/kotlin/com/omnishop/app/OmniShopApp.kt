@@ -32,6 +32,7 @@ fun OmniShopApp(
     carrierSettings: com.omnishop.data.CarrierSettings,
     carriers: List<com.omnishop.carriers.CarrierAdapter>,
     files: BackupFiles,
+    scanPairingCode: (((String) -> Unit) -> Unit)? = null,
     openUrl: (String) -> Unit,
 ) {
     val state by presenter.state.collectAsState()
@@ -96,7 +97,7 @@ fun OmniShopApp(
                                     CarrierSettingsPanel(language, carrierSettings)
                                     BackupPanel(language, backup, files) { scope.launch { presenter.refresh() } }
                                     SyncPackagePanel(language, syncPackages, files) { scope.launch { presenter.refresh() } }
-                                    DevicesPanel(language, syncService)
+                                    DevicesPanel(language, syncService, scanPairingCode)
                                 }
                                 else -> Unit
                             }
