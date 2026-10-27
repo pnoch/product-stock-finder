@@ -168,7 +168,11 @@ private fun OrderFinancialsCard(order: PurchaseOrder, state: ShopSnapshot, prese
             Text("${language.text(Label.SHIPPING_COST)}: ${show(order.shipping)}")
             Text("${language.text(Label.TAX_COST)}: ${show(order.tax)}")
             Text("${language.text(Label.DISCOUNT_COST)}: ${show(order.discount)}")
+            Text("${language.text(Label.COMPUTED_TOTAL)}: ${show(order.computedTotal)}")
             Text("${language.text(Label.ORDER_TOTAL)}: ${show(order.totalPaid)}")
+            if (order.totalPaid != null && order.computedTotal != null && order.totalPaid != order.computedTotal) {
+                Text(language.text(Label.TOTAL_MISMATCH), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
             order.merchantOrderId?.let { Text("${language.text(Label.MERCHANT_ORDER_ID)}: $it") }
             order.purchasedAtEpochMillis?.let {
                 Text("${language.text(Label.PURCHASE_DATE)}: ${Instant.fromEpochMilliseconds(it).toString().take(10)}")

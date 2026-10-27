@@ -25,7 +25,8 @@ enum class Label {
     MERCHANT_ORDER_ID, ITEM_SUBTOTAL, ORDER_TOTAL, PAYMENT_LABEL, PURCHASE_DATE, EDIT_FINANCIALS, FINANCIALS,
     SHIPPING_COST, TAX_COST, DISCOUNT_COST,
     RECEIPTS, ADD_RECEIPT, RECEIPT_NAME, CHOOSE_FILE, NO_RECEIPTS, SAVE_COPY, DELETE, RECEIPT_SAVED,
-    RECEIPT_FILE_ERROR, RECEIPT_SAVE_FAILED, RECEIPT_DELETED, RECEIPT_CANCELLED,
+    RECEIPT_FILE_ERROR, RECEIPT_SAVE_FAILED, RECEIPT_DELETED, RECEIPT_CANCELLED, RECEIPT_SAVE_CANCELLED,
+    COMPUTED_TOTAL, TOTAL_MISMATCH,
     IMPORT_BUTTON, IMPORT_DONE, IMPORT_FAILED, CSV_COLUMNS_HINT, IMPORT_CANCELLED,
 }
 
@@ -98,6 +99,8 @@ private val english = mapOf(
     Label.DELETE to "Delete", Label.RECEIPT_SAVED to "Receipt saved.",
     Label.RECEIPT_FILE_ERROR to "Could not read that file.", Label.RECEIPT_SAVE_FAILED to "Receipt action failed:",
     Label.RECEIPT_DELETED to "Receipt deleted.", Label.RECEIPT_CANCELLED to "No file selected.",
+    Label.RECEIPT_SAVE_CANCELLED to "Save cancelled.",
+    Label.COMPUTED_TOTAL to "Computed total", Label.TOTAL_MISMATCH to "Recorded total differs from item subtotal + shipping + tax − discount.",
 )
 
 private val thai = mapOf(
@@ -169,6 +172,8 @@ private val thai = mapOf(
     Label.DELETE to "ลบ", Label.RECEIPT_SAVED to "บันทึกใบเสร็จแล้ว",
     Label.RECEIPT_FILE_ERROR to "ไม่สามารถอ่านไฟล์นี้ได้", Label.RECEIPT_SAVE_FAILED to "ดำเนินการใบเสร็จไม่สำเร็จ:",
     Label.RECEIPT_DELETED to "ลบใบเสร็จแล้ว", Label.RECEIPT_CANCELLED to "ยังไม่ได้เลือกไฟล์",
+    Label.RECEIPT_SAVE_CANCELLED to "ยกเลิกการบันทึก",
+    Label.COMPUTED_TOTAL to "ยอดรวมที่คำนวณได้", Label.TOTAL_MISMATCH to "ยอดที่บันทึกไม่ตรงกับยอดสินค้า + ค่าจัดส่ง + ภาษี − ส่วนลด",
 )
 
 fun AppLanguage.text(label: Label): String = (if (this == AppLanguage.THAI) thai else english).getValue(label)

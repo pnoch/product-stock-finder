@@ -27,11 +27,17 @@ class OrderCsvImporter(
     )
 
     fun parse(bytes: ByteArray): OrderCsvPreview {
+        if (bytes.size > MAX_BYTES) {
+            return OrderCsvPreview(emptyList(), listOf("CSV is larger than 10 MB"))
+        }
         val text = bytes.decodeToString().removePrefix("\uFEFF")
         val rows = runCatching { parseCsv(text) }.getOrElse {
             return OrderCsvPreview(emptyList(), listOf("CSV could not be read: ${it.message}"))
         }
         if (rows.isEmpty()) return OrderCsvPreview(emptyList(), listOf("CSV is empty"))
+        if (rows.size > MAX_ROWS + 1) {
+            return OrderCsvPreview(emptyList(), listOf("CSV has more than $MAX_ROWS data rows"))
+        }
         val header = rows.first().map { it.trim().lowercase() }
         val required = listOf("merchant", "order_id", "currency", "item_title", "quantity")
         val missing = required.filter { it !in header }
@@ -50,6 +56,10 @@ class OrderCsvImporter(
             val orderId = column(row, "order_id")
             if (merchant.isBlank() || orderId.isBlank()) {
                 errors += "Row $line: merchant and order_id are required"
+                return@forEachIndexed
+            }
+            if (merchant.length > 200 || orderId.length > 128) {
+                errors += "Row $line: merchant or order_id is too long"
                 return@forEachIndexed
             }
             val key = "$merchant\u0000$orderId"
@@ -126,8 +136,8 @@ class OrderCsvImporter(
             }
             val title = column(row, "item_title")
             val quantity = column(row, "quantity").toIntOrNull()
-            if (title.isBlank() || quantity == null || quantity <= 0) {
-                errors += "Row $line: item_title and a positive quantity are required"
+            if (title.isBlank() || title.length > 500 || quantity == null || quantity <= 0) {
+                errors += "Row $line: item_title (max 500) and a positive quantity are required"
                 return@forEachIndexed
             }
             val unitPrice = amount("unit_price")
@@ -156,6 +166,11 @@ class OrderCsvImporter(
             }
         }
         return OrderCsvPreview(if (errors.isEmpty()) orders else emptyList(), errors)
+    }
+
+    private companion object {
+        const val MAX_BYTES = 10 * 1024 * 1024
+        const val MAX_ROWS = 50_000
     }
 
     private fun parseDate(value: String): Long? {

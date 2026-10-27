@@ -50,8 +50,8 @@ internal fun ReceiptsCard(
                                 if (bytes == null) {
                                     message = language.text(Label.RECEIPT_FILE_ERROR)
                                 } else {
-                                    runCatching { files.save(receipt.name, bytes) }
-                                        .onFailure { message = "${language.text(Label.RECEIPT_SAVE_FAILED)} ${it.message}" }
+                                    val saved = runCatching { files.save(receipt.name, bytes) }.getOrDefault(false)
+                                    if (!saved) message = language.text(Label.RECEIPT_SAVE_CANCELLED)
                                 }
                             }
                         }) { Text(language.text(Label.SAVE_COPY)) }

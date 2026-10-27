@@ -55,13 +55,15 @@ See `README.md` for the verified feature/platform matrix and exact commands.
 - Receipts are encrypted private fields (`ReceiptService`) under the order, not
   a separate plaintext table. Keep the 8 MB receipt cap, the 12 MB private-field
   cap, and backup inclusion. Never write receipt bytes to disk unencrypted or log
-  their names/contents. PDF/OCR/email parsing is not implemented.
+  their names/contents. Receipt names/MIME types are sanitized; listing must not
+  Base64-decode content. PDF/OCR/email parsing is not implemented.
 - Order money (`PurchaseOrder.currency`, item prices, shipping/tax/discount/total)
   must share one currency; the recorded total is independent of the computed
   total so a mismatch stays visible. Never store card data; only a payment-method
   label. CSV import validates every row and inserts the batch transactionally;
   duplicate merchant order IDs are reported and skipped, never silently merged.
-  Database/backup schema 4 adds financial fields.
+  CSV input is capped at 10 MB / 50,000 rows with field-length limits. Database/
+  backup schema 4 adds financial fields.
 - Link-only carriers (`CarrierLinks`) must stay labeled link-only. SPX/LEX use
   a clearly identified 17TRACK lookup, not a carrier API; KEX/Flash/J&T/Ninja Van
   open their own tracking pages. Never generate events from a link or imply it is

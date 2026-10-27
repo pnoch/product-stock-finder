@@ -61,6 +61,19 @@ class OrderCsvTest {
         assertTrue(failed.errors.any { it.contains("shipping differs") })
     }
 
+    @Test fun rejectsOversizedCsvAndLongFields() {
+        val oversized = importer().parse(ByteArray(10 * 1024 * 1024 + 1))
+        assertTrue(oversized.errors.single().contains("10 MB"))
+
+        val longMerchant = "m".repeat(201)
+        val longMerchantCsv = "merchant,order_id,currency,item_title,quantity\n$longMerchant,1,THB,One,1"
+        assertTrue(importer().parse(longMerchantCsv.encodeToByteArray()).errors.any { it.contains("too long") })
+
+        val longTitle = "t".repeat(501)
+        val longTitleCsv = "merchant,order_id,currency,item_title,quantity\nShop,1,THB,$longTitle,1"
+        assertTrue(importer().parse(longTitleCsv.encodeToByteArray()).errors.any { it.contains("max 500") })
+    }
+
     @Test fun reportsBadHeadersFieldsAndUnclosedQuotes() {
         val missing = importer().parse("merchant,order_id\nA,1".encodeToByteArray())
         assertTrue(missing.errors.single().contains("Missing columns"))

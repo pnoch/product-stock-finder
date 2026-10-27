@@ -26,8 +26,10 @@ class ReceiptService(
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     fun save(orderId: String, name: String, mimeType: String?, bytes: ByteArray): ReceiptMetadata {
-        val cleanName = name.trim()
+        val cleanName = name.trim().replace('\n', ' ').replace('\r', ' ')
         require(cleanName.isNotBlank() && cleanName.length <= 200) { "Enter a receipt name" }
+        val cleanMime = mimeType?.trim()?.replace('\n', ' ')?.replace('\r', ' ')?.takeIf { it.isNotEmpty() }
+        require(cleanMime == null || cleanMime.length <= 100) { "Receipt MIME type is too long" }
         require(bytes.isNotEmpty()) { "The receipt file is empty" }
         require(bytes.size <= MAX_BYTES) { "Receipt files are limited to 8 MB" }
         val id = newId()
@@ -35,20 +37,20 @@ class ReceiptService(
         val addedAt = now()
         val payload = listOf(
             cleanName,
-            mimeType?.trim()?.takeIf { it.isNotEmpty() }.orEmpty(),
+            cleanMime.orEmpty(),
             bytes.size.toString(),
             addedAt.toString(),
             Base64.Default.encode(bytes),
         ).joinToString("\n")
         privateService.save(orderId, prefix(id), payload)
-        return ReceiptMetadata(id, orderId, cleanName, mimeType?.trim()?.takeIf { it.isNotEmpty() }, bytes.size, addedAt)
+        return ReceiptMetadata(id, orderId, cleanName, cleanMime, bytes.size, addedAt)
     }
 
     fun list(orderId: String): List<ReceiptMetadata> =
         privateService.exportAll()
             .asSequence()
             .filter { it.orderId == orderId && it.field.startsWith(PREFIX) }
-            .mapNotNull { parse(it.orderId, it.field.removePrefix(PREFIX), it.value)?.first }
+            .mapNotNull { parseHeader(it.orderId, it.field.removePrefix(PREFIX), it.value) }
             .sortedByDescending { it.addedAtEpochMillis }
             .toList()
 
@@ -61,14 +63,21 @@ class ReceiptService(
         privateService.save(orderId, prefix(receiptId), "")
     }
 
+    private fun parseHeader(orderId: String, id: String, value: String): ReceiptMetadata? {
+        val parts = value.split('\n', limit = 5)
+        if (parts.size < 4) return null
+        val size = parts[2].toIntOrNull()?.takeIf { it >= 0 } ?: return null
+        val addedAt = parts[3].toLongOrNull()?.takeIf { it >= 0 } ?: return null
+        return ReceiptMetadata(id, orderId, parts[0], parts[1].takeIf { it.isNotEmpty() }, size, addedAt)
+    }
+
     private fun parse(orderId: String, id: String, value: String): Pair<ReceiptMetadata, ByteArray>? {
+        val metadata = parseHeader(orderId, id, value) ?: return null
         val parts = value.split('\n', limit = 5)
         if (parts.size != 5) return null
-        val size = parts[2].toIntOrNull() ?: return null
-        val addedAt = parts[3].toLongOrNull() ?: return null
         val bytes = runCatching { Base64.Default.decode(parts[4]) }.getOrNull() ?: return null
-        if (bytes.size != size) return null
-        return ReceiptMetadata(id, orderId, parts[0], parts[1].takeIf { it.isNotEmpty() }, size, addedAt) to bytes
+        if (bytes.size != metadata.sizeBytes) return null
+        return metadata to bytes
     }
 
     private fun prefix(id: String) = "receipt.$id"

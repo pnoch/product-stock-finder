@@ -196,17 +196,19 @@ class ShopPresenter(
     suspend fun changeLanguage(language: AppLanguage) = perform { store.setPreference("language", language.name) }
 
     suspend fun previewOrderCsv(bytes: ByteArray): OrderImportPreview = withContext(dispatcher) {
-        val parsed = OrderCsvImporter(newId).parse(bytes)
-        val duplicates = parsed.orders.count {
-            it.merchantOrderId?.let { id -> store.findOrderByMerchantId(it.merchant, id) } != null
+        mutex.withLock {
+            val parsed = OrderCsvImporter(newId).parse(bytes)
+            val duplicates = parsed.orders.count {
+                it.merchantOrderId?.let { id -> store.findOrderByMerchantId(it.merchant, id) } != null
+            }
+            OrderImportPreview(
+                orders = parsed.orders.filter {
+                    it.merchantOrderId?.let { id -> store.findOrderByMerchantId(it.merchant, id) } == null
+                },
+                errors = parsed.errors,
+                duplicates = duplicates,
+            )
         }
-        OrderImportPreview(
-            orders = parsed.orders.filter {
-                it.merchantOrderId?.let { id -> store.findOrderByMerchantId(it.merchant, id) } == null
-            },
-            errors = parsed.errors,
-            duplicates = duplicates,
-        )
     }
 
     suspend fun importOrders(orders: List<PurchaseOrder>): Int {

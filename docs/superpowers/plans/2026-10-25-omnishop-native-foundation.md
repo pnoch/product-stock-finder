@@ -159,7 +159,7 @@ foundation plan.
 
 ## Execution record
 
-- Native tests: 93 passed, zero failures/errors across core, connectors, carriers, data,
+- Native tests: 95 passed, zero failures/errors across core, connectors, carriers, data,
   and presentation. SQLite migration verification passed.
 - Android debug APK built. The emulator smoke exercises saved offers, split
   delivery, force-stop/restart, Thai selection and a second restart.
@@ -216,6 +216,10 @@ foundation plan.
   (8 MB cap), are included in encrypted backups, and support list/save-copy/
   delete. PDF parsing, OCR, email import and payment-ledger reconciliation
   remain follow-on work. Deadline reminders, signing and peer sync also remain.
+- Review hardening: receipt listing parses metadata without Base64-decoding
+  content, receipt names/MIME types are sanitized, CSV input is capped at 10 MB /
+  50,000 rows with field-length limits, financials show a computed-total mismatch
+  warning, and CSV preview shares the presenter mutex.
 - Android smoke still covers the existing purchase/delivery/return flow; receipt
   file-picker interaction is unit-tested only.
 - A release-signed native APK (existing keystore, CN=Product Stock Finder,

@@ -30,6 +30,22 @@ class ReceiptServiceTest {
         }
     }
 
+    @Test fun listsMetadataWithoutDecodingContentAndSanitizesNames() {
+        ShoppingStore.inMemory().use { store ->
+            store.createOrder(order, 100)
+            val (receipts, privateService) = service(store)
+            privateService.save("o", "receipt.bad", "Bad\n\n1\n100\nnot-base64")
+            val bad = receipts.list("o").single()
+            assertEquals("Bad", bad.name)
+            assertNull(receipts.read("o", "bad"))
+
+            val metadata = receipts.save("o", "Line\nBreak", "text/plain\n", byteArrayOf(1))
+            assertEquals("Line Break", metadata.name)
+            assertEquals("text/plain", metadata.mimeType)
+            assertContentEquals(byteArrayOf(1), receipts.read("o", metadata.id))
+        }
+    }
+
     @Test fun rejectsMissingOrdersEmptyFilesOversizeAndInvalidNames() {
         ShoppingStore.inMemory().use { store ->
             store.createOrder(order, 100)

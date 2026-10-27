@@ -13,8 +13,9 @@ not the complete Phase 1 release from the master product brief.
 - Local manual purchase records with multiple line items, optional per-item
   prices, order currency, shipping, tax, discount, recorded total, merchant
   order ID, purchase date and payment-method label (never card data). The UI
-  shows item subtotal and recorded total separately, so an unreconciled total is
-  visible rather than silently “corrected”. Per-item package allocations,
+  shows item subtotal, computed total and recorded total separately, and warns
+  when the recorded total differs from subtotal + shipping + tax − discount, so
+  an unreconciled total is visible rather than silently “corrected”. Per-item package allocations,
   tracking numbers/carrier labels, manual event timelines, and derived partial
   delivery are included. Over-allocation is rejected by the domain and database.
 - CSV order import with a review-before-import dialog. Required columns are
@@ -22,6 +23,8 @@ not the complete Phase 1 release from the master product brief.
   columns cover dates, scale, item prices and order totals. Conflicting
   order-level values are rejected, duplicates are reported and skipped by
   merchant order ID, and a failed multi-order insert rolls back the batch.
+  Input is capped at 10 MB / 50,000 data rows, with length limits on merchant,
+  order ID and item title.
 - SQLDelight/SQLite transactions, foreign keys, indexes, bounded list queries,
   empty version-1/2/3/4 schema snapshots, and migration verification.
 - A first real carrier connector for Thailand Post. The user supplies an API
@@ -44,8 +47,9 @@ not the complete Phase 1 release from the master product brief.
 - Encrypted receipt/document attachments per order. Choose a file (up to 8 MB),
   keep a user-supplied name, save a copy, or delete it. Receipts are stored as
   authenticated private fields under the order, so they use the same device key,
-  ciphertext and encrypted-backup path as the shipping address. No PDF parsing,
-  OCR, or email import is performed.
+  ciphertext and encrypted-backup path as the shipping address. Listing parses
+  metadata headers without Base64-decoding the content; names/MIME types are
+  sanitized. No PDF parsing, OCR, or email import is performed.
 - Password-protected encrypted backup/restore (AES-256-GCM, PBKDF2-HMAC-SHA256
   with 600,000 iterations and a random salt). Restore validates every record and
   replaces the database in one transaction; wrong passwords, tampering and
