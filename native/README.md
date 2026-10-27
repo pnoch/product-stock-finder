@@ -22,10 +22,12 @@ not the complete Phase 1 release from the master product brief.
   aggregates** (order + items + shipments + allocations + events + returns):
   `sync_meta`, aggregate payloads, LWW with device-id tie-break, tombstones and
   cursors, all transactional. Remote order updates preserve local private
-  address/receipt fields. A JVM loopback TLS proof now covers mutually
-  authenticated self-signed certificates, pinning and framed exchange (with a
-  wrong-pin rejection test). There is still **no production transport, pairing,
-  Devices UI or iOS sync**, and the app does not claim to be synchronized.
+  address/receipt fields. Profile also offers a **manual encrypted sync package**
+  that exports current records and LWW-merges them on another device (settings,
+  watchlist and orders). A JVM loopback TLS proof covers mutually authenticated
+  self-signed certificates, pinning and framed exchange. There is still **no
+  production peer transport, pairing, Devices UI or iOS sync**, and the app does
+  not claim to be peer-synchronized.
 - CSV order import with a review-before-import dialog. Required columns are
   `merchant`, `order_id`, `currency`, `item_title` and `quantity`; optional
   columns cover dates, scale, item prices and order totals. Conflicting
@@ -90,7 +92,7 @@ account, marketplace account connections, email/PDF parsing and OCR (manual
 receipt attachments are implemented), automatic metadata extraction, automatic
 product matching, automated returns/refunds,
 cart/checkout, local notifications/background scheduling, peer transport and
-pairing, order sync, iOS background tasks/share extensions, signing/notarization,
+pairing, Devices UI, iOS background tasks/share extensions, signing/notarization,
 and additional sensitive fields are subsequent milestones.
 
 The development SQLite database is not encrypted as a whole. The shipping
@@ -388,8 +390,8 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Finish peer sync: order aggregates, Ed25519 identity, QR/manual pairing,
-   TLS 1.3 transport, Devices UI/revocation, then iOS transport and attachments.
+1. Finish peer sync: device identity, QR/manual pairing, TLS 1.3 transport,
+   Devices UI/revocation, then iOS transport and attachments.
 2. Add PDF text extraction/OCR and email receipt import on top of the encrypted
    attachments, then reconcile totals against original payments.
 3. Verify the Thailand Post adapter against a real account/tracking number, then

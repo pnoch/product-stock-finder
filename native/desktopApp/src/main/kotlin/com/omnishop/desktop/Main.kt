@@ -10,6 +10,7 @@ import com.omnishop.carriers.ThailandPostAdapter
 import com.omnishop.data.BackupService
 import com.omnishop.data.CarrierSettings
 import com.omnishop.data.ReceiptService
+import com.omnishop.data.SyncPackageService
 import com.omnishop.data.OrderPrivateService
 import com.omnishop.data.security.JcaBackupCrypto
 import com.omnishop.connectors.validatedBookmarkUrl
@@ -37,13 +38,14 @@ fun main() {
         val privateService = OrderPrivateService(store, secrets, crypto)
         val carrierSettings = CarrierSettings(secrets)
         val receiptService = ReceiptService(privateService, { UUID.randomUUID().toString() })
+        val syncPackages = SyncPackageService(store, crypto)
         val backup = BackupService(store, crypto, privateService)
         application {
             Window(onCloseRequest = ::exitApplication, title = "OmniShop Native Preview",
                 state = rememberWindowState(width = 1100.dp, height = 780.dp),
                 icon = painterResource(Res.drawable.omnishop)) {
                 OmniShopApp(
-                    presenter, backup, privateService, receiptService, carrierSettings,
+                    presenter, backup, privateService, receiptService, syncPackages, carrierSettings,
                     listOf(ThailandPostAdapter()), DesktopBackupFiles(),
                 ) {
                     Desktop.getDesktop().browse(URI(validatedBookmarkUrl(it)))

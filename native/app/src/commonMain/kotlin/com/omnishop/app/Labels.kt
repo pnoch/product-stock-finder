@@ -27,6 +27,8 @@ enum class Label {
     RECEIPTS, ADD_RECEIPT, RECEIPT_NAME, CHOOSE_FILE, NO_RECEIPTS, SAVE_COPY, DELETE, RECEIPT_SAVED,
     RECEIPT_FILE_ERROR, RECEIPT_SAVE_FAILED, RECEIPT_DELETED, RECEIPT_CANCELLED, RECEIPT_SAVE_CANCELLED,
     COMPUTED_TOTAL, TOTAL_MISMATCH,
+    SYNC_PACKAGE, EXPORT_SYNC, IMPORT_SYNC, SYNC_PACKAGE_NOTE, SYNC_PACKAGE_PASSWORD,
+    SYNC_EXPORTED, SYNC_IMPORTED, SYNC_IMPORT_FAILED, SYNC_CANCELLED,
     IMPORT_BUTTON, IMPORT_DONE, IMPORT_FAILED, CSV_COLUMNS_HINT, IMPORT_CANCELLED,
 }
 
@@ -101,6 +103,12 @@ private val english = mapOf(
     Label.RECEIPT_DELETED to "Receipt deleted.", Label.RECEIPT_CANCELLED to "No file selected.",
     Label.RECEIPT_SAVE_CANCELLED to "Save cancelled.",
     Label.COMPUTED_TOTAL to "Computed total", Label.TOTAL_MISMATCH to "Recorded total differs from item subtotal + shipping + tax − discount.",
+    Label.SYNC_PACKAGE to "Device sync package", Label.EXPORT_SYNC to "Export sync package",
+    Label.IMPORT_SYNC to "Import sync package",
+    Label.SYNC_PACKAGE_NOTE to "Manual encrypted package for moving and merging settings, saved products and orders. This is not peer-to-peer sync and uses no cloud.",
+    Label.SYNC_PACKAGE_PASSWORD to "Sync package password",
+    Label.SYNC_EXPORTED to "Sync package saved.", Label.SYNC_IMPORTED to "Sync records merged:",
+    Label.SYNC_IMPORT_FAILED to "Sync import failed:", Label.SYNC_CANCELLED to "Sync cancelled.",
 )
 
 private val thai = mapOf(
@@ -174,6 +182,12 @@ private val thai = mapOf(
     Label.RECEIPT_DELETED to "ลบใบเสร็จแล้ว", Label.RECEIPT_CANCELLED to "ยังไม่ได้เลือกไฟล์",
     Label.RECEIPT_SAVE_CANCELLED to "ยกเลิกการบันทึก",
     Label.COMPUTED_TOTAL to "ยอดรวมที่คำนวณได้", Label.TOTAL_MISMATCH to "ยอดที่บันทึกไม่ตรงกับยอดสินค้า + ค่าจัดส่ง + ภาษี − ส่วนลด",
+    Label.SYNC_PACKAGE to "แพ็กเกจซิงก์อุปกรณ์", Label.EXPORT_SYNC to "ส่งออกแพ็กเกจซิงก์",
+    Label.IMPORT_SYNC to "นำเข้าแพ็กเกจซิงก์",
+    Label.SYNC_PACKAGE_NOTE to "แพ็กเกจเข้ารหัสสำหรับย้ายและรวมการตั้งค่า สินค้าที่บันทึก และคำสั่งซื้อด้วยตนเอง ไม่ใช่การซิงก์แบบเพียร์ทูเพียร์ และไม่ใช้คลาวด์",
+    Label.SYNC_PACKAGE_PASSWORD to "รหัสผ่านแพ็กเกจซิงก์",
+    Label.SYNC_EXPORTED to "บันทึกแพ็กเกจซิงก์แล้ว", Label.SYNC_IMPORTED to "จำนวนรายการที่รวม:",
+    Label.SYNC_IMPORT_FAILED to "นำเข้าแพ็กเกจซิงก์ไม่สำเร็จ:", Label.SYNC_CANCELLED to "ยกเลิกการซิงก์",
 )
 
 fun AppLanguage.text(label: Label): String = (if (this == AppLanguage.THAI) thai else english).getValue(label)

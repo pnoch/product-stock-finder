@@ -17,13 +17,18 @@ data class SyncMeta(
     val deletedAt: Long?,
 )
 
-data class SyncChange(
+@Serializable data class SyncChange(
     val collection: String,
     val id: String,
     val updatedAt: Long,
     val originDevice: String,
     val deletedAt: Long?,
     val payload: String?,
+)
+
+@Serializable data class SyncPackage(
+    val version: Int = 1,
+    val changes: List<SyncChange>,
 )
 
 data class SyncBatch(val changes: List<SyncChange>, val cursor: SyncCursor)

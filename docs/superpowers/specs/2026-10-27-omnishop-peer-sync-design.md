@@ -3,9 +3,9 @@
 Date: 2026-10-27
 
 Status: approved. Implementation is staged. The record engine for settings,
-watchlist and order aggregates is implemented, plus a JVM loopback TLS proof of
-mutual certificate authentication and pinning. Production pairing/transport,
-Devices UI and iOS transport are not yet implemented.
+watchlist and order aggregates is implemented, plus a manual encrypted sync
+package and a JVM loopback TLS proof. Production pairing/transport, Devices UI
+and iOS transport are not yet implemented.
 
 ## Goal
 
@@ -25,9 +25,11 @@ or conflict handling.
 2. **Orders aggregate (implemented):** order + items + shipments + allocations +
    events + returns as one validated sync record; local private fields survive a
    remote order update.
-3. **Identity/pairing/transport (next):** Ed25519 identity, QR/manual pairing,
+3. **Manual encrypted sync package (implemented interim):** export/import with a
+   password and LWW merge; not peer-to-peer and no device identity.
+4. **Identity/pairing/transport (next):** device identity, QR/manual pairing,
    TLS 1.3 pinned transport, Devices UI, selective sync/revocation.
-4. **iOS transport, attachments, background sync.**
+5. **iOS transport, attachments, background sync.**
 
 The original first-milestone scope below is the target for the transport stage;
 it is not claimed as complete by the record engine alone.
@@ -248,9 +250,13 @@ device creates a new identity and requires re-pairing.
   payload, and verifies a wrong pin is rejected. This is a transport spike, not
   a production server/client; EC P-256 is used because JVM/Android support is
   reliable, while Ed25519 identity remains a target to validate per platform.
-- Tests: 105 native tests pass, including sync LWW/tombstones/cursors, malformed
+- A manual encrypted sync package (`SyncPackageService`) exports current records
+  (including tombstones) and LWW-merges them on import. It is a user-mediated file,
+  not peer-to-peer, and creates no device identity or trust.
+- Tests: 108 native tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
-  preservation, the 4→5 migration and the TLS pinning proof.
+  preservation, the 4→5 migration, the TLS pinning proof and sync-package
+  merge/idempotency/wrong-password tests.
 
 ## Open decisions
 
