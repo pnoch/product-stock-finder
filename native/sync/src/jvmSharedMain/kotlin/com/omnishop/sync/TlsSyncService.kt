@@ -23,6 +23,8 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLServerSocket
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.X509TrustManager
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 import kotlin.concurrent.thread
 import kotlin.time.Clock
 import kotlinx.serialization.Serializable
@@ -33,9 +35,10 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 
 /**
- * Desktop/JVM peer sync over mutually authenticated TLS with certificate
- * pinning. Android/iOS use [UnavailableSyncService] until their transports land.
- * This is not a cloud service and creates no account.
+ * JVM peer sync (desktop + Android) over mutually authenticated TLS with
+ * certificate pinning and SAS confirmation. iOS uses [UnavailableSyncService]
+ * until its Network.framework transport lands. This is not a cloud service and
+ * creates no account.
  */
 class TlsSyncService(
     private val store: ShoppingStore,
@@ -66,7 +69,7 @@ class TlsSyncService(
         SyncDeviceInfo(identity.deviceId, "Desktop", identity.fingerprint)
 
     override fun peers(): List<SyncPeerInfo> = loadPeers().map {
-        SyncPeerInfo(it.deviceId, it.displayName, it.endpoint, it.lastSyncAt)
+        SyncPeerInfo(it.deviceId, it.displayName, it.endpoint, it.lastSyncAt, it.sas)
     }
 
     override suspend fun createPairing(): SyncPairingCode {
@@ -101,10 +104,13 @@ class TlsSyncService(
             require(response.type == "paired") { response.message ?: "Pairing rejected" }
             val deviceId = requireNotNull(response.deviceId)
             val fingerprint = requireNotNull(response.fingerprint)
+            val sas = sas(payload.secret, payload.fingerprint, identity.fingerprint)
+            require(response.sas == sas) { "SAS mismatch" }
             savePeer(StoredPeer(
                 deviceId, response.name ?: "Device", "${payload.host}:${payload.port}",
-                fingerprint, now(),
+                fingerprint, now(), sas,
             ))
+            return@runCatching SyncResult.Success(applied = 0, sent = 0, sas = sas)
         }
         SyncResult.Success(applied = 0, sent = 0)
     }.getOrElse { SyncResult.Failure(it.message ?: "Pairing failed") }
@@ -162,14 +168,15 @@ class TlsSyncService(
                 val clientFingerprint = fingerprint(clientCertificate)
                 require(message.fingerprint == clientFingerprint) { "Client fingerprint mismatch" }
                 val deviceId = requireNotNull(message.deviceId)
+                val sas = sas(secret, identity.fingerprint, clientFingerprint)
                 savePeer(StoredPeer(
                     deviceId, message.name ?: "Device",
-                    "${socket.inetAddress.hostAddress}:0", clientFingerprint, now(),
+                    "${socket.inetAddress.hostAddress}:0", clientFingerprint, now(), sas,
                 ))
                 pairingSecret = null
                 send(socket, WireMessage(
                     type = "paired", deviceId = identity.deviceId, name = "Desktop",
-                    fingerprint = identity.fingerprint,
+                    fingerprint = identity.fingerprint, sas = sas,
                 ))
             }
             "sync" -> {
@@ -302,6 +309,17 @@ class TlsSyncService(
         java.security.MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
             .joinToString("") { "%02x".format(it) }
 
+    private fun sas(secret: String, hostFingerprint: String, clientFingerprint: String): String {
+        val mac = Mac.getInstance("HmacSHA256")
+        mac.init(SecretKeySpec(secret.encodeToByteArray(), "HmacSHA256"))
+        val digest = mac.doFinal("$hostFingerprint|$clientFingerprint".encodeToByteArray())
+        val value = ((digest[0].toLong() and 0xff) shl 24) or
+            ((digest[1].toLong() and 0xff) shl 16) or
+            ((digest[2].toLong() and 0xff) shl 8) or
+            (digest[3].toLong() and 0xff)
+        return (value % 1_000_000).toString().padStart(6, '0').chunked(3).joinToString(" ")
+    }
+
     private fun lanHost(): String {
         val interfaces = NetworkInterface.getNetworkInterfaces() ?: return "127.0.0.1"
         Collections.list(interfaces).forEach { network ->
@@ -339,6 +357,7 @@ class TlsSyncService(
         val endpoint: String,
         val fingerprint: String,
         val lastSyncAt: Long,
+        val sas: String? = null,
     )
 
     @Serializable private data class PairingPayload(
@@ -357,6 +376,7 @@ class TlsSyncService(
         val deviceId: String? = null,
         val name: String? = null,
         val fingerprint: String? = null,
+        val sas: String? = null,
         val batch: SyncBatch? = null,
         val message: String? = null,
     )

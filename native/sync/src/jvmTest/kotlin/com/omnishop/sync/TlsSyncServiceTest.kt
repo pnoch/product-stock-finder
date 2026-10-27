@@ -32,7 +32,10 @@ class TlsSyncServiceTest {
                 val b = TlsSyncService(bStore, bSecrets, crypto, bReceipts, port = 0) { 300 }
                 try {
                     val code = a.createPairing()
-                    assertIs<SyncResult.Success>(b.pair(code.code))
+                    val paired = b.pair(code.code)
+                    assertIs<SyncResult.Success>(paired)
+                    assertNotNull(paired.sas)
+                    assertEquals(paired.sas, a.peers().single().sas)
                     assertEquals(1, a.peers().size)
                     assertEquals(a.thisDevice().deviceId, b.peers().single().deviceId)
 

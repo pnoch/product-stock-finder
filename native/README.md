@@ -98,7 +98,7 @@ account, marketplace account connections, email/PDF parsing and OCR (manual
 receipt attachments are implemented), automatic metadata extraction, automatic
 product matching, automated returns/refunds,
 cart/checkout, local notifications/background scheduling, iOS peer transport,
-QR/mDNS/SAS pairing, background sync, iOS background tasks/share extensions,
+QR/mDNS discovery, background sync, iOS background tasks/share extensions,
 signing/notarization, and additional sensitive fields are subsequent milestones.
 
 The development SQLite database is not encrypted as a whole. The shipping
@@ -396,9 +396,9 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Finish peer sync: iOS transport, QR/mDNS and SAS confirmation, then
-   Android↔desktop runtime verification. Encrypted receipt attachment sync is
-   implemented and JVM-tested.
+1. Finish peer sync: iOS transport, QR/mDNS discovery, then Android↔desktop
+   runtime verification. SAS confirmation and encrypted receipt attachment sync
+   are implemented and JVM-tested.
 2. Add PDF text extraction/OCR and email receipt import on top of the encrypted
    attachments, then reconcile totals against original payments.
 3. Verify the Thailand Post adapter against a real account/tracking number, then

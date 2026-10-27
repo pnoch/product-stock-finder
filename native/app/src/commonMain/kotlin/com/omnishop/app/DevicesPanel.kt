@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.omnishop.data.SyncPairingCode
 import com.omnishop.data.SyncResult
 import com.omnishop.data.SyncService
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Instant
 
@@ -31,6 +32,12 @@ internal fun DevicesPanel(language: AppLanguage, service: SyncService) {
         if (reason != null) {
             Text(reason, color = MaterialTheme.colorScheme.error)
             return@Column
+        }
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(2_000)
+                refresh++
+            }
         }
         Text("${language.text(Label.THIS_DEVICE)} · ${service.thisDevice().deviceId.take(16)}…", style = MaterialTheme.typography.bodyMedium)
         OutlinedButton(enabled = !working, onClick = {
@@ -63,7 +70,7 @@ internal fun DevicesPanel(language: AppLanguage, service: SyncService) {
             scope.launch {
                 when (val result = service.pair(joinCode.trim())) {
                     is SyncResult.Success -> {
-                        message = language.text(Label.PAIRED)
+                        message = language.text(Label.PAIRED) + (result.sas?.let { " SAS $it" } ?: "")
                         joinCode = ""
                         refresh++
                     }
@@ -79,6 +86,7 @@ internal fun DevicesPanel(language: AppLanguage, service: SyncService) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(peer.displayName, style = MaterialTheme.typography.bodyLarge)
                     Text("${language.text(Label.DEVICE_ID)}: ${peer.deviceId.take(16)}…", style = MaterialTheme.typography.bodySmall)
+                    peer.sas?.let { Text("SAS: $it", style = MaterialTheme.typography.bodySmall) }
                     Text("${language.text(Label.LAST_SYNC)}: ${Instant.fromEpochMilliseconds(peer.lastSyncAtEpochMillis)}", style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(enabled = !working, onClick = {

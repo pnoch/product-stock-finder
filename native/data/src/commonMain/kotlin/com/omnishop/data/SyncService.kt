@@ -11,6 +11,7 @@ data class SyncPeerInfo(
     val displayName: String,
     val endpoint: String,
     val lastSyncAtEpochMillis: Long,
+    val sas: String? = null,
 )
 
 data class SyncPairingCode(
@@ -19,7 +20,7 @@ data class SyncPairingCode(
 )
 
 sealed interface SyncResult {
-    data class Success(val applied: Int, val sent: Int) : SyncResult
+    data class Success(val applied: Int, val sent: Int, val sas: String? = null) : SyncResult
     data class Failure(val message: String) : SyncResult
 }
 
