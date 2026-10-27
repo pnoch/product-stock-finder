@@ -6,11 +6,18 @@ import com.omnishop.data.db.OmniShopDatabase
 import java.io.File
 import java.util.Properties
 
-fun ShoppingStore.Companion.open(file: File): ShoppingStore = openJdbc("jdbc:sqlite:${file.absolutePath}")
+fun ShoppingStore.Companion.open(
+    file: File,
+    originDevice: String = "local",
+    clock: () -> Long = { System.currentTimeMillis() },
+): ShoppingStore = openJdbc("jdbc:sqlite:${file.absolutePath}", originDevice, clock)
 
-fun ShoppingStore.Companion.inMemory(): ShoppingStore = openJdbc(JdbcSqliteDriver.IN_MEMORY)
+fun ShoppingStore.Companion.inMemory(
+    originDevice: String = "local",
+    clock: () -> Long = { System.currentTimeMillis() },
+): ShoppingStore = openJdbc(JdbcSqliteDriver.IN_MEMORY, originDevice, clock)
 
-private fun openJdbc(url: String): ShoppingStore {
+private fun openJdbc(url: String, originDevice: String, clock: () -> Long): ShoppingStore {
     val driver = JdbcSqliteDriver(url, Properties().apply { setProperty("foreign_keys", "true") })
     try {
         val version = driver.executeQuery(null, "PRAGMA user_version", { cursor ->
@@ -23,7 +30,7 @@ private fun openJdbc(url: String): ShoppingStore {
             else if (version < schema.version) schema.migrate(driver, version, schema.version)
             driver.execute(null, "PRAGMA user_version = ${schema.version}", 0)
         }
-        return ShoppingStore(driver)
+        return ShoppingStore(driver, originDevice, clock)
     } catch (failure: Throwable) {
         driver.close()
         throw failure

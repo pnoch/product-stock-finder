@@ -108,6 +108,9 @@ CREATE INDEX tracking_event_timeline ON tracking_event(shipment_id, imported_at,
 saveProduct:
 INSERT INTO saved_product VALUES (?, ?, ?, ?);
 
+findProduct:
+SELECT * FROM saved_product WHERE id = ?;
+
 savePreference:
 INSERT OR REPLACE INTO preference VALUES (?, ?);
 
@@ -304,3 +307,45 @@ SELECT * FROM order_return ORDER BY order_id, requested_at, id;
 
 deleteAllReturns:
 DELETE FROM order_return;
+
+CREATE TABLE sync_meta (
+    collection TEXT NOT NULL,
+    id TEXT NOT NULL,
+    updated_at INTEGER NOT NULL,
+    origin_device TEXT NOT NULL,
+    deleted_at INTEGER,
+    PRIMARY KEY (collection, id)
+);
+
+CREATE INDEX sync_meta_cursor ON sync_meta(updated_at, origin_device, id);
+
+upsertSyncMeta:
+INSERT OR REPLACE INTO sync_meta VALUES (?, ?, ?, ?, ?);
+
+findSyncMeta:
+SELECT * FROM sync_meta WHERE collection = ? AND id = ?;
+
+syncChanges:
+SELECT * FROM sync_meta
+WHERE collection IN :collections
+  AND (updated_at > :updated_at
+    OR (updated_at = :updated_at
+      AND (origin_device > :origin_device
+        OR (origin_device = :origin_device AND id > :id))))
+ORDER BY updated_at, origin_device, id
+LIMIT :limit;
+
+deleteAllSyncMeta:
+DELETE FROM sync_meta;
+
+deleteProduct:
+DELETE FROM saved_product WHERE id = ?;
+
+deletePreference:
+DELETE FROM preference WHERE key = ?;
+
+listingsForProduct:
+SELECT * FROM listing WHERE product_id = ? ORDER BY id;
+
+observationsForListing:
+SELECT * FROM price_observation WHERE listing_id = ? ORDER BY observed_at;

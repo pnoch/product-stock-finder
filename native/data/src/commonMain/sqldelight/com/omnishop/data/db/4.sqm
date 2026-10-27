@@ -1,0 +1,10 @@
+CREATE TABLE sync_meta (
+    collection TEXT NOT NULL,
+    id TEXT NOT NULL,
+    updated_at INTEGER NOT NULL,
+    origin_device TEXT NOT NULL,
+    deleted_at INTEGER,
+    PRIMARY KEY (collection, id)
+);
+
+CREATE INDEX sync_meta_cursor ON sync_meta(updated_at, origin_device, id);

@@ -25,6 +25,13 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   signing keys, build output, or Gradle caches. SQLDelight `databases/*.db`
   files are empty schema snapshots, not exported user databases; retain the
   previous snapshot and add a numbered `.sqm` migration for schema changes.
+- Sync is staged: only the `settings`/`watchlist` record engine exists. Every
+  syncable write updates `sync_meta` in the same transaction; remote changes use
+  LWW `(updated_at, origin_device)` and tombstones, and are applied with payload
+  validation in one transaction. Never mark a UI as synced, claim peer transport,
+  or include `sync_meta` in backups until identity/pairing/TLS and order sync
+  actually exist. `origin_device` is `"local"` until a real device identity is
+  introduced.
 - The iOS host lives in `iosApp/` (XcodeGen `project.yml` + Swift). Do not commit
   the generated `.xcodeproj`. `Info.plist` must keep
   `CADisableMinimumFrameDurationOnPhone=true`; Swift supplies CryptoKit,

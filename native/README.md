@@ -18,6 +18,10 @@ not the complete Phase 1 release from the master product brief.
   an unreconciled total is visible rather than silently “corrected”. Per-item package allocations,
   tracking numbers/carrier labels, manual event timelines, and derived partial
   delivery are included. Over-allocation is rejected by the domain and database.
+- Peer-sync record engine foundation for **settings and watchlist**:
+  `sync_meta`, aggregate payloads, LWW with device-id tie-break, tombstones and
+  cursors, all transactional. There is **no transport, pairing, Devices UI,
+  order sync or iOS sync yet**, and the app does not claim to be synchronized.
 - CSV order import with a review-before-import dialog. Required columns are
   `merchant`, `order_id`, `currency`, `item_title` and `quantity`; optional
   columns cover dates, scale, item prices and order totals. Conflicting
@@ -26,7 +30,7 @@ not the complete Phase 1 release from the master product brief.
   Input is capped at 10 MB / 50,000 data rows, with length limits on merchant,
   order ID and item title.
 - SQLDelight/SQLite transactions, foreign keys, indexes, bounded list queries,
-  empty version-1/2/3/4 schema snapshots, and migration verification.
+  empty version-1/2/3/4/5 schema snapshots, and migration verification.
 - A first real carrier connector for Thailand Post. The user supplies an API
   key, stored only in the platform SecretStore; the app requests a token and
   tracking data directly from Thailand Post. Events preserve the raw carrier
@@ -81,9 +85,9 @@ Other carrier adapters, live verification against Thailand Post with a real
 account, marketplace account connections, email/PDF parsing and OCR (manual
 receipt attachments are implemented), automatic metadata extraction, automatic
 product matching, automated returns/refunds,
-cart/checkout, local notifications/background scheduling, peer sync, iOS
-background tasks/share extensions, signing/notarization, and additional
-sensitive fields are subsequent milestones.
+cart/checkout, local notifications/background scheduling, peer transport and
+pairing, order sync, iOS background tasks/share extensions, signing/notarization,
+and additional sensitive fields are subsequent milestones.
 
 The development SQLite database is not encrypted as a whole. The shipping
 address and receipt contents are stored as authenticated ciphertext under the
@@ -262,14 +266,15 @@ complete desktop interaction scenario.
 - Linux development: `$XDG_DATA_HOME/omnishop-native/omnishop.db`, falling back
   to `~/.local/share/omnishop-native/omnishop.db`.
 
-`data/src/commonMain/sqldelight/databases/1.db` … `4.db` are empty generated
+`data/src/commonMain/sqldelight/databases/1.db` … `5.db` are empty generated
 schema snapshots, with no test or user records. `1.sqm` adds `order_return`
 (version 2); `2.sqm` adds `shipment.carrier_id` (version 3); `3.sqm` adds order
-financial columns and `order_item.unit_price_minor` (version 4). None recreates
-or clears existing tables. File-backed migration tests preserve version-1
-products/orders, version-2 shipments and version-3 orders; Android in-place APK
-upgrades preserved existing records and the encrypted address before the clean
-smoke scenario.
+financial columns and `order_item.unit_price_minor` (version 4); `4.sqm` adds
+`sync_meta` (version 5). None recreates or clears existing tables. File-backed
+migration tests preserve version-1 products/orders, version-2 shipments,
+version-3 orders and version-4 preferences; Android in-place APK upgrades
+preserved existing records and the encrypted address before the clean smoke
+scenario.
 
 For future revisions, add SQLDelight numbered migrations and verify against the
 prior snapshot. Never replace an existing database to make a test pass. No
@@ -365,23 +370,27 @@ uniqueness, references, quantities, currencies and domain invariants before
 re-encrypting addresses with the local device key and replacing the database in
 one transaction. Plaintext addresses exist only transiently in memory.
 
-The encrypted envelope remains version 1. The JSON payload now uses schema 2
-for returns/refunds and still accepts earlier schema-1 native backups without
-returns. Invalid return ownership, quantities, currencies, and refund states
-are rejected before database replacement. A multi-order round-trip regression
-test covers the child-row insertion order and return ownership validation.
+The encrypted envelope remains version 1. The JSON payload uses schema 4 for
+order financials and still accepts schema-1 backups without returns, schema-2
+backups without carrier ids and schema-3 backups without financials. `sync_meta`
+is intentionally excluded and cleared by a full restore, so a restored device
+must re-pair. Invalid return ownership, quantities, currencies, refund states,
+carrier ids, order money and private fields are rejected before database
+replacement. A multi-order round-trip regression test covers child-row insertion
+order, return ownership, carrier id and financial preservation.
 
 This format is not a substitute for an attacker with the live unlocked device,
 and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Add PDF text extraction/OCR and email receipt import on top of the encrypted
+1. Finish peer sync: order aggregates, Ed25519 identity, QR/manual pairing,
+   TLS 1.3 transport, Devices UI/revocation, then iOS transport and attachments.
+2. Add PDF text extraction/OCR and email receipt import on top of the encrypted
    attachments, then reconcile totals against original payments.
-2. Verify the Thailand Post adapter against a real account/tracking number, then
+3. Verify the Thailand Post adapter against a real account/tracking number, then
    add bounded retry/token caching and a carrier status-code mapping review.
-3. Exercise iOS/desktop sensitive-field, backup file-picker, CSV-import and
+4. Exercise iOS/desktop sensitive-field, backup file-picker, CSV-import and
    carrier-refresh interactions, then add iOS/desktop signing/notarization and
    store distribution.
-4. Expand offers/variants, order editing and pagination.
-5. Native sharing/background tasks and encrypted peer synchronization.
+5. Expand offers/variants, order editing and pagination, plus background tasks.

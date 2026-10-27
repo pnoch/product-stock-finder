@@ -8,7 +8,11 @@ data class SavedProduct(val id: String, val title: String, val sourceUrl: String
     init { require(id.isNotBlank() && title.isNotBlank()) }
 }
 
-class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
+class ShoppingStore(
+    private val driver: SqlDriver,
+    private val originDevice: String = "local",
+    private val clock: () -> Long = { kotlin.time.Clock.System.now().toEpochMilliseconds() },
+) : AutoCloseable {
     private val database = OmniShopDatabase(driver)
     private val queries = database.shoppingQueries
 
@@ -16,14 +20,36 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
 
     fun preference(key: String): String? = queries.findPreference(key).executeAsOneOrNull()
 
-    fun setPreference(key: String, value: String) = queries.savePreference(key, value)
+    fun setPreference(key: String, value: String) {
+        database.transaction {
+            queries.savePreference(key, value)
+            recordSyncMeta("settings", key, null)
+        }
+    }
+
+    fun deletePreference(key: String) {
+        database.transaction {
+            queries.deletePreference(key)
+            recordSyncMeta("settings", key, clock())
+        }
+    }
 
     fun shipmentLabel(id: String): ShipmentLabel? = queries.findShipment(id).executeAsOneOrNull()?.let {
         ShipmentLabel(it.tracking_number, it.carrier_label)
     }
 
     fun saveProduct(product: SavedProduct) {
-        queries.saveProduct(product.id, product.title, product.sourceUrl, product.savedAtEpochMillis)
+        database.transaction {
+            queries.saveProduct(product.id, product.title, product.sourceUrl, product.savedAtEpochMillis)
+            recordSyncMeta("watchlist", product.id, null)
+        }
+    }
+
+    fun deleteProduct(id: String) {
+        database.transaction {
+            queries.deleteProduct(id)
+            recordSyncMeta("watchlist", id, clock())
+        }
     }
 
     fun saveOffer(offer: Offer, observedAtEpochMillis: Long) {
@@ -37,6 +63,7 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
                 (estimate.fees as? Cost.Known)?.amount?.minorUnits, estimate.discount.minorUnits)
             queries.insertObservation(offer.id, observedAtEpochMillis, price.minorUnits, price.currency.code,
                 price.currency.scale.toLong(), "manual")
+            recordSyncMeta("watchlist", offer.productId, null)
         }
     }
 
@@ -245,6 +272,105 @@ class ShoppingStore(private val driver: SqlDriver) : AutoCloseable {
     }
 
     fun deletePrivate(orderId: String, field: String) = queries.deletePrivate(orderId, field)
+
+    fun watchlistPayload(id: String): String? {
+        val product = queries.findProduct(id).executeAsOneOrNull() ?: return null
+        val listings = queries.listingsForProduct(id).executeAsList()
+        val observations = listings.flatMap { listing ->
+            queries.observationsForListing(listing.id).executeAsList()
+        }
+        return SyncJson.json.encodeToString(
+            WatchlistPayload.serializer(),
+            WatchlistPayload(
+                SyncProduct(product.id, product.title, product.source_url, product.saved_at),
+                listings.map {
+                    SyncListing(it.id, it.product_id, it.source_label, it.price_minor,
+                        it.currency_code, it.currency_scale.toInt(), it.shipping_minor,
+                        it.taxes_minor, it.fees_minor, it.discount_minor)
+                },
+                observations.map {
+                    SyncObservation(it.listing_id, it.observed_at, it.price_minor,
+                        it.currency_code, it.currency_scale.toInt(), it.source)
+                },
+            ),
+        )
+    }
+
+    fun applySettingSync(change: SyncChange) {
+        require(change.collection == "settings")
+        database.transaction {
+            if (change.deletedAt != null) {
+                queries.deletePreference(change.id)
+            } else {
+                queries.savePreference(change.id, requireNotNull(change.payload) { "Missing setting value" })
+            }
+            queries.upsertSyncMeta(change.collection, change.id, change.updatedAt, change.originDevice, change.deletedAt)
+        }
+    }
+
+    fun applyWatchlistSync(change: SyncChange) {
+        require(change.collection == "watchlist")
+        database.transaction {
+            if (change.deletedAt != null) {
+                queries.deleteProduct(change.id)
+            } else {
+                val payload = SyncJson.json.decodeFromString(
+                    WatchlistPayload.serializer(),
+                    requireNotNull(change.payload) { "Missing watchlist payload" },
+                )
+                require(payload.product.id == change.id) { "Watchlist payload id mismatch" }
+                require(payload.listings.all { it.productId == change.id }) { "Listing belongs to another product" }
+                val listingIds = payload.listings.map { it.id }.toSet()
+                require(payload.observations.all { it.listingId in listingIds }) { "Observation belongs to another listing" }
+                payload.listings.forEach {
+                    require(it.priceMinor >= 0 && it.discountMinor >= 0) { "Invalid listing money" }
+                    require((it.shippingMinor ?: 0) >= 0 && (it.taxesMinor ?: 0) >= 0 && (it.feesMinor ?: 0) >= 0) {
+                        "Invalid listing cost"
+                    }
+                    Currency(it.currencyCode, it.currencyScale)
+                }
+                payload.observations.forEach {
+                    require(it.priceMinor >= 0) { "Invalid observation money" }
+                    Currency(it.currencyCode, it.currencyScale)
+                }
+                queries.deleteProduct(change.id)
+                queries.saveProduct(payload.product.id, payload.product.title, payload.product.sourceUrl, payload.product.savedAt)
+                payload.listings.forEach {
+                    queries.insertListing(it.id, it.productId, it.sourceLabel, it.priceMinor,
+                        it.currencyCode, it.currencyScale.toLong(), it.shippingMinor,
+                        it.taxesMinor, it.feesMinor, it.discountMinor)
+                }
+                payload.observations.forEach {
+                    queries.insertObservation(it.listingId, it.observedAt, it.priceMinor,
+                        it.currencyCode, it.currencyScale.toLong(), it.source)
+                }
+            }
+            queries.upsertSyncMeta(change.collection, change.id, change.updatedAt, change.originDevice, change.deletedAt)
+        }
+    }
+
+    fun recordSyncMeta(collection: String, id: String, deletedAt: Long?) {
+        queries.upsertSyncMeta(collection, id, clock(), originDevice, deletedAt)
+    }
+
+    fun syncMeta(collection: String, id: String): SyncMeta? =
+        queries.findSyncMeta(collection, id).executeAsOneOrNull()?.let {
+            SyncMeta(it.collection, it.id, it.updated_at, it.origin_device, it.deleted_at)
+        }
+
+    fun syncChanges(
+        cursor: SyncCursor,
+        collections: Set<String>,
+        limit: Int,
+    ): List<SyncMeta> {
+        if (collections.isEmpty()) return emptyList()
+        require(limit in 1..1000)
+        return queries.syncChanges(
+            collections.toList(), cursor.updatedAt, cursor.originDevice, cursor.id, limit.toLong(),
+        ).executeAsList().map {
+            SyncMeta(it.collection, it.id, it.updated_at, it.origin_device, it.deleted_at)
+        }
+    }
 
     fun snapshot(): BackupSnapshot = database.transactionWithResult {
         BackupSnapshot(
