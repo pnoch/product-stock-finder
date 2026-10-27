@@ -102,6 +102,7 @@ class ShoppingStore(
                 order.items.forEach {
                     queries.insertOrderItem(it.id, order.id, it.title, it.quantity.toLong(), it.unitPrice?.minorUnits)
                 }
+                recordSyncMeta("orders", order.id, null)
             }
         }
     }
@@ -160,6 +161,7 @@ class ShoppingStore(
                 updated.totalPaid?.minorUnits, updated.merchantOrderId,
                 updated.purchasedAtEpochMillis, updated.paymentMethodLabel, orderId,
             )
+            recordSyncMeta("orders", orderId, null)
         }
     }
 
@@ -176,6 +178,7 @@ class ShoppingStore(
                 updated.purchasedAtEpochMillis, updated.paymentMethodLabel, updated.id,
             )
             updated.items.forEach { queries.updateOrderItemPrice(it.unitPrice?.minorUnits, it.id) }
+            recordSyncMeta("orders", updated.id, null)
         }
     }
 
@@ -185,6 +188,7 @@ class ShoppingStore(
             require(current.items.any { it.id == itemId }) { "Order item not found" }
             current.copy(items = current.items.map { if (it.id == itemId) it.copy(unitPrice = unitPrice) else it })
             queries.updateOrderItemPrice(unitPrice?.minorUnits, itemId)
+            recordSyncMeta("orders", orderId, null)
         }
     }
 
@@ -197,6 +201,7 @@ class ShoppingStore(
             shipment.allocations.forEach {
                 queries.insertAllocation(shipment.id, orderId, it.orderItemId, it.quantity.toLong())
             }
+            recordSyncMeta("orders", orderId, null)
         }
     }
 
@@ -215,6 +220,8 @@ class ShoppingStore(
         if (latest == null || (event.occurredAtEpochMillis ?: event.importedAtEpochMillis) > latest) {
             queries.updateShipmentStatus(event.status.name, event.shipmentId)
         }
+        val orderId = requireNotNull(queries.findShipment(event.shipmentId).executeAsOneOrNull()).order_id
+        recordSyncMeta("orders", orderId, null)
         true
     }
 
@@ -232,6 +239,7 @@ class ShoppingStore(
                 record.reason, record.status.name, record.requestedAtEpochMillis,
                 record.returnTrackingNumber, record.refund?.minorUnits,
                 record.refund?.currency?.code, record.refund?.currency?.scale?.toLong(), record.notes)
+            recordSyncMeta("orders", record.orderId, null)
         }
     }
 
@@ -246,6 +254,159 @@ class ShoppingStore(
             validateOrderReturns(order, returnsForOrder(order.id).map { if (it.id == id) updated else it })
             queries.updateReturn(updated.status.name, updated.returnTrackingNumber, updated.refund?.minorUnits,
                 updated.refund?.currency?.code, updated.refund?.currency?.scale?.toLong(), updated.notes, id)
+            recordSyncMeta("orders", order.id, null)
+        }
+    }
+
+    fun deleteOrder(id: String) {
+        database.transaction {
+            queries.deleteOrder(id)
+            recordSyncMeta("orders", id, clock())
+        }
+    }
+
+    fun orderPayload(id: String): String? {
+        val row = queries.findOrder(id).executeAsOneOrNull() ?: return null
+        val order = getOrder(id) ?: return null
+        val shipments = order.shipments.map { shipment ->
+            val label = shipmentLabel(shipment.id) ?: return null
+            SyncShipment(shipment.id, id, label.trackingNumber, label.carrierLabel, shipment.status.name, shipment.carrierId)
+        }
+        val allocations = order.shipments.flatMap { shipment ->
+            shipment.allocations.map { SyncAllocation(shipment.id, id, it.orderItemId, it.quantity) }
+        }
+        val events = order.shipments.flatMap { shipment ->
+            events(shipment.id).map {
+                SyncEvent(shipment.id, it.source, it.sourceEventId, it.status.name, it.description,
+                    it.method.name, it.importedAtEpochMillis, it.occurredAtEpochMillis,
+                    it.originalTimestamp, it.originalTimezone)
+            }
+        }
+        val returns = returnsForOrder(id).map {
+            SyncReturn(it.id, id, it.orderItemId, it.quantity, it.reason, it.status.name,
+                it.requestedAtEpochMillis, it.returnTrackingNumber, it.refund?.minorUnits,
+                it.refund?.currency?.code, it.refund?.currency?.scale, it.notes)
+        }
+        val payload = OrderPayload(
+            SyncOrder(order.id, order.merchant, row.created_at, order.currency?.code, order.currency?.scale,
+                order.shipping?.minorUnits, order.tax?.minorUnits, order.discount?.minorUnits,
+                order.totalPaid?.minorUnits, order.merchantOrderId, order.purchasedAtEpochMillis,
+                order.paymentMethodLabel),
+            order.items.map {
+                SyncOrderItem(it.id, id, it.title, it.quantity, it.unitPrice?.minorUnits)
+            },
+            shipments, allocations, events, returns,
+        )
+        return SyncJson.json.encodeToString(OrderPayload.serializer(), payload)
+    }
+
+    fun applyOrderSync(change: SyncChange) {
+        require(change.collection == "orders")
+        if (change.deletedAt != null) {
+            database.transaction {
+                queries.deleteOrder(change.id)
+                queries.upsertSyncMeta(change.collection, change.id, change.updatedAt, change.originDevice, change.deletedAt)
+            }
+            return
+        }
+        val payload = SyncJson.json.decodeFromString(
+            OrderPayload.serializer(),
+            requireNotNull(change.payload) { "Missing order payload" },
+        )
+        require(payload.order.id == change.id) { "Order payload id mismatch" }
+        require(payload.order.createdAt >= 0) { "Invalid order timestamp" }
+        val currency = payload.order.currencyCode?.let { code ->
+            Currency(code, requireNotNull(payload.order.currencyScale) { "Missing order currency scale" })
+        }
+        fun money(minor: Long?): Money? = if (minor != null && currency != null) Money(minor, currency) else null
+        if (currency == null && (
+                payload.items.any { it.unitPriceMinor != null } ||
+                    listOfNotNull(payload.order.shippingMinor, payload.order.taxMinor,
+                        payload.order.discountMinor, payload.order.totalMinor).isNotEmpty()
+                )) {
+            error("Order money requires a currency")
+        }
+        val items = payload.items.map {
+            require(it.orderId == payload.order.id) { "Order item belongs to another order" }
+            OrderItem(it.id, it.title, it.quantity, money(it.unitPriceMinor))
+        }
+        require(payload.allocations.all { allocation ->
+            payload.shipments.any { it.id == allocation.shipmentId }
+        }) { "Allocation belongs to an unknown shipment" }
+        val shipments = payload.shipments.map { shipment ->
+            require(shipment.orderId == payload.order.id) { "Shipment belongs to another order" }
+            require(shipment.trackingNumber.isNotBlank() && shipment.carrierLabel.isNotBlank()) {
+                "Shipment tracking and carrier are required"
+            }
+            val allocations = payload.allocations.filter { it.shipmentId == shipment.id }
+            require(allocations.all { it.orderId == payload.order.id }) { "Allocation belongs to another order" }
+            Shipment(shipment.id, allocations.map { ShipmentAllocation(it.orderItemId, it.quantity) },
+                ShipmentStatus.valueOf(shipment.status), shipment.carrierId)
+        }
+        val order = PurchaseOrder(
+            payload.order.id, payload.order.merchant, items, shipments, currency,
+            money(payload.order.shippingMinor), money(payload.order.taxMinor), money(payload.order.discountMinor),
+            money(payload.order.totalMinor), payload.order.merchantOrderId, payload.order.purchasedAt,
+            payload.order.paymentMethodLabel,
+        )
+        val returns = payload.returns.map {
+            require(it.orderId == payload.order.id) { "Return belongs to another order" }
+            val refundCurrency = it.currencyCode?.let { code ->
+                Currency(code, requireNotNull(it.currencyScale) { "Missing refund currency scale" })
+            }
+            ReturnRecord(it.id, it.orderId, it.orderItemId, it.quantity, it.reason,
+                ReturnStatus.valueOf(it.status), it.requestedAt, it.returnTracking,
+                it.refundMinor?.let { amount -> Money(amount, requireNotNull(refundCurrency)) }, it.notes)
+        }
+        validateOrderReturns(order, returns)
+        val events = payload.events.map {
+            require(shipments.any { shipment -> shipment.id == it.shipmentId }) { "Event belongs to another order" }
+            TrackingEvent(it.shipmentId, it.source, it.sourceEventId, ShipmentStatus.valueOf(it.status),
+                it.description, ObservationMethod.valueOf(it.method), it.importedAt, it.occurredAt,
+                it.originalTimestamp, it.originalTimezone)
+        }
+        require(events.map { Triple(it.shipmentId, it.source, it.sourceEventId) }.distinct().size == events.size) {
+            "Duplicate tracking event"
+        }
+        database.transaction {
+            if (getOrder(order.id) != null) {
+                queries.deleteReturnsForOrder(order.id)
+                queries.deleteShipmentsForOrder(order.id)
+                queries.deleteOrderItemsForOrder(order.id)
+                queries.updateOrderFinancials(
+                    order.currency?.code, order.currency?.scale?.toLong(),
+                    order.shipping?.minorUnits, order.tax?.minorUnits, order.discount?.minorUnits,
+                    order.totalPaid?.minorUnits, order.merchantOrderId,
+                    order.purchasedAtEpochMillis, order.paymentMethodLabel, order.id,
+                )
+            } else {
+                queries.insertOrder(order.id, order.merchant, payload.order.createdAt,
+                    order.currency?.code, order.currency?.scale?.toLong(),
+                    order.shipping?.minorUnits, order.tax?.minorUnits, order.discount?.minorUnits,
+                    order.totalPaid?.minorUnits, order.merchantOrderId,
+                    order.purchasedAtEpochMillis, order.paymentMethodLabel)
+            }
+            items.forEach {
+                queries.insertOrderItem(it.id, order.id, it.title, it.quantity.toLong(), it.unitPrice?.minorUnits)
+            }
+            shipments.forEach {
+                queries.insertShipment(it.id, order.id, payload.shipments.first { s -> s.id == it.id }.trackingNumber,
+                    payload.shipments.first { s -> s.id == it.id }.carrierLabel, it.status.name, it.carrierId)
+            }
+            payload.allocations.forEach {
+                queries.insertAllocation(it.shipmentId, order.id, it.orderItemId, it.quantity.toLong())
+            }
+            events.forEach {
+                queries.insertEventStrict(it.shipmentId, it.source, it.sourceEventId, it.status.name,
+                    it.description, it.method.name, it.importedAtEpochMillis, it.occurredAtEpochMillis,
+                    it.originalTimestamp, it.originalTimezone)
+            }
+            returns.forEach {
+                queries.insertReturn(it.id, it.orderId, it.orderItemId, it.quantity.toLong(), it.reason,
+                    it.status.name, it.requestedAtEpochMillis, it.returnTrackingNumber,
+                    it.refund?.minorUnits, it.refund?.currency?.code, it.refund?.currency?.scale?.toLong(), it.notes)
+            }
+            queries.upsertSyncMeta(change.collection, change.id, change.updatedAt, change.originDevice, change.deletedAt)
         }
     }
 

@@ -18,10 +18,12 @@ not the complete Phase 1 release from the master product brief.
   an unreconciled total is visible rather than silently “corrected”. Per-item package allocations,
   tracking numbers/carrier labels, manual event timelines, and derived partial
   delivery are included. Over-allocation is rejected by the domain and database.
-- Peer-sync record engine foundation for **settings and watchlist**:
+- Peer-sync record engine foundation for **settings, watchlist and order
+  aggregates** (order + items + shipments + allocations + events + returns):
   `sync_meta`, aggregate payloads, LWW with device-id tie-break, tombstones and
-  cursors, all transactional. There is **no transport, pairing, Devices UI,
-  order sync or iOS sync yet**, and the app does not claim to be synchronized.
+  cursors, all transactional. Remote order updates preserve local private
+  address/receipt fields. There is **no transport, pairing, Devices UI or iOS
+  sync yet**, and the app does not claim to be synchronized.
 - CSV order import with a review-before-import dialog. Required columns are
   `merchant`, `order_id`, `currency`, `item_title` and `quantity`; optional
   columns cover dates, scale, item prices and order totals. Conflicting

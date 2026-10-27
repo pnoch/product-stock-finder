@@ -159,7 +159,7 @@ foundation plan.
 
 ## Execution record
 
-- Native tests: 100 passed, zero failures/errors across core, connectors, carriers, data,
+- Native tests: 103 passed, zero failures/errors across core, connectors, carriers, data,
   and presentation. SQLite migration verification passed.
 - Android debug APK built. The emulator smoke exercises saved offers, split
   delivery, force-stop/restart, Thai selection and a second restart.
@@ -222,9 +222,10 @@ foundation plan.
   50,000 rows with field-length limits, financials show a computed-total mismatch
   warning, and CSV preview shares the presenter mutex.
 - Sync record engine added: `sync_meta` (schema 5/`4.sqm`), transactional
-  settings/watchlist hooks, aggregate watchlist payloads, LWW/tombstones/cursors,
-  malformed-payload rejection and migration tests. No identity, pairing, TLS
-  transport, Devices UI, order sync, attachments or iOS sync yet.
+  settings/watchlist/order hooks, watchlist and order aggregate payloads,
+  LWW/tombstones/cursors, malformed-payload rejection, private-field preservation
+  and migration tests. No identity, pairing, TLS transport, Devices UI,
+  attachments or iOS sync yet.
 - Android smoke still covers the existing purchase/delivery/return flow; receipt
   file-picker interaction is unit-tested only.
 - A release-signed native APK (existing keystore, CN=Product Stock Finder,

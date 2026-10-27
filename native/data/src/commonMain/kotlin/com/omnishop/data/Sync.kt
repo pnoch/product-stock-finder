@@ -40,6 +40,43 @@ data class SyncBatch(val changes: List<SyncChange>, val cursor: SyncCursor)
     val listingId: String, val observedAt: Long, val priceMinor: Long,
     val currencyCode: String, val currencyScale: Int, val source: String,
 )
+@Serializable data class SyncOrder(
+    val id: String, val merchant: String, val createdAt: Long,
+    val currencyCode: String? = null, val currencyScale: Int? = null,
+    val shippingMinor: Long? = null, val taxMinor: Long? = null, val discountMinor: Long? = null,
+    val totalMinor: Long? = null, val merchantOrderId: String? = null,
+    val purchasedAt: Long? = null, val paymentMethodLabel: String? = null,
+)
+@Serializable data class SyncOrderItem(
+    val id: String, val orderId: String, val title: String, val quantity: Int,
+    val unitPriceMinor: Long? = null,
+)
+@Serializable data class SyncShipment(
+    val id: String, val orderId: String, val trackingNumber: String, val carrierLabel: String,
+    val status: String, val carrierId: String? = null,
+)
+@Serializable data class SyncAllocation(
+    val shipmentId: String, val orderId: String, val orderItemId: String, val quantity: Int,
+)
+@Serializable data class SyncEvent(
+    val shipmentId: String, val source: String, val sourceEventId: String, val status: String,
+    val description: String, val method: String, val importedAt: Long, val occurredAt: Long?,
+    val originalTimestamp: String?, val originalTimezone: String?,
+)
+@Serializable data class SyncReturn(
+    val id: String, val orderId: String, val orderItemId: String, val quantity: Int,
+    val reason: String, val status: String, val requestedAt: Long, val returnTracking: String?,
+    val refundMinor: Long?, val currencyCode: String?, val currencyScale: Int?, val notes: String?,
+)
+@Serializable data class OrderPayload(
+    val order: SyncOrder,
+    val items: List<SyncOrderItem> = emptyList(),
+    val shipments: List<SyncShipment> = emptyList(),
+    val allocations: List<SyncAllocation> = emptyList(),
+    val events: List<SyncEvent> = emptyList(),
+    val returns: List<SyncReturn> = emptyList(),
+)
+
 @Serializable data class WatchlistPayload(
     val product: SyncProduct,
     val listings: List<SyncListing> = emptyList(),
@@ -59,7 +96,7 @@ object SyncJson {
  */
 class SyncEngine(
     private val store: ShoppingStore,
-    private val collections: Set<String> = setOf("settings", "watchlist"),
+    private val collections: Set<String> = setOf("settings", "watchlist", "orders"),
 ) {
     fun localChanges(cursor: SyncCursor, limit: Int = 100): SyncBatch {
         val metas = store.syncChanges(cursor, collections, limit)
@@ -67,6 +104,7 @@ class SyncEngine(
             val payload = if (meta.deletedAt != null) null else when (meta.collection) {
                 "settings" -> store.preference(meta.id)
                 "watchlist" -> store.watchlistPayload(meta.id)
+                "orders" -> store.orderPayload(meta.id)
                 else -> error("Unsupported sync collection ${meta.collection}")
             }
             require(meta.deletedAt != null || payload != null) {
@@ -94,6 +132,7 @@ class SyncEngine(
             when (change.collection) {
                 "settings" -> store.applySettingSync(change)
                 "watchlist" -> store.applyWatchlistSync(change)
+                "orders" -> store.applyOrderSync(change)
                 else -> error("Unsupported sync collection")
             }
             applied++

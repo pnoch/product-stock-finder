@@ -2,9 +2,9 @@
 
 Date: 2026-10-27
 
-Status: approved. Implementation is staged. The record engine for settings and
-watchlist is implemented; device identity, TLS transport, pairing UI, order
-aggregates and iOS transport are not yet implemented.
+Status: approved. Implementation is staged. The record engine for settings,
+watchlist and order aggregates is implemented; device identity, TLS transport,
+pairing UI and iOS transport are not yet implemented.
 
 ## Goal
 
@@ -18,10 +18,12 @@ or conflict handling.
 
 ## Delivery stages
 
-1. **Record engine (implemented):** `sync_meta`, settings/watchlist aggregate
-   payloads, LWW/tombstones/cursors, transactional write hooks and loopback tests.
-2. **Orders aggregate (next):** order + items + shipments + allocations + events
-   + returns as one validated sync record.
+1. **Record engine (implemented):** `sync_meta`, settings/watchlist/order
+   aggregate payloads, LWW/tombstones/cursors, transactional write hooks and
+   loopback tests.
+2. **Orders aggregate (implemented):** order + items + shipments + allocations +
+   events + returns as one validated sync record; local private fields survive a
+   remote order update.
 3. **Identity/pairing/transport (next):** Ed25519 identity, QR/manual pairing,
    TLS 1.3 pinned transport, Devices UI, selective sync/revocation.
 4. **iOS transport, attachments, background sync.**
@@ -231,16 +233,18 @@ device creates a new identity and requires re-pairing.
 - Hooks mark `settings` on `setPreference`/`deletePreference` and `watchlist` on
   `saveProduct`/`saveOffer`/`deleteProduct`.
 - `SyncEngine` emits and applies LWW changes with `(updated_at, origin_device)`
-  tie-breaking and tombstones; settings and watchlist aggregate payloads are
-  validated and applied in one SQLite transaction.
+  tie-breaking and tombstones; settings, watchlist and order aggregate payloads
+  are validated and applied in one SQLite transaction. Order updates preserve
+  local private address/receipt fields.
 - `sync_meta` is excluded from encrypted backups and cleared by a full restore;
   a restored device must re-pair.
 - No device identity, pairing, socket/TLS transport, Devices UI, selective sync,
-  revocation UI, order sync, attachment sync or background sync exists yet.
+  revocation UI, attachment sync or background sync exists yet.
   `origin_device` defaults to `"local"` until the identity stage injects a real
   per-device id. There is no user-facing “synced” claim.
-- Tests: 100 native tests pass, including sync LWW/tombstones/cursors, malformed
-  payload rejection, aggregate watchlist round-trip and the 4→5 migration.
+- Tests: 103 native tests pass, including sync LWW/tombstones/cursors, malformed
+  payload rejection, watchlist/order aggregate round-trips, private-field
+  preservation and the 4→5 migration.
 
 ## Open decisions
 
