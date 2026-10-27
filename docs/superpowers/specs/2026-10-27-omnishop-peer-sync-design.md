@@ -3,8 +3,9 @@
 Date: 2026-10-27
 
 Status: approved. Implementation is staged. The record engine for settings,
-watchlist and order aggregates is implemented; device identity, TLS transport,
-pairing UI and iOS transport are not yet implemented.
+watchlist and order aggregates is implemented, plus a JVM loopback TLS proof of
+mutual certificate authentication and pinning. Production pairing/transport,
+Devices UI and iOS transport are not yet implemented.
 
 ## Goal
 
@@ -242,9 +243,14 @@ device creates a new identity and requires re-pairing.
   revocation UI, attachment sync or background sync exists yet.
   `origin_device` defaults to `"local"` until the identity stage injects a real
   per-device id. There is no user-facing “synced” claim.
-- Tests: 103 native tests pass, including sync LWW/tombstones/cursors, malformed
+- A JVM loopback proof (`TlsTransportTest`) generates EC P-256 self-signed
+  certificates, performs mutual TLS with certificate pinning, exchanges a framed
+  payload, and verifies a wrong pin is rejected. This is a transport spike, not
+  a production server/client; EC P-256 is used because JVM/Android support is
+  reliable, while Ed25519 identity remains a target to validate per platform.
+- Tests: 105 native tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
-  preservation and the 4→5 migration.
+  preservation, the 4→5 migration and the TLS pinning proof.
 
 ## Open decisions
 

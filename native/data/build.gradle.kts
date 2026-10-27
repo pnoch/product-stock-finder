@@ -24,6 +24,10 @@ kotlin {
         }
         commonTest.dependencies { implementation(kotlin("test")) }
         jvmMain.dependencies { implementation(libs.sqldelight.sqlite) }
+        jvmTest.dependencies {
+            implementation(libs.bouncycastle.prov)
+            implementation(libs.bouncycastle.pkix)
+        }
         iosMain.dependencies { implementation(libs.sqldelight.native) }
         androidMain.dependencies { implementation(libs.sqldelight.android) }
     }

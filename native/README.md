@@ -22,8 +22,10 @@ not the complete Phase 1 release from the master product brief.
   aggregates** (order + items + shipments + allocations + events + returns):
   `sync_meta`, aggregate payloads, LWW with device-id tie-break, tombstones and
   cursors, all transactional. Remote order updates preserve local private
-  address/receipt fields. There is **no transport, pairing, Devices UI or iOS
-  sync yet**, and the app does not claim to be synchronized.
+  address/receipt fields. A JVM loopback TLS proof now covers mutually
+  authenticated self-signed certificates, pinning and framed exchange (with a
+  wrong-pin rejection test). There is still **no production transport, pairing,
+  Devices UI or iOS sync**, and the app does not claim to be synchronized.
 - CSV order import with a review-before-import dialog. Required columns are
   `merchant`, `order_id`, `currency`, `item_title` and `quantity`; optional
   columns cover dates, scale, item prices and order totals. Conflicting
