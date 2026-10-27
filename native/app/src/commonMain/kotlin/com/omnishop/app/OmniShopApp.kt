@@ -2,6 +2,8 @@ package com.omnishop.app
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -74,7 +76,10 @@ fun OmniShopApp(
                                 Label.SEARCH -> SearchScreen(language, open)
                                 Label.SAVED -> SavedScreen(state, presenter, open) { tab = Label.ORDERS }
                                 Label.ORDERS -> OrdersScreen(state, presenter, privateService, carrierSettings, carriers, receiptService, files, open)
-                                Label.PROFILE -> Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                Label.PROFILE -> Column(
+                                    Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                ) {
                                     Text(language.text(Label.LOCAL_FIRST))
                                     Text(language.text(Label.NATIVE_PREVIEW), style = MaterialTheme.typography.titleMedium)
                                     Text(language.text(Label.NO_LIVE_API))

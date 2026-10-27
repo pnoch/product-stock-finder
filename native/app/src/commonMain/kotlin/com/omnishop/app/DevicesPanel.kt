@@ -71,7 +71,7 @@ internal fun DevicesPanel(language: AppLanguage, service: SyncService) {
                 }
                 working = false
             }
-        }) { Text(language.text(Label.PAIRED)) }
+        }) { Text(language.text(Label.PAIR)) }
         Text(language.text(Label.PAIRED_DEVICES), style = MaterialTheme.typography.titleSmall)
         if (peers.isEmpty()) Text(language.text(Label.NO_PEERS))
         peers.forEach { peer ->

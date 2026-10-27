@@ -42,6 +42,7 @@ class TlsSyncService(
     private val secrets: SecretStore,
     private val crypto: BackupCrypto,
     port: Int = DEFAULT_PORT,
+    private val advertisedHost: String? = null,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : SyncService {
     private val identity = loadOrCreateIdentity()
@@ -72,7 +73,7 @@ class TlsSyncService(
         pairingSecret = secret
         pairingExpiresAt = expires
         val payload = PairingPayload(
-            VERSION, identity.deviceId, identity.fingerprint, lanHost(), server.localPort,
+            VERSION, identity.deviceId, identity.fingerprint, advertisedHost ?: lanHost(), server.localPort,
             secret, expires,
         )
         val code = Base64.getUrlEncoder().withoutPadding().encodeToString(

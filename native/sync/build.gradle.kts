@@ -31,3 +31,10 @@ kotlin {
         }
     }
 }
+
+tasks.register<JavaExec>("runSyncHarness") {
+    group = "verification"
+    val testCompilation = kotlin.targets.getByName("jvm").compilations.getByName("test")
+    classpath = files(testCompilation.output.allOutputs, testCompilation.runtimeDependencyFiles)
+    mainClass.set("com.omnishop.sync.SyncHarnessKt")
+}

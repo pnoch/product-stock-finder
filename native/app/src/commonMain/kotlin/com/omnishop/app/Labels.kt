@@ -31,7 +31,7 @@ enum class Label {
     SYNC_EXPORTED, SYNC_IMPORTED, SYNC_IMPORT_FAILED, SYNC_CANCELLED,
     DEVICES, THIS_DEVICE, PAIR_DEVICE, PAIRING_CODE, PAIRING_CODE_HINT, JOIN_WITH_CODE,
     PAIRED_DEVICES, NO_PEERS, SYNC_NOW, REVOKE, PAIRED, SYNC_DONE, SYNC_FAILED, PAIR_FAILED,
-    DEVICE_ID, LAST_SYNC, PEER_SYNC_NOTE,
+    DEVICE_ID, LAST_SYNC, PEER_SYNC_NOTE, PAIR,
     IMPORT_BUTTON, IMPORT_DONE, IMPORT_FAILED, CSV_COLUMNS_HINT, IMPORT_CANCELLED,
 }
 
@@ -49,7 +49,7 @@ private val english = mapOf(
     Label.METADATA_UNAVAILABLE to "Bookmark only — metadata not fetched",
     Label.LOCAL_FIRST to "Stored on this device. No OmniShop account or server required.",
     Label.LANGUAGE to "Language", Label.MANUAL_EVENT to "Manual event", Label.NATIVE_PREVIEW to "Native foundation preview",
-    Label.NO_LIVE_API to "Live marketplace APIs, carrier refresh and device sync are not connected in this preview.",
+    Label.NO_LIVE_API to "Live marketplace APIs and carrier refresh are not connected in this preview.",
     Label.NO_EVENTS to "No recorded events", Label.NO_SHIPMENTS to "No packages attached",
     Label.ITEM to "Item", Label.DELIVERY_PROGRESS to "Delivery progress", Label.MORE to "More",
     Label.FREE_TO_START to "Shop everywhere. Track locally.",
@@ -120,6 +120,7 @@ private val english = mapOf(
     Label.SYNC_FAILED to "Sync failed:", Label.PAIR_FAILED to "Pairing failed:",
     Label.DEVICE_ID to "Device id", Label.LAST_SYNC to "Last sync",
     Label.PEER_SYNC_NOTE to "Direct TLS with pinned device certificates. No OmniShop server or account is involved.",
+    Label.PAIR to "Pair",
 )
 
 private val thai = mapOf(
@@ -207,6 +208,7 @@ private val thai = mapOf(
     Label.SYNC_FAILED to "ซิงก์ไม่สำเร็จ:", Label.PAIR_FAILED to "จับคู่ไม่สำเร็จ:",
     Label.DEVICE_ID to "รหัสอุปกรณ์", Label.LAST_SYNC to "ซิงก์ล่าสุด",
     Label.PEER_SYNC_NOTE to "เชื่อมต่อ TLS โดยตรงด้วยใบรับรองอุปกรณ์ที่ปักหมุดไว้ ไม่มีเซิร์ฟเวอร์หรือบัญชี OmniShop",
+    Label.PAIR to "จับคู่",
 )
 
 fun AppLanguage.text(label: Label): String = (if (this == AppLanguage.THAI) thai else english).getValue(label)
