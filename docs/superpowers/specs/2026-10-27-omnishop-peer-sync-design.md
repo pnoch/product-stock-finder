@@ -3,9 +3,9 @@
 Date: 2026-10-27
 
 Status: approved. Implementation is staged. The record engine for settings,
-watchlist and order aggregates is implemented, plus a manual encrypted sync
-package and a JVM loopback TLS proof. Production pairing/transport, Devices UI
-and iOS transport are not yet implemented.
+watchlist and order aggregates, a manual encrypted sync package, and a desktop
+JVM TLS peer transport with pairing/Devices UI are implemented. Android/iOS
+transport, QR/mDNS/SAS and attachment sync are not yet implemented.
 
 ## Goal
 
@@ -27,9 +27,10 @@ or conflict handling.
    remote order update.
 3. **Manual encrypted sync package (implemented interim):** export/import with a
    password and LWW merge; not peer-to-peer and no device identity.
-4. **Identity/pairing/transport (next):** device identity, QR/manual pairing,
-   TLS 1.3 pinned transport, Devices UI, selective sync/revocation.
-5. **iOS transport, attachments, background sync.**
+4. **Desktop identity/pairing/transport (implemented):** EC P-256 self-signed
+   identity, manual one-time pairing code, pinned TLS server/client, peer store,
+   Devices UI and revocation. Android/iOS use an explicit unavailable service.
+5. **Android/iOS transport, QR/mDNS/SAS, attachments, background sync (next).**
 
 The original first-milestone scope below is the target for the transport stage;
 it is not claimed as complete by the record engine alone.
@@ -253,10 +254,15 @@ device creates a new identity and requires re-pairing.
 - A manual encrypted sync package (`SyncPackageService`) exports current records
   (including tombstones) and LWW-merges them on import. It is a user-mediated file,
   not peer-to-peer, and creates no device identity or trust.
-- Tests: 108 native tests pass, including sync LWW/tombstones/cursors, malformed
+- Desktop `TlsSyncService` binds port 8787, creates/loads a PKCS12 identity in
+  SecretStore, emits a one-time manual pairing code (5 minutes), pins the peer
+  certificate, stores peers in SecretStore, syncs both ways and supports
+  revocation. Android/iOS use `UnavailableSyncService`; there is no QR, mDNS,
+  SAS, background sync or attachment transfer yet.
+- Tests: 110 native tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
-  preservation, the 4→5 migration, the TLS pinning proof and sync-package
-  merge/idempotency/wrong-password tests.
+  preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
+  sync-package merge/idempotency/wrong-password tests.
 
 ## Open decisions
 

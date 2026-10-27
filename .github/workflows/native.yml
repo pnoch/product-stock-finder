@@ -37,7 +37,7 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
       - name: Verify shared rules, SQLite and presentation
-        run: ./gradlew :core:jvmTest :connectors:jvmTest :carriers:jvmTest :data:jvmTest :app:jvmTest :data:verifyCommonMainOmniShopDatabaseMigration --console=plain
+        run: ./gradlew :core:jvmTest :connectors:jvmTest :carriers:jvmTest :data:jvmTest :app:jvmTest :sync:test :data:verifyCommonMainOmniShopDatabaseMigration --console=plain
       - name: Compile desktop and build Android preview
         run: ./gradlew :desktopApp:classes :androidApp:assembleDebug --console=plain
       - uses: actions/upload-artifact@v4

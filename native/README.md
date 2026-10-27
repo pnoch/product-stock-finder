@@ -26,8 +26,10 @@ not the complete Phase 1 release from the master product brief.
   that exports current records and LWW-merges them on another device (settings,
   watchlist and orders). A JVM loopback TLS proof covers mutually authenticated
   self-signed certificates, pinning and framed exchange. There is still **no
-  production peer transport, pairing, Devices UI or iOS sync**, and the app does
-  not claim to be peer-synchronized.
+  production peer transport, pairing, Devices UI or iOS sync** on Android/iOS,
+  and the app does not claim cross-platform peer sync. **Desktop (JVM)** now has
+  a real TLS peer transport: EC P-256 identity, manual one-time pairing code,
+  certificate pinning, peer store, Devices UI and revocation.
 - CSV order import with a review-before-import dialog. Required columns are
   `merchant`, `order_id`, `currency`, `item_title` and `quantity`; optional
   columns cover dates, scale, item prices and order totals. Conflicting
@@ -217,10 +219,10 @@ Linux packaged executable:
 
 | Platform | Current evidence |
 | --- | --- |
-| Android | Debug and release-signed APKs built; the release build was exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades. Signature `CN=Product Stock Finder`, package `.nativepreview`, versionCode 1 / versionName 0.1.0. Encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). Carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URLs and receipts are unit-tested; receipt file picker is not automated |
-| JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb) and backup uses a native file dialog (unit-tested) |
+| Android | Debug and release-signed APKs built; peer sync is explicitly unavailable (the transport is JVM/desktop-only). The release build was exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades. Signature `CN=Product Stock Finder`, package `.nativepreview`, versionCode 1 / versionName 0.1.0. Encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). Carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URLs and receipts are unit-tested; receipt file picker is not automated |
+| JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; TLS peer sync server/client, pairing, peer store and revocation are implemented and loopback-tested. Address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb); backup uses a native file dialog |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
-| iOS | XcodeGen host builds and launches in a simulator on macOS CI; Compose UI renders, SQLite opens, CryptoKit backs backup/address encryption, Keychain stores the device key, and the document picker is wired. No device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
+| iOS | Peer sync is explicitly unavailable. XcodeGen host builds and launches in a simulator on macOS CI; Compose UI renders, SQLite opens, CryptoKit backs backup/address encryption, Keychain stores the device key, and the document picker is wired. No device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
 
 `.github/workflows/native.yml` gates Android/JVM tests, the debug APK, the iOS
 simulator framework link, and an iOS simulator build/launch with a rendered-frame
@@ -390,8 +392,8 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Finish peer sync: device identity, QR/manual pairing, TLS 1.3 transport,
-   Devices UI/revocation, then iOS transport and attachments.
+1. Finish peer sync: Android transport, QR/mDNS and SAS confirmation, iOS
+   transport, then attachment sync.
 2. Add PDF text extraction/OCR and email receipt import on top of the encrypted
    attachments, then reconcile totals against original payments.
 3. Verify the Thailand Post adapter against a real account/tracking number, then

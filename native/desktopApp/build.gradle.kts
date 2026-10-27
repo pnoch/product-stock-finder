@@ -11,6 +11,7 @@ kotlin { jvmToolchain(21) }
 dependencies {
     implementation(project(":app"))
     implementation(project(":data"))
+    implementation(project(":sync"))
     implementation(project(":connectors"))
     implementation(compose.desktop.currentOs)
     implementation(libs.coroutines.swing)

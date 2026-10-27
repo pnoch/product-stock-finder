@@ -29,6 +29,9 @@ enum class Label {
     COMPUTED_TOTAL, TOTAL_MISMATCH,
     SYNC_PACKAGE, EXPORT_SYNC, IMPORT_SYNC, SYNC_PACKAGE_NOTE, SYNC_PACKAGE_PASSWORD,
     SYNC_EXPORTED, SYNC_IMPORTED, SYNC_IMPORT_FAILED, SYNC_CANCELLED,
+    DEVICES, THIS_DEVICE, PAIR_DEVICE, PAIRING_CODE, PAIRING_CODE_HINT, JOIN_WITH_CODE,
+    PAIRED_DEVICES, NO_PEERS, SYNC_NOW, REVOKE, PAIRED, SYNC_DONE, SYNC_FAILED, PAIR_FAILED,
+    DEVICE_ID, LAST_SYNC, PEER_SYNC_NOTE,
     IMPORT_BUTTON, IMPORT_DONE, IMPORT_FAILED, CSV_COLUMNS_HINT, IMPORT_CANCELLED,
 }
 
@@ -109,6 +112,14 @@ private val english = mapOf(
     Label.SYNC_PACKAGE_PASSWORD to "Sync package password",
     Label.SYNC_EXPORTED to "Sync package saved.", Label.SYNC_IMPORTED to "Sync records merged:",
     Label.SYNC_IMPORT_FAILED to "Sync import failed:", Label.SYNC_CANCELLED to "Sync cancelled.",
+    Label.DEVICES to "Devices", Label.THIS_DEVICE to "This device", Label.PAIR_DEVICE to "Pair a device",
+    Label.PAIRING_CODE to "Pairing code", Label.PAIRING_CODE_HINT to "Enter this one-time code on the other device. It expires in five minutes.",
+    Label.JOIN_WITH_CODE to "Join with a code", Label.PAIRED_DEVICES to "Paired devices",
+    Label.NO_PEERS to "No paired devices.", Label.SYNC_NOW to "Sync now", Label.REVOKE to "Revoke",
+    Label.PAIRED to "Device paired.", Label.SYNC_DONE to "Sync complete. Applied:",
+    Label.SYNC_FAILED to "Sync failed:", Label.PAIR_FAILED to "Pairing failed:",
+    Label.DEVICE_ID to "Device id", Label.LAST_SYNC to "Last sync",
+    Label.PEER_SYNC_NOTE to "Direct TLS with pinned device certificates. No OmniShop server or account is involved.",
 )
 
 private val thai = mapOf(
@@ -188,6 +199,14 @@ private val thai = mapOf(
     Label.SYNC_PACKAGE_PASSWORD to "รหัสผ่านแพ็กเกจซิงก์",
     Label.SYNC_EXPORTED to "บันทึกแพ็กเกจซิงก์แล้ว", Label.SYNC_IMPORTED to "จำนวนรายการที่รวม:",
     Label.SYNC_IMPORT_FAILED to "นำเข้าแพ็กเกจซิงก์ไม่สำเร็จ:", Label.SYNC_CANCELLED to "ยกเลิกการซิงก์",
+    Label.DEVICES to "อุปกรณ์", Label.THIS_DEVICE to "อุปกรณ์นี้", Label.PAIR_DEVICE to "จับคู่อุปกรณ์",
+    Label.PAIRING_CODE to "รหัสจับคู่", Label.PAIRING_CODE_HINT to "กรอกรหัสใช้ครั้งเดียวนี้บนอุปกรณ์อีกเครื่อง รหัสจะหมดอายุในห้านาที",
+    Label.JOIN_WITH_CODE to "เข้าร่วมด้วยรหัส", Label.PAIRED_DEVICES to "อุปกรณ์ที่จับคู่แล้ว",
+    Label.NO_PEERS to "ยังไม่มีอุปกรณ์ที่จับคู่", Label.SYNC_NOW to "ซิงก์ตอนนี้", Label.REVOKE to "เพิกถอน",
+    Label.PAIRED to "จับคู่อุปกรณ์แล้ว", Label.SYNC_DONE to "ซิงก์เสร็จ จำนวนที่นำมาใช้:",
+    Label.SYNC_FAILED to "ซิงก์ไม่สำเร็จ:", Label.PAIR_FAILED to "จับคู่ไม่สำเร็จ:",
+    Label.DEVICE_ID to "รหัสอุปกรณ์", Label.LAST_SYNC to "ซิงก์ล่าสุด",
+    Label.PEER_SYNC_NOTE to "เชื่อมต่อ TLS โดยตรงด้วยใบรับรองอุปกรณ์ที่ปักหมุดไว้ ไม่มีเซิร์ฟเวอร์หรือบัญชี OmniShop",
 )
 
 fun AppLanguage.text(label: Label): String = (if (this == AppLanguage.THAI) thai else english).getValue(label)

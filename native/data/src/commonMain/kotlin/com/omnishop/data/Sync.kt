@@ -3,7 +3,7 @@ package com.omnishop.data
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-data class SyncCursor(val updatedAt: Long, val originDevice: String, val id: String) {
+@Serializable data class SyncCursor(val updatedAt: Long, val originDevice: String, val id: String) {
     companion object {
         val START = SyncCursor(0, "", "")
     }
@@ -31,7 +31,7 @@ data class SyncMeta(
     val changes: List<SyncChange>,
 )
 
-data class SyncBatch(val changes: List<SyncChange>, val cursor: SyncCursor)
+@Serializable data class SyncBatch(val changes: List<SyncChange>, val cursor: SyncCursor)
 
 @Serializable data class SyncProduct(
     val id: String, val title: String, val sourceUrl: String?, val savedAt: Long,

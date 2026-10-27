@@ -159,7 +159,7 @@ foundation plan.
 
 ## Execution record
 
-- Native tests: 108 passed, zero failures/errors across core, connectors, carriers, data,
+- Native tests: 110 passed, zero failures/errors across core, connectors, carriers, data,
   and presentation. SQLite migration verification passed.
 - Android debug APK built. The emulator smoke exercises saved offers, split
   delivery, force-stop/restart, Thai selection and a second restart.
@@ -226,8 +226,9 @@ foundation plan.
   LWW/tombstones/cursors, malformed-payload rejection, private-field preservation
   and migration tests. A JVM loopback TLS proof covers mutual auth, pinning and
   framed exchange; a manual encrypted sync package exports/merges settings,
-  watchlist and orders with LWW. Production pairing/transport, Devices UI,
-  attachments and iOS sync are still missing.
+  watchlist and orders with LWW. Desktop now has a real TLS transport with
+  manual pairing, peer store, Devices UI and revocation. Android/iOS transports,
+  QR/mDNS/SAS, attachments and background sync are still missing.
 - Android smoke still covers the existing purchase/delivery/return flow; receipt
   file-picker interaction is unit-tested only.
 - A release-signed native APK (existing keystore, CN=Product Stock Finder,

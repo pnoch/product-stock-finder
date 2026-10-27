@@ -26,6 +26,7 @@ fun OmniShopApp(
     privateService: com.omnishop.data.OrderPrivateService,
     receiptService: com.omnishop.data.ReceiptService,
     syncPackages: com.omnishop.data.SyncPackageService,
+    syncService: com.omnishop.data.SyncService,
     carrierSettings: com.omnishop.data.CarrierSettings,
     carriers: List<com.omnishop.carriers.CarrierAdapter>,
     files: BackupFiles,
@@ -90,6 +91,7 @@ fun OmniShopApp(
                                     CarrierSettingsPanel(language, carrierSettings)
                                     BackupPanel(language, backup, files) { scope.launch { presenter.refresh() } }
                                     SyncPackagePanel(language, syncPackages, files) { scope.launch { presenter.refresh() } }
+                                    DevicesPanel(language, syncService)
                                 }
                                 else -> Unit
                             }

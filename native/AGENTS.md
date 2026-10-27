@@ -25,14 +25,17 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   signing keys, build output, or Gradle caches. SQLDelight `databases/*.db`
   files are empty schema snapshots, not exported user databases; retain the
   previous snapshot and add a numbered `.sqm` migration for schema changes.
-- Sync is staged: the `settings`/`watchlist`/`orders` record engine and a manual
-  encrypted sync package exist. Every
+- Sync is staged: the `settings`/`watchlist`/`orders` record engine, a manual
+  encrypted sync package, and a **desktop-only** TLS peer transport exist. Every
   syncable write updates `sync_meta` in the same transaction; remote changes use
   LWW `(updated_at, origin_device)` and tombstones, and are applied with payload
   validation in one transaction. Never mark a UI as synced, claim peer transport,
   or include `sync_meta` in backups until identity/pairing/TLS and order sync
   actually exist. The manual sync package is an encrypted file with LWW merge,
-  not peer-to-peer, and must not be labeled as automatic/peer sync. Order sync
+  not peer-to-peer, and must not be labeled as automatic/peer sync. The desktop
+  JVM transport is real (TLS, pinned certs, pairing, Devices UI, revocation);
+  Android/iOS must keep `UnavailableSyncService` until their transports exist,
+  and the UI must not claim cross-platform sync. Order sync
   replaces child items/shipments/events/returns but
   must preserve local private fields (address/receipts) by updating the order row
   instead of deleting it. `origin_device` is `"local"` until a real device
