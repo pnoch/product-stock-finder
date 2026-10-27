@@ -274,8 +274,9 @@ device creates a new identity and requires re-pairing.
   endpoint and expiry; the joiner enters the short pairing secret shown by the
   host. No secret is broadcast. iOS has no Bonjour discovery. Android compiles and
   runs the same code; iOS uses `UnavailableSyncService`. An Android↔desktop runtime
-  pairing attempt on a dedicated AVD was blocked by adb/emulator hangs, so the
-  Android runtime proof remains open. Receipt attachments sync through the same
+  pairing attempt exposed duplicate `MainActivity` instances holding port 8787;
+  `MainActivity` is now `singleTask` and `adb reverse` is verified, but the
+  end-to-end runtime proof remains open. Receipt attachments sync through the same
   encrypted payload. Android schedules WorkManager sync every six hours; desktop
   syncs periodically while open; iOS has no background sync.
 - Tests: 115 native tests pass, including sync LWW/tombstones/cursors, malformed

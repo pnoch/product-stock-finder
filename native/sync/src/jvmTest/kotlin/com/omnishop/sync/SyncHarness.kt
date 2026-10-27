@@ -18,7 +18,8 @@ private class HarnessSecrets : SecretStore {
 fun main() {
     val store = ShoppingStore.inMemory("desktop-harness")
     store.saveProduct(SavedProduct("harness-product", "HARNESS DESKTOP PRODUCT", null, System.currentTimeMillis()))
-    val service = TlsSyncService(store, HarnessSecrets(), JcaBackupCrypto(), enableDiscovery = false, port = 8790, advertisedHost = "127.0.0.1")
+    val host = System.getenv("PSF_HARNESS_HOST") ?: "127.0.0.1"
+    val service = TlsSyncService(store, HarnessSecrets(), JcaBackupCrypto(), enableDiscovery = false, port = 8790, advertisedHost = host)
     val code = runBlocking { service.createPairing() }
     File("/tmp/opencode/omnishop-sync-code.txt").writeText(code.code)
     println("PAIRING_READY")
