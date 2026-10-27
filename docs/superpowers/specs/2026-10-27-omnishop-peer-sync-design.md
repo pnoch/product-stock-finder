@@ -261,8 +261,10 @@ device creates a new identity and requires re-pairing.
   creates/loads a PKCS12 identity in SecretStore, emits a one-time manual pairing
   code (5 minutes), pins the peer certificate, stores peers in SecretStore, syncs
   both ways and supports revocation. Android compiles and runs the same code; iOS
-  uses `UnavailableSyncService`. There is no QR, mDNS, SAS, background sync or
-  attachment transfer yet.
+  uses `UnavailableSyncService`. An Android↔desktop runtime pairing attempt on a
+  dedicated AVD was blocked by adb/emulator hangs, so the Android runtime proof
+  remains open. There is no QR, mDNS, SAS, background sync or attachment transfer
+  yet.
 - Tests: 110 native tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and

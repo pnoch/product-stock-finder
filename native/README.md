@@ -31,7 +31,8 @@ not the complete Phase 1 release from the master product brief.
   TLS peer transport: EC P-256 identity, manual one-time pairing code,
   certificate pinning, peer store, Devices UI and revocation. The transport is
   loopback-tested on JVM and compiled for Android; an Android↔desktop pairing
-  run has not been automated.
+  attempt on a dedicated AVD was blocked by adb/emulator hangs and remains
+  unproven.
 - CSV order import with a review-before-import dialog. Required columns are
   `merchant`, `order_id`, `currency`, `item_title` and `quantity`; optional
   columns cover dates, scale, item prices and order totals. Conflicting

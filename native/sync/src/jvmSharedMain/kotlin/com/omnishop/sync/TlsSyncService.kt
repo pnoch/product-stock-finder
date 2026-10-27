@@ -203,7 +203,9 @@ class TlsSyncService(
 
     private fun connect(host: String, port: Int, pinnedFingerprint: String): SSLSocket {
         val context = clientContext(identity, pinnedFingerprint)
-        return context.socketFactory.createSocket(host, port) as SSLSocket
+        return (context.socketFactory.createSocket(host, port) as SSLSocket).apply {
+            soTimeout = 15_000
+        }
     }
 
     private fun connectFromEndpoint(endpoint: String, pinnedFingerprint: String): SSLSocket {
