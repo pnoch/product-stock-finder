@@ -57,7 +57,7 @@ jobs:
           & $sdk.FullName --licenses
           & $sdk.FullName "platforms;android-37.0" "build-tools;37.0.0"
       - name: Test shared layers
-        run: ./gradlew :core:jvmTest :connectors:jvmTest :carriers:jvmTest :data:jvmTest :app:jvmTest :sync:test --console=plain
+        run: ./gradlew :core:jvmTest :connectors:jvmTest :carriers:jvmTest :data:jvmTest :app:jvmTest :sync:jvmTest --console=plain
       - name: Package the desktop app
         run: ./gradlew :desktopApp:createDistributable --console=plain
       - name: Show packaging logs on failure

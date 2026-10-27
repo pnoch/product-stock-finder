@@ -226,9 +226,10 @@ foundation plan.
   LWW/tombstones/cursors, malformed-payload rejection, private-field preservation
   and migration tests. A JVM loopback TLS proof covers mutual auth, pinning and
   framed exchange; a manual encrypted sync package exports/merges settings,
-  watchlist and orders with LWW. Desktop now has a real TLS transport with
-  manual pairing, peer store, Devices UI and revocation. Android/iOS transports,
-  QR/mDNS/SAS, attachments and background sync are still missing.
+  watchlist and orders with LWW. Desktop and Android now share a real TLS
+  transport with manual pairing, peer store, Devices UI and revocation. iOS
+  transport, QR/mDNS/SAS, Android runtime pairing proof, attachments and
+  background sync are still missing.
 - Android smoke still covers the existing purchase/delivery/return flow; receipt
   file-picker interaction is unit-tested only.
 - A release-signed native APK (existing keystore, CN=Product Stock Finder,

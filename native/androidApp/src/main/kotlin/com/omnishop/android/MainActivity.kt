@@ -12,7 +12,9 @@ import com.omnishop.data.BackupService
 import com.omnishop.data.CarrierSettings
 import com.omnishop.data.ReceiptService
 import com.omnishop.data.SyncPackageService
+import com.omnishop.data.SyncService
 import com.omnishop.data.UnavailableSyncService
+import com.omnishop.sync.TlsSyncService
 import com.omnishop.data.OrderPrivateService
 import com.omnishop.data.security.JcaBackupCrypto
 import com.omnishop.data.ShoppingStore
@@ -21,6 +23,7 @@ import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private lateinit var store: ShoppingStore
+    private lateinit var syncService: SyncService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +35,8 @@ class MainActivity : ComponentActivity() {
         val carrierSettings = CarrierSettings(secrets)
         val receiptService = ReceiptService(privateService, { UUID.randomUUID().toString() })
         val syncPackages = SyncPackageService(store, crypto)
-        val syncService = UnavailableSyncService()
+        syncService = runCatching { TlsSyncService(store, secrets, crypto) }
+            .getOrElse { UnavailableSyncService("Peer sync unavailable: ${it.message}") }
         val backup = BackupService(store, crypto, privateService)
         val backupFiles = AndroidBackupFiles(this)
         setContent {
@@ -47,6 +51,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        syncService.close()
         store.close()
     }
 }

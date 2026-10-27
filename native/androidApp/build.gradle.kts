@@ -23,5 +23,6 @@ android {
 dependencies {
     implementation(project(":app"))
     implementation(project(":data"))
+    implementation(project(":sync"))
     implementation(libs.activity.compose)
 }
