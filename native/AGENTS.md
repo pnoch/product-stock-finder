@@ -35,7 +35,8 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   sync. The JVM/Android transport is real (TLS, pinned certs, pairing, Devices UI,
   revocation); the Android runtime pairing proof is still open. iOS must keep
   `UnavailableSyncService` until its Network.framework transport exists, and the
-  UI must not claim iOS or background sync. Order sync replaces child
+  UI must not claim iOS or iOS background sync. Android uses WorkManager and
+  desktop syncs periodically while open. Order sync replaces child
   items/shipments/events/returns but must preserve local private fields
   (address/receipts) by updating the order row instead of deleting it.
   `origin_device` still defaults to `"local"` until a real device identity is

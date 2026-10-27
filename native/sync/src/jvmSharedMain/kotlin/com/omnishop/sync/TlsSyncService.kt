@@ -47,32 +47,41 @@ class TlsSyncService(
     receipts: ReceiptService? = null,
     private val displayName: String = "Desktop",
     enableDiscovery: Boolean = true,
+    enableServer: Boolean = true,
     port: Int = DEFAULT_PORT,
     private val advertisedHost: String? = null,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : SyncService {
     private val identity = loadOrCreateIdentity()
     private val engine = SyncEngine(store, receipts)
-    private val server: SSLServerSocket
+    private val server: SSLServerSocket?
     private val discovery: MdnsDiscovery?
-    private val serverThread: Thread
+    private val serverThread: Thread?
     private var pairingSecret: String? = null
     private var pairingExpiresAt: Long = 0
 
     init {
-        val context = serverContext(identity)
-        server = context.serverSocketFactory.createServerSocket(port) as SSLServerSocket
-        server.needClientAuth = true
-        server.soTimeout = 2_000
-        server.reuseAddress = true
-        discovery = if (enableDiscovery) {
+        if (enableServer) {
+            val context = serverContext(identity)
+            server = context.serverSocketFactory.createServerSocket(port) as SSLServerSocket
+            server.needClientAuth = true
+            server.soTimeout = 2_000
+            server.reuseAddress = true
+        } else {
+            server = null
+        }
+        discovery = if (enableDiscovery && server != null) {
             runCatching {
-                MdnsDiscovery(identity.deviceId, displayName, identity.fingerprint, server.localPort, now)
+                MdnsDiscovery(identity.deviceId, displayName, identity.fingerprint, requireNotNull(server).localPort, now)
             }.getOrNull()
         } else {
             null
         }
-        serverThread = thread(isDaemon = true, name = "omnishop-sync-server") { acceptLoop() }
+        serverThread = if (server != null) {
+            thread(isDaemon = true, name = "omnishop-sync-server") { acceptLoop() }
+        } else {
+            null
+        }
     }
 
     override fun thisDevice(): SyncDeviceInfo =
@@ -90,8 +99,8 @@ class TlsSyncService(
         pairingSecret = secret
         pairingExpiresAt = expires
         val payload = PairingPayload(
-            VERSION, identity.deviceId, identity.fingerprint, advertisedHost ?: lanHost(), server.localPort,
-            secret, expires,
+            VERSION, identity.deviceId, identity.fingerprint, advertisedHost ?: lanHost(),
+            server?.localPort ?: error("Pairing server is unavailable"), secret, expires,
         )
         val code = Base64.getUrlEncoder().withoutPadding().encodeToString(
             json.encodeToString(PairingPayload.serializer(), payload).encodeToByteArray(),
@@ -166,14 +175,15 @@ class TlsSyncService(
     override fun close() {
         pairingSecret = null
         discovery?.close()
-        runCatching { server.close() }
-        serverThread.join(1_000)
+        runCatching { server?.close() }
+        serverThread?.join(1_000)
     }
 
     private fun acceptLoop() {
-        while (!server.isClosed) {
+        val listener = server ?: return
+        while (!listener.isClosed) {
             try {
-                (server.accept() as SSLSocket).use(::handle)
+                (listener.accept() as SSLSocket).use(::handle)
             } catch (_: SocketException) {
                 return
             } catch (_: Exception) {

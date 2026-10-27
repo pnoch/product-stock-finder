@@ -67,6 +67,28 @@ class TlsSyncServiceTest {
         }
     }
 
+    @Test fun clientOnlyServiceSyncsWithoutListening() = runBlocking {
+        ShoppingStore.inMemory("a") { 300 }.use { aStore ->
+            ShoppingStore.inMemory("b") { 300 }.use { bStore ->
+                val a = TlsSyncService(aStore, MemorySecrets(), JcaBackupCrypto(), enableDiscovery = false, port = 0) { 300 }
+                val b = TlsSyncService(
+                    bStore, MemorySecrets(), JcaBackupCrypto(),
+                    enableDiscovery = false, enableServer = false, port = 0,
+                ) { 300 }
+                try {
+                    val code = a.createPairing()
+                    assertIs<SyncResult.Success>(b.pair(code.code))
+                    aStore.setPreference("language", "THAI")
+                    assertIs<SyncResult.Success>(b.sync(a.thisDevice().deviceId))
+                    assertEquals("THAI", bStore.preference("language"))
+                } finally {
+                    a.close()
+                    b.close()
+                }
+            }
+        }
+    }
+
     @Test fun rejectsMalformedPairingCodes() = runBlocking {
         ShoppingStore.inMemory("a") { 300 }.use { store ->
             val service = TlsSyncService(store, MemorySecrets(), JcaBackupCrypto(), enableDiscovery = false, port = 0) { 300 }

@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SyncWorkScheduler.schedule(applicationContext)
         val wifi = applicationContext.getSystemService(WIFI_SERVICE) as? WifiManager
         multicastLock = wifi?.createMulticastLock("omnishop-mdns")?.apply {
             setReferenceCounted(false)

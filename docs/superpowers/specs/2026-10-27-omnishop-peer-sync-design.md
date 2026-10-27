@@ -6,8 +6,9 @@ Status: approved. Implementation is staged. The record engine for settings,
 watchlist, order aggregates and encrypted receipt attachments, a manual
 encrypted sync package, and a desktop + Android TLS peer transport with
 pairing/Devices UI, SAS confirmation, QR pairing (display everywhere, Android
-scan) and JVM/Android mDNS discovery are implemented. iOS transport, iOS Bonjour
-discovery and the Android runtime pairing proof remain open.
+scan), JVM/Android mDNS discovery and Android/desktop periodic sync are
+implemented. iOS transport, iOS Bonjour/background sync and the Android runtime
+pairing proof remain open.
 
 ## Goal
 
@@ -33,9 +34,10 @@ or conflict handling.
    self-signed identity, manual one-time pairing code, pinned TLS server/client,
    peer store, Devices UI and revocation. iOS uses an explicit unavailable
    service.
-5. **iOS transport, iOS Bonjour discovery, Android runtime pairing proof and
-   background sync (next).** QR pairing, SAS confirmation, JVM/Android mDNS
-   discovery and encrypted receipt attachment sync are implemented.
+5. **iOS transport, iOS Bonjour discovery, iOS background sync and the Android
+   runtime pairing proof (next).** QR pairing, SAS confirmation, JVM/Android mDNS
+   discovery, Android WorkManager/desktop periodic sync and encrypted receipt
+   attachment sync are implemented.
 
 The original first-milestone scope below is the target for the transport stage;
 it is not claimed as complete by the record engine alone.
@@ -48,7 +50,8 @@ it is not claimed as complete by the record engine alone.
 - Record-level sync of watchlist, alerts, reminders and settings.
 - Deterministic conflict resolution and tombstones.
 - Device revocation and selective collection sync.
-- No cloud fallback, no account, no background sync while the app is closed.
+- No cloud fallback, no account. Android schedules periodic WorkManager sync; iOS
+  has no sync while the app is closed.
 
 Explicitly out of scope for the first milestone:
 
@@ -273,8 +276,9 @@ device creates a new identity and requires re-pairing.
   runs the same code; iOS uses `UnavailableSyncService`. An Android↔desktop runtime
   pairing attempt on a dedicated AVD was blocked by adb/emulator hangs, so the
   Android runtime proof remains open. Receipt attachments sync through the same
-  encrypted payload; there is no background sync yet.
-- Tests: 114 native tests pass, including sync LWW/tombstones/cursors, malformed
+  encrypted payload. Android schedules WorkManager sync every six hours; desktop
+  syncs periodically while open; iOS has no background sync.
+- Tests: 115 native tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.

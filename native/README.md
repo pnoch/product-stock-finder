@@ -98,9 +98,9 @@ account, marketplace account connections, email/PDF parsing and OCR (manual
 receipt attachments are implemented), automatic metadata extraction, automatic
 product matching, automated returns/refunds,
 cart/checkout, local notifications/background scheduling, iOS peer transport,
-mDNS/Bonjour discovery, iOS/desktop QR scanning, background sync, iOS background
-tasks/share extensions,
-signing/notarization, and additional sensitive fields are subsequent milestones.
+iOS Bonjour discovery, iOS/desktop QR scanning, iOS background tasks/share
+extensions, signing/notarization, and additional sensitive fields are subsequent
+milestones.
 
 The development SQLite database is not encrypted as a whole. The shipping
 address and receipt contents are stored as authenticated ciphertext under the
@@ -400,7 +400,8 @@ and it does not provide key escrow. Keep the password out of the backup file.
 1. Finish peer sync: iOS transport, iOS Bonjour discovery, then Android↔desktop
    runtime verification. QR pairing, SAS confirmation, JVM/Android mDNS discovery
    with short-secret nearby pairing, and encrypted receipt attachment sync are
-   implemented; the mDNS/Android runtime path is not device-tested.
+   implemented. Android runs a WorkManager peer sync every six hours; desktop
+   syncs periodically while open. The mDNS/Android runtime path is not device-tested.
 2. Add PDF text extraction/OCR and email receipt import on top of the encrypted
    attachments, then reconcile totals against original payments.
 3. Verify the Thailand Post adapter against a real account/tracking number, then

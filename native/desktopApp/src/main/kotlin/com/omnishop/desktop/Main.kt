@@ -13,6 +13,13 @@ import com.omnishop.data.ReceiptService
 import com.omnishop.data.SyncPackageService
 import com.omnishop.data.UnavailableSyncService
 import com.omnishop.sync.TlsSyncService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import com.omnishop.data.OrderPrivateService
 import com.omnishop.data.security.JcaBackupCrypto
 import com.omnishop.connectors.validatedBookmarkUrl
@@ -44,6 +51,15 @@ fun main() {
         val syncService = runCatching { TlsSyncService(store, secrets, crypto, receiptService) }
             .getOrElse { UnavailableSyncService("Peer sync unavailable: ${it.message}") }
         val backup = BackupService(store, crypto, privateService)
+        val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        syncScope.launch {
+            while (isActive) {
+                syncService.peers().forEach { peer ->
+                    runCatching { syncService.sync(peer.deviceId) }
+                }
+                delay(6 * 60 * 60 * 1_000L)
+            }
+        }
         try {
             application {
                 Window(onCloseRequest = ::exitApplication, title = "OmniShop Native Preview",
@@ -58,6 +74,7 @@ fun main() {
                 }
             }
         } finally {
+            syncScope.cancel()
             syncService.close()
         }
     }
