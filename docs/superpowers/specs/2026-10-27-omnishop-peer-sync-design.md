@@ -275,11 +275,12 @@ device creates a new identity and requires re-pairing.
   host. No secret is broadcast. iOS has no Bonjour discovery. Android compiles and
   runs the same code; iOS uses `UnavailableSyncService`. An Android↔desktop runtime
   pairing attempt exposed duplicate `MainActivity` instances holding port 8787;
-  `MainActivity` is now `singleTask` and `adb reverse` is verified, but the
-  end-to-end runtime proof remains open. Receipt attachments sync through the same
+  `MainActivity` is now `singleTask` and `adb reverse` is verified. An Android
+  instrumented test now proves Keystore identity, TLS pairing, SAS and record sync
+  against the desktop harness; the UI/mDNS pairing path is still not device-tested. Receipt attachments sync through the same
   encrypted payload. Android schedules WorkManager sync every six hours; desktop
   syncs periodically while open; iOS has no background sync.
-- Tests: 115 native tests pass, including sync LWW/tombstones/cursors, malformed
+- Tests: 115 JVM tests plus one Android instrumented TLS-sync test pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.
