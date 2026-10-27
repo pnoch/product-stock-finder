@@ -40,7 +40,7 @@ fun MainViewController(
     return ComposeUIViewController {
         OmniShopApp(
             presenter, backup, privateService, receiptService, syncPackages, syncService, carrierSettings,
-            listOf(ThailandPostAdapter()), files, openUrl,
+            listOf(ThailandPostAdapter()), files, openUrl = openUrl,
         )
     }
 }
