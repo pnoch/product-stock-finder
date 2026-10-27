@@ -28,8 +28,8 @@ fun MainViewController(
     val files = CallbackBackupFiles(backupCallbacks)
     val privateService = OrderPrivateService(store, secrets, crypto)
     val carrierSettings = CarrierSettings(secrets)
-    val receiptService = ReceiptService(privateService, { NSUUID().UUIDString })
-    val syncPackages = SyncPackageService(store, crypto)
+    val receiptService = ReceiptService(privateService, store, { NSUUID().UUIDString })
+    val syncPackages = SyncPackageService(store, crypto, receiptService)
     val syncService = UnavailableSyncService()
     val backup = BackupService(store, crypto, privateService)
     val presenter = ShopPresenter(

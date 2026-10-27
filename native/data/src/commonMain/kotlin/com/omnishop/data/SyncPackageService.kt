@@ -13,12 +13,13 @@ import kotlin.time.Clock
 class SyncPackageService(
     private val store: ShoppingStore,
     private val crypto: BackupCrypto,
+    private val receipts: ReceiptService? = null,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     fun export(password: CharArray): ByteArray {
         val changes = mutableListOf<SyncChange>()
         var cursor = SyncCursor.START
-        val engine = SyncEngine(store)
+        val engine = SyncEngine(store, receipts)
         while (true) {
             val batch = engine.localChanges(cursor, limit = 500)
             changes += batch.changes
@@ -38,6 +39,6 @@ class SyncPackageService(
             SyncJson.json.decodeFromString(SyncPackage.serializer(), plaintext)
         }.getOrElse { throw BackupFormatException("Sync package contents are invalid", it) }
         if (packageData.version != 1) throw BackupFormatException("Unsupported sync package version")
-        return SyncEngine(store).apply(packageData.changes)
+        return SyncEngine(store, receipts).apply(packageData.changes)
     }
 }

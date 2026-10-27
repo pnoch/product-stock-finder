@@ -510,6 +510,10 @@ class ShoppingStore(
         }
     }
 
+    fun applySyncMeta(collection: String, id: String, updatedAt: Long, originDevice: String, deletedAt: Long?) {
+        queries.upsertSyncMeta(collection, id, updatedAt, originDevice, deletedAt)
+    }
+
     fun recordSyncMeta(collection: String, id: String, deletedAt: Long?) {
         queries.upsertSyncMeta(collection, id, clock(), originDevice, deletedAt)
     }

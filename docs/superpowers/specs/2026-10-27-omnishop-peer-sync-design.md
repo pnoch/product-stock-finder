@@ -3,10 +3,10 @@
 Date: 2026-10-27
 
 Status: approved. Implementation is staged. The record engine for settings,
-watchlist and order aggregates, a manual encrypted sync package, and a desktop
-+ Android TLS peer transport with pairing/Devices UI are implemented. iOS
-transport, QR/mDNS/SAS, Android runtime pairing proof and attachment sync are not
-yet implemented.
+watchlist, order aggregates and encrypted receipt attachments, a manual
+encrypted sync package, and a desktop + Android TLS peer transport with
+pairing/Devices UI are implemented. iOS transport, QR/mDNS/SAS and the Android
+runtime pairing proof remain open.
 
 ## Goal
 
@@ -32,8 +32,8 @@ or conflict handling.
    self-signed identity, manual one-time pairing code, pinned TLS server/client,
    peer store, Devices UI and revocation. iOS uses an explicit unavailable
    service.
-5. **iOS transport, QR/mDNS/SAS, Android runtime pairing proof, attachments,
-   background sync (next).**
+5. **iOS transport, QR/mDNS/SAS, Android runtime pairing proof and background
+   sync (next).** Encrypted receipt attachment sync is implemented.
 
 The original first-milestone scope below is the target for the transport stage;
 it is not claimed as complete by the record engine alone.
@@ -50,7 +50,8 @@ it is not claimed as complete by the record engine alone.
 
 Explicitly out of scope for the first milestone:
 
-- Receipt/document bytes and product images (large attachments).
+- Product images and other large attachments. Receipt/document bytes are now
+  synced as encrypted private-field payloads.
 - Remote sync over the internet; users may provide their own network.
 - Multi-user sharing, shared watchlists, or a relay.
 - Background/always-on synchronization.
@@ -245,10 +246,11 @@ device creates a new identity and requires re-pairing.
   local private address/receipt fields.
 - `sync_meta` is excluded from encrypted backups and cleared by a full restore;
   a restored device must re-pair.
-- No device identity, pairing, socket/TLS transport, Devices UI, selective sync,
-  revocation UI, attachment sync or background sync exists yet.
-  `origin_device` defaults to `"local"` until the identity stage injects a real
-  per-device id. There is no user-facing “synced” claim.
+- Desktop/Android have device identity, pairing, TLS transport, Devices UI,
+  selective collection sync and revocation. iOS has no transport. Background
+  sync does not exist. `origin_device` still defaults to `"local"` until the
+  identity is injected into `ShoppingStore`; equal-timestamp cross-device
+  tie-breaking is therefore not yet reliable.
 - A JVM loopback proof (`TlsTransportTest`) generates EC P-256 self-signed
   certificates, performs mutual TLS with certificate pinning, exchanges a framed
   payload, and verifies a wrong pin is rejected. This is a transport spike, not
@@ -263,9 +265,9 @@ device creates a new identity and requires re-pairing.
   both ways and supports revocation. Android compiles and runs the same code; iOS
   uses `UnavailableSyncService`. An Android↔desktop runtime pairing attempt on a
   dedicated AVD was blocked by adb/emulator hangs, so the Android runtime proof
-  remains open. There is no QR, mDNS, SAS, background sync or attachment transfer
-  yet.
-- Tests: 110 native tests pass, including sync LWW/tombstones/cursors, malformed
+  remains open. Receipt attachments sync through the same encrypted payload; there
+  is no QR, mDNS, SAS or background sync yet.
+- Tests: 112 native tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.

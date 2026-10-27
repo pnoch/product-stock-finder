@@ -11,7 +11,7 @@ class ReceiptServiceTest {
     private fun service(store: ShoppingStore, secrets: SecretStore = InMemorySecretStore()): Pair<ReceiptService, OrderPrivateService> {
         val privateService = OrderPrivateService(store, secrets, crypto)
         var id = 0
-        return ReceiptService(privateService, { "receipt-${++id}" }) { 100L } to privateService
+        return ReceiptService(privateService, store, { "receipt-${++id}" }) { 100L } to privateService
     }
 
     @Test fun encryptsListsReadsAndDeletesReceipts() {

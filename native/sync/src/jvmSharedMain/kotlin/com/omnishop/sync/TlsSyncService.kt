@@ -41,11 +41,13 @@ class TlsSyncService(
     private val store: ShoppingStore,
     private val secrets: SecretStore,
     private val crypto: BackupCrypto,
+    receipts: ReceiptService? = null,
     port: Int = DEFAULT_PORT,
     private val advertisedHost: String? = null,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : SyncService {
     private val identity = loadOrCreateIdentity()
+    private val engine = SyncEngine(store, receipts)
     private val server: SSLServerSocket
     private val serverThread: Thread
     private var pairingSecret: String? = null
@@ -117,7 +119,7 @@ class TlsSyncService(
             val response = receive(it)
             require(response.type == "sync") { response.message ?: "Sync rejected" }
             val remote = requireNotNull(response.batch)
-            val applied = SyncEngine(store).apply(remote.changes)
+            val applied = engine.apply(remote.changes)
             savePeer(peer.copy(lastSyncAt = now()))
             SyncResult.Success(applied, local.changes.size)
         }
@@ -179,7 +181,7 @@ class TlsSyncService(
                     return
                 }
                 val incoming = requireNotNull(message.batch)
-                SyncEngine(store).apply(incoming.changes)
+                engine.apply(incoming.changes)
                 val local = allLocalChanges()
                 savePeer(peer.copy(lastSyncAt = now()))
                 send(socket, WireMessage(type = "sync", batch = local))
@@ -189,7 +191,6 @@ class TlsSyncService(
     }
 
     private fun allLocalChanges(): SyncBatch {
-        val engine = SyncEngine(store)
         val changes = mutableListOf<SyncChange>()
         var cursor = SyncCursor.START
         while (true) {

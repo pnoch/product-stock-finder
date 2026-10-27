@@ -22,6 +22,7 @@ data class ReceiptMetadata(
 @OptIn(ExperimentalEncodingApi::class)
 class ReceiptService(
     private val privateService: OrderPrivateService,
+    private val store: ShoppingStore,
     private val newId: () -> String,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
@@ -43,6 +44,7 @@ class ReceiptService(
             Base64.Default.encode(bytes),
         ).joinToString("\n")
         privateService.save(orderId, prefix(id), payload)
+        store.recordSyncMeta("receipts", syncId(orderId, id), null)
         return ReceiptMetadata(id, orderId, cleanName, cleanMime, bytes.size, addedAt)
     }
 
@@ -61,6 +63,31 @@ class ReceiptService(
 
     fun delete(orderId: String, receiptId: String) {
         privateService.save(orderId, prefix(receiptId), "")
+        store.recordSyncMeta("receipts", syncId(orderId, receiptId), now())
+    }
+
+    fun syncPayload(id: String): String? {
+        val (orderId, receiptId) = splitSyncId(id) ?: return null
+        return privateService.read(orderId, prefix(receiptId))
+    }
+
+    fun applySyncPayload(change: SyncChange) {
+        val (orderId, receiptId) = splitSyncId(change.id) ?: error("Invalid receipt sync id")
+        val field = prefix(receiptId)
+        if (change.deletedAt != null) {
+            privateService.save(orderId, field, "")
+        } else {
+            privateService.save(orderId, field, requireNotNull(change.payload) { "Missing receipt payload" })
+        }
+        store.applySyncMeta(change.collection, change.id, change.updatedAt, change.originDevice, change.deletedAt)
+    }
+
+    private fun syncId(orderId: String, receiptId: String) = "$orderId\u0000$receiptId"
+
+    private fun splitSyncId(id: String): Pair<String, String>? {
+        val index = id.indexOf('\u0000')
+        if (index <= 0 || index == id.lastIndex) return null
+        return id.substring(0, index) to id.substring(index + 1)
     }
 
     private fun parseHeader(orderId: String, id: String, value: String): ReceiptMetadata? {

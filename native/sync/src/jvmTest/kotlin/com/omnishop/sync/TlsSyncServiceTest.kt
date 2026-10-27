@@ -1,5 +1,9 @@
 package com.omnishop.sync
 
+import com.omnishop.core.OrderItem
+import com.omnishop.core.PurchaseOrder
+import com.omnishop.data.OrderPrivateService
+import com.omnishop.data.ReceiptService
 import com.omnishop.data.SecretStore
 import com.omnishop.data.ShoppingStore
 import com.omnishop.data.SyncResult
@@ -19,20 +23,31 @@ class TlsSyncServiceTest {
     @Test fun pairsSyncsBothWaysAndRejectsRevokedPeers() = runBlocking {
         ShoppingStore.inMemory("a") { 300 }.use { aStore ->
             ShoppingStore.inMemory("b") { 300 }.use { bStore ->
-                val a = TlsSyncService(aStore, MemorySecrets(), JcaBackupCrypto(), port = 0) { 300 }
-                val b = TlsSyncService(bStore, MemorySecrets(), JcaBackupCrypto(), port = 0) { 300 }
+                val crypto = JcaBackupCrypto()
+                val aSecrets = MemorySecrets()
+                val bSecrets = MemorySecrets()
+                val aReceipts = ReceiptService(OrderPrivateService(aStore, aSecrets, crypto), aStore, { "receipt-a" }) { 300 }
+                val bReceipts = ReceiptService(OrderPrivateService(bStore, bSecrets, crypto), bStore, { "receipt-b" }) { 300 }
+                val a = TlsSyncService(aStore, aSecrets, crypto, aReceipts, port = 0) { 300 }
+                val b = TlsSyncService(bStore, bSecrets, crypto, bReceipts, port = 0) { 300 }
                 try {
                     val code = a.createPairing()
                     assertIs<SyncResult.Success>(b.pair(code.code))
                     assertEquals(1, a.peers().size)
                     assertEquals(a.thisDevice().deviceId, b.peers().single().deviceId)
 
+                    val order = PurchaseOrder("o", "Shop", listOf(OrderItem("i", "Tablet", 1)))
+                    aStore.createOrder(order, 300)
+                    bStore.createOrder(order, 300)
                     aStore.setPreference("language", "THAI")
                     aStore.saveProduct(com.omnishop.data.SavedProduct("p", "Tablet", null, 90))
+                    val receiptBytes = byteArrayOf(4, 5, 6)
+                    aReceipts.save("o", "invoice.pdf", "application/pdf", receiptBytes)
                     val first = b.sync(a.thisDevice().deviceId)
                     assertIs<SyncResult.Success>(first)
                     assertEquals("THAI", bStore.preference("language"))
                     assertEquals("Tablet", bStore.listProducts().single().title)
+                    assertContentEquals(receiptBytes, bReceipts.read("o", "receipt-a"))
 
                     bStore.setPreference("theme", "dark")
                     assertIs<SyncResult.Success>(b.sync(a.thisDevice().deviceId))

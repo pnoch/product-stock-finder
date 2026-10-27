@@ -25,21 +25,21 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   signing keys, build output, or Gradle caches. SQLDelight `databases/*.db`
   files are empty schema snapshots, not exported user databases; retain the
   previous snapshot and add a numbered `.sqm` migration for schema changes.
-- Sync is staged: the `settings`/`watchlist`/`orders` record engine, a manual
-  encrypted sync package, and a **desktop + Android** TLS peer transport exist. Every
-  syncable write updates `sync_meta` in the same transaction; remote changes use
-  LWW `(updated_at, origin_device)` and tombstones, and are applied with payload
-  validation in one transaction. Never mark a UI as synced, claim peer transport,
-  or include `sync_meta` in backups until identity/pairing/TLS and order sync
-  actually exist. The manual sync package is an encrypted file with LWW merge,
-  not peer-to-peer, and must not be labeled as automatic/peer sync. The JVM/
-  Android transport is real (TLS, pinned certs, pairing, Devices UI, revocation);
-  iOS must keep `UnavailableSyncService` until its Network.framework transport
-  exists, and the UI must not claim iOS sync. Order sync
-  replaces child items/shipments/events/returns but
-  must preserve local private fields (address/receipts) by updating the order row
-  instead of deleting it. `origin_device` is `"local"` until a real device
-  identity is introduced.
+- Sync is staged: the `settings`/`watchlist`/`orders`/`receipts` record engine,
+  a manual encrypted sync package, and a **desktop + Android** TLS peer transport
+  exist. Every syncable write updates `sync_meta` in the same transaction; remote
+  changes use LWW `(updated_at, origin_device)` and tombstones, and are applied
+  with payload validation in one transaction. Receipt bytes travel inside the
+  encrypted private-field payload. The manual sync package is an encrypted file
+  with LWW merge, not peer-to-peer, and must not be labeled as automatic/peer
+  sync. The JVM/Android transport is real (TLS, pinned certs, pairing, Devices UI,
+  revocation); the Android runtime pairing proof is still open. iOS must keep
+  `UnavailableSyncService` until its Network.framework transport exists, and the
+  UI must not claim iOS or background sync. Order sync replaces child
+  items/shipments/events/returns but must preserve local private fields
+  (address/receipts) by updating the order row instead of deleting it.
+  `origin_device` still defaults to `"local"` until a real device identity is
+  injected into `ShoppingStore`.
 - The iOS host lives in `iosApp/` (XcodeGen `project.yml` + Swift). Do not commit
   the generated `.xcodeproj`. `Info.plist` must keep
   `CADisableMinimumFrameDurationOnPhone=true`; Swift supplies CryptoKit,

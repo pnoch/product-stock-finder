@@ -101,7 +101,13 @@ object SyncJson {
  */
 class SyncEngine(
     private val store: ShoppingStore,
-    private val collections: Set<String> = setOf("settings", "watchlist", "orders"),
+    private val receipts: ReceiptService? = null,
+    private val collections: Set<String> = buildSet {
+        add("settings")
+        add("watchlist")
+        add("orders")
+        if (receipts != null) add("receipts")
+    },
 ) {
     fun localChanges(cursor: SyncCursor, limit: Int = 100): SyncBatch {
         val metas = store.syncChanges(cursor, collections, limit)
@@ -110,6 +116,7 @@ class SyncEngine(
                 "settings" -> store.preference(meta.id)
                 "watchlist" -> store.watchlistPayload(meta.id)
                 "orders" -> store.orderPayload(meta.id)
+                "receipts" -> requireNotNull(receipts) { "Receipt sync is not configured" }.syncPayload(meta.id)
                 else -> error("Unsupported sync collection ${meta.collection}")
             }
             require(meta.deletedAt != null || payload != null) {
@@ -138,6 +145,7 @@ class SyncEngine(
                 "settings" -> store.applySettingSync(change)
                 "watchlist" -> store.applyWatchlistSync(change)
                 "orders" -> store.applyOrderSync(change)
+                "receipts" -> requireNotNull(receipts) { "Receipt sync is not configured" }.applySyncPayload(change)
                 else -> error("Unsupported sync collection")
             }
             applied++

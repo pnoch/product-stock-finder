@@ -18,18 +18,19 @@ not the complete Phase 1 release from the master product brief.
   an unreconciled total is visible rather than silently “corrected”. Per-item package allocations,
   tracking numbers/carrier labels, manual event timelines, and derived partial
   delivery are included. Over-allocation is rejected by the domain and database.
-- Peer-sync record engine foundation for **settings, watchlist and order
-  aggregates** (order + items + shipments + allocations + events + returns):
-  `sync_meta`, aggregate payloads, LWW with device-id tie-break, tombstones and
-  cursors, all transactional. Remote order updates preserve local private
-  address/receipt fields. Profile also offers a **manual encrypted sync package**
-  that exports current records and LWW-merges them on another device (settings,
-  watchlist and orders). A JVM loopback TLS proof covers mutually authenticated
-  self-signed certificates, pinning and framed exchange. There is still **no
-  production peer transport, pairing, Devices UI or iOS sync** on iOS, and the
-  app does not claim iOS peer sync. **Desktop (JVM) and Android** now have a real
-  TLS peer transport: EC P-256 identity, manual one-time pairing code,
-  certificate pinning, peer store, Devices UI and revocation. The transport is
+- Peer-sync record engine for **settings, watchlist, order aggregates and
+  encrypted receipt attachments** (orders include items + shipments +
+  allocations + events + returns): `sync_meta`, aggregate payloads, LWW with
+  device-id tie-break, tombstones and cursors, all transactional. Remote order
+  updates preserve local private address fields; receipt bytes are transferred
+  through the private-field payload, never plaintext. Profile also offers a
+  **manual encrypted sync package** that exports current records and LWW-merges
+  them on another device (settings, watchlist, orders and receipts). A JVM
+  loopback TLS proof covers mutually authenticated self-signed certificates,
+  pinning, framed exchange and receipt transfer. **Desktop (JVM) and Android**
+  have a real TLS peer transport: EC P-256 identity, manual one-time pairing
+  code, certificate pinning, peer store, Devices UI and revocation. iOS remains
+  explicitly unavailable. The Android transport is
   loopback-tested on JVM and compiled for Android; an Android↔desktop pairing
   attempt on a dedicated AVD was blocked by adb/emulator hangs and remains
   unproven.
@@ -96,9 +97,9 @@ Other carrier adapters, live verification against Thailand Post with a real
 account, marketplace account connections, email/PDF parsing and OCR (manual
 receipt attachments are implemented), automatic metadata extraction, automatic
 product matching, automated returns/refunds,
-cart/checkout, local notifications/background scheduling, peer transport and
-pairing, Devices UI, iOS background tasks/share extensions, signing/notarization,
-and additional sensitive fields are subsequent milestones.
+cart/checkout, local notifications/background scheduling, iOS peer transport,
+QR/mDNS/SAS pairing, background sync, iOS background tasks/share extensions,
+signing/notarization, and additional sensitive fields are subsequent milestones.
 
 The development SQLite database is not encrypted as a whole. The shipping
 address and receipt contents are stored as authenticated ciphertext under the
@@ -395,8 +396,9 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Finish peer sync: iOS transport, QR/mDNS and SAS confirmation, Android↔desktop
-   runtime verification, then attachment sync.
+1. Finish peer sync: iOS transport, QR/mDNS and SAS confirmation, then
+   Android↔desktop runtime verification. Encrypted receipt attachment sync is
+   implemented and JVM-tested.
 2. Add PDF text extraction/OCR and email receipt import on top of the encrypted
    attachments, then reconcile totals against original payments.
 3. Verify the Thailand Post adapter against a real account/tracking number, then

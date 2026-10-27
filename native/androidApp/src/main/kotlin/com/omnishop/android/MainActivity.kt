@@ -33,9 +33,9 @@ class MainActivity : ComponentActivity() {
         val secrets = AndroidSecretStore(this)
         val privateService = OrderPrivateService(store, secrets, crypto)
         val carrierSettings = CarrierSettings(secrets)
-        val receiptService = ReceiptService(privateService, { UUID.randomUUID().toString() })
-        val syncPackages = SyncPackageService(store, crypto)
-        syncService = runCatching { TlsSyncService(store, secrets, crypto) }
+        val receiptService = ReceiptService(privateService, store, { UUID.randomUUID().toString() })
+        val syncPackages = SyncPackageService(store, crypto, receiptService)
+        syncService = runCatching { TlsSyncService(store, secrets, crypto, receiptService) }
             .getOrElse { UnavailableSyncService("Peer sync unavailable: ${it.message}") }
         val backup = BackupService(store, crypto, privateService)
         val backupFiles = AndroidBackupFiles(this)
