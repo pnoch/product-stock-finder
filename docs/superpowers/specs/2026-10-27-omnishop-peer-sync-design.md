@@ -274,7 +274,7 @@ device creates a new identity and requires re-pairing.
   pairing attempt on a dedicated AVD was blocked by adb/emulator hangs, so the
   Android runtime proof remains open. Receipt attachments sync through the same
   encrypted payload; there is no background sync yet.
-- Tests: 114 native tests pass, including sync LWW/tombstones/cursors, malformed
+- Tests: 115 native tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.
