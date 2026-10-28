@@ -13,6 +13,7 @@ interface CallbackSyncTransport {
     fun sync(peerId: String, local: SyncBatch, completion: (SyncBatch?, String?) -> Unit)
     fun revoke(peerId: String)
     fun close()
+    fun attachSyncHandler(handler: (SyncBatch) -> SyncBatch)
 }
 
 class CallbackSyncService(
@@ -24,6 +25,10 @@ class CallbackSyncService(
 
     init {
         store.setOriginDevice(transport.thisDevice().deviceId)
+        transport.attachSyncHandler { remote ->
+            engine.apply(remote.changes)
+            allLocalChanges()
+        }
     }
 
     override fun thisDevice(): SyncDeviceInfo = transport.thisDevice()

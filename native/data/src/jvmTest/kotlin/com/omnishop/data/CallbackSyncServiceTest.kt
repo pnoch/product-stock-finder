@@ -22,6 +22,7 @@ class CallbackSyncServiceTest {
         }
         override fun revoke(peerId: String) { revoked = peerId }
         override fun close() = Unit
+        override fun attachSyncHandler(handler: (SyncBatch) -> SyncBatch) = Unit
     }
 
     @Test fun delegatesPairingAndAppliesSync(): Unit = kotlinx.coroutines.runBlocking {
