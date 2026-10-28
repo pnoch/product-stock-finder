@@ -15,7 +15,12 @@ final class IosSyncHost {
     var onPeerPaired: ((String, String, String, String, String) -> Void)?
     private var pairedDeviceIds = Set<String>()
 
-    init(identity: IosIdentity) { self.identity = identity }
+    private let advertisedHost: String?
+
+    init(identity: IosIdentity, advertisedHost: String? = nil) {
+        self.identity = identity
+        self.advertisedHost = advertisedHost
+    }
 
     func start() throws {
         let tls = NWProtocolTLS.Options()
@@ -70,7 +75,7 @@ final class IosSyncHost {
         )
         return PairingPayload(
             version: 1, deviceId: identity.deviceId, fingerprint: identity.fingerprint,
-            host: localIPv4(), port: Int(port), secret: secret, expiresAt: expiresAt,
+            host: advertisedHost ?? localIPv4(), port: Int(port), secret: secret, expiresAt: expiresAt,
         )
     }
 

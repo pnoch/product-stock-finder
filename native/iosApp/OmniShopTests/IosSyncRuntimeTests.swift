@@ -4,7 +4,7 @@ import XCTest
 final class IosSyncRuntimeTests: XCTestCase {
     func testHostAndClientPairAndSync() throws {
         let identity = try IosIdentity.loadOrCreate()
-        let host = IosSyncHost(identity: identity)
+        let host = IosSyncHost(identity: identity, advertisedHost: "127.0.0.1")
         let paired = expectation(description: "host saw paired client")
         host.onPeerPaired = { _, _, _, _, _ in paired.fulfill() }
         host.syncHandler = { _ in
