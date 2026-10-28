@@ -224,7 +224,7 @@ Linux packaged executable:
 
 | Platform | Current evidence |
 | --- | --- |
-| Android | Debug and release-signed APKs built. An instrumented test (`TlsSyncInstrumentedTest`) proves Android Keystore identity, TLS pairing, SAS and record sync against the desktop harness. A Compose UI test (`DevicesPairingUiTest`) proves the Devices pairing and sync flow. mDNS discovery is not device-tested. Earlier UI attempts were confounded by duplicate `MainActivity` instances each creating a sync server; `MainActivity` is now `singleTask`, and `adb reverse` is verified working. The release build was exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades. Signature `CN=Product Stock Finder`, package `.nativepreview`, versionCode 1 / versionName 0.1.0. Encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). Carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URLs and receipts are unit-tested; receipt file picker is not automated |
+| Android | Debug and release-signed APKs built. An instrumented test (`TlsSyncInstrumentedTest`) proves Android Keystore identity, TLS pairing, SAS and record sync against the desktop harness. A Compose UI test (`DevicesPairingUiTest`) proves the Devices pairing and sync flow, and an mDNS instrumented test (`MdnsPairingInstrumentedTest`) proves nearby discovery, pairing and sync on Android. Earlier UI attempts were confounded by duplicate `MainActivity` instances each creating a sync server; `MainActivity` is now `singleTask`, and `adb reverse` is verified working. The release build was exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades. Signature `CN=Product Stock Finder`, package `.nativepreview`, versionCode 1 / versionName 0.1.0. Encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). Carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URLs and receipts are unit-tested; receipt file picker is not automated |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; TLS peer sync server/client, pairing, peer store and revocation are implemented and loopback-tested. Address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb); backup uses a native file dialog |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
 | iOS | Peer sync is explicitly unavailable. XcodeGen host builds and launches in a simulator on macOS CI; Compose UI renders, SQLite opens, CryptoKit backs backup/address encryption, Keychain stores the device key, and the document picker is wired. No device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
@@ -397,11 +397,10 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Finish peer sync: iOS transport, iOS Bonjour discovery, then Android↔desktop
-   runtime verification. QR pairing, SAS confirmation, JVM/Android mDNS discovery
-   with short-secret nearby pairing, and encrypted receipt attachment sync are
-   implemented. Android runs a WorkManager peer sync every six hours; desktop
-   syncs periodically while open. The mDNS/Android runtime path is not device-tested.
+1. Finish peer sync: iOS transport and iOS Bonjour discovery. Android QR/SAS/mDNS
+   pairing, Devices UI and background sync are proven by instrumented tests;
+   encrypted receipt attachments sync over TLS. Desktop syncs periodically while
+   open. iOS background sync remains open.
 2. Add PDF text extraction/OCR and email receipt import on top of the encrypted
    attachments, then reconcile totals against original payments.
 3. Verify the Thailand Post adapter against a real account/tracking number, then

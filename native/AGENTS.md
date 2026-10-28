@@ -33,7 +33,7 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   encrypted private-field payload. The manual sync package is an encrypted file
   with LWW merge, not peer-to-peer, and must not be labeled as automatic/peer
   sync. The JVM/Android transport is real (TLS, pinned certs, pairing, Devices UI,
-  revocation); Android instrumented and Compose UI tests prove pairing/sync. Sync
+  revocation); Android instrumented, Compose UI and mDNS tests prove pairing/sync. Sync
   network calls must run on `Dispatchers.IO` (Android throws
   `NetworkOnMainThreadException` from the Compose main thread). iOS must keep
   `UnavailableSyncService` until its Network.framework transport exists, and the
