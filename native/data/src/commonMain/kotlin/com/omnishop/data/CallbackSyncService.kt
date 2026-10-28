@@ -1,5 +1,10 @@
 package com.omnishop.data
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -14,6 +19,7 @@ interface CallbackSyncTransport {
     fun revoke(peerId: String)
     fun close()
     fun attachSyncHandler(handler: (SyncBatch) -> SyncBatch)
+    fun attachBackgroundSyncHandler(handler: () -> Unit)
 }
 
 class CallbackSyncService(
@@ -22,12 +28,20 @@ class CallbackSyncService(
     receipts: ReceiptService? = null,
 ) : SyncService {
     private val engine = SyncEngine(store, receipts)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     init {
         store.setOriginDevice(transport.thisDevice().deviceId)
         transport.attachSyncHandler { remote ->
             engine.apply(remote.changes)
             allLocalChanges()
+        }
+        transport.attachBackgroundSyncHandler {
+            scope.launch {
+                transport.peers().forEach { peer ->
+                    sync(peer.deviceId)
+                }
+            }
         }
     }
 
@@ -69,7 +83,10 @@ class CallbackSyncService(
 
     override fun revoke(peerId: String) = transport.revoke(peerId)
 
-    override fun close() = transport.close()
+    override fun close() {
+        scope.cancel()
+        transport.close()
+    }
 
     private fun allLocalChanges(): SyncBatch {
         val changes = mutableListOf<SyncChange>()

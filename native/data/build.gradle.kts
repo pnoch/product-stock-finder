@@ -21,6 +21,7 @@ kotlin {
             api(project(":core"))
             implementation(libs.sqldelight.runtime)
             implementation(libs.serialization.json)
+            implementation(libs.coroutines.core)
         }
         commonTest.dependencies { implementation(kotlin("test")) }
         jvmMain.dependencies { implementation(libs.sqldelight.sqlite) }

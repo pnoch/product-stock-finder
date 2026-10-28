@@ -20,6 +20,8 @@ final class IosSyncTransport: NSObject, DataCallbackSyncTransport {
     private var discovered: [DataSyncDiscoveredPeer] = []
     private var host: IosSyncHost?
     private var syncHandler: ((DataSyncBatch) -> DataSyncBatch)?
+    private var backgroundSyncHandler: (() -> Void)?
+    static let shared: IosSyncTransport? = try? IosSyncTransport()
     private let defaults = UserDefaults.standard
     private let peersKey = "sync.peers.v1"
     private let queue = DispatchQueue(label: "com.omnishop.sync.transport")
@@ -47,6 +49,18 @@ final class IosSyncTransport: NSObject, DataCallbackSyncTransport {
 
     func attachSyncHandler(handler: @escaping (DataSyncBatch) -> DataSyncBatch) {
         syncHandler = handler
+    }
+
+    func attachBackgroundSyncHandler(handler: @escaping () -> Void) {
+        backgroundSyncHandler = handler
+    }
+
+    func backgroundSync(completion: @escaping (Bool) -> Void) {
+        guard let backgroundSyncHandler else { completion(false); return }
+        DispatchQueue.global(qos: .utility).async {
+            backgroundSyncHandler()
+            completion(true)
+        }
     }
 
     func createPairing(completion: @escaping (DataSyncPairingCode?, String?) -> Void) {

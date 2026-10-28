@@ -4,9 +4,18 @@ import OmniShopShared
 
 @main
 struct OmniShopIOSApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        IosBackgroundSync.register(transport: IosSyncTransport.shared)
+    }
+
     var body: some Scene {
         WindowGroup {
             ComposeView()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { IosBackgroundSync.schedule() }
         }
     }
 }
@@ -14,7 +23,7 @@ struct OmniShopIOSApp: App {
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         let files = DocumentPickerBackupFiles()
-        let transport = try? IosSyncTransport()
+        let transport = IosSyncTransport.shared
         return MainViewControllerKt.MainViewController(
             cryptoCallbacks: makeCryptoCallbacks(),
             secretCallbacks: makeSecretCallbacks(),

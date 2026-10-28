@@ -4,6 +4,15 @@
 <dict>
     <key>NSLocalNetworkUsageDescription</key>
     <string>OmniShop uses the local network to sync with your other devices.</string>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.omnishop.ios.sync</string>
+    </array>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>processing</string>
+    </array>
     <key>NSBonjourServices</key>
     <array>
         <string>_omnishop._tcp</string>
@@ -32,6 +41,15 @@
     <dict>
     <key>NSLocalNetworkUsageDescription</key>
     <string>OmniShop uses the local network to sync with your other devices.</string>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.omnishop.ios.sync</string>
+    </array>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>processing</string>
+    </array>
     <key>NSBonjourServices</key>
     <array>
         <string>_omnishop._tcp</string>
