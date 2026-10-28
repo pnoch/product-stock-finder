@@ -30,8 +30,8 @@ not the complete Phase 1 release from the master product brief.
   pinning, framed exchange and receipt transfer. **Desktop (JVM) and Android**
   have a real TLS peer transport: EC P-256 identity, manual one-time pairing
   code, certificate pinning, peer store, Devices UI and revocation. iOS now has a
-  client-only Swift transport (pairing and sync against a JVM host); iOS host
-  pairing, Bonjour and background sync remain unavailable. The Android transport is
+  Swift TLS transport for both client and host roles (pairing and sync in both
+  directions); Bonjour discovery and background sync remain unavailable. The Android transport is
   loopback-tested on JVM and compiled for Android; an Android↔desktop pairing
   attempt on a dedicated AVD was blocked by adb/emulator hangs and remains
   unproven.
@@ -228,7 +228,7 @@ Linux packaged executable:
 | Android | Debug and release-signed APKs built. An instrumented test (`TlsSyncInstrumentedTest`) proves Android Keystore identity, TLS pairing, SAS and record sync against the desktop harness. A Compose UI test (`DevicesPairingUiTest`) proves the Devices pairing and sync flow, and an mDNS instrumented test (`MdnsPairingInstrumentedTest`) proves nearby discovery, pairing and sync on Android. Earlier UI attempts were confounded by duplicate `MainActivity` instances each creating a sync server; `MainActivity` is now `singleTask`, and `adb reverse` is verified working. The release build was exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades. Signature `CN=Product Stock Finder`, package `.nativepreview`, versionCode 1 / versionName 0.1.0. Encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). Carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URLs and receipts are unit-tested; receipt file picker is not automated |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; TLS peer sync server/client, pairing, peer store and revocation are implemented and loopback-tested. Address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb); backup uses a native file dialog |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
-| iOS | Client-only Swift TLS transport implemented: Keychain P-256 identity, pairing-code decode, SAS, pinned `NWConnection` and sync. It paired and synced against the JVM harness on macOS; the arm64 app builds, but no iOS device/simulator runtime proof exists (the Intel simulator cannot run arm64 Compose, and no device is attached). Host pairing, Bonjour and background sync remain unavailable. XcodeGen host builds/launches on macOS CI; no device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
+| iOS | Swift TLS transport implemented for client and host roles: Keychain P-256 identity, pairing-code decode/creation, SAS, pinned `NWConnection`, `NWListener`, peer persistence and bidirectional sync. Client and host both paired/synced on macOS; the arm64 app builds. No iOS device/simulator runtime proof exists (the Intel simulator cannot run arm64 Compose, and no device is attached). Bonjour and background sync remain unavailable. XcodeGen host builds/launches on macOS CI; no device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
 
 `.github/workflows/native.yml` gates Android/JVM tests, the debug APK, the iOS
 simulator framework link, and an iOS simulator build/launch with a rendered-frame
@@ -398,7 +398,7 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Finish iOS peer sync: host listener, Bonjour and background sync. See
+1. Finish iOS peer sync: Bonjour and background sync. See
    `docs/superpowers/plans/2026-10-28-ios-transport.md`. The iOS client transport
    is implemented and macOS-tested; Android QR/SAS/mDNS
    pairing, Devices UI and background sync are proven by instrumented tests;
