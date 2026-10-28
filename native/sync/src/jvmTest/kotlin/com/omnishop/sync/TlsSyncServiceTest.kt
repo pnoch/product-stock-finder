@@ -107,6 +107,34 @@ class TlsSyncServiceTest {
         }
     }
 
+    @Test fun rejectsExpiredAndUnsupportedPairingCodes() = runBlocking {
+        ShoppingStore.inMemory("b") { 300 }.use { store ->
+            val service = TlsSyncService(
+                store, MemorySecrets(), JcaBackupCrypto(),
+                enableDiscovery = false, enableServer = false, port = 0,
+            ) { 300 }
+            try {
+                val expired = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                    """{"version":1,"deviceId":"x","fingerprint":"f","host":"127.0.0.1","port":1,"secret":"s","expiresAt":1}"""
+                        .encodeToByteArray(),
+                )
+                val expiredResult = service.pair(expired)
+                assertIs<SyncResult.Failure>(expiredResult)
+                assertTrue(expiredResult.message.contains("expired"))
+
+                val unsupported = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                    """{"version":2,"deviceId":"x","fingerprint":"f","host":"127.0.0.1","port":1,"secret":"s","expiresAt":9999999999999}"""
+                        .encodeToByteArray(),
+                )
+                val unsupportedResult = service.pair(unsupported)
+                assertIs<SyncResult.Failure>(unsupportedResult)
+                assertTrue(unsupportedResult.message.contains("Unsupported"))
+            } finally {
+                service.close()
+            }
+        }
+    }
+
     @Test fun rejectsMalformedPairingCodes() = runBlocking {
         ShoppingStore.inMemory("a") { 300 }.use { store ->
             val service = TlsSyncService(store, MemorySecrets(), JcaBackupCrypto(), enableDiscovery = false, port = 0) { 300 }

@@ -162,6 +162,9 @@ class TlsSyncService(
         val peer = loadPeers().firstOrNull { it.deviceId == peerId }
             ?: error("Paired device not found")
         val local = allLocalChanges()
+        require(SyncJson.encodeBatch(local).encodeToByteArray().size <= MAX_SYNC_PAYLOAD) {
+            "Sync batch exceeds 24 MB; use a sync package"
+        }
         val socket = connectFromEndpoint(peer.endpoint, peer.fingerprint)
         socket.use {
             send(it, WireMessage(type = "sync", batch = local))
@@ -432,6 +435,7 @@ class TlsSyncService(
         const val VERSION = 1
         const val DEFAULT_PORT = 8787
         const val MAX_FRAME = 32 * 1024 * 1024
+        const val MAX_SYNC_PAYLOAD = 24 * 1024 * 1024
         const val PAIRING_LIFETIME_MILLIS = 5 * 60 * 1000L
         const val TEN_YEARS_MILLIS = 10L * 365 * 24 * 60 * 60 * 1000
         const val ALIAS = "device"
