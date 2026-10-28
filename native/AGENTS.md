@@ -36,8 +36,9 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   revocation); Android instrumented, Compose UI and mDNS tests prove pairing/sync. Sync
   network calls must run on `Dispatchers.IO` (Android throws
   `NetworkOnMainThreadException` from the Compose main thread). iOS must keep
-  `UnavailableSyncService` until its Network.framework transport exists, and the
-  UI must not claim iOS or iOS background sync. Android uses WorkManager and
+  `UnavailableSyncService` when the client-only transport cannot initialize; iOS
+  host pairing and iOS background sync do not exist yet, so the UI must not claim
+  them. Android uses WorkManager and
   desktop syncs periodically while open. Order sync replaces child
   items/shipments/events/returns but must preserve local private fields
   (address/receipts) by updating the order row instead of deleting it.

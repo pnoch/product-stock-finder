@@ -1,7 +1,9 @@
 # iOS Transport Plan
 
-Status: Stage 1 Kotlin bridge implemented and JVM-tested. Swift transport and all
-runtime verification require macOS/Xcode.
+Status: Stage 1 implemented. The Kotlin bridge, Swift Keychain identity, TLS
+client, pairing and sync are in place. The Swift client paired and synced against
+the JVM harness on macOS; the arm64 iOS app builds. iOS host pairing and iOS
+runtime verification remain open.
 
 ## Goal
 

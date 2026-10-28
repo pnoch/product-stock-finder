@@ -7,8 +7,8 @@ watchlist, order aggregates and encrypted receipt attachments, a manual
 encrypted sync package, and a desktop + Android TLS peer transport with
 pairing/Devices UI, SAS confirmation, QR pairing (display everywhere, Android
 scan), JVM/Android mDNS discovery and Android/desktop periodic sync are
-implemented. iOS transport and iOS Bonjour/background sync remain open. The iOS
-implementation plan is
+implemented. iOS now has a client-only Swift transport; iOS host pairing, Bonjour
+and background sync remain open. The iOS implementation plan is
 `docs/superpowers/plans/2026-10-28-ios-transport.md`.
 
 ## Goal
@@ -33,10 +33,10 @@ or conflict handling.
    password and LWW merge; not peer-to-peer and no device identity.
 4. **Desktop + Android identity/pairing/transport (implemented):** EC P-256
    self-signed identity, manual one-time pairing code, pinned TLS server/client,
-   peer store, Devices UI and revocation. iOS uses an explicit unavailable
-   service.
-5. **iOS transport, iOS Bonjour discovery and iOS background sync (next).**
-   QR pairing, SAS confirmation, JVM/Android mDNS
+   peer store, Devices UI and revocation. iOS has a client-only Swift transport;
+   host pairing remains unavailable.
+5. **iOS host pairing, Bonjour discovery and iOS background sync (next).**
+   The iOS client transport, QR pairing, SAS confirmation, JVM/Android mDNS
    discovery, Android WorkManager/desktop periodic sync and encrypted receipt
    attachment sync are implemented.
 
@@ -254,7 +254,7 @@ device creates a new identity and requires re-pairing.
   a restored device must re-pair.
 - Desktop/Android have device identity, pairing, TLS transport, Devices UI,
   selective collection sync, revocation, mDNS discovery and periodic sync. iOS
-  has no transport or background sync. `TlsSyncService` injects its identity
+  has a client-only transport; host pairing, Bonjour and background sync are open. `TlsSyncService` injects its identity
   device id into `ShoppingStore`, so local writes use the real device id for
   equal-timestamp LWW tie-breaking; iOS remains local-only.
 - A JVM loopback proof (`TlsTransportTest`) generates EC P-256 self-signed
@@ -273,8 +273,8 @@ device creates a new identity and requires re-pairing.
   it, while iOS/desktop scanning remains open. Desktop and Android advertise a
   pairing window over mDNS (`_omnishop._tcp.local.`) with only public identity,
   endpoint and expiry; the joiner enters the short pairing secret shown by the
-  host. No secret is broadcast. iOS has no Bonjour discovery. Android compiles and
-  runs the same code; iOS uses `UnavailableSyncService`. An Android↔desktop runtime
+  host. No secret is broadcast. iOS has a client-only transport but no Bonjour or
+  host listener. Android compiles and runs the same code. An Android↔desktop runtime
   pairing attempt exposed duplicate `MainActivity` instances holding port 8787;
   `MainActivity` is now `singleTask` and `adb reverse` is verified. An Android
   instrumented test proves Keystore identity, TLS pairing, SAS and record sync
@@ -282,7 +282,7 @@ device creates a new identity and requires re-pairing.
   flow, and an Android instrumented test proves mDNS discovery and nearby pairing.
   Receipt attachments sync through the same encrypted payload. Android schedules WorkManager sync every six hours; desktop
   syncs periodically while open; iOS has no background sync.
-- Tests: 118 JVM tests plus three Android instrumented tests pass, including sync LWW/tombstones/cursors, malformed
+- Tests: 119 JVM tests plus three Android instrumented tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.
