@@ -4,7 +4,8 @@ Status: Stages 1-3 implemented. The Kotlin bridge, Swift Keychain identity, TLS
 client/host, pairing, bidirectional sync, Bonjour and BGTaskScheduler registration
 are in place. Client and host paired/synced on macOS; Bonjour advertisement/browse
 was verified with `dns-sd` and a separate browser process; the arm64 iOS app
-builds. iOS runtime and background execution verification remain open.
+builds, and an iOS simulator XCTest exercises host/client pairing and sync.
+Background execution and the full Compose UI remain unverified on iOS.
 
 ## Goal
 
