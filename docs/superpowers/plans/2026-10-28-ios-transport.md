@@ -1,9 +1,9 @@
 # iOS Transport Plan
 
-Status: Stage 1 and the host-listener part of Stage 2 implemented. The Kotlin
-bridge, Swift Keychain identity, TLS client/host, pairing and bidirectional sync
-are in place. Client and host paired/synced on macOS; the arm64 iOS app builds.
-Bonjour and iOS runtime verification remain open.
+Status: Stage 1 and Stage 2 implemented. The Kotlin bridge, Swift Keychain
+identity, TLS client/host, pairing, bidirectional sync and Bonjour are in place.
+Client and host paired/synced on macOS; the arm64 iOS app builds. iOS background
+sync and iOS runtime verification remain open.
 
 ## Goal
 
