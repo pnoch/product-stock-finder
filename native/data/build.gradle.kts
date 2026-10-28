@@ -27,6 +27,7 @@ kotlin {
         jvmTest.dependencies {
             implementation(libs.bouncycastle.prov)
             implementation(libs.bouncycastle.pkix)
+            implementation(libs.coroutines.core)
         }
         iosMain.dependencies { implementation(libs.sqldelight.native) }
         androidMain.dependencies { implementation(libs.sqldelight.android) }

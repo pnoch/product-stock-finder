@@ -1,6 +1,7 @@
 # iOS Transport Plan
 
-Status: proposed. macOS/Xcode required. Not implemented or verified on Linux.
+Status: Stage 1 Kotlin bridge implemented and JVM-tested. Swift transport and all
+runtime verification require macOS/Xcode.
 
 ## Goal
 
@@ -207,7 +208,8 @@ Stage after foreground transport works:
 
 ### Stage 1: Bridge and client-only transport
 
-- add `IosSyncTransport` and `IosSyncService`
+- Kotlin bridge implemented as `CallbackSyncTransport` + `CallbackSyncService`
+  with JVM tests; Swift `IosSyncTransport` remains
 - add Swift identity, pairing code, SAS and `NWConnection` client
 - pair and sync iOS to desktop/Android
 - keep `NWListener` disabled; iOS cannot accept inbound connections yet
