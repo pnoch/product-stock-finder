@@ -14,7 +14,7 @@ struct OmniShopIOSApp: App {
         WindowGroup {
             ComposeView()
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase) { phase in
             if phase == .background { IosBackgroundSync.schedule() }
         }
     }
