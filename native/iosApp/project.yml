@@ -12,6 +12,7 @@ targets:
     platform: iOS
     sources:
       - path: OmniShopTests
+      - path: OmniShopTests/protocol.json
       - path: OmniShop/IosIdentity.swift
       - path: OmniShop/IosSyncClient.swift
       - path: OmniShop/IosSyncHost.swift

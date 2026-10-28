@@ -118,6 +118,20 @@ struct IosIdentity {
         return NSError(domain: "OmniShop", code: code)
     }
 
+    static func identityValues(certificateDER: Data) -> (deviceId: String, fingerprint: String)? {
+        guard let certificate = SecCertificateCreateWithData(nil, certificateDER as CFData),
+              let publicKey = SecCertificateCopyKey(certificate),
+              let raw = SecKeyCopyExternalRepresentation(publicKey, nil) as Data? else { return nil }
+        let spki = subjectPublicKeyInfo(raw)
+        let deviceHash = Data(SHA256.hash(data: spki).prefix(16))
+        let deviceId = deviceHash.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+        let fingerprint = SHA256.hash(data: certificateDER).map { String(format: "%02x", $0) }.joined()
+        return (deviceId, fingerprint)
+    }
+
     private static func make(identity: SecIdentity?, certificate: SecCertificate) throws -> IosIdentity {
         guard let publicKey = SecCertificateCopyKey(certificate),
               let raw = SecKeyCopyExternalRepresentation(publicKey, nil) as Data? else {

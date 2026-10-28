@@ -1,0 +1,37 @@
+{
+  "certificateDER": "MIIBizCCATGgAwIBAgIUa65+PrzerdQkaD1QjknmyJqiKewwCgYIKoZIzj0EAwIwGzEZMBcGA1UEAwwQT21uaVNob3AgRml4dHVyZTAeFw0yNjEwMjgxNDM5MjBaFw0zNjEwMjUxNDM5MjBaMBsxGTAXBgNVBAMMEE9tbmlTaG9wIEZpeHR1cmUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAARzsuA7lqEPDbTuoyL9KQ5o5lwib0VDtqXtqJFPh74iz+RNsOttbvJARTQG7ma2EwceQD0rcqX+deIPZ5E3ZOfzo1MwUTAdBgNVHQ4EFgQU305DDe54s5AeiAAYkJWHP06+mkgwHwYDVR0jBBgwFoAU305DDe54s5AeiAAYkJWHP06+mkgwDwYDVR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAgNIADBFAiAnkO1Mnjxi5Uh+ZCx89QXgSiDEHH0aw52ysCgQhKb7WQIhAOw9vuV0+QsU00gPSHDovrbD0bfd1mXbZ0+B8ahz4otG",
+  "deviceId": "Nxfi1NGpk0XoMpO9j4F-dA",
+  "fingerprint": "b13ebc90c9c7708ae22760dadce1a0a0e50fb8284c1c1687ddceb9afb94ca3c1",
+  "sas": {
+    "secret": "fixture-secret",
+    "hostFingerprint": "host-fingerprint",
+    "clientFingerprint": "client-fingerprint",
+    "expected": "338 392"
+  },
+  "pairingPayload": {
+    "version": 1,
+    "deviceId": "Nxfi1NGpk0XoMpO9j4F-dA",
+    "fingerprint": "b13ebc90c9c7708ae22760dadce1a0a0e50fb8284c1c1687ddceb9afb94ca3c1",
+    "host": "192.168.1.20",
+    "port": 8787,
+    "secret": "fixture-secret",
+    "expiresAt": 1790000000000
+  },
+  "wireBatch": {
+    "changes": [
+      {
+        "collection": "watchlist",
+        "id": "p",
+        "updatedAt": 10,
+        "originDevice": "device-a",
+        "deletedAt": null,
+        "payload": "{\"id\":\"p\"}"
+      }
+    ],
+    "cursor": {
+      "updatedAt": 10,
+      "originDevice": "device-a",
+      "id": "p"
+    }
+  }
+}
