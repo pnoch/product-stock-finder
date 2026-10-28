@@ -14,11 +14,12 @@ struct OmniShopIOSApp: App {
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         let files = DocumentPickerBackupFiles()
+        let transport = try? IosSyncTransport()
         return MainViewControllerKt.MainViewController(
             cryptoCallbacks: makeCryptoCallbacks(),
             secretCallbacks: makeSecretCallbacks(),
             backupCallbacks: files.makeCallbacks(),
-            syncTransport: nil,
+            syncTransport: transport,
             openUrl: { raw in
                 if let url = URL(string: raw) { UIApplication.shared.open(url) }
             }
