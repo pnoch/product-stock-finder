@@ -115,6 +115,16 @@ jobs:
       - name: Show Xcode build errors
         if: failure()
         run: grep -nE "error:|fatal error:|The following build commands failed" /tmp/omnishop-ios-build.log | tail -40 || true
+      - name: Run cross-platform sync fixture test
+        timeout-minutes: 15
+        run: |
+          set -o pipefail
+          xcodebuild test -project iosApp/OmniShop.xcodeproj -scheme OmniShop \
+            -sdk iphonesimulator -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            CODE_SIGN_IDENTITY=- \
+            -only-testing:OmniShopTests/IosSyncFixtureTests \
+            | tee /tmp/omnishop-ios-fixture.log | tail -80
       - name: Launch the app in a simulator
         run: |
           set -euo pipefail
