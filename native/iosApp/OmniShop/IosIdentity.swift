@@ -18,29 +18,23 @@ struct IosIdentity {
     private static let certLabel = "com.omnishop.sync.identity.cert"
 
     private static func load() throws -> IosIdentity? {
-        let keyQuery: [CFString: Any] = [
-            kSecClass: kSecClassKey,
-            kSecAttrApplicationTag: keyTag,
-            kSecReturnRef: true,
-            kSecMatchLimit: kSecMatchLimitOne,
-        ]
-        var keyRef: CFTypeRef?
-        guard SecItemCopyMatching(keyQuery as CFDictionary, &keyRef) == errSecSuccess,
-              let privateKey = keyRef as! SecKey? else { return nil }
-        let certQuery: [CFString: Any] = [
-            kSecClass: kSecClassCertificate,
-            kSecAttrLabel: certLabel,
-            kSecReturnRef: true,
-            kSecMatchLimit: kSecMatchLimitOne,
-        ]
-        var certRef: CFTypeRef?
-        guard SecItemCopyMatching(certQuery as CFDictionary, &certRef) == errSecSuccess,
-              let certificate = certRef as! SecCertificate? else { return nil }
-        var identityRef: SecIdentity?
-        guard SecIdentityCreateWithCertificate(nil, certificate, &identityRef) == errSecSuccess,
-              let identity = identityRef else { return nil }
-        _ = privateKey
+        guard let identity = loadIdentity() else { return nil }
+        var certificateRef: SecCertificate?
+        guard SecIdentityCopyCertificate(identity, &certificateRef) == errSecSuccess,
+              let certificate = certificateRef else { return nil }
         return try make(identity: identity, certificate: certificate)
+    }
+
+    private static func loadIdentity() -> SecIdentity? {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassIdentity,
+            kSecReturnRef: true,
+            kSecMatchLimit: kSecMatchLimitOne,
+        ]
+        var identityRef: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &identityRef) == errSecSuccess,
+              let identity = identityRef as! SecIdentity? else { return nil }
+        return identity
     }
 
     static func generateEphemeral() throws -> IosIdentity {
@@ -115,9 +109,7 @@ struct IosIdentity {
         SecItemDelete([kSecClass: kSecClassCertificate, kSecAttrLabel: certLabel] as CFDictionary)
         let status = SecItemAdd(add as CFDictionary, nil)
         guard status == errSecSuccess else { throw NSError(domain: "OmniShop", code: Int(status)) }
-        var identityRef: SecIdentity?
-        guard SecIdentityCreateWithCertificate(nil, certificate, &identityRef) == errSecSuccess,
-              let identity = identityRef else { throw NSError(domain: "OmniShop", code: 5) }
+        guard let identity = loadIdentity() else { throw NSError(domain: "OmniShop", code: 5) }
         return try make(identity: identity, certificate: certificate)
     }
 
