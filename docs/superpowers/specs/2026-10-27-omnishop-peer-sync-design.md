@@ -9,9 +9,9 @@ pairing/Devices UI, SAS confirmation, QR pairing (display everywhere, Android
 scan), JVM/Android mDNS discovery and Android/desktop periodic sync are
 implemented. iOS now has client/host Swift transports, Bonjour discovery
 (advertisement/browse verified on macOS) and `BGTaskScheduler` registration; an
-iOS simulator host/client test target exists but CI blocks it on Keychain
-entitlement `-34018` under ad-hoc signing. Background execution remains
-unverified. The iOS implementation plan is
+iOS simulator host/client and fixture test targets exist, but CI hangs before
+completing the test run. Shared protocol fixtures are verified on JVM. Background
+execution remains unverified. The iOS implementation plan is
 `docs/superpowers/plans/2026-10-28-ios-transport.md`.
 
 ## Goal
