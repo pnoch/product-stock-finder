@@ -20,9 +20,10 @@ final class IosSyncTransport: NSObject, DataCallbackSyncTransport {
     private let peersKey = "sync.peers.v1"
     private let queue = DispatchQueue(label: "com.omnishop.sync.transport")
 
-    init(identity: IosIdentity = try IosIdentity.loadOrCreate()) {
-        self.identity = identity
-        self.client = IosSyncClient(identity: identity)
+    init(identity: IosIdentity? = nil) throws {
+        let resolved = try identity ?? IosIdentity.loadOrCreate()
+        self.identity = resolved
+        self.client = IosSyncClient(identity: resolved)
         super.init()
     }
 
