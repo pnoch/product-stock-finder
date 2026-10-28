@@ -37,7 +37,8 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   network calls must run on `Dispatchers.IO` (Android throws
   `NetworkOnMainThreadException` from the Compose main thread). iOS must keep
   `UnavailableSyncService` when the Swift transport cannot initialize. iOS
-  background sync does not exist yet, so the UI must not claim it. Android uses WorkManager and
+  background scheduling exists but is not runtime-verified; do not claim it as
+  proven. Android uses WorkManager and
   desktop syncs periodically while open. Order sync replaces child
   items/shipments/events/returns but must preserve local private fields
   (address/receipts) by updating the order row instead of deleting it.
