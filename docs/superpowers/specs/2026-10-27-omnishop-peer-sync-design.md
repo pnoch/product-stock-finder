@@ -7,8 +7,8 @@ watchlist, order aggregates and encrypted receipt attachments, a manual
 encrypted sync package, and a desktop + Android TLS peer transport with
 pairing/Devices UI, SAS confirmation, QR pairing (display everywhere, Android
 scan), JVM/Android mDNS discovery and Android/desktop periodic sync are
-implemented. iOS now has client/host Swift transports and Bonjour discovery;
-iOS background sync remains open. The iOS implementation plan is
+implemented. iOS now has client/host Swift transports and Bonjour discovery
+(advertisement/browse verified on macOS); iOS background sync remains open. The iOS implementation plan is
 `docs/superpowers/plans/2026-10-28-ios-transport.md`.
 
 ## Goal
