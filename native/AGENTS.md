@@ -39,8 +39,8 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   desktop syncs periodically while open. Order sync replaces child
   items/shipments/events/returns but must preserve local private fields
   (address/receipts) by updating the order row instead of deleting it.
-  `origin_device` still defaults to `"local"` until a real device identity is
-  injected into `ShoppingStore`. mDNS discovery may advertise only public
+  `TlsSyncService` injects the real device id into `ShoppingStore` before writes;
+  iOS has no transport, so it remains local-only. mDNS discovery may advertise only public
   identity, endpoint and pairing expiry; never advertise the pairing secret.
   Nearby pairing still requires the short secret plus SAS comparison.
 - The iOS host lives in `iosApp/` (XcodeGen `project.yml` + Swift). Do not commit

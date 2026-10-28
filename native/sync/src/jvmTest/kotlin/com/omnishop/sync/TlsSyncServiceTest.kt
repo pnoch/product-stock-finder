@@ -67,6 +67,24 @@ class TlsSyncServiceTest {
         }
     }
 
+    @Test fun attributesLocalWritesToSyncIdentity() = runBlocking {
+        ShoppingStore.inMemory("local") { 300 }.use { store ->
+            val service = TlsSyncService(
+                store, MemorySecrets(), JcaBackupCrypto(),
+                enableDiscovery = false, enableServer = false, port = 0,
+            ) { 300 }
+            try {
+                store.setPreference("origin-check", "yes")
+                assertEquals(
+                    service.thisDevice().deviceId,
+                    store.syncMeta("settings", "origin-check")!!.originDevice,
+                )
+            } finally {
+                service.close()
+            }
+        }
+    }
+
     @Test fun clientOnlyServiceSyncsWithoutListening() = runBlocking {
         ShoppingStore.inMemory("a") { 300 }.use { aStore ->
             ShoppingStore.inMemory("b") { 300 }.use { bStore ->

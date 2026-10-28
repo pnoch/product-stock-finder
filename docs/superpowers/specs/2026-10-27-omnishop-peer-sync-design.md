@@ -252,10 +252,10 @@ device creates a new identity and requires re-pairing.
 - `sync_meta` is excluded from encrypted backups and cleared by a full restore;
   a restored device must re-pair.
 - Desktop/Android have device identity, pairing, TLS transport, Devices UI,
-  selective collection sync and revocation. iOS has no transport. Background
-  sync does not exist. `origin_device` still defaults to `"local"` until the
-  identity is injected into `ShoppingStore`; equal-timestamp cross-device
-  tie-breaking is therefore not yet reliable.
+  selective collection sync, revocation, mDNS discovery and periodic sync. iOS
+  has no transport or background sync. `TlsSyncService` injects its identity
+  device id into `ShoppingStore`, so local writes use the real device id for
+  equal-timestamp LWW tie-breaking; iOS remains local-only.
 - A JVM loopback proof (`TlsTransportTest`) generates EC P-256 self-signed
   certificates, performs mutual TLS with certificate pinning, exchanges a framed
   payload, and verifies a wrong pin is rejected. This is a transport spike, not
@@ -280,7 +280,7 @@ device creates a new identity and requires re-pairing.
   against the desktop harness; the UI/mDNS pairing path is still not device-tested. Receipt attachments sync through the same
   encrypted payload. Android schedules WorkManager sync every six hours; desktop
   syncs periodically while open; iOS has no background sync.
-- Tests: 115 JVM tests plus one Android instrumented TLS-sync test pass, including sync LWW/tombstones/cursors, malformed
+- Tests: 116 JVM tests plus one Android instrumented TLS-sync test pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.

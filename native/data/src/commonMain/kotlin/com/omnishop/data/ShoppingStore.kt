@@ -10,9 +10,14 @@ data class SavedProduct(val id: String, val title: String, val sourceUrl: String
 
 class ShoppingStore(
     private val driver: SqlDriver,
-    private val originDevice: String = "local",
+    private var originDevice: String = "local",
     private val clock: () -> Long = { kotlin.time.Clock.System.now().toEpochMilliseconds() },
 ) : AutoCloseable {
+    fun setOriginDevice(deviceId: String) {
+        require(deviceId.isNotBlank()) { "Device id must not be blank" }
+        originDevice = deviceId
+    }
+
     private val database = OmniShopDatabase(driver)
     private val queries = database.shoppingQueries
 

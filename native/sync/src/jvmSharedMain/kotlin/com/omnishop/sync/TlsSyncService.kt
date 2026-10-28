@@ -61,6 +61,7 @@ class TlsSyncService(
     private var pairingExpiresAt: Long = 0
 
     init {
+        store.setOriginDevice(identity.deviceId)
         if (enableServer) {
             val context = serverContext(identity)
             server = context.serverSocketFactory.createServerSocket(port) as SSLServerSocket
