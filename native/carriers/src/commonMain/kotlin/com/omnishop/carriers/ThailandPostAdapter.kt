@@ -49,6 +49,7 @@ class ThailandPostAdapter(
                 setBody("{}")
             }
             when (auth.status.value) {
+                400 -> return failure(CarrierProblem.PROTOCOL, "Thailand Post rejected the authentication request")
                 401, 403 -> return failure(CarrierProblem.UNAUTHORIZED, "Thailand Post rejected the API key")
                 429 -> return failure(CarrierProblem.RATE_LIMITED, "Thailand Post is rate limiting requests")
             }
@@ -65,6 +66,7 @@ class ThailandPostAdapter(
                 setBody(json.encodeToString(TrackRequest.serializer(), TrackRequest(barcode = listOf(tracking))))
             }
             when (response.status.value) {
+                400 -> return failure(CarrierProblem.PROTOCOL, "Thailand Post rejected the tracking request")
                 401, 403 -> return failure(CarrierProblem.UNAUTHORIZED, "Thailand Post rejected the tracking session")
                 404 -> return failure(CarrierProblem.NOT_FOUND, "Thailand Post has no record for this tracking number")
                 429 -> return failure(CarrierProblem.RATE_LIMITED, "Thailand Post is rate limiting requests")
@@ -99,13 +101,15 @@ class ThailandPostAdapter(
     }
 
     private fun ThaiPostItem.toEvent(): CarrierEvent? {
-        val rawTimestamp = status_date?.trim()?.takeIf { it.isNotEmpty() }
-        val rawDescription = status_description?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val rawTimestamp = (status_date ?: delivery_datetime)?.trim()?.takeIf { it.isNotEmpty() }
+        val rawDescription = (status_description ?: statusDetail ?: delivery_description)
+            ?.trim()?.takeIf { it.isNotEmpty() } ?: return null
         val location = location?.trim()?.takeIf { it.isNotEmpty() }
         val parsed = rawTimestamp?.let(::parseThaiPostTimestamp)
         val eventKey = listOf(
             status.orEmpty(), rawDescription, rawTimestamp.orEmpty(),
             location.orEmpty(), postcode.orEmpty(), delivery_status.orEmpty(),
+            statusDetail.orEmpty(), delivery_datetime.orEmpty(),
         ).joinToString("|")
         return CarrierEvent(
             sourceEventId = eventKey,
@@ -189,6 +193,8 @@ private data class ThaiPostItem(
     val status: String? = null,
     val status_description: String? = null,
     val status_date: String? = null,
+    val statusDetail: String? = null,
+    val delivery_datetime: String? = null,
     val location: String? = null,
     val postcode: String? = null,
     val delivery_status: String? = null,

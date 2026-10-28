@@ -79,6 +79,25 @@ class ThailandPostAdapterTest {
         assertEquals(CarrierProblem.NOT_FOUND, assertIs<CarrierResult.Failure>(missing).failure.problem)
     }
 
+    @Test fun mapsDocumentedFallbackFieldsAndBadRequest() = runBlocking {
+        val fallback = adapter { request ->
+            if (request.url.encodedPath.endsWith("/authenticate/token")) json("""{"token":"t"}""")
+            else json("""{"response":{"items":{"ED852942182TH":[
+              {"barcode":"ED852942182TH","status":"501","statusDetail":"Delivered",
+               "delivery_datetime":"20/07/2562 10:00:00+07:00","location":"Chiang Mai"}
+            ]}},"status":true}""")
+        }.track("ED852942182TH", CarrierCredentials("key"))
+        val event = assertIs<CarrierResult.Success>(fallback).tracking.events.single()
+        assertTrue(event.description.startsWith("Delivered"))
+        assertTrue(event.description.contains("Chiang Mai"))
+        assertEquals(com.omnishop.core.ShipmentStatus.DELIVERED, event.status)
+        assertEquals(1_563_591_600_000L, event.occurredAtEpochMillis)
+
+        val badRequest = adapter { json("""{"message":"bad"}""", HttpStatusCode.BadRequest) }
+            .track("ED852942182TH", CarrierCredentials("key"))
+        assertEquals(CarrierProblem.PROTOCOL, assertIs<CarrierResult.Failure>(badRequest).failure.problem)
+    }
+
     @Test fun mapsMalformedResponsesAndNetworkFailures() = runBlocking {
         val malformed = adapter { request ->
             if (request.url.encodedPath.endsWith("/authenticate/token")) json("""{"token":"t"}""")
