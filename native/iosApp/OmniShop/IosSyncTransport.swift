@@ -16,6 +16,8 @@ final class IosSyncTransport: NSObject, DataCallbackSyncTransport {
 
     private let identity: IosIdentity
     private let client: IosSyncClient
+    private let browser: NWBrowser
+    private var discovered: [DataSyncDiscoveredPeer] = []
     private var host: IosSyncHost?
     private var syncHandler: ((DataSyncBatch) -> DataSyncBatch)?
     private let defaults = UserDefaults.standard
@@ -26,10 +28,19 @@ final class IosSyncTransport: NSObject, DataCallbackSyncTransport {
         let resolved = try identity ?? IosIdentity.loadOrCreate()
         self.identity = resolved
         self.client = IosSyncClient(identity: resolved)
+        self.browser = NWBrowser(
+            for: .bonjour(type: "_omnishop._tcp", domain: nil),
+            using: NWParameters.tcp,
+        )
         super.init()
+        browser.browseResultsChangedHandler = { [weak self] results, _ in
+            self?.updateDiscovered(results)
+        }
+        browser.start(queue: queue)
     }
 
     func close() {
+        browser.cancel()
         host?.close()
         host = nil
     }
@@ -75,7 +86,7 @@ final class IosSyncTransport: NSObject, DataCallbackSyncTransport {
         }
     }
 
-    func discoveredPeers() -> [DataSyncDiscoveredPeer] { [] }
+    func discoveredPeers() -> [DataSyncDiscoveredPeer] { discovered }
 
     func pair(code: String, completion: @escaping (any DataSyncResult) -> Void) {
         queue.async {
@@ -98,7 +109,26 @@ final class IosSyncTransport: NSObject, DataCallbackSyncTransport {
     }
 
     func pairDiscovered(peerId: String, secret: String, completion: @escaping (any DataSyncResult) -> Void) {
-        completion(IosSyncCodec.shared.failure(message: "Nearby pairing is not available on iOS yet"))
+        guard let peer = discovered.first(where: { $0.deviceId == peerId }),
+              let port = Int(peer.endpoint.split(separator: ":").last ?? "") else {
+            completion(IosSyncCodec.shared.failure(message: "Nearby device not found"))
+            return
+        }
+        let host = peer.endpoint.split(separator: ":").dropLast().joined(separator: ":")
+        let payload = PairingPayload(
+            version: 1, deviceId: peer.deviceId, fingerprint: peer.fingerprint,
+            host: host, port: port, secret: secret.trimmingCharacters(in: .whitespaces),
+            expiresAt: peer.pairingExpiresAtEpochMillis,
+        )
+        do {
+            let code = try JSONEncoder().encode(payload).base64EncodedString()
+                .replacingOccurrences(of: "+", with: "-")
+                .replacingOccurrences(of: "/", with: "_")
+                .replacingOccurrences(of: "=", with: "")
+            pair(code: code, completion: completion)
+        } catch {
+            completion(IosSyncCodec.shared.failure(message: error.localizedDescription))
+        }
     }
 
     func peers() -> [DataSyncPeerInfo] {
@@ -156,6 +186,24 @@ final class IosSyncTransport: NSObject, DataCallbackSyncTransport {
 
     func thisDevice() -> DataSyncDeviceInfo {
         DataSyncDeviceInfo(deviceId: identity.deviceId, displayName: "iOS", fingerprint: identity.fingerprint)
+    }
+
+    private func updateDiscovered(_ results: Set<NWBrowser.Result>) {
+        let now = Int64(Date().timeIntervalSince1970 * 1000)
+        discovered = results.compactMap { result in
+            guard case let .bonjour(txt) = result.metadata,
+                  let id = txt["id"], let fingerprint = txt["fp"],
+                  let host = txt["host"], let port = txt["port"],
+                  let expires = Int64(txt["expires"] ?? "") else { return nil }
+            if id == identity.deviceId || expires <= now { return nil }
+            return DataSyncDiscoveredPeer(
+                deviceId: id,
+                displayName: txt["name"] ?? "Device",
+                endpoint: "\(host):\(port)",
+                fingerprint: fingerprint,
+                pairingExpiresAtEpochMillis: expires,
+            )
+        }
     }
 
     private func loadPeers() -> [StoredPeer] {

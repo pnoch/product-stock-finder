@@ -59,6 +59,15 @@ final class IosSyncHost {
             .replacingOccurrences(of: "=", with: "")
         self.secret = secret
         self.expiresAt = Int64(Date().timeIntervalSince1970 * 1000) + 300_000
+        let txt = NWTXTRecord([
+            "v": "1", "id": identity.deviceId, "fp": identity.fingerprint,
+            "name": "iOS", "expires": String(expiresAt),
+            "host": localIPv4(), "port": String(port),
+        ])
+        listener?.service = NWListener.Service(
+            name: "OmniShop-\(identity.deviceId.prefix(8))",
+            type: "_omnishop._tcp", domain: nil, txtRecord: txt,
+        )
         return PairingPayload(
             version: 1, deviceId: identity.deviceId, fingerprint: identity.fingerprint,
             host: localIPv4(), port: Int(port), secret: secret, expiresAt: expiresAt,

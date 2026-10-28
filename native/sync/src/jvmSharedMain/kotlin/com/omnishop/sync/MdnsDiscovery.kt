@@ -55,6 +55,8 @@ internal class MdnsDiscovery(
                 "fp" to fingerprint,
                 "name" to displayName,
                 "expires" to expiresAtEpochMillis.toString(),
+                "host" to (lanAddress()?.hostAddress ?: "127.0.0.1"),
+                "port" to port.toString(),
             ),
         )
         runCatching { jm.registerService(info) }.onSuccess { advertised = info }
@@ -117,10 +119,12 @@ internal class MdnsDiscovery(
             val fingerprint = props["fp"]?.takeIf { it.isNotBlank() } ?: return null
             val expires = props["expires"]?.toLongOrNull() ?: return null
             if (expires <= now) return null
+            val endpointHost = props["host"]?.takeIf { it.isNotBlank() } ?: host
+            val endpointPort = props["port"]?.toIntOrNull()?.takeIf { it in 1..65535 } ?: port
             return SyncDiscoveredPeer(
                 deviceId = id,
                 displayName = props["name"]?.takeIf { it.isNotBlank() } ?: "Device",
-                endpoint = "$host:$port",
+                endpoint = "$endpointHost:$endpointPort",
                 fingerprint = fingerprint,
                 pairingExpiresAtEpochMillis = expires,
             )
