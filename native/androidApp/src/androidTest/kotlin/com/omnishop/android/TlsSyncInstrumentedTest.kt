@@ -35,7 +35,7 @@ class TlsSyncInstrumentedTest {
         try {
             val paired = service.pair(code)
             assertTrue("Pair failed: ${(paired as? SyncResult.Failure)?.message}", paired is SyncResult.Success)
-            val host = service.peers().first()
+            val host = requireNotNull(service.peers().maxByOrNull { it.lastSyncAtEpochMillis })
             val synced = service.sync(host.deviceId)
             assertTrue("Sync failed: ${(synced as? SyncResult.Failure)?.message}", synced is SyncResult.Success)
             assertTrue(store.listProducts().any { it.title == "HARNESS DESKTOP PRODUCT" })
