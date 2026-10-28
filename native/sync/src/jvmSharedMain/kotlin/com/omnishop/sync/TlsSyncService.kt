@@ -25,6 +25,8 @@ import javax.net.ssl.SSLSocket
 import javax.net.ssl.X509TrustManager
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.concurrent.thread
 import kotlin.time.Clock
 import kotlinx.serialization.Serializable
@@ -110,7 +112,8 @@ class TlsSyncService(
         return SyncPairingCode(code, expires, secret)
     }
 
-    override suspend fun pair(code: String): SyncResult = runCatching {
+    override suspend fun pair(code: String): SyncResult = withContext(Dispatchers.IO) {
+        runCatching {
         val payload = json.decodeFromString(
             PairingPayload.serializer(),
             Base64.getUrlDecoder().decode(code).decodeToString(),
@@ -136,7 +139,8 @@ class TlsSyncService(
             return@runCatching SyncResult.Success(applied = 0, sent = 0, sas = sas)
         }
         SyncResult.Success(applied = 0, sent = 0)
-    }.getOrElse { SyncResult.Failure(it.message ?: "Pairing failed") }
+        }.getOrElse { SyncResult.Failure(it.message ?: "Pairing failed") }
+    }
 
     override suspend fun pairDiscovered(peerId: String, secret: String): SyncResult {
         val peer = discoveredPeers().firstOrNull { it.deviceId == peerId }
@@ -153,7 +157,8 @@ class TlsSyncService(
         return pair(code)
     }
 
-    override suspend fun sync(peerId: String): SyncResult = runCatching {
+    override suspend fun sync(peerId: String): SyncResult = withContext(Dispatchers.IO) {
+        runCatching {
         val peer = loadPeers().firstOrNull { it.deviceId == peerId }
             ?: error("Paired device not found")
         val local = allLocalChanges()
@@ -167,7 +172,8 @@ class TlsSyncService(
             savePeer(peer.copy(lastSyncAt = now()))
             SyncResult.Success(applied, local.changes.size)
         }
-    }.getOrElse { SyncResult.Failure(it.message ?: "Sync failed") }
+        }.getOrElse { SyncResult.Failure(it.message ?: "Sync failed") }
+    }
 
     override fun revoke(peerId: String) {
         savePeers(loadPeers().filterNot { it.deviceId == peerId })

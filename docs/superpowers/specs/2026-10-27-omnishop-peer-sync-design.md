@@ -277,10 +277,11 @@ device creates a new identity and requires re-pairing.
   pairing attempt exposed duplicate `MainActivity` instances holding port 8787;
   `MainActivity` is now `singleTask` and `adb reverse` is verified. An Android
   instrumented test now proves Keystore identity, TLS pairing, SAS and record sync
-  against the desktop harness; the UI/mDNS pairing path is still not device-tested. Receipt attachments sync through the same
+  against the desktop harness; a Compose UI test proves the Devices pairing/sync
+  flow. mDNS discovery is still not device-tested. Receipt attachments sync through the same
   encrypted payload. Android schedules WorkManager sync every six hours; desktop
   syncs periodically while open; iOS has no background sync.
-- Tests: 116 JVM tests plus one Android instrumented TLS-sync test pass, including sync LWW/tombstones/cursors, malformed
+- Tests: 116 JVM tests plus two Android instrumented tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.

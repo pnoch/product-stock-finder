@@ -33,15 +33,17 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   encrypted private-field payload. The manual sync package is an encrypted file
   with LWW merge, not peer-to-peer, and must not be labeled as automatic/peer
   sync. The JVM/Android transport is real (TLS, pinned certs, pairing, Devices UI,
-  revocation); the Android runtime pairing proof is still open. iOS must keep
+  revocation); Android instrumented and Compose UI tests prove pairing/sync. Sync
+  network calls must run on `Dispatchers.IO` (Android throws
+  `NetworkOnMainThreadException` from the Compose main thread). iOS must keep
   `UnavailableSyncService` until its Network.framework transport exists, and the
   UI must not claim iOS or iOS background sync. Android uses WorkManager and
   desktop syncs periodically while open. Order sync replaces child
   items/shipments/events/returns but must preserve local private fields
   (address/receipts) by updating the order row instead of deleting it.
   `TlsSyncService` injects the real device id into `ShoppingStore` before writes;
-  iOS has no transport, so it remains local-only. mDNS discovery may advertise only public
-  identity, endpoint and pairing expiry; never advertise the pairing secret.
+  iOS has no transport, so it remains local-only. mDNS discovery may advertise only
+  public identity, endpoint and pairing expiry; never advertise the pairing secret.
   Nearby pairing still requires the short secret plus SAS comparison.
 - The iOS host lives in `iosApp/` (XcodeGen `project.yml` + Swift). Do not commit
   the generated `.xcodeproj`. `Info.plist` must keep
