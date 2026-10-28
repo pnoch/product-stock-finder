@@ -121,7 +121,7 @@ jobs:
           xcodebuild test -project iosApp/OmniShop.xcodeproj -scheme OmniShop \
             -sdk iphonesimulator -configuration Debug \
             -destination 'platform=iOS Simulator,name=iPhone 17' \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY=- \
             | tee /tmp/omnishop-ios-test.log | tail -80
       - name: Launch the app in a simulator
         run: |
