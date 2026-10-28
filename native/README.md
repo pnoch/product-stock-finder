@@ -397,7 +397,8 @@ and it does not provide key escrow. Keep the password out of the backup file.
 
 ## Next milestones
 
-1. Finish peer sync: iOS transport and iOS Bonjour discovery. Android QR/SAS/mDNS
+1. Finish peer sync: iOS transport and iOS Bonjour discovery. See
+   `docs/superpowers/plans/2026-10-28-ios-transport.md`. Android QR/SAS/mDNS
    pairing, Devices UI and background sync are proven by instrumented tests;
    encrypted receipt attachments sync over TLS. Desktop syncs periodically while
    open. iOS background sync remains open.

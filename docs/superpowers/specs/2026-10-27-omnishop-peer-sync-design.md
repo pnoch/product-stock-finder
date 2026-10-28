@@ -7,8 +7,9 @@ watchlist, order aggregates and encrypted receipt attachments, a manual
 encrypted sync package, and a desktop + Android TLS peer transport with
 pairing/Devices UI, SAS confirmation, QR pairing (display everywhere, Android
 scan), JVM/Android mDNS discovery and Android/desktop periodic sync are
-implemented. iOS transport, iOS Bonjour/background sync and the Android runtime
-pairing proof remain open.
+implemented. iOS transport and iOS Bonjour/background sync remain open. The iOS
+implementation plan is
+`docs/superpowers/plans/2026-10-28-ios-transport.md`.
 
 ## Goal
 
@@ -34,8 +35,8 @@ or conflict handling.
    self-signed identity, manual one-time pairing code, pinned TLS server/client,
    peer store, Devices UI and revocation. iOS uses an explicit unavailable
    service.
-5. **iOS transport, iOS Bonjour discovery, iOS background sync and the Android
-   runtime pairing proof (next).** QR pairing, SAS confirmation, JVM/Android mDNS
+5. **iOS transport, iOS Bonjour discovery and iOS background sync (next).**
+   QR pairing, SAS confirmation, JVM/Android mDNS
    discovery, Android WorkManager/desktop periodic sync and encrypted receipt
    attachment sync are implemented.
 
