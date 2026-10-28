@@ -38,8 +38,8 @@ See `README.md` for the verified feature/platform matrix and exact commands.
   `NetworkOnMainThreadException` from the Compose main thread). iOS must keep
   `UnavailableSyncService` when the Swift transport cannot initialize. iOS
   background scheduling exists but is not runtime-verified; do not claim it as
-  proven. The iOS simulator XCTest covers transport pairing/sync, not background
-  execution or the Compose UI. Android uses WorkManager and
+  proven. The iOS simulator XCTest target is not yet stable in CI and does not
+  prove background execution or the Compose UI. Android uses WorkManager and
   desktop syncs periodically while open. Order sync replaces child
   items/shipments/events/returns but must preserve local private fields
   (address/receipts) by updating the order row instead of deleting it.

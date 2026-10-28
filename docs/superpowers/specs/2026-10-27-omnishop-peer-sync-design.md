@@ -8,8 +8,9 @@ encrypted sync package, and a desktop + Android TLS peer transport with
 pairing/Devices UI, SAS confirmation, QR pairing (display everywhere, Android
 scan), JVM/Android mDNS discovery and Android/desktop periodic sync are
 implemented. iOS now has client/host Swift transports, Bonjour discovery
-(advertisement/browse verified on macOS), `BGTaskScheduler` registration and an
-iOS simulator host/client sync test; background execution remains unverified. The iOS implementation plan is
+(advertisement/browse verified on macOS) and `BGTaskScheduler` registration; an
+iOS simulator host/client test target exists but is not yet stable in CI.
+Background execution remains unverified. The iOS implementation plan is
 `docs/superpowers/plans/2026-10-28-ios-transport.md`.
 
 ## Goal
@@ -283,7 +284,7 @@ device creates a new identity and requires re-pairing.
   flow, and an Android instrumented test proves mDNS discovery and nearby pairing.
   Receipt attachments sync through the same encrypted payload. Android schedules WorkManager sync every six hours; desktop
   syncs periodically while open; iOS has no background sync.
-- Tests: 119 JVM tests, three Android instrumented tests and one iOS simulator sync test pass, including sync LWW/tombstones/cursors, malformed
+- Tests: 119 JVM tests and three Android instrumented tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.
