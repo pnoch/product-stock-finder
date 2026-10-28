@@ -3,6 +3,8 @@ package com.omnishop.app
 import androidx.compose.ui.window.ComposeUIViewController
 import com.omnishop.carriers.ThailandPostAdapter
 import com.omnishop.data.BackupService
+import com.omnishop.data.CallbackSyncService
+import com.omnishop.data.CallbackSyncTransport
 import com.omnishop.data.CarrierSettings
 import com.omnishop.data.ReceiptService
 import com.omnishop.data.SyncPackageService
@@ -20,6 +22,7 @@ fun MainViewController(
     cryptoCallbacks: IosCryptoCallbacks,
     secretCallbacks: IosSecretCallbacks,
     backupCallbacks: IosBackupCallbacks,
+    syncTransport: CallbackSyncTransport?,
     openUrl: (String) -> Unit,
 ): UIViewController {
     val store = openIosStore()
@@ -30,7 +33,8 @@ fun MainViewController(
     val carrierSettings = CarrierSettings(secrets)
     val receiptService = ReceiptService(privateService, store, { NSUUID().UUIDString })
     val syncPackages = SyncPackageService(store, crypto, receiptService)
-    val syncService = UnavailableSyncService()
+    val syncService = syncTransport?.let { CallbackSyncService(it, store, receiptService) }
+        ?: UnavailableSyncService()
     val backup = BackupService(store, crypto, privateService)
     val presenter = ShopPresenter(
         store,

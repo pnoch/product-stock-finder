@@ -35,7 +35,9 @@ kotlin {
 
 tasks.register<JavaExec>("runSyncHarness") {
     group = "verification"
+    description = "Run the desktop pairing harness for manual/device tests."
     val testCompilation = kotlin.targets.getByName("jvm").compilations.getByName("test")
     classpath = files(testCompilation.output.allOutputs, testCompilation.runtimeDependencyFiles)
     mainClass.set("com.omnishop.sync.SyncHarnessKt")
+    environment("PSF_HARNESS_HOST", System.getenv("PSF_HARNESS_HOST") ?: "127.0.0.1")
 }

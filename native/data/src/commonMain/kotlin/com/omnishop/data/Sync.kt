@@ -93,6 +93,9 @@ object SyncJson {
         encodeDefaults = true
         ignoreUnknownKeys = false
     }
+
+    fun encodeBatch(batch: SyncBatch): String = json.encodeToString(SyncBatch.serializer(), batch)
+    fun decodeBatch(value: String): SyncBatch = json.decodeFromString(SyncBatch.serializer(), value)
 }
 
 /**

@@ -18,6 +18,7 @@ struct ComposeView: UIViewControllerRepresentable {
             cryptoCallbacks: makeCryptoCallbacks(),
             secretCallbacks: makeSecretCallbacks(),
             backupCallbacks: files.makeCallbacks(),
+            syncTransport: nil,
             openUrl: { raw in
                 if let url = URL(string: raw) { UIApplication.shared.open(url) }
             }
