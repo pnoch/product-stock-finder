@@ -223,11 +223,38 @@ export options, or device build.
 Linux packaged executable:
 `desktopApp/build/compose/binaries/main/app/OmniShop/bin/OmniShop`.
 
+## Release verification
+
+Latest verified artifacts (outside git):
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `omnishop-native-0.1.0-universal.apk` | `6fa9d38ac9a714394556798acf6c0f4d5dc55d569b9f3d96c13c27e97d14d40c` |
+| `omnishop_1.0.0_amd64.deb` | `d9ac8a2d8dab1206721d02c765b663bb10e6eb5663808f97468e7c7f7a93efec` |
+
+Share page: `http://172.23.194.22:8897/` (old 5.28.2 APK, native preview APK and
+Linux `.deb`). Verify with `curl -fsS http://172.23.194.22:8897/SHA256SUMS`.
+
+Release checklist:
+
+```bash
+./gradlew :core:jvmTest :connectors:jvmTest :carriers:jvmTest :data:jvmTest   :app:jvmTest :sync:jvmTest :data:verifyCommonMainOmniShopDatabaseMigration   :desktopApp:createDistributable :androidApp:assembleDebug
+./gradlew :androidApp:assembleRelease :desktopApp:packageDeb
+apksigner sign --ks ../credentials/release.keystore --ks-key-alias <alias>   --ks-pass pass:<password> --key-pass pass:<password>   --out /tmp/omnishop-native-0.1.0-signed.apk   androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk
+apksigner verify --print-certs /tmp/omnishop-native-0.1.0-signed.apk
+adb install -r /tmp/omnishop-native-0.1.0-signed.apk
+```
+
+The Android release signature is `CN=Product Stock Finder`, certificate
+SHA-256 `3d4b56423a21f076127dd5a29fd7116f8aa7f1ae2b59c0e05c9170c9ba549ecc`.
+The `.deb` is an unsigned development build. iOS signing/TestFlight remains
+paused until Apple Silicon or a signing team is available.
+
 ## Platform proof
 
 | Platform | Current evidence |
 | --- | --- |
-| Android | Debug and release-signed APKs built. An instrumented test (`TlsSyncInstrumentedTest`) proves Android Keystore identity, TLS pairing, SAS and record sync against the desktop harness. A Compose UI test (`DevicesPairingUiTest`) proves the Devices pairing and sync flow, and an mDNS instrumented test (`MdnsPairingInstrumentedTest`) proves nearby discovery, pairing and sync on Android. Earlier UI attempts were confounded by duplicate `MainActivity` instances each creating a sync server; `MainActivity` is now `singleTask`, and `adb reverse` is verified working. The release build was exercised on `emulator-5580`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades. Signature `CN=Product Stock Finder`, package `.nativepreview`, versionCode 1 / versionName 0.1.0. Encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). Carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URLs and receipts are unit-tested; receipt file picker is not automated |
+| Android | Debug and release-signed APKs built. An instrumented test (`TlsSyncInstrumentedTest`) proves Android Keystore identity, TLS pairing, SAS and record sync against the desktop harness. A Compose UI test (`DevicesPairingUiTest`) proves the Devices pairing and sync flow, and an mDNS instrumented test (`MdnsPairingInstrumentedTest`) proves nearby discovery, pairing and sync on Android. Earlier UI attempts were confounded by duplicate `MainActivity` instances each creating a sync server; `MainActivity` is now `singleTask`, and `adb reverse` is verified working. The release build was exercised on `emulator-5590`: saved/compare/order/partial-delivery/encrypted-address/return/partial-refund/carrier-selection/restart/Thai, plus database upgrades. Signature `CN=Product Stock Finder`, package `.nativepreview`, versionCode 1 / versionName 0.1.0. Encrypted backup uses the system picker (unit-tested crypto/restore, picker not automated). Carrier refresh is exercised only through the unconfigured gate; adapter HTTP is MockEngine-tested, not live. Link-only URLs and receipts are unit-tested; receipt file picker is not automated |
 | JVM on Linux | Tests, classes, packaged runtime, actual window startup under Xvfb; TLS peer sync server/client, pairing, peer store and revocation are implemented and loopback-tested. Address cryptography uses the OS keyring (lazy; no keyring daemon under Xvfb); backup uses a native file dialog |
 | Windows/macOS | `:desktopApp:createDistributable` succeeds on GitHub macOS and Windows runners; app-image contents are uploaded as CI artifacts. No interactive UI run on those OSes yet, and the installers are unsigned development builds |
 | iOS | Swift TLS transport implemented for client and host roles: Keychain P-256 identity, pairing-code decode/creation, SAS, pinned `NWConnection`, `NWListener`, peer persistence, bidirectional sync and Bonjour discovery/advertisement and `BGTaskScheduler` background sync. Client and host paired/synced on macOS; Bonjour advertisement/browse was verified with `dns-sd` and a separate process; the arm64 app builds. An iOS simulator XCTest target exists, but CI hangs before completing the test run; the Intel host cannot run the arm64 Compose UI, and no device is attached. Shared protocol fixtures are verified on JVM; the Swift fixture test is not CI-run. Background execution is not runtime-tested. XcodeGen host builds/launches on macOS CI; no device signing/App Store build, background tasks, share extension, or iOS UI automation beyond launch/screenshot |
