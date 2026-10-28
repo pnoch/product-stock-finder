@@ -91,7 +91,7 @@ final class IosSyncClient {
     func sync(peerHost: String, port: Int, pinnedFingerprint: String, local: SyncBatch) throws -> SyncBatch {
         let connection = try connect(host: peerHost, port: port, pinnedFingerprint: pinnedFingerprint)
         defer { connection.cancel(); self.connection = nil }
-        try send(connection, WireMessage(type: "sync", batch: local))
+        try send(connection, WireMessage(type: "sync", deviceId: identity.deviceId, batch: local))
         let response = try receive(connection)
         guard response.type == "sync", let batch = response.batch else {
             throw SyncClientError.protocolError(response.message ?? "Sync rejected")

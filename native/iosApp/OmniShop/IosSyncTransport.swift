@@ -16,6 +16,8 @@ final class IosSyncTransport: NSObject, DataCallbackSyncTransport {
 
     private let identity: IosIdentity
     private let client: IosSyncClient
+    private var host: IosSyncHost?
+    private var syncHandler: ((DataSyncBatch) -> DataSyncBatch)?
     private let defaults = UserDefaults.standard
     private let peersKey = "sync.peers.v1"
     private let queue = DispatchQueue(label: "com.omnishop.sync.transport")
@@ -27,10 +29,50 @@ final class IosSyncTransport: NSObject, DataCallbackSyncTransport {
         super.init()
     }
 
-    func close() {}
+    func close() {
+        host?.close()
+        host = nil
+    }
+
+    func attachSyncHandler(handler: @escaping (DataSyncBatch) -> DataSyncBatch) {
+        syncHandler = handler
+    }
 
     func createPairing(completion: @escaping (DataSyncPairingCode?, String?) -> Void) {
-        completion(nil, "Host pairing is not available on iOS yet")
+        do {
+            host?.close()
+            let host = try IosSyncHost(identity: identity)
+            host.onPeerPaired = { [weak self] deviceId, name, endpoint, fingerprint, sas in
+                self?.savePeer(StoredPeer(
+                    deviceId: deviceId, displayName: name, endpoint: endpoint,
+                    fingerprint: fingerprint, sas: sas,
+                    lastSyncAt: Int64(Date().timeIntervalSince1970 * 1000),
+                ))
+            }
+            host.syncHandler = { [weak self] remote in
+                guard let self, let handler = self.syncHandler else { return nil }
+                guard let json = try? JSONEncoder().encode(remote),
+                      let value = String(data: json, encoding: .utf8) else { return nil }
+                let remoteBatch = IosSyncCodec.shared.decodeBatch(value: value)
+                let localBatch = handler(remoteBatch)
+                let localJson = IosSyncCodec.shared.encodeBatch(batch: localBatch)
+                return try? JSONDecoder().decode(SyncBatch.self, from: Data(localJson.utf8))
+            }
+            try host.start()
+            let payload = host.createCode()
+            self.host = host
+            let code = try JSONEncoder().encode(payload).base64EncodedString()
+                .replacingOccurrences(of: "+", with: "-")
+                .replacingOccurrences(of: "/", with: "_")
+                .replacingOccurrences(of: "=", with: "")
+            completion(DataSyncPairingCode(
+                code: code,
+                expiresAtEpochMillis: payload.expiresAt,
+                secret: payload.secret,
+            ), nil)
+        } catch {
+            completion(nil, error.localizedDescription)
+        }
     }
 
     func discoveredPeers() -> [DataSyncDiscoveredPeer] { [] }
