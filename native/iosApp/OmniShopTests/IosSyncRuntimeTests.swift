@@ -1,5 +1,4 @@
 import XCTest
-@testable import OmniShop
 
 final class IosSyncRuntimeTests: XCTestCase {
     func testHostAndClientPairAndSync() throws {

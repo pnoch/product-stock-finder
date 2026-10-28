@@ -12,14 +12,14 @@ targets:
     platform: iOS
     sources:
       - path: OmniShopTests
-    dependencies:
-      - target: OmniShop
+      - path: OmniShop/IosIdentity.swift
+      - path: OmniShop/IosSyncClient.swift
+      - path: OmniShop/IosSyncHost.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.omnishop.ios.tests
         GENERATE_INFOPLIST_FILE: YES
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/OmniShop.app/OmniShop"
-        BUNDLE_LOADER: "$(TEST_HOST)"
+        CODE_SIGN_ENTITLEMENTS: OmniShopTests/OmniShopTests.entitlements
   OmniShop:
     type: application
     platform: iOS
