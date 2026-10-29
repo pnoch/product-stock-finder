@@ -3,6 +3,11 @@ import Network
 import Security
 import CryptoKit
 
+@_silgen_name("sec_protocol_metadata_copy_peer_certificate_chain")
+private func sec_protocol_metadata_copy_peer_certificate_chain(
+    _ metadata: sec_protocol_metadata_t
+) -> CFArray?
+
 final class IosSyncHost {
     private let identity: IosIdentity
     private let queue = DispatchQueue(label: "com.omnishop.sync.host")
