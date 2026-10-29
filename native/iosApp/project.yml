@@ -58,3 +58,11 @@ schemes:
       config: Debug
       targets:
         - OmniShopTests
+  OmniShopTests:
+    build:
+      targets:
+        OmniShopTests: all
+    test:
+      config: Debug
+      targets:
+        - OmniShopTests
