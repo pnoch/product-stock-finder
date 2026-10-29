@@ -88,8 +88,8 @@ final class IosSyncHost {
 
     private func peerFingerprint(_ connection: NWConnection) -> String? {
         guard let metadata = connection.metadata(definition: NWProtocolTLS.definition) as? NWProtocolTLS.Metadata,
-              let chain = sec_protocol_metadata_copy_peer_certificate_chain(metadata.securityProtocolMetadata)?
-                .takeRetainedValue() as? [SecCertificate],
+              let chain = sec_protocol_metadata_copy_peer_certificate_chain(metadata.securityProtocolMetadata)
+                as? [SecCertificate],
               let certificate = chain.first else { return nil }
         return SHA256.hash(data: SecCertificateCopyData(certificate) as Data)
             .map { String(format: "%02x", $0) }.joined()
