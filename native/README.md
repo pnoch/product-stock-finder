@@ -52,9 +52,8 @@ not the complete Phase 1 release from the master product brief.
   Events preserve the raw carrier description/timestamp, use provider
   provenance, and are deduplicated. A package records its selected carrier id.
   Mock-HTTP tests cover successful mapping, pending/unauthorized/bad-request
-  responses and network failures. A live create request succeeded with a
-  TrackingMore trial key; the sample number was still pending, so event mapping
-  is MockEngine-tested. **No live event mapping has been
+  responses and network failures. Live event mapping was verified with
+  `JD282523205TH`: 10 events, delivered. **No live event mapping has been
   verified without a real API key.**
 - Link-only choices for **SPX Express, LEX (Lazada), KEX/Kerry, Flash Express,
   J&T Express and Ninja Van**. KEX/Flash/J&T/Ninja Van open the carrier's own
@@ -231,8 +230,8 @@ Latest verified artifacts (outside git):
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `omnishop-native-0.1.0-universal.apk` | `2791758ecfd4bcf2434ee9f265ddc2c0952a200b074367c8f0ec496dcc468f9c` |
-| `omnishop_1.0.0_amd64.deb` | `c6153db5eda127efd233b1ba1ef2d1b514a0a83cef215bd6cbc700154fe538e3` |
+| `omnishop-native-0.1.0-universal.apk` | `69d020c3753471ff52854e1cbc1c63f3df6074049c63eb2e87c8e67ecaabb0e9` |
+| `omnishop_1.0.0_amd64.deb` | `cbe07c806b43a57a5648ddae8e7db567a277013329da6c7425c733011992035c` |
 
 Share page: `http://172.23.194.22:8897/` (old 5.28.2 APK, native preview APK and
 Linux `.deb`). Verify with `curl -fsS http://172.23.194.22:8897/SHA256SUMS`.
@@ -379,13 +378,14 @@ Current limits:
 - The carrier's location is appended to the preserved description rather than
   stored in a dedicated location column.
 - Each refresh creates the shipment once, then uses TrackingMore’s get endpoint
-  for repeat refreshes (`4101 Tracking No. already exists`); there is no
+  for repeat refreshes (`4101 Tracking No. already exists`); live mapping for
+  `JD282523205TH` returned 10 events. There is no
   rate-limit cache, retry queue, background polling, estimated-delivery fetch or
   multi-item tracking request. TrackingMore credits are the user's own.
 - Only Thailand Post has a live BYOK adapter, via TrackingMore. SPX, LEX, KEX,
   Flash, J&T and Ninja Van are link-only; 17TRACK is a third-party lookup for
-  SPX/LEX, not the carrier's API. TrackingMore live create was verified with a
-  trial key; live event mapping still needs a shipment with events.
+  SPX/LEX, not the carrier's API. TrackingMore create/get and live event mapping
+  were verified with `JD282523205TH`.
 - Return-carrier tracking is not connected to the returns module.
 
 ## iOS host notes

@@ -26,8 +26,8 @@ class TrackingMoreAdapterTest {
             assertEquals("/v4/trackings/create", request.url.encodedPath)
             assertEquals("key-1", request.headers["Tracking-Api-Key"])
             json("""{"meta":{"code":200,"message":"ok"},"data":{"origin_info":{"trackinfo":[
-              {"Date":"2026-10-29 08:00:00","StatusDescription":"Delivered","Location":"Chiang Mai"},
-              {"Date":"2026-10-28 08:00:00","StatusDescription":"In Transit","Details":"Departed hub"}
+              {"checkpoint_date":"2026-10-26T06:18:39","checkpoint_delivery_status":"delivered","tracking_detail":"Successful delivery [ CHANTHABURI Post Office ]"},
+              {"checkpoint_date":"2026-10-25T05:59:14","checkpoint_delivery_status":"transit","tracking_detail":"Posting/Collection [ BANG YAI Post Office ]"}
             ]}}}""")
         }.track("ed852942182th", CarrierCredentials("key-1"))
         val tracking = assertIs<CarrierResult.Success>(result).tracking
@@ -35,7 +35,8 @@ class TrackingMoreAdapterTest {
         assertEquals("thailandpost", tracking.carrierId)
         assertEquals(2, tracking.events.size)
         assertEquals(com.omnishop.core.ShipmentStatus.DELIVERED, tracking.events[0].status)
-        assertTrue(tracking.events[0].description.contains("Chiang Mai"))
+        assertTrue(tracking.events[0].description.contains("CHANTHABURI"))
+        assertEquals(com.omnishop.core.ShipmentStatus.SHIPPED, tracking.events[1].status)
     }
 
     @Test fun refreshesExistingTrackingWithGet() = runBlocking {

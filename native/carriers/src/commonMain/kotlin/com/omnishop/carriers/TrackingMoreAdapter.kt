@@ -28,6 +28,7 @@ class TrackingMoreAdapter(
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
+        encodeDefaults = true
     }
 
     override fun matches(trackingNumber: String): Boolean =
@@ -117,12 +118,13 @@ class TrackingMoreAdapter(
     }
 
     private fun toEvent(item: TrackInfo): CarrierEvent? {
-        val description = (item.StatusDescription ?: item.Details ?: item.Status)
+        val description = (item.tracking_detail ?: item.StatusDescription ?: item.Details ?: item.Status)
             ?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-        val location = item.Location?.trim()?.takeIf { it.isNotEmpty() }
-        val timestamp = item.Date?.trim()?.takeIf { it.isNotEmpty() }
+        val location = item.location?.trim()?.takeIf { it.isNotEmpty() }
+        val timestamp = (item.checkpoint_date ?: item.Date)?.trim()?.takeIf { it.isNotEmpty() }
         val eventKey = listOf(
-            item.Status.orEmpty(), description, timestamp.orEmpty(), location.orEmpty(),
+            item.Status.orEmpty(), item.checkpoint_delivery_status.orEmpty(), description,
+            timestamp.orEmpty(), location.orEmpty(),
         ).joinToString("|")
         return CarrierEvent(
             sourceEventId = eventKey,
@@ -140,7 +142,7 @@ class TrackingMoreAdapter(
             text.contains("นำจ่ายไม่สำเร็จ") || text.contains("delivery attempt") ||
                 text.contains("attempted") || text.contains("พยายามนำจ่าย") -> ShipmentStatus.DELIVERY_ATTEMPTED
             text.contains("นำจ่ายสำเร็จ") || text.contains("delivered") ||
-                text.contains("ผู้รับรับสินค้า") -> ShipmentStatus.DELIVERED
+                text.contains("successful delivery") || text.contains("ผู้รับรับสินค้า") -> ShipmentStatus.DELIVERED
             text.contains("ออกนำจ่าย") || text.contains("out for delivery") -> ShipmentStatus.OUT_FOR_DELIVERY
             text.contains("ศุลกากร") || text.contains("customs") -> ShipmentStatus.CUSTOMS_CLEARANCE
             text.contains("ตีกลับ") || text.contains("ส่งคืน") || text.contains("return to sender") ->
@@ -150,8 +152,10 @@ class TrackingMoreAdapter(
             text.contains("ถึงศูนย์") || text.contains("arrived at") -> ShipmentStatus.ARRIVED_AT_LOCAL_FACILITY
             text.contains("รับฝาก") || text.contains("ฝากส่ง") || text.contains("accepted") ->
                 ShipmentStatus.SHIPPED
-            text.contains("ขนส่ง") || text.contains("คัดแยก") || text.contains("in transit") ->
-                ShipmentStatus.IN_TRANSIT
+            text.contains("out for delivery") -> ShipmentStatus.OUT_FOR_DELIVERY
+            text.contains("posting/collection") || text.contains("posting") -> ShipmentStatus.SHIPPED
+            text.contains("ขนส่ง") || text.contains("คัดแยก") || text.contains("in transit") ||
+                text.contains("departure") || text.contains("arrival") -> ShipmentStatus.IN_TRANSIT
             else -> ShipmentStatus.UNKNOWN
         }
     }
@@ -220,6 +224,9 @@ private data class TrackInfo(
     val Date: String? = null,
     val StatusDescription: String? = null,
     val Details: String? = null,
-    val Location: String? = null,
     val Status: String? = null,
+    val checkpoint_date: String? = null,
+    val checkpoint_delivery_status: String? = null,
+    val tracking_detail: String? = null,
+    @kotlinx.serialization.SerialName("location") val location: String? = null,
 )
