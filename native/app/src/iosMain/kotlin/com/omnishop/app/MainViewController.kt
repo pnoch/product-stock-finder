@@ -1,7 +1,7 @@
 package com.omnishop.app
 
 import androidx.compose.ui.window.ComposeUIViewController
-import com.omnishop.carriers.TrackingMoreAdapter
+import com.omnishop.carriers.TrackingMoreCarriers
 import com.omnishop.data.BackupService
 import com.omnishop.data.CallbackSyncService
 import com.omnishop.data.CallbackSyncTransport
@@ -44,7 +44,7 @@ fun MainViewController(
     return ComposeUIViewController {
         OmniShopApp(
             presenter, backup, privateService, receiptService, syncPackages, syncService, carrierSettings,
-            listOf(TrackingMoreAdapter()), files, openUrl = openUrl,
+            TrackingMoreCarriers.all, files, openUrl = openUrl,
         )
     }
 }

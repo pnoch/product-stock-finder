@@ -10,7 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import com.omnishop.app.OmniShopApp
 import com.omnishop.app.ShopPresenter
-import com.omnishop.carriers.TrackingMoreAdapter
+import com.omnishop.carriers.TrackingMoreCarriers
 import com.omnishop.data.BackupService
 import com.omnishop.data.CarrierSettings
 import com.omnishop.data.ReceiptService
@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             OmniShopApp(
                 presenter, backup, privateService, receiptService, syncPackages, syncService, carrierSettings,
-                listOf(TrackingMoreAdapter()), backupFiles, scanPairingCode,
+                TrackingMoreCarriers.all, backupFiles, scanPairingCode,
             ) { url ->
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
             }

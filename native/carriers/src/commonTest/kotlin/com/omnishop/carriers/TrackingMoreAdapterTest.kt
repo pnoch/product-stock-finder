@@ -14,7 +14,7 @@ import kotlin.test.*
 
 class TrackingMoreAdapterTest {
     private fun adapter(handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData) =
-        TrackingMoreAdapter(HttpClient(MockEngine(handler)) { expectSuccess = false }) { 999L }
+        TrackingMoreAdapter(client = HttpClient(MockEngine(handler)) { expectSuccess = false }) { 999L }
 
     private fun MockRequestHandleScope.json(body: String, status: HttpStatusCode = HttpStatusCode.OK) =
         respond(body, status, headersOf(HttpHeaders.ContentType, "application/json"))
@@ -54,6 +54,29 @@ class TrackingMoreAdapterTest {
         }.track("ED852942182TH", CarrierCredentials("key"))
         assertEquals(listOf("/v4/trackings/create", "/v4/trackings/get"), calls)
         assertEquals(1, assertIs<CarrierResult.Success>(result).tracking.events.size)
+    }
+
+    @Test fun detectsCarrierWhenAdapterHasNoFixedCode() = runBlocking {
+        val calls = mutableListOf<String>()
+        val adapter = TrackingMoreAdapter(
+            id = "flash",
+            displayName = "Flash Express · TrackingMore",
+            courierCode = null,
+            trackingPattern = Regex("^[A-Za-z0-9-]{4,40}$"),
+            client = HttpClient(MockEngine { request ->
+                calls += request.url.encodedPath
+                if (request.url.encodedPath.endsWith("/detect")) {
+                    json("""{"data":[{"courier_code":"flash-express"}]}""")
+                } else {
+                    json("""{"meta":{"code":200},"data":{"origin_info":{"trackinfo":[
+                      {"checkpoint_date":"2026-10-29T08:00:00","checkpoint_delivery_status":"transit","tracking_detail":"In Transit"}
+                    ]}}}""")
+                }
+            }) { expectSuccess = false },
+        ) { 999L }
+        val result = adapter.track("TH12345678901", CarrierCredentials("key"))
+        assertEquals(listOf("/v4/couriers/detect", "/v4/trackings/create"), calls)
+        assertEquals("flash", assertIs<CarrierResult.Success>(result).tracking.carrierId)
     }
 
     @Test fun validatesApiKeys() = runBlocking {

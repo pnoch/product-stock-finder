@@ -19,11 +19,13 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 
 class TrackingMoreAdapter(
+    override val id: String = "thailandpost",
+    override val displayName: String = "Thailand Post · TrackingMore",
+    private val courierCode: String? = "thailand-post",
+    private val trackingPattern: Regex = Regex("^[A-Z]{2}\\d{9}TH$"),
     private val client: HttpClient = defaultClient(),
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) : CarrierAdapter {
-    override val id: String = CarrierSettingsIds.THAILAND_POST
-    override val displayName: String = "Thailand Post · TrackingMore"
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -32,7 +34,18 @@ class TrackingMoreAdapter(
     }
 
     override fun matches(trackingNumber: String): Boolean =
-        TRACKING_NUMBER.matches(trackingNumber.trim().uppercase())
+        trackingPattern.matches(trackingNumber.trim().uppercase())
+
+    private suspend fun detectCourier(tracking: String, apiKey: String): String? {
+        val response = client.post(DETECT_URL) {
+            header("Tracking-Api-Key", apiKey.trim())
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(DetectRequest.serializer(), DetectRequest(tracking)))
+        }
+        if (!response.status.isSuccess()) return null
+        val body = runCatching { json.decodeFromString<DetectResponse>(response.bodyAsText()) }.getOrNull()
+        return body?.data?.firstOrNull()?.courier_code?.takeIf { it.isNotBlank() }
+    }
 
     suspend fun validateKey(apiKey: String): Boolean {
         if (apiKey.isBlank()) return false
@@ -55,10 +68,12 @@ class TrackingMoreAdapter(
             return failure(CarrierProblem.NOT_CONFIGURED, "Add a TrackingMore API key in Profile")
         }
         return try {
+            val code = courierCode ?: detectCourier(tracking, credentials.apiKey)
+                ?: return failure(CarrierProblem.NOT_FOUND, "TrackingMore could not detect a carrier")
             val response = client.post(TRACK_URL) {
                 header("Tracking-Api-Key", credentials.apiKey.trim())
                 contentType(ContentType.Application.Json)
-                setBody(json.encodeToString(CreateRequest.serializer(), CreateRequest(tracking)))
+                setBody(json.encodeToString(CreateRequest.serializer(), CreateRequest(tracking, code)))
             }
             val text = response.bodyAsText()
             val body = runCatching { json.decodeFromString<CreateResponse>(text) }.getOrNull()
@@ -198,6 +213,7 @@ class TrackingMoreAdapter(
     private companion object {
         const val TRACK_URL = "https://api.trackingmore.com/v4/trackings/create"
         const val GET_URL = "https://api.trackingmore.com/v4/trackings/get"
+        const val DETECT_URL = "https://api.trackingmore.com/v4/couriers/detect"
         const val ALREADY_EXISTS = 4101
         val TRACKING_NUMBER = Regex("^[A-Z]{2}\\d{9}TH$")
 
@@ -211,15 +227,34 @@ class TrackingMoreAdapter(
     }
 }
 
-private object CarrierSettingsIds {
-    const val THAILAND_POST = "thailandpost"
+object TrackingMoreCarriers {
+    private val GENERIC = Regex("^[A-Za-z0-9-]{4,40}$")
+
+    val all: List<TrackingMoreAdapter> = listOf(
+        TrackingMoreAdapter(),
+        TrackingMoreAdapter("flash", "Flash Express · TrackingMore", null, GENERIC),
+        TrackingMoreAdapter("jnt", "J&T Express · TrackingMore", null, GENERIC),
+        TrackingMoreAdapter("ninjavan", "Ninja Van · TrackingMore", null, GENERIC),
+        TrackingMoreAdapter("kex", "KEX / Kerry Express · TrackingMore", null, GENERIC),
+        TrackingMoreAdapter("spx", "SPX Express · TrackingMore", null, GENERIC),
+        TrackingMoreAdapter("lex", "LEX (Lazada) · TrackingMore", null, GENERIC),
+    )
 }
 
 @Serializable
 private data class CreateRequest(
     val tracking_number: String,
-    val courier_code: String = "thailand-post",
+    val courier_code: String,
 )
+
+@Serializable
+private data class DetectRequest(val tracking_number: String)
+
+@Serializable
+private data class DetectResponse(val data: List<DetectedCourier> = emptyList())
+
+@Serializable
+private data class DetectedCourier(val courier_code: String? = null)
 
 @Serializable
 private data class CreateResponse(

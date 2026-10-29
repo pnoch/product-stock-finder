@@ -230,8 +230,8 @@ Latest verified artifacts (outside git):
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `omnishop-native-0.1.0-universal.apk` | `27885ed8e5310c7084b7da0e3d43d03964e76dacef2e1b81c4354228eeb28865` |
-| `omnishop_1.0.0_amd64.deb` | `757c729755713026d33112e340a6ad94a83755dcfd14d3bb87fec0b1bbab1871` |
+| `omnishop-native-0.1.0-universal.apk` | `9ee10fa636ef330299cc0dcb62957ba3aa9c7a24952d95d1a7f1e38cff15104d` |
+| `omnishop_1.0.0_amd64.deb` | `31b452c5bf95590ecdf684a3dfe38d4dd04298ddc03b739a5eeb660e150c625c` |
 
 Share page: `http://172.23.194.22:8897/` (old 5.28.2 APK, native preview APK and
 Linux `.deb`). Verify with `curl -fsS http://172.23.194.22:8897/SHA256SUMS`.
@@ -382,10 +382,11 @@ Current limits:
   `JD282523205TH` returned 10 events. There is no
   rate-limit cache, retry queue, background polling, estimated-delivery fetch or
   multi-item tracking request. TrackingMore credits are the user's own.
-- Only Thailand Post has a live BYOK adapter, via TrackingMore. SPX, LEX, KEX,
-  Flash, J&T and Ninja Van are link-only; 17TRACK is a third-party lookup for
-  SPX/LEX, not the carrier's API. TrackingMore create/get and live event mapping
-  were verified with `JD282523205TH`.
+- Thailand Post uses TrackingMore with a fixed `thailand-post` code. Flash, J&T,
+  Ninja Van, KEX, SPX and LEX use TrackingMore auto-detection with the same BYOK
+  key; their live detection is not yet verified. Link-only fallbacks remain if no
+  adapter is configured. TrackingMore create/get and live Thailand Post event
+  mapping were verified with `JD282523205TH`.
 - Return-carrier tracking is not connected to the returns module.
 
 ## iOS host notes
