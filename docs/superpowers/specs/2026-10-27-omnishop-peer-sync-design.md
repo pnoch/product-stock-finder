@@ -9,8 +9,8 @@ pairing/Devices UI, SAS confirmation, QR pairing (display everywhere, Android
 scan), JVM/Android mDNS discovery and Android/desktop periodic sync are
 implemented. iOS now has client/host Swift transports, Bonjour discovery
 (advertisement/browse verified on macOS) and `BGTaskScheduler` registration; an
-iOS simulator host/client and fixture test targets exist, but CI hangs before
-completing the test run. Shared protocol fixtures are verified on JVM. Background
+The Swift-only iOS simulator suite runs in CI: three protocol fixture tests pass;
+the Keychain/TLS runtime test skips without a signing identity. Background
 execution remains unverified. The iOS implementation plan is
 `docs/superpowers/plans/2026-10-28-ios-transport.md`.
 
@@ -285,7 +285,7 @@ device creates a new identity and requires re-pairing.
   flow, and an Android instrumented test proves mDNS discovery and nearby pairing.
   Receipt attachments sync through the same encrypted payload. Android schedules WorkManager sync every six hours; desktop
   syncs periodically while open; iOS has no background sync.
-- Tests: 130 JVM tests and five Android instrumented tests pass, including sync LWW/tombstones/cursors, malformed
+- Tests: 130 JVM tests, five Android instrumented tests and three iOS simulator fixture tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.

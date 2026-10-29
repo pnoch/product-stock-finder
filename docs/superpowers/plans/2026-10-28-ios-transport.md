@@ -4,8 +4,8 @@ Status: Stages 1-3 implemented. The Kotlin bridge, Swift Keychain identity, TLS
 client/host, pairing, bidirectional sync, Bonjour and BGTaskScheduler registration
 are in place. Client and host paired/synced on macOS; Bonjour advertisement/browse
 was verified with `dns-sd` and a separate browser process; the arm64 iOS app
-builds; iOS simulator test targets exist but CI hangs before completing them.
-Shared JVM/Swift protocol fixtures are in place and verified on JVM. Background
+builds; the Swift-only iOS simulator suite runs in CI with three passing protocol
+fixtures and a Keychain runtime test that skips without signing. Background
 execution and the full Compose UI remain unverified on iOS.
 
 ## Goal
