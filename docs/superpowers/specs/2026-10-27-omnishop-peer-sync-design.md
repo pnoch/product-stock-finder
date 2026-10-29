@@ -285,7 +285,7 @@ device creates a new identity and requires re-pairing.
   flow, and an Android instrumented test proves mDNS discovery and nearby pairing.
   Receipt attachments sync through the same encrypted payload. Android schedules WorkManager sync every six hours; desktop
   syncs periodically while open; iOS has no background sync.
-- Tests: 127 JVM tests and three Android instrumented tests pass, including sync LWW/tombstones/cursors, malformed
+- Tests: 128 JVM tests and three Android instrumented tests pass, including sync LWW/tombstones/cursors, malformed
   payload rejection, watchlist/order aggregate round-trips, private-field
   preservation, the 4→5 migration, TLS pinning, pairing/sync/revocation and
   sync-package merge/idempotency/wrong-password tests.

@@ -231,8 +231,8 @@ Latest verified artifacts (outside git):
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `omnishop-native-0.1.0-universal.apk` | `486b593828529e9b09862ba4f4ece639d11f9687af5a6fc9e77491024ccb1457` |
-| `omnishop_1.0.0_amd64.deb` | `902fadd396caafb2b072c39cab23840ce9e0699277d68556c6c0d71085c45a95` |
+| `omnishop-native-0.1.0-universal.apk` | `2791758ecfd4bcf2434ee9f265ddc2c0952a200b074367c8f0ec496dcc468f9c` |
+| `omnishop_1.0.0_amd64.deb` | `c6153db5eda127efd233b1ba1ef2d1b514a0a83cef215bd6cbc700154fe538e3` |
 
 Share page: `http://172.23.194.22:8897/` (old 5.28.2 APK, native preview APK and
 Linux `.deb`). Verify with `curl -fsS http://172.23.194.22:8897/SHA256SUMS`.
@@ -378,7 +378,8 @@ Current limits:
   carrier code table. Unknown descriptions stay `UNKNOWN`.
 - The carrier's location is appended to the preserved description rather than
   stored in a dedicated location column.
-- Each refresh creates/refreshes one TrackingMore shipment; there is no
+- Each refresh creates the shipment once, then uses TrackingMore’s get endpoint
+  for repeat refreshes (`4101 Tracking No. already exists`); there is no
   rate-limit cache, retry queue, background polling, estimated-delivery fetch or
   multi-item tracking request. TrackingMore credits are the user's own.
 - Only Thailand Post has a live BYOK adapter, via TrackingMore. SPX, LEX, KEX,

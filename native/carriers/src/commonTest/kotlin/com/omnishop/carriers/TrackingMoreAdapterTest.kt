@@ -38,6 +38,23 @@ class TrackingMoreAdapterTest {
         assertTrue(tracking.events[0].description.contains("Chiang Mai"))
     }
 
+    @Test fun refreshesExistingTrackingWithGet() = runBlocking {
+        val calls = mutableListOf<String>()
+        val result = adapter { request ->
+            calls += request.url.encodedPath
+            if (request.url.encodedPath.endsWith("/create")) {
+                json("""{"meta":{"code":4101,"message":"Tracking No. already exists."}}""", HttpStatusCode.BadRequest)
+            } else {
+                assertEquals("thailand-post", request.url.parameters["courier_code"])
+                json("""{"meta":{"code":200},"data":[{"origin_info":{"trackinfo":[
+                  {"Date":"2026-10-29 08:00:00","StatusDescription":"In Transit"}
+                ]}}]}""")
+            }
+        }.track("ED852942182TH", CarrierCredentials("key"))
+        assertEquals(listOf("/v4/trackings/create", "/v4/trackings/get"), calls)
+        assertEquals(1, assertIs<CarrierResult.Success>(result).tracking.events.size)
+    }
+
     @Test fun mapsPendingUnauthorizedAndBadRequest() = runBlocking {
         val pending = adapter { json("""{"meta":{"code":200},"data":{"origin_info":{"trackinfo":[]}}}""") }
             .track("ED852942182TH", CarrierCredentials("key"))

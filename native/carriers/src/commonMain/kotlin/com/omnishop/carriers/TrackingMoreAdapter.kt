@@ -3,7 +3,9 @@ package com.omnishop.carriers
 import com.omnishop.core.ShipmentStatus
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -48,6 +50,11 @@ class TrackingMoreAdapter(
                 contentType(ContentType.Application.Json)
                 setBody(json.encodeToString(CreateRequest.serializer(), CreateRequest(tracking)))
             }
+            val text = response.bodyAsText()
+            val body = runCatching { json.decodeFromString<CreateResponse>(text) }.getOrNull()
+            if (body?.meta?.code == ALREADY_EXISTS) {
+                return existing(tracking, credentials.apiKey)
+            }
             when (response.status.value) {
                 400 -> return failure(CarrierProblem.PROTOCOL, "TrackingMore rejected the request")
                 401, 403 -> return failure(CarrierProblem.UNAUTHORIZED, "TrackingMore rejected the API key")
@@ -57,8 +64,8 @@ class TrackingMoreAdapter(
             if (!response.status.isSuccess()) {
                 return failure(CarrierProblem.UNAVAILABLE, "TrackingMore tracking failed (${response.status.value})")
             }
-            val body = runCatching { json.decodeFromString<CreateResponse>(response.bodyAsText()) }.getOrElse {
-                return failure(CarrierProblem.PROTOCOL, "TrackingMore returned an unreadable response", it)
+            if (body == null) {
+                return failure(CarrierProblem.PROTOCOL, "TrackingMore returned an unreadable response")
             }
             if (body.meta?.code != 200) {
                 return failure(CarrierProblem.PROTOCOL, body.meta?.message ?: "TrackingMore rejected the tracking request")
@@ -83,6 +90,30 @@ class TrackingMoreAdapter(
                 CarrierFailure(CarrierProblem.UNAVAILABLE, "Could not reach TrackingMore", failure),
             )
         }
+    }
+
+    private suspend fun existing(tracking: String, apiKey: String): CarrierResult {
+        val response = client.get(GET_URL) {
+            header("Tracking-Api-Key", apiKey.trim())
+            parameter("tracking_numbers", tracking)
+            parameter("courier_code", "thailand-post")
+        }
+        if (!response.status.isSuccess()) {
+            return failure(CarrierProblem.UNAVAILABLE, "TrackingMore lookup failed (${response.status.value})")
+        }
+        val body = runCatching { json.decodeFromString<GetResponse>(response.bodyAsText()) }.getOrElse {
+            return failure(CarrierProblem.PROTOCOL, "TrackingMore returned an unreadable response", it)
+        }
+        val data = body.data.firstOrNull()
+            ?: return failure(CarrierProblem.NOT_FOUND, "TrackingMore returned no tracking data")
+        val items = buildList {
+            data.origin_info?.trackinfo?.let(::addAll)
+            data.destination_info?.trackinfo?.let(::addAll)
+        }
+        if (items.isEmpty()) return failure(CarrierProblem.NOT_FOUND, "No tracking events are available yet")
+        val events = items.mapNotNull(::toEvent)
+        if (events.isEmpty()) return failure(CarrierProblem.NOT_FOUND, "No usable tracking events are available yet")
+        return CarrierResult.Success(CarrierTracking(id, tracking, events, now()))
     }
 
     private fun toEvent(item: TrackInfo): CarrierEvent? {
@@ -130,6 +161,8 @@ class TrackingMoreAdapter(
 
     private companion object {
         const val TRACK_URL = "https://api.trackingmore.com/v4/trackings/create"
+        const val GET_URL = "https://api.trackingmore.com/v4/trackings/get"
+        const val ALREADY_EXISTS = 4101
         val TRACKING_NUMBER = Regex("^[A-Z]{2}\\d{9}TH$")
 
         fun defaultClient(): HttpClient = HttpClient {
@@ -162,6 +195,12 @@ private data class CreateResponse(
 private data class Meta(
     val code: Int? = null,
     val message: String? = null,
+)
+
+@Serializable
+private data class GetResponse(
+    val meta: Meta? = null,
+    val data: List<TrackingData> = emptyList(),
 )
 
 @Serializable
