@@ -30,6 +30,7 @@ struct IosIdentity {
             kSecClass: kSecClassIdentity,
             kSecReturnRef: true,
             kSecMatchLimit: kSecMatchLimitOne,
+            kSecUseDataProtectionKeychain: false,
         ]
         var identityRef: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &identityRef) == errSecSuccess,
@@ -74,6 +75,7 @@ struct IosIdentity {
                 kSecAttrApplicationTag: keyTag,
                 kSecAttrLabel: "OmniShop Sync Identity",
                 kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
+                kSecUseDataProtectionKeychain: false,
             ],
         ]
         var error: Unmanaged<CFError>?
@@ -105,6 +107,7 @@ struct IosIdentity {
             kSecValueRef: certificate,
             kSecAttrLabel: certLabel,
             kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
+            kSecUseDataProtectionKeychain: false,
         ]
         SecItemDelete([kSecClass: kSecClassCertificate, kSecAttrLabel: certLabel] as CFDictionary)
         let status = SecItemAdd(add as CFDictionary, nil)
