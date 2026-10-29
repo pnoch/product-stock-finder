@@ -46,13 +46,15 @@ not the complete Phase 1 release from the master product brief.
   order ID and item title.
 - SQLDelight/SQLite transactions, foreign keys, indexes, bounded list queries,
   empty version-1/2/3/4/5 schema snapshots, and migration verification.
-- A first real carrier connector for Thailand Post. The user supplies an API
-  key, stored only in the platform SecretStore; the app requests a token and
-  tracking data directly from Thailand Post. Events preserve the raw carrier
-  description, timestamp and timezone, use provider provenance, and are
-  deduplicated. A package records its selected carrier id. Mock-HTTP tests cover
-  auth, successful mapping, Buddhist-era timestamps, unauthorized/rate-limited/
-  missing/malformed responses and network failures. **No live request has been
+- A BYOK Thailand Post connector through TrackingMore. The user supplies a
+  TrackingMore API key, stored only in the platform SecretStore; the app calls
+  TrackingMore with `courier_code=thailand-post` and maps the returned events.
+  Events preserve the raw carrier description/timestamp, use provider
+  provenance, and are deduplicated. A package records its selected carrier id.
+  Mock-HTTP tests cover successful mapping, pending/unauthorized/bad-request
+  responses and network failures. A live create request succeeded with a
+  TrackingMore trial key; the sample number was still pending, so event mapping
+  is MockEngine-tested. **No live event mapping has been
   verified without a real API key.**
 - Link-only choices for **SPX Express, LEX (Lazada), KEX/Kerry, Flash Express,
   J&T Express and Ninja Van**. KEX/Flash/J&T/Ninja Van open the carrier's own
@@ -229,8 +231,8 @@ Latest verified artifacts (outside git):
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `omnishop-native-0.1.0-universal.apk` | `abb9896df0e3a8a737e14e9e55a62ca7e029559b47bfe56f66d5d04ae73979d5` |
-| `omnishop_1.0.0_amd64.deb` | `0173cb1d615eba5b3df0e1d8adc5e73ba09904814ab8e0d6288a9ab8a64cf818` |
+| `omnishop-native-0.1.0-universal.apk` | `486b593828529e9b09862ba4f4ece639d11f9687af5a6fc9e77491024ccb1457` |
+| `omnishop_1.0.0_amd64.deb` | `902fadd396caafb2b072c39cab23840ce9e0699277d68556c6c0d71085c45a95` |
 
 Share page: `http://172.23.194.22:8897/` (old 5.28.2 APK, native preview APK and
 Linux `.deb`). Verify with `curl -fsS http://172.23.194.22:8897/SHA256SUMS`.
@@ -346,20 +348,21 @@ merchant, submit a claim, or initiate a payment.
 
 ## Carrier tracking (Thailand Post)
 
-Profile → Carrier connections takes a Thailand Post API key. It is written to
-the platform SecretStore (Android Keystore, desktop OS credential store, iOS
-Keychain) and is never stored in SQLite or included in backups. Tracking
-requests go directly from the device to
-`trackapi.thailandpost.co.th`; there is no OmniShop token broker or server.
+Profile → Carrier connections takes a **TrackingMore API key** (BYOK). It is
+written to the platform SecretStore (Android Keystore, desktop OS credential
+store, iOS Keychain) and is never stored in SQLite or included in backups.
+Tracking requests go directly from the device to `api.trackingmore.com` with
+`courier_code=thailand-post`; there is no OmniShop token broker or server, and no
+built-in aggregator quota.
 
 When adding a package, choose **Thailand Post API** to store the carrier id.
 The shipment card then offers **Refresh tracking**. Without a saved key the UI
 states that a key is required and sends no request. With a key, the adapter
-requests a token, posts the barcode, maps events, and saves them with
+creates/refreshes the TrackingMore shipment, maps events, and saves them with
 `source=thailandpost` and provider provenance. Duplicate provider events are
-ignored by the existing event key. Raw descriptions, Buddhist-era timestamps and
-timezone offsets are retained; the timestamp parser converts them to UTC only
-when the offset is present.
+ignored by the existing event key. Raw descriptions and timestamps are retained;
+TrackingMore timestamps are left as original text because the API does not
+guarantee an offset.
 
 For carriers without an authorized API, choose the link-only chip. **SPX
 Express** and **LEX (Lazada)** open a 17TRACK lookup; **KEX/Kerry**, **Flash**,
@@ -375,13 +378,13 @@ Current limits:
   carrier code table. Unknown descriptions stay `UNKNOWN`.
 - The carrier's location is appended to the preserved description rather than
   stored in a dedicated location column.
-- Each refresh authenticates again; there is no token/rate-limit cache, retry
-  queue, background polling, estimated-delivery fetch or multi-item tracking
-  request.
-- Only Thailand Post has an API adapter. SPX, LEX, KEX, Flash, J&T and Ninja Van
-  are link-only; 17TRACK is a third-party lookup for SPX/LEX, not the carrier's
-  API. Live Thailand Post access requires a valid API key and has not been
-  verified in this environment; MockEngine tests are not a substitute.
+- Each refresh creates/refreshes one TrackingMore shipment; there is no
+  rate-limit cache, retry queue, background polling, estimated-delivery fetch or
+  multi-item tracking request. TrackingMore credits are the user's own.
+- Only Thailand Post has a live BYOK adapter, via TrackingMore. SPX, LEX, KEX,
+  Flash, J&T and Ninja Van are link-only; 17TRACK is a third-party lookup for
+  SPX/LEX, not the carrier's API. TrackingMore live create was verified with a
+  trial key; live event mapping still needs a shipment with events.
 - Return-carrier tracking is not connected to the returns module.
 
 ## iOS host notes

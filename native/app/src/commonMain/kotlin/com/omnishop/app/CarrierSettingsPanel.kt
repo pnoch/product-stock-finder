@@ -26,7 +26,7 @@ internal fun CarrierSettingsPanel(language: AppLanguage, settings: CarrierSettin
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(language.text(Label.CARRIER_CONNECTION), style = MaterialTheme.typography.titleMedium)
         Text(
-            "Thailand Post · ${language.text(if (configured) Label.CONFIGURED else Label.NOT_CONFIGURED)}",
+            "Thailand Post · TrackingMore · ${language.text(if (configured) Label.CONFIGURED else Label.NOT_CONFIGURED)}",
             style = MaterialTheme.typography.bodyMedium,
         )
         OutlinedTextField(

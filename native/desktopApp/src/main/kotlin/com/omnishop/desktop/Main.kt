@@ -6,7 +6,7 @@ import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.unit.dp
 import com.omnishop.app.OmniShopApp
 import com.omnishop.app.ShopPresenter
-import com.omnishop.carriers.ThailandPostAdapter
+import com.omnishop.carriers.TrackingMoreAdapter
 import com.omnishop.data.BackupService
 import com.omnishop.data.CarrierSettings
 import com.omnishop.data.ReceiptService
@@ -67,7 +67,7 @@ fun main() {
                 icon = painterResource(Res.drawable.omnishop)) {
                 OmniShopApp(
                         presenter, backup, privateService, receiptService, syncPackages, syncService, carrierSettings,
-                        listOf(ThailandPostAdapter()), DesktopBackupFiles(),
+                        listOf(TrackingMoreAdapter()), DesktopBackupFiles(),
                     ) {
                         Desktop.getDesktop().browse(URI(validatedBookmarkUrl(it)))
                     }

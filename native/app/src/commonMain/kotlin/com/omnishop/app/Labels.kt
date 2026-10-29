@@ -75,7 +75,7 @@ private val english = mapOf(
     Label.UPDATE_RETURN to "Update return", Label.REFUND_AMOUNT to "Refund amount",
     Label.RECORDED_REFUND to "Recorded refund", Label.RETURN_TRACKING to "Return tracking number (optional)",
     Label.RETURN_NOTES to "Return / refund notes (optional)",
-    Label.CARRIER_CONNECTION to "Carrier connections", Label.THAILAND_POST_API_KEY to "Thailand Post API key",
+    Label.CARRIER_CONNECTION to "Carrier connections", Label.THAILAND_POST_API_KEY to "TrackingMore API key",
     Label.API_KEY_HINT to "Stored only in the device's secure store. Requests go directly to Thailand Post; no OmniShop server is involved.",
     Label.API_KEY_SAVED to "API key saved.", Label.API_KEY_CLEARED to "API key removed.",
     Label.API_KEY_CLEAR to "Remove key", Label.CONFIGURED to "Configured", Label.NOT_CONFIGURED to "Not configured",
