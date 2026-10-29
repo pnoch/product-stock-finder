@@ -34,6 +34,15 @@ class TrackingMoreAdapter(
     override fun matches(trackingNumber: String): Boolean =
         TRACKING_NUMBER.matches(trackingNumber.trim().uppercase())
 
+    suspend fun validateKey(apiKey: String): Boolean {
+        if (apiKey.isBlank()) return false
+        return runCatching {
+            client.get("https://api.trackingmore.com/v4/couriers") {
+                header("Tracking-Api-Key", apiKey.trim())
+            }.status.isSuccess()
+        }.getOrDefault(false)
+    }
+
     override suspend fun track(
         trackingNumber: String,
         credentials: CarrierCredentials,
@@ -175,9 +184,10 @@ class TrackingMoreAdapter(
 
     private fun metaFailure(meta: Meta?): CarrierResult {
         val message = meta?.message ?: "TrackingMore rejected the tracking request"
-        return when (meta?.code) {
-            401, 403 -> failure(CarrierProblem.UNAUTHORIZED, message)
-            429 -> failure(CarrierProblem.RATE_LIMITED, message)
+        val credits = message.contains("credit", ignoreCase = true) || message.contains("quota", ignoreCase = true)
+        return when {
+            meta?.code == 401 || meta?.code == 403 -> failure(CarrierProblem.UNAUTHORIZED, message)
+            meta?.code == 429 || credits -> failure(CarrierProblem.RATE_LIMITED, message)
             else -> failure(CarrierProblem.PROTOCOL, message)
         }
     }

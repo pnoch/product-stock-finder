@@ -56,6 +56,12 @@ class TrackingMoreAdapterTest {
         assertEquals(1, assertIs<CarrierResult.Success>(result).tracking.events.size)
     }
 
+    @Test fun validatesApiKeys() = runBlocking {
+        assertTrue(adapter { json("""{"meta":{"code":200},"data":[]}""") }.validateKey("good"))
+        assertFalse(adapter { json("{}", HttpStatusCode.Unauthorized) }.validateKey("bad"))
+        assertFalse(adapter { json("{}") }.validateKey(""))
+    }
+
     @Test fun mapsStatusHintsAndRateLimits() = runBlocking {
         val delivered = adapter { json("""{"meta":{"code":200},"data":{"origin_info":{"trackinfo":[
           {"checkpoint_date":"2026-10-26T06:18:39","checkpoint_delivery_status":"delivered","tracking_detail":"At destination"}

@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.omnishop.carriers.TrackingMoreAdapter
 import com.omnishop.data.CarrierSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -51,6 +52,16 @@ internal fun CarrierSettingsPanel(language: AppLanguage, settings: CarrierSettin
                     working = false
                 }
             }) { Text(language.text(Label.SAVE)) }
+            OutlinedButton(enabled = key.isNotBlank() && !working, onClick = {
+                working = true
+                scope.launch {
+                    val valid = withContext(Dispatchers.Default) {
+                        TrackingMoreAdapter().validateKey(key)
+                    }
+                    message = language.text(if (valid) Label.KEY_VALID else Label.KEY_INVALID)
+                    working = false
+                }
+            }) { Text(language.text(Label.TEST_KEY)) }
             if (configured) {
                 TextButton(enabled = !working, onClick = {
                     working = true
