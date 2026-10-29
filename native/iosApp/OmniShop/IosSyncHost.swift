@@ -13,7 +13,7 @@ final class IosSyncHost {
     private(set) var port: UInt16 = 8787
     var syncHandler: ((SyncBatch) -> SyncBatch?)?
     var onPeerPaired: ((String, String, String, String, String) -> Void)?
-    private var pairedDeviceIds = Set<String>()
+    private var pairedFingerprints = Set<String>()
 
     private let advertisedHost: String?
 
@@ -81,6 +81,15 @@ final class IosSyncHost {
 
     func close() { listener?.cancel() }
 
+    private func peerFingerprint(_ connection: NWConnection) -> String? {
+        guard let metadata = connection.metadata(definition: NWProtocolTLS.definition) as? NWProtocolTLS.Metadata,
+              let chain = sec_protocol_metadata_copy_peer_certificate_chain(metadata.securityProtocolMetadata)?
+                .takeRetainedValue() as? [SecCertificate],
+              let certificate = chain.first else { return nil }
+        return SHA256.hash(data: SecCertificateCopyData(certificate) as Data)
+            .map { String(format: "%02x", $0) }.joined()
+    }
+
     private func localIPv4() -> String {
         var address: String? = nil
         var interfaces: UnsafeMutablePointer<ifaddrs>?
@@ -138,10 +147,14 @@ final class IosSyncHost {
                     try send(connection, WireMessage(type: "error", message: "Pairing code rejected"))
                     connection.cancel(); return
                 }
-                let clientFingerprint = message.fingerprint ?? ""
+                guard let clientFingerprint = peerFingerprint(connection),
+                      message.fingerprint == clientFingerprint else {
+                    try send(connection, WireMessage(type: "error", message: "Client fingerprint mismatch"))
+                    connection.cancel(); return
+                }
                 let sas = sas(secret: secret, hostFingerprint: identity.fingerprint, clientFingerprint: clientFingerprint)
                 let deviceId = message.deviceId ?? ""
-                pairedDeviceIds.insert(deviceId)
+                pairedFingerprints.insert(clientFingerprint)
                 onPeerPaired?(deviceId, message.name ?? "Device", "\(localIPv4()):\(port)", clientFingerprint, sas)
                 try send(connection, WireMessage(
                     type: "paired", deviceId: identity.deviceId, name: "iOS",
@@ -149,7 +162,8 @@ final class IosSyncHost {
                 ))
                 self.secret = nil
             case "sync":
-                guard let deviceId = message.deviceId, pairedDeviceIds.contains(deviceId) else {
+                guard let clientFingerprint = peerFingerprint(connection),
+                      pairedFingerprints.contains(clientFingerprint) else {
                     try send(connection, WireMessage(type: "error", message: "Unknown peer"))
                     connection.cancel(); return
                 }
