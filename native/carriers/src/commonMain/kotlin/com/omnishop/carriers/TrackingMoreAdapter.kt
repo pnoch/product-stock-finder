@@ -228,17 +228,7 @@ class TrackingMoreAdapter(
 }
 
 object TrackingMoreCarriers {
-    private val GENERIC = Regex("^[A-Za-z0-9-]{4,40}$")
-
-    val all: List<TrackingMoreAdapter> = listOf(
-        TrackingMoreAdapter(),
-        TrackingMoreAdapter("flash", "Flash Express · TrackingMore", null, GENERIC),
-        TrackingMoreAdapter("jnt", "J&T Express · TrackingMore", null, GENERIC),
-        TrackingMoreAdapter("ninjavan", "Ninja Van · TrackingMore", null, GENERIC),
-        TrackingMoreAdapter("kex", "KEX / Kerry Express · TrackingMore", null, GENERIC),
-        TrackingMoreAdapter("spx", "SPX Express · TrackingMore", null, GENERIC),
-        TrackingMoreAdapter("lex", "LEX (Lazada) · TrackingMore", null, GENERIC),
-    )
+    val all: List<TrackingMoreAdapter> = listOf(TrackingMoreAdapter())
 }
 
 @Serializable
