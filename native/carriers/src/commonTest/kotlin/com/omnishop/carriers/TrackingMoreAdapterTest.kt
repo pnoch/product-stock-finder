@@ -56,6 +56,17 @@ class TrackingMoreAdapterTest {
         assertEquals(1, assertIs<CarrierResult.Success>(result).tracking.events.size)
     }
 
+    @Test fun mapsStatusHintsAndRateLimits() = runBlocking {
+        val delivered = adapter { json("""{"meta":{"code":200},"data":{"origin_info":{"trackinfo":[
+          {"checkpoint_date":"2026-10-26T06:18:39","checkpoint_delivery_status":"delivered","tracking_detail":"At destination"}
+        ]}}}""") }.track("JD282523205TH", CarrierCredentials("key"))
+        assertEquals(com.omnishop.core.ShipmentStatus.DELIVERED, assertIs<CarrierResult.Success>(delivered).tracking.events.single().status)
+
+        val rateLimited = adapter { json("""{"meta":{"code":429,"message":"Too many requests"}}""", HttpStatusCode.TooManyRequests) }
+            .track("JD282523205TH", CarrierCredentials("key"))
+        assertEquals(CarrierProblem.RATE_LIMITED, assertIs<CarrierResult.Failure>(rateLimited).failure.problem)
+    }
+
     @Test fun mapsPendingUnauthorizedAndBadRequest() = runBlocking {
         val pending = adapter { json("""{"meta":{"code":200},"data":{"origin_info":{"trackinfo":[]}}}""") }
             .track("ED852942182TH", CarrierCredentials("key"))

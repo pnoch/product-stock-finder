@@ -69,7 +69,7 @@ class TrackingMoreAdapter(
                 return failure(CarrierProblem.PROTOCOL, "TrackingMore returned an unreadable response")
             }
             if (body.meta?.code != 200) {
-                return failure(CarrierProblem.PROTOCOL, body.meta?.message ?: "TrackingMore rejected the tracking request")
+                return metaFailure(body.meta)
             }
             val data = body.data ?: return failure(CarrierProblem.NOT_FOUND, "TrackingMore returned no tracking data")
             val items = buildList {
@@ -99,12 +99,17 @@ class TrackingMoreAdapter(
             parameter("tracking_numbers", tracking)
             parameter("courier_code", "thailand-post")
         }
+        when (response.status.value) {
+            401, 403 -> return failure(CarrierProblem.UNAUTHORIZED, "TrackingMore rejected the API key")
+            429 -> return failure(CarrierProblem.RATE_LIMITED, "TrackingMore is rate limiting requests")
+        }
         if (!response.status.isSuccess()) {
             return failure(CarrierProblem.UNAVAILABLE, "TrackingMore lookup failed (${response.status.value})")
         }
         val body = runCatching { json.decodeFromString<GetResponse>(response.bodyAsText()) }.getOrElse {
             return failure(CarrierProblem.PROTOCOL, "TrackingMore returned an unreadable response", it)
         }
+        if (body.meta?.code != 200) return metaFailure(body.meta)
         val data = body.data.firstOrNull()
             ?: return failure(CarrierProblem.NOT_FOUND, "TrackingMore returned no tracking data")
         val items = buildList {
@@ -128,7 +133,7 @@ class TrackingMoreAdapter(
         ).joinToString("|")
         return CarrierEvent(
             sourceEventId = eventKey,
-            status = normalizeStatus(description),
+            status = normalizeStatus(description, item.checkpoint_delivery_status),
             description = if (location != null) "$description — $location" else description,
             occurredAtEpochMillis = null,
             originalTimestamp = timestamp,
@@ -136,9 +141,9 @@ class TrackingMoreAdapter(
         )
     }
 
-    private fun normalizeStatus(description: String): ShipmentStatus {
+    private fun normalizeStatus(description: String, hint: String?): ShipmentStatus {
         val text = description.lowercase()
-        return when {
+        val fromDescription = when {
             text.contains("นำจ่ายไม่สำเร็จ") || text.contains("delivery attempt") ||
                 text.contains("attempted") || text.contains("พยายามนำจ่าย") -> ShipmentStatus.DELIVERY_ATTEMPTED
             text.contains("นำจ่ายสำเร็จ") || text.contains("delivered") ||
@@ -150,13 +155,30 @@ class TrackingMoreAdapter(
             text.contains("สูญหาย") || text.contains("lost") -> ShipmentStatus.LOST
             text.contains("ยกเลิก") || text.contains("cancel") -> ShipmentStatus.CANCELLED
             text.contains("ถึงศูนย์") || text.contains("arrived at") -> ShipmentStatus.ARRIVED_AT_LOCAL_FACILITY
-            text.contains("รับฝาก") || text.contains("ฝากส่ง") || text.contains("accepted") ->
-                ShipmentStatus.SHIPPED
-            text.contains("out for delivery") -> ShipmentStatus.OUT_FOR_DELIVERY
-            text.contains("posting/collection") || text.contains("posting") -> ShipmentStatus.SHIPPED
+            text.contains("รับฝาก") || text.contains("ฝากส่ง") || text.contains("accepted") ||
+                text.contains("posting/collection") || text.contains("posting") -> ShipmentStatus.SHIPPED
             text.contains("ขนส่ง") || text.contains("คัดแยก") || text.contains("in transit") ||
                 text.contains("departure") || text.contains("arrival") -> ShipmentStatus.IN_TRANSIT
             else -> ShipmentStatus.UNKNOWN
+        }
+        if (fromDescription != ShipmentStatus.UNKNOWN) return fromDescription
+        val normalizedHint = hint.orEmpty().lowercase()
+        return when {
+            normalizedHint.contains("delivered") -> ShipmentStatus.DELIVERED
+            normalizedHint.contains("outfordelivery") -> ShipmentStatus.OUT_FOR_DELIVERY
+            normalizedHint.contains("pickup") -> ShipmentStatus.SHIPPED
+            normalizedHint.contains("transit") -> ShipmentStatus.IN_TRANSIT
+            normalizedHint.contains("exception") || normalizedHint.contains("expired") -> ShipmentStatus.EXCEPTION
+            else -> ShipmentStatus.UNKNOWN
+        }
+    }
+
+    private fun metaFailure(meta: Meta?): CarrierResult {
+        val message = meta?.message ?: "TrackingMore rejected the tracking request"
+        return when (meta?.code) {
+            401, 403 -> failure(CarrierProblem.UNAUTHORIZED, message)
+            429 -> failure(CarrierProblem.RATE_LIMITED, message)
+            else -> failure(CarrierProblem.PROTOCOL, message)
         }
     }
 

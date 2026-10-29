@@ -230,8 +230,8 @@ Latest verified artifacts (outside git):
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `omnishop-native-0.1.0-universal.apk` | `301b97930e3438027eacdc69b30fec75cd482c2e2346e45c50d2c3f8a2ccbee0` |
-| `omnishop_1.0.0_amd64.deb` | `e299e33992e2fc86f8f285dc8928facd638de35cbcaaf8307ef391f0dffff66f` |
+| `omnishop-native-0.1.0-universal.apk` | `a7d0010ef76d7880e732d0a4fbdb9ef5ccf430c464e9f4e7e59202af4e1a494b` |
+| `omnishop_1.0.0_amd64.deb` | `6ba506750b01397597bec0f1f6e7e776bd154c78f67d5a7244e2fb3fa5ad159c` |
 
 Share page: `http://172.23.194.22:8897/` (old 5.28.2 APK, native preview APK and
 Linux `.deb`). Verify with `curl -fsS http://172.23.194.22:8897/SHA256SUMS`.
