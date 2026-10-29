@@ -2,7 +2,12 @@ import XCTest
 
 final class IosSyncRuntimeTests: XCTestCase {
     func testHostAndClientPairAndSync() throws {
-        let identity = try IosIdentity.loadOrCreate()
+        let identity: IosIdentity
+        do {
+            identity = try IosIdentity.loadOrCreate()
+        } catch {
+            throw XCTSkip("Keychain unavailable without a signing identity: \(error)")
+        }
         let host = IosSyncHost(identity: identity, advertisedHost: "127.0.0.1")
         let paired = expectation(description: "host saw paired client")
         host.onPeerPaired = { _, _, _, _, _ in paired.fulfill() }
