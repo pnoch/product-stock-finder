@@ -3,11 +3,6 @@ import Network
 import Security
 import CryptoKit
 
-@_silgen_name("sec_protocol_metadata_copy_peer_certificate_chain")
-private func sec_protocol_metadata_copy_peer_certificate_chain(
-    _ metadata: sec_protocol_metadata_t
-) -> CFArray?
-
 final class IosSyncHost {
     private let identity: IosIdentity
     private let queue = DispatchQueue(label: "com.omnishop.sync.host")
@@ -87,12 +82,16 @@ final class IosSyncHost {
     func close() { listener?.cancel() }
 
     private func peerFingerprint(_ connection: NWConnection) -> String? {
-        guard let metadata = connection.metadata(definition: NWProtocolTLS.definition) as? NWProtocolTLS.Metadata,
-              let chain = sec_protocol_metadata_copy_peer_certificate_chain(metadata.securityProtocolMetadata)
-                as? [SecCertificate],
-              let certificate = chain.first else { return nil }
-        return SHA256.hash(data: SecCertificateCopyData(certificate) as Data)
-            .map { String(format: "%02x", $0) }.joined()
+        guard let metadata = connection.metadata(definition: NWProtocolTLS.definition) as? NWProtocolTLS.Metadata else {
+            return nil
+        }
+        var fingerprint: String?
+        sec_protocol_metadata_access_peer_certificate_chain(metadata.securityProtocolMetadata) { certificate in
+            guard fingerprint == nil else { return }
+            let data = SecCertificateCopyData(certificate as! SecCertificate) as Data
+            fingerprint = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        }
+        return fingerprint
     }
 
     private func localIPv4() -> String {
