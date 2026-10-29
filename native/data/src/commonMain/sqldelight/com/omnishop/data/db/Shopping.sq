@@ -335,6 +335,9 @@ WHERE collection IN :collections
 ORDER BY updated_at, origin_device, id
 LIMIT :limit;
 
+migrateLocalOrigin:
+UPDATE sync_meta SET origin_device = ? WHERE origin_device = 'local';
+
 deleteAllSyncMeta:
 DELETE FROM sync_meta;
 

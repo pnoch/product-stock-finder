@@ -16,6 +16,7 @@ class ShoppingStore(
     fun setOriginDevice(deviceId: String) {
         require(deviceId.isNotBlank()) { "Device id must not be blank" }
         originDevice = deviceId
+        queries.migrateLocalOrigin(deviceId)
     }
 
     private val database = OmniShopDatabase(driver)
