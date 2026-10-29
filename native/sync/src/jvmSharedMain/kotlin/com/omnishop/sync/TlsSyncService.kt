@@ -161,20 +161,33 @@ class TlsSyncService(
         runCatching {
         val peer = loadPeers().firstOrNull { it.deviceId == peerId }
             ?: error("Paired device not found")
-        val local = allLocalChanges()
-        require(SyncJson.encodeBatch(local).encodeToByteArray().size <= MAX_SYNC_PAYLOAD) {
-            "Sync batch exceeds 24 MB; use a sync package"
+        var localCursor = SyncCursor.START
+        var remoteCursor = SyncCursor.START
+        var applied = 0
+        var sent = 0
+        var completed: SyncResult? = null
+        for (page in 0 until MAX_SYNC_PAGES) {
+            val local = limitedBatch(localCursor)
+            val connection = connectFromEndpoint(peer.endpoint, peer.fingerprint)
+            connection.use {
+                send(it, WireMessage(type = "sync", deviceId = identity.deviceId, batch = local, cursor = remoteCursor))
+                val response = receive(it)
+                require(response.type == "sync") { response.message ?: "Sync rejected" }
+                val remote = requireNotNull(response.batch)
+                applied += engine.apply(remote.changes)
+                sent += local.changes.size
+                val localDone = local.changes.isEmpty() && local.cursor == localCursor
+                val remoteDone = remote.changes.isEmpty() && remote.cursor == remoteCursor
+                localCursor = local.cursor
+                remoteCursor = remote.cursor
+                if (localDone && remoteDone) {
+                    savePeer(peer.copy(lastSyncAt = now()))
+                    completed = SyncResult.Success(applied, sent)
+                    break
+                }
+            }
         }
-        val socket = connectFromEndpoint(peer.endpoint, peer.fingerprint)
-        socket.use {
-            send(it, WireMessage(type = "sync", batch = local))
-            val response = receive(it)
-            require(response.type == "sync") { response.message ?: "Sync rejected" }
-            val remote = requireNotNull(response.batch)
-            val applied = engine.apply(remote.changes)
-            savePeer(peer.copy(lastSyncAt = now()))
-            SyncResult.Success(applied, local.changes.size)
-        }
+        completed ?: error("Sync did not converge")
         }.getOrElse { SyncResult.Failure(it.message ?: "Sync failed") }
     }
 
@@ -239,7 +252,7 @@ class TlsSyncService(
                 }
                 val incoming = requireNotNull(message.batch)
                 engine.apply(incoming.changes)
-                val local = allLocalChanges()
+                val local = limitedBatch(message.cursor ?: SyncCursor.START)
                 savePeer(peer.copy(lastSyncAt = now()))
                 send(socket, WireMessage(type = "sync", batch = local))
             }
@@ -247,17 +260,8 @@ class TlsSyncService(
         }
     }
 
-    private fun allLocalChanges(): SyncBatch {
-        val changes = mutableListOf<SyncChange>()
-        var cursor = SyncCursor.START
-        while (true) {
-            val batch = engine.localChanges(cursor, 500)
-            changes += batch.changes
-            if (batch.changes.isEmpty() || batch.cursor == cursor) break
-            cursor = batch.cursor
-        }
-        return SyncBatch(changes, cursor)
-    }
+    private fun limitedBatch(cursor: SyncCursor): SyncBatch =
+        SyncPager.limit(engine.localChanges(cursor, 500), MAX_SYNC_PAYLOAD)
 
     private fun connect(host: String, port: Int, pinnedFingerprint: String): SSLSocket {
         val context = clientContext(identity, pinnedFingerprint)
@@ -428,6 +432,7 @@ class TlsSyncService(
         val fingerprint: String? = null,
         val sas: String? = null,
         val batch: SyncBatch? = null,
+        val cursor: SyncCursor? = null,
         val message: String? = null,
     )
 
@@ -436,6 +441,7 @@ class TlsSyncService(
         const val DEFAULT_PORT = 8787
         const val MAX_FRAME = 32 * 1024 * 1024
         const val MAX_SYNC_PAYLOAD = 24 * 1024 * 1024
+        const val MAX_SYNC_PAGES = 10_000
         const val PAIRING_LIFETIME_MILLIS = 5 * 60 * 1000L
         const val TEN_YEARS_MILLIS = 10L * 365 * 24 * 60 * 60 * 1000
         const val ALIAS = "device"
